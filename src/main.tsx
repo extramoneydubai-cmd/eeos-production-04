@@ -87,6 +87,7 @@ const MasterDataSalesQuotationStatuses = lazy(() => import("./pages/studios/Mast
 const MasterDataPaymentStatuses = lazy(() => import("./pages/studios/MasterDataPaymentStatuses.tsx"));
 const MasterDataInvoiceTypes = lazy(() => import("./pages/studios/MasterDataInvoiceTypes.tsx"));
 const MasterDataTaxSlabs = lazy(() => import("./pages/studios/MasterDataTaxSlabs.tsx"));
+const MasterDataSalesTerritories = lazy(() => import("./pages/studios/MasterDataSalesTerritories.tsx"));
 const MasterDataEmployeeCategories = lazy(() => import("./pages/studios/MasterDataEmployeeCategories.tsx"));
 const MasterDataWorkLocations = lazy(() => import("./pages/studios/MasterDataWorkLocations.tsx"));
 const MasterDataSkills = lazy(() => import("./pages/studios/MasterDataSkills.tsx"));
@@ -248,6 +249,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/studios/master-data/sales/payment-statuses" element={<ProtectedRoute><MasterDataPaymentStatuses /></ProtectedRoute>} />
               <Route path="/studios/master-data/sales/invoice-types" element={<ProtectedRoute><MasterDataInvoiceTypes /></ProtectedRoute>} />
               <Route path="/studios/master-data/sales/tax-slabs" element={<ProtectedRoute><MasterDataTaxSlabs /></ProtectedRoute>} />
+              <Route path="/studios/master-data/sales/territories" element={<ProtectedRoute><MasterDataSalesTerritories /></ProtectedRoute>} />
               <Route path="/studios/master-data/hr/employee-categories" element={<ProtectedRoute><MasterDataEmployeeCategories /></ProtectedRoute>} />
               <Route path="/studios/master-data/hr/work-locations" element={<ProtectedRoute><MasterDataWorkLocations /></ProtectedRoute>} />
               <Route path="/studios/master-data/hr/skills" element={<ProtectedRoute><MasterDataSkills /></ProtectedRoute>} />
