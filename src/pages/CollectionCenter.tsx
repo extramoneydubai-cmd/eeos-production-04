@@ -147,7 +147,7 @@ export default function CollectionCenter() {
   const expandedLead = expandedLeadId ? filtered.find((l) => l.leadId === expandedLeadId) : null;
 
   const handleInitiateCall = (leadPhone: string) => {
-    window.open(`tel:${leadPhone.replace(/[^0-9]/g, "")}`, "_self");
+    window.open(`tel:${(leadPhone || "").replace(/[^0-9]/g, "")}`, "_self");
     setTimeout(() => setShowCallDialog(true), 500);
   };
 

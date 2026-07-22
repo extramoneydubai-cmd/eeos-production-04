@@ -304,7 +304,7 @@ export default function SalesTasksPage() {
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <Avatar className="h-8 w-8 shrink-0">
                       <AvatarFallback className="text-[9px] bg-[#f1f3f4] text-[#5f6368]">
-                        {lead.firstName[0]}{lead.lastName[0]}
+                        {(lead.firstName || "?")[0]}{(lead.lastName || "")[0] || "?"}
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
@@ -464,7 +464,7 @@ export default function SalesTasksPage() {
                                       className="h-6 w-6 text-[#25D366]"
                                       title="Send WhatsApp"
                                       onClick={() => {
-                                        const phone = lead.phone.replace(/[^0-9]/g, "");
+                                        const phone = (lead.phone || "").replace(/[^0-9]/g, "");
                                         window.open(`https://wa.me/91${phone}?text=${encodeURIComponent("Hi! Following up on your pending task: " + task.title)}`, "_blank");
                                       }}
                                     >
