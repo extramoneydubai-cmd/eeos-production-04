@@ -6,6 +6,83 @@ import { LEAD_PIPELINE_STAGES } from "./crmHelpers";
 // CRM DASHBOARD
 // ============================
 
+// ============================
+// CONVERSION HISTORY
+// ============================
+
+export const getConversionHistory = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 50;
+
+    // Get all stage history entries for "converted"
+    const allStageHistory = await ctx.db.query("leadStageHistory").collect();
+    const convertedEntries = allStageHistory
+      .filter((h) => h.toStage === "converted")
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, limit);
+
+    if (convertedEntries.length === 0) return [];
+
+    // Batch fetch leads, payments, users
+    const leadIds = [...new Set(convertedEntries.map((e) => e.leadId))];
+    const userIds = [
+      ...new Set(convertedEntries.map((e) => e.changedBy)),
+    ];
+
+    const [leads, allPayments, users] = await Promise.all([
+      Promise.all(leadIds.map((id) => ctx.db.get(id))),
+      ctx.db.query("leadPayments").collect(),
+      Promise.all(userIds.map((id) => ctx.db.get(id))),
+    ]);
+
+    const leadMap = new Map(leads.filter(Boolean).map((l) => [l!._id, l!]));
+    const userMap = new Map(users.filter(Boolean).map((u) => [u!._id, u!]));
+
+    // Group payments by lead
+    const paymentsByLead = new Map<string, typeof allPayments>();
+    for (const p of allPayments) {
+      const key = p.leadId;
+      if (!paymentsByLead.has(key)) paymentsByLead.set(key, []);
+      paymentsByLead.get(key)!.push(p);
+    }
+
+    return convertedEntries.map((entry) => {
+      const lead = leadMap.get(entry.leadId);
+      const user = userMap.get(entry.changedBy);
+
+      // Find the most recent verified payment that preceded the conversion
+      const leadPayments = paymentsByLead.get(entry.leadId) || [];
+      const verifiedPayments = leadPayments
+        .filter((p) => p.status === "verified" && p.verifiedAt && p.verifiedAt <= entry.createdAt)
+        .sort((a, b) => (b.verifiedAt || 0) - (a.verifiedAt || 0));
+
+      const triggerPayment = verifiedPayments.length > 0 ? verifiedPayments[0] : null;
+      const totalVerified = verifiedPayments.reduce((s, p) => s + p.amount, 0);
+
+      return {
+        _id: entry._id,
+        leadId: entry.leadId,
+        leadName: lead ? `${lead.firstName} ${lead.lastName}` : "Unknown",
+        leadPhone: lead?.phone || "—",
+        leadOwnerId: lead?.ownerId,
+        changedBy: user?.name || "System",
+        changedById: entry.changedBy,
+        convertedAt: entry.createdAt,
+        note: entry.note || "",
+        triggerPaymentAmount: triggerPayment?.amount || 0,
+        triggerPaymentMode: triggerPayment?.mode || "—",
+        triggerPaymentVerifiedAt: triggerPayment?.verifiedAt || 0,
+        totalVerifiedPaid: totalVerified,
+        paymentCount: verifiedPayments.length,
+        isAutoConversion: entry.note?.includes("Auto-converted") || false,
+      };
+    });
+  },
+});
+
 export const getCrmDashboardData = query({
   args: {
     userId: v.id("users"),

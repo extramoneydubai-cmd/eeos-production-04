@@ -47,7 +47,7 @@ export { getLeadWhatsAppMessages, sendWhatsAppMessage } from "./crmWhatsApp";
 export { getLeadPayments, getAllLeadsPayments, addPayment, verifyPayment } from "./crmPayments";
 
 // CRM Dashboard
-export { getCrmDashboardData } from "./crmDashboard";
+export { getCrmDashboardData, getConversionHistory } from "./crmDashboard";
 
 // Sales Performance Dashboard (imports helpers from ./salesPerformance)
 export { getSalesPerformanceDashboard } from "./crmSales";

@@ -66,6 +66,7 @@ export default function CrmDashboard() {
   const dashboard = useQuery(api.crm.getCrmDashboardData,
     user ? { userId: user._id, dateFilter, filterMode } : "skip");
   const pendingApprovals = useQuery(api.crm.getAllPendingApprovals, user ? { userId: user._id } : "skip");
+  const conversionHistory = useQuery(api.crm.getConversionHistory, user ? {} : "skip");
   const users = useQuery(api.users.listUsers);
   const collectionDashboard = ENABLE_COLLECTION_DASHBOARD
     ? useQuery(
@@ -551,6 +552,83 @@ export default function CrmDashboard() {
           </div>
         );
       })()}
+
+      {/* Conversion History */}
+      {conversionHistory && conversionHistory.length > 0 && (
+        <Card className="border-[#e8eaed] shadow-sm bg-white">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-sm font-semibold text-[#1a1a2e]">
+                <CheckCircle2 className="h-3.5 w-3.5 inline mr-1.5 text-[#0d652d]" />
+                Conversion History
+              </CardTitle>
+              <CardDescription className="text-[10px] text-[#9aa0a6]">
+                {conversionHistory.length} conversions recorded
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-[11px]">
+                <thead>
+                  <tr className="border-b border-[#e8eaed]">
+                    <th className="text-left text-[10px] text-[#5f6368] font-medium px-4 py-2">Lead</th>
+                    <th className="text-left text-[10px] text-[#5f6368] font-medium px-4 py-2">Phone</th>
+                    <th className="text-left text-[10px] text-[#5f6368] font-medium px-4 py-2">Converted At</th>
+                    <th className="text-left text-[10px] text-[#5f6368] font-medium px-4 py-2">Type</th>
+                    <th className="text-right text-[10px] text-[#5f6368] font-medium px-4 py-2">Payment Amt</th>
+                    <th className="text-left text-[10px] text-[#5f6368] font-medium px-4 py-2">Mode</th>
+                    <th className="text-right text-[10px] text-[#5f6368] font-medium px-4 py-2">Total Paid</th>
+                    <th className="text-left text-[10px] text-[#5f6368] font-medium px-4 py-2">By</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {conversionHistory.map((c: any) => (
+                    <tr
+                      key={c._id}
+                      className="border-b border-[#f1f3f4] hover:bg-[#f8f9fa] transition-colors cursor-pointer"
+                      onClick={() => navigate(`/crm/leads/${c.leadId}`)}
+                    >
+                      <td className="px-4 py-2.5">
+                        <span className="font-medium text-[#1a1a2e]">{c.leadName}</span>
+                      </td>
+                      <td className="px-4 py-2.5 text-[#5f6368]">{c.leadPhone}</td>
+                      <td className="px-4 py-2.5 text-[#5f6368]">
+                        {new Date(c.convertedAt).toLocaleDateString("en-US", {
+                          month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+                        })}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <Badge className={`text-[9px] px-1.5 py-0 h-4 font-medium ${
+                          c.isAutoConversion
+                            ? "bg-[#e6f4ea] text-[#34a853]"
+                            : "bg-[#f1f3f4] text-[#5f6368]"
+                        }`}>
+                          {c.isAutoConversion ? "Auto" : "Manual"}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-medium text-[#1a1a2e]">
+                        ₹{c.triggerPaymentAmount.toLocaleString()}
+                      </td>
+                      <td className="px-4 py-2.5 text-[#5f6368]">
+                        {c.triggerPaymentMode !== "—" ? (
+                          <Badge className="text-[9px] px-1.5 py-0 h-4 bg-[#f1f3f4] text-[#5f6368]">
+                            {c.triggerPaymentMode}
+                          </Badge>
+                        ) : "—"}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-medium text-[#1a1a2e]">
+                        ₹{c.totalVerifiedPaid.toLocaleString()}
+                      </td>
+                      <td className="px-4 py-2.5 text-[#5f6368]">{c.changedBy}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Action buttons */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
