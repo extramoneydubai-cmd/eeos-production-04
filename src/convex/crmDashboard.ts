@@ -99,7 +99,7 @@ export const getCrmDashboardData = query({
     const filterPeriodPayments = dateFrom > 0 ? allPayments.filter((p) => p.createdAt >= dateFrom && p.status === "verified") : verifiedPayments;
     const collectionsTotal = filterPeriodPayments.reduce((s, p) => s + p.amount, 0);
     return {
-      totalLeads: activeLeads.length, activeLeads: activeLeads.length, convertedLeads: convertedLeads.length,
+      totalLeads: pipelineTotalBase, activeLeads: activeLeads.length, convertedLeads: convertedLeads.length,
       lostLeads: allLeads.filter((l) => l.status === "lost").length,
       conversionRate: pipelineTotalBase > 0 ? Math.round((convertedLeads.length / pipelineTotalBase) * 100) : 0,
       pipeline, totalExpectedRevenue, totalDiscountAmount, totalWaiverAmount,

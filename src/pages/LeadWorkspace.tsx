@@ -499,11 +499,15 @@ export default function LeadWorkspace() {
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
-            <Select value={lead.stage} onValueChange={handleStageChange}>
-              <SelectTrigger className="h-8 text-[10px] w-[130px] border-[#e8eaed]"><SelectValue placeholder="Move stage" /></SelectTrigger>
+            <Select value={lead.stage} onValueChange={handleStageChange} disabled={lead.status === "converted"}>
+              <SelectTrigger className="h-8 text-[10px] w-[130px] border-[#e8eaed]">
+                <SelectValue placeholder="Move stage" />
+              </SelectTrigger>
               <SelectContent>
                 {PIPELINE_STAGES.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>
+                  <SelectItem key={s.id} value={s.id} disabled={s.id === "converted" && lead.status !== "converted"}>
+                    {s.label}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -535,9 +539,15 @@ export default function LeadWorkspace() {
                 <Sparkles className="h-3 w-3 mr-1" /> Convert Wizard
               </Button>
             )}
-            {lead.stage !== "converted" && lead.stage !== "lost" && (
+            {lead.stage !== "converted" && lead.stage !== "lost" && lead.status !== "converted" && (
               <Button size="sm" className="h-8 text-[10px] bg-[#34a853] hover:bg-[#2d9249] text-white"
-                onClick={() => handleStageChange("converted")}>
+                onClick={async () => {
+                  try {
+                    await handleStageChange("converted");
+                  } catch (err: any) {
+                    alert(err.message || "Cannot convert lead. A verified payment is required.");
+                  }
+                }}>
                 <CheckCircle2 className="h-3 w-3 mr-1" /> Convert
               </Button>
             )}

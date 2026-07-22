@@ -87,6 +87,21 @@ export const updateLeadStage = mutation({
   handler: async (ctx, args) => {
     const lead = await ctx.db.get(args.leadId);
     if (!lead) throw new Error("Lead not found");
+    
+    // ── Irreversible: Cannot change from converted ──
+    if (lead.status === "converted") {
+      throw new Error("Cannot change stage of a converted lead. Conversion is irreversible.");
+    }
+    
+    // ── Payment validation: Require at least one verified payment to convert ──
+    if (args.stage === "converted") {
+      const payments = await ctx.db.query("leadPayments").withIndex("leadId", (q) => q.eq("leadId", args.leadId)).collect();
+      const verifiedPayments = payments.filter((p) => p.status === "verified");
+      if (verifiedPayments.length === 0) {
+        throw new Error("Cannot convert lead without at least one verified payment.");
+      }
+    }
+    
     const fromStage = lead.stage;
     const now = Date.now();
     await ctx.db.patch(args.leadId, { stage: args.stage, updatedAt: now });
@@ -155,6 +170,17 @@ export const bulkMoveStage = mutation({
     for (const leadId of args.leadIds) {
       const lead = await ctx.db.get(leadId);
       if (!lead) continue;
+      
+      // ── Irreversible: Cannot change from converted ──
+      if (lead.status === "converted") continue;
+      
+      // ── Payment validation: Require at least one verified payment to convert ──
+      if (args.stage === "converted") {
+        const payments = await ctx.db.query("leadPayments").withIndex("leadId", (q) => q.eq("leadId", leadId)).collect();
+        const verifiedPayments = payments.filter((p) => p.status === "verified");
+        if (verifiedPayments.length === 0) continue;
+      }
+      
       await ctx.db.patch(leadId, { stage: args.stage, updatedAt: now });
       if (args.stage === "converted") await ctx.db.patch(leadId, { status: "converted" });
       else if (args.stage === "lost") await ctx.db.patch(leadId, { status: "lost" });
