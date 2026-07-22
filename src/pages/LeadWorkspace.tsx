@@ -533,23 +533,42 @@ export default function LeadWorkspace() {
               onClick={handleCreateTask}>
               <Plus className="h-3 w-3 mr-1" /> Task
             </Button>
-            {lead.stage !== "converted" && lead.stage !== "lost" && lead.stage === "negotiation" && (
-              <Button size="sm" className="h-8 text-[10px] bg-[#e8710a] hover:bg-[#d06200] text-white"
-                onClick={() => setShowConversionWizard(true)}>
-                <Sparkles className="h-3 w-3 mr-1" /> Convert Wizard
-              </Button>
-            )}
-            {lead.stage !== "converted" && lead.stage !== "lost" && lead.status !== "converted" && (
-              <Button size="sm" className="h-8 text-[10px] bg-[#34a853] hover:bg-[#2d9249] text-white"
-                onClick={async () => {
-                  try {
-                    await handleStageChange("converted");
-                  } catch (err: any) {
-                    alert(err.message || "Cannot convert lead. A verified payment is required.");
-                  }
-                }}>
-                <CheckCircle2 className="h-3 w-3 mr-1" /> Convert
-              </Button>
+            {(lead.stage === "negotiation" || lead.stage !== "converted") && lead.stage !== "lost" && (
+              <>
+                {lead.status === "converted" ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>
+                        <Button size="sm" className="h-8 text-[10px] bg-[#34a853]/40 text-white/60 cursor-not-allowed" disabled>
+                          <CheckCircle2 className="h-3 w-3 mr-1" /> Converted
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-[11px] max-w-[200px]">
+                      This lead has already been converted. Conversion is irreversible.
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <>
+                    {lead.stage === "negotiation" && (
+                      <Button size="sm" className="h-8 text-[10px] bg-[#e8710a] hover:bg-[#d06200] text-white"
+                        onClick={() => setShowConversionWizard(true)}>
+                        <Sparkles className="h-3 w-3 mr-1" /> Convert Wizard
+                      </Button>
+                    )}
+                    <Button size="sm" className="h-8 text-[10px] bg-[#34a853] hover:bg-[#2d9249] text-white"
+                      onClick={async () => {
+                        try {
+                          await handleStageChange("converted");
+                        } catch (err: any) {
+                          alert(err.message || "Cannot convert lead. A verified payment is required.");
+                        }
+                      }}>
+                      <CheckCircle2 className="h-3 w-3 mr-1" /> Convert
+                    </Button>
+                  </>
+                )}
+              </>
             )}
           </div>
         </div>
