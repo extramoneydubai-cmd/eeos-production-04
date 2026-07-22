@@ -122,7 +122,7 @@ export default function SalesWorkspace() {
     if (!waMessage || !user || !waLeadId) return;
     const lead = leadsArray.find((l: any) => l._id === waLeadId);
     if (!lead) return;
-    const phone = lead.phone.replace(/[^0-9]/g, "");
+    const phone = (lead.phone || "").replace(/[^0-9]/g, "");
     const url = `https://wa.me/91${phone}?text=${encodeURIComponent(waMessage)}`;
     await sendWhatsApp({ leadId: waLeadId as any, message: waMessage, whatsappUrl: url, template: waTemplate === "manual" ? undefined : waTemplate as any, sentBy: user._id });
     window.open(url, "_blank");
@@ -161,7 +161,7 @@ export default function SalesWorkspace() {
         onClick={() => navigate(`/crm/leads/${lead._id}`)}>
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <Avatar className="h-7 w-7 shrink-0">
-            <AvatarFallback className="text-[8px] bg-[#f1f3f4] text-[#5f6368]">{lead.firstName[0]}{lead.lastName[0]}</AvatarFallback>
+            <AvatarFallback className="text-[8px] bg-[#f1f3f4] text-[#5f6368]">{(lead.firstName || "?")[0]}{(lead.lastName || "")[0] || "?"}</AvatarFallback>
           </Avatar>
           <div className="min-w-0">
             <p className="text-[12px] font-medium text-[#1a1a2e] truncate max-w-[140px]">{lead.firstName} {lead.lastName}</p>
