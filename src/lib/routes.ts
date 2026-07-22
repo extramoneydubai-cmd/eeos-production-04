@@ -18,6 +18,7 @@ import {
   MessageSquare,
   BarChart3,
   Settings,
+  Target,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -92,19 +93,24 @@ export const routes: RouteEntry[] = [
   // ── Business Modules ────────────────────────────────────────
   {
     label: "CRM",
-    href: "/studio/crm",
+    href: "/crm",
     icon: Users,
     group: "Business Modules",
     visible,
-    isPlaceholder: placeholder,
   },
   {
     label: "Sales",
-    href: "/studio/sales",
+    href: "/crm/sales",
     icon: LineChart,
     group: "Business Modules",
     visible,
-    isPlaceholder: placeholder,
+  },
+  {
+    label: "Opportunities",
+    href: "/crm/sales/opportunities",
+    icon: Target,
+    group: "Business Modules",
+    visible,
   },
   {
     label: "Admissions",
