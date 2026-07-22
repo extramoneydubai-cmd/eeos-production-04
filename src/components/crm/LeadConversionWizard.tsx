@@ -31,7 +31,7 @@ interface Props {
 
 export default function LeadConversionWizard({ leadId, open, onOpenChange, onComplete }: Props) {
   const lead = useQuery(api.crm.getLeadById, { leadId });
-  const opportunityStages = useQuery(api.salesOpportunityStages.list, {});
+  const opportunityStages = useQuery(api.salesOpportunityStages.listOpportunityStages, {});
   const users = useQuery(api.users.listUsers);
 
   const createOpportunity = useMutation(api.opportunities.create);
