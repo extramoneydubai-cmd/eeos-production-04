@@ -63,10 +63,12 @@ export default function CrmDashboard() {
   const { navigate } = useAppNavigate();
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [filterMode, setFilterMode] = useState<FilterMode>("activityDate");
+  const [showPendingDetails, setShowPendingDetails] = useState(false);
   const dashboard = useQuery(api.crm.getCrmDashboardData,
     user ? { userId: user._id, dateFilter, filterMode } : "skip");
   const pendingApprovals = useQuery(api.crm.getAllPendingApprovals, user ? { userId: user._id } : "skip");
   const conversionHistory = useQuery(api.crm.getConversionHistory, user ? {} : "skip");
+  const leadPaymentData = useQuery(api.crm.getAllLeadsPayments, {});
   const users = useQuery(api.users.listUsers);
   const collectionDashboard = ENABLE_COLLECTION_DASHBOARD
     ? useQuery(
@@ -526,30 +528,96 @@ export default function CrmDashboard() {
         </Card>
       </div>
 
-      {/* Pending Payments — Outstanding Receivables */}
+      {/* Pending Payments — Outstanding Receivables Breakdown */}
       {(() => {
         const total = dashboard.pendingPaymentsTotal || 0;
-        let bgColor = "bg-[#34a853]";
-        if (total > 2000000) bgColor = "bg-[#ea4335]";
-        else if (total > 500000) bgColor = "bg-[#e8710a]";
-        else if (total > 100000) bgColor = "bg-[#fbbc04]";
+        const breakColor = total > 2000000 ? "bg-[#ea4335]" : total > 500000 ? "bg-[#e8710a]" : total > 100000 ? "bg-[#fbbc04]" : "bg-[#34a853]";
+        const payableLeads = leadPaymentData?.filter((l: any) => l.balanceDue > 0) || [];
         return (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <Card className="border-[#e8eaed] shadow-sm bg-white cursor-pointer hover:shadow-md hover:border-[#dadce0] transition-all" onClick={() => navigate("/crm/leads")}>
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <p className="text-[11px] font-medium text-[#5f6368]">Pending Payments</p>
-                    <p className="text-2xl font-semibold text-[#1a1a2e] tracking-tight">₹{total.toLocaleString()}</p>
-                    <p className="text-[10px] text-[#9aa0a6]">Outstanding verified receivables</p>
-                  </div>
-                  <div className={`p-2 rounded-lg ${bgColor}`}>
-                    <Clock className="h-4 w-4 text-white" />
-                  </div>
+          <Card className="border-[#e8eaed] shadow-sm bg-white">
+            <CardHeader className="pb-2 flex flex-row items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div>
+                  <CardTitle className="text-sm font-semibold text-[#1a1a2e]">
+                    <DollarSign className="h-3.5 w-3.5 inline mr-1.5 text-[#e8710a]" />
+                    Pending Payments
+                  </CardTitle>
+                  <CardDescription className="text-[10px] text-[#9aa0a6]">
+                    {payableLeads.length} lead{payableLeads.length !== 1 ? 's' : ''} with outstanding balance
+                  </CardDescription>
                 </div>
+                <div className={`px-2.5 py-1 rounded-lg ${breakColor}`}>
+                  <span className="text-lg font-bold text-white">₹{total.toLocaleString()}</span>
+                </div>
+              </div>
+              <Button
+                variant="outline" size="sm"
+                className="h-7 text-[10px] border-[#e8eaed]"
+                onClick={() => setShowPendingDetails(!showPendingDetails)}
+              >
+                {showPendingDetails ? 'Hide' : 'Show'} Details
+              </Button>
+            </CardHeader>
+            {showPendingDetails && payableLeads.length > 0 && (
+              <CardContent className="p-0 border-t border-[#e8eaed]">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-[11px]">
+                    <thead>
+                      <tr className="border-b border-[#f1f3f4] bg-[#f8f9fa]">
+                        <th className="text-left text-[10px] text-[#5f6368] font-medium px-3 py-2">Lead</th>
+                        <th className="text-left text-[10px] text-[#5f6368] font-medium px-3 py-2">Phone</th>
+                        <th className="text-left text-[10px] text-[#5f6368] font-medium px-3 py-2">Stage</th>
+                        <th className="text-right text-[10px] text-[#5f6368] font-medium px-3 py-2">Gross Fees</th>
+                        <th className="text-right text-[10px] text-[#5f6368] font-medium px-3 py-2">Net Payable</th>
+                        <th className="text-right text-[10px] text-[#5f6368] font-medium px-3 py-2">Paid</th>
+                        <th className="text-right text-[10px] text-[#5f6368] font-medium px-3 py-2">Pending</th>
+                        <th className="text-right text-[10px] text-[#5f6368] font-medium px-3 py-2">Balance Due</th>
+                        <th className="text-left text-[10px] text-[#5f6368] font-medium px-3 py-2">Owner</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {payableLeads.slice(0, 50).map((l: any) => {
+                        const balPct = l.netPayable > 0 ? Math.round((l.balanceDue / l.netPayable) * 100) : 0;
+                        const balColor = balPct > 75 ? 'text-[#ea4335]' : balPct > 50 ? 'text-[#e8710a]' : balPct > 25 ? 'text-[#fbbc04]' : 'text-[#34a853]';
+                        const owner = users?.find((u) => u._id === l.ownerId);
+                        return (
+                          <tr
+                            key={l.leadId}
+                            className="border-b border-[#f1f3f4] hover:bg-[#f8f9fa] transition-colors cursor-pointer"
+                            onClick={() => navigate(`/crm/leads/${l.leadId}`)}
+                          >
+                            <td className="px-3 py-2.5 font-medium text-[#1a1a2e]">{l.firstName} {l.lastName}</td>
+                            <td className="px-3 py-2.5 text-[#5f6368]">{l.phone}</td>
+                            <td className="px-3 py-2.5">
+                              <Badge className="text-[9px] px-1.5 py-0 h-4 bg-[#f1f3f4] text-[#5f6368]">{l.stage}</Badge>
+                            </td>
+                            <td className="px-3 py-2.5 text-right text-[#5f6368]">₹{l.grossFees.toLocaleString()}</td>
+                            <td className="px-3 py-2.5 text-right font-medium text-[#1a1a2e]">₹{l.netPayable.toLocaleString()}</td>
+                            <td className="px-3 py-2.5 text-right text-[#34a853]">₹{l.totalPaid.toLocaleString()}</td>
+                            <td className="px-3 py-2.5 text-right text-[#e8710a]">₹{l.totalPending.toLocaleString()}</td>
+                            <td className={`px-3 py-2.5 text-right font-bold ${balColor}`}>₹{l.balanceDue.toLocaleString()}</td>
+                            <td className="px-3 py-2.5 text-[#5f6368]">{owner?.name || '—'}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                {payableLeads.length > 50 && (
+                  <div className="p-3 text-center text-[10px] text-[#9aa0a6]">
+                    Showing 50 of {payableLeads.length} leads
+                  </div>
+                )}
               </CardContent>
-            </Card>
-          </div>
+            )}
+            {showPendingDetails && payableLeads.length === 0 && (
+              <CardContent className="p-6 text-center border-t border-[#e8eaed]">
+                <CheckCircle2 className="h-8 w-8 text-[#34a853] mx-auto mb-2" />
+                <p className="text-[12px] text-[#5f6368]">All payments are up to date!</p>
+                <p className="text-[10px] text-[#9aa0a6] mt-1">No outstanding balances</p>
+              </CardContent>
+            )}
+          </Card>
         );
       })()}
 
