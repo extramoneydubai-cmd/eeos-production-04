@@ -18,20 +18,17 @@ async function checkAutoConversion(ctx: any, leadId: string) {
   if (!lead || lead.status === "converted" || lead.status === "lost") return;
   const payments = await ctx.db.query("leadPayments").withIndex("leadId", (q: any) => q.eq("leadId", leadId)).collect();
   const verifiedPayments = payments.filter((p: { status: string }) => p.status === "verified");
+  if (verifiedPayments.length === 0) return;
   const totalPaid = verifiedPayments.reduce((s: number, p: { amount: number }) => s + p.amount, 0);
-  const payable = lead.finalPayable || lead.expectedRevenue || 0;
-  const docs = await ctx.db.query("leadDocuments").withIndex("leadId", (q: any) => q.eq("leadId", leadId)).collect();
-  if (payable > 0 && totalPaid >= payable * 0.8 && docs.length > 0) {
-    await ctx.db.patch(leadId, { stage: "converted", status: "converted", updatedAt: Date.now() });
-    await ctx.db.insert("leadStageHistory", { leadId, fromStage: lead.stage, toStage: "converted", changedBy: lead.createdBy, note: "Auto-converted after payment verification", createdAt: Date.now() });
-    await ctx.db.insert("leadActivity", { leadId, action: "stage_changed", description: `auto-converted after payment verification (₹${totalPaid} paid)`, userId: lead.createdBy, createdAt: Date.now() });
-    if (lead.ownerId) {
-      await ctx.db.insert("notifications", {
-        userId: lead.ownerId, type: "conversion", title: "Lead Converted",
-        message: `Lead ${lead.firstName} ${lead.lastName} auto-converted after payment`,
-        referenceId: leadId, referenceType: "lead", isRead: false, createdAt: Date.now(),
-      });
-    }
+  await ctx.db.patch(leadId, { stage: "converted", status: "converted", updatedAt: Date.now() });
+  await ctx.db.insert("leadStageHistory", { leadId, fromStage: lead.stage, toStage: "converted", changedBy: lead.createdBy, note: "Auto-converted after payment verification", createdAt: Date.now() });
+  await ctx.db.insert("leadActivity", { leadId, action: "stage_changed", description: `auto-converted after payment verification (₹${totalPaid} paid)`, userId: lead.createdBy, createdAt: Date.now() });
+  if (lead.ownerId) {
+    await ctx.db.insert("notifications", {
+      userId: lead.ownerId, type: "conversion", title: "Lead Converted",
+      message: `Lead ${lead.firstName} ${lead.lastName} auto-converted after payment`,
+      referenceId: leadId, referenceType: "lead", isRead: false, createdAt: Date.now(),
+    });
   }
 }
 
