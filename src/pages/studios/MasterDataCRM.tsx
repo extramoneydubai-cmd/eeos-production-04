@@ -44,6 +44,7 @@ import {
   Percent,
   Users,
   Sparkles,
+  Building,
 } from "lucide-react";
 
 /* ── Data ── */

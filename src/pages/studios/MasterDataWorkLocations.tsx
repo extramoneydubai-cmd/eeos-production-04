@@ -2,7 +2,36 @@ import MasterDataTable, { formatDate } from "@/components/studios/MasterDataTabl
 import { api } from "@/convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import {
-  GraduationCap, Heart, Building, School, BookOpen, Building2, Handshake, Landmark, Shield, HeartHandshake, Globe, Star, User, UserCheck, Users, BadgeCheck, Briefcase, Award, Sparkles, Zap,  Target, Flag, MapPin, Map, Wifi, FileText, DollarSign, CreditCard, Wallet, Percent, Clock, Home, Calendar, Mail, MessageSquare, MessageCircle, TrendingUp, Layers, FileSpreadsheet, Coins, Megaphone, Phone, Monitor, Download, Palette, RefreshCw, CalendarCheck, Code,
+  BadgeCheck,
+  Briefcase,
+  Building,
+  Building2,
+  CalendarCheck,
+  Clock,
+  Code,
+  Coins,
+  CreditCard,
+  DollarSign,
+  Download,
+  FileText,
+  Flag,
+  Globe,
+  GraduationCap,
+  Handshake,
+  Heart,
+  Home,
+  Landmark,
+  Mail,
+  MapPin,
+  Megaphone,
+  MessageCircle,
+  MessageSquare,
+  Monitor,
+  Palette,
+  Percent,
+  Phone,
+  RefreshCw,
+  School,
 } from "lucide-react";
 
 const LOCATION_TYPES = ["Office","Campus","Remote","Client Site","Regional Hub","Other"];

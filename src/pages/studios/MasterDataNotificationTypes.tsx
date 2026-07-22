@@ -2,7 +2,36 @@ import MasterDataTable, { formatDate } from "@/components/studios/MasterDataTabl
 import { api } from "@/convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import {
-  GraduationCap, Heart, Building, School, BookOpen, Building2, Handshake, Landmark, Shield, HeartHandshake, Globe, Star, User, UserCheck, Users, BadgeCheck, Briefcase, Award, Sparkles, Zap, Target, Flag, MapPin, Map, Megaphone, Wifi, FileText, DollarSign, CreditCard, Wallet, Percent, Clock, Home, Calendar, Mail, MessageSquare, MessageCircle, TrendingUp, Layers, FileSpreadsheet, Coins, Megaphone, Phone, Monitor,
+  BadgeCheck,
+  Briefcase,
+  Building,
+  Building2,
+  CalendarCheck,
+  Clock,
+  Code,
+  Coins,
+  CreditCard,
+  DollarSign,
+  Download,
+  FileText,
+  Flag,
+  Globe,
+  GraduationCap,
+  Handshake,
+  Heart,
+  Home,
+  Landmark,
+  Mail,
+  MapPin,
+  Megaphone,
+  MessageCircle,
+  MessageSquare,
+  Monitor,
+  Palette,
+  Percent,
+  Phone,
+  RefreshCw,
+  School,
 } from "lucide-react";
 
 const CHANNEL_TYPES = ["In-App","Email","SMS","WhatsApp","Push","Webhook","All"];
@@ -13,152 +42,152 @@ const ICON_OPTIONS = [
     {
       value: 'BadgeCheck',
       label: 'BadgeCheck',
-      icon: 'BadgeCheck'
+      icon: BadgeCheck
     },
     {
       value: 'Briefcase',
       label: 'Briefcase',
-      icon: 'Briefcase'
+      icon: Briefcase
     },
     {
       value: 'Building',
       label: 'Building',
-      icon: 'Building'
+      icon: Building
     },
     {
       value: 'Building2',
       label: 'Building2',
-      icon: 'Building2'
+      icon: Building2
     },
     {
       value: 'CalendarCheck',
       label: 'CalendarCheck',
-      icon: 'CalendarCheck'
+      icon: CalendarCheck
     },
     {
       value: 'Clock',
       label: 'Clock',
-      icon: 'Clock'
+      icon: Clock
     },
     {
       value: 'Code',
       label: 'Code',
-      icon: 'Code'
+      icon: Code
     },
     {
       value: 'Coins',
       label: 'Coins',
-      icon: 'Coins'
+      icon: Coins
     },
     {
       value: 'CreditCard',
       label: 'CreditCard',
-      icon: 'CreditCard'
+      icon: CreditCard
     },
     {
       value: 'DollarSign',
       label: 'DollarSign',
-      icon: 'DollarSign'
+      icon: DollarSign
     },
     {
       value: 'Download',
       label: 'Download',
-      icon: 'Download'
+      icon: Download
     },
     {
       value: 'FileText',
       label: 'FileText',
-      icon: 'FileText'
+      icon: FileText
     },
     {
       value: 'Flag',
       label: 'Flag',
-      icon: 'Flag'
+      icon: Flag
     },
     {
       value: 'Globe',
       label: 'Globe',
-      icon: 'Globe'
+      icon: Globe
     },
     {
       value: 'GraduationCap',
       label: 'GraduationCap',
-      icon: 'GraduationCap'
+      icon: GraduationCap
     },
     {
       value: 'Handshake',
       label: 'Handshake',
-      icon: 'Handshake'
+      icon: Handshake
     },
     {
       value: 'Heart',
       label: 'Heart',
-      icon: 'Heart'
+      icon: Heart
     },
     {
       value: 'Home',
       label: 'Home',
-      icon: 'Home'
+      icon: Home
     },
     {
       value: 'Landmark',
       label: 'Landmark',
-      icon: 'Landmark'
+      icon: Landmark
     },
     {
       value: 'Mail',
       label: 'Mail',
-      icon: 'Mail'
+      icon: Mail
     },
     {
       value: 'MapPin',
       label: 'MapPin',
-      icon: 'MapPin'
+      icon: MapPin
     },
     {
       value: 'Megaphone',
       label: 'Megaphone',
-      icon: 'Megaphone'
+      icon: Megaphone
     },
     {
       value: 'MessageCircle',
       label: 'MessageCircle',
-      icon: 'MessageCircle'
+      icon: MessageCircle
     },
     {
       value: 'MessageSquare',
       label: 'MessageSquare',
-      icon: 'MessageSquare'
+      icon: MessageSquare
     },
     {
       value: 'Monitor',
       label: 'Monitor',
-      icon: 'Monitor'
+      icon: Monitor
     },
     {
       value: 'Palette',
       label: 'Palette',
-      icon: 'Palette'
+      icon: Palette
     },
     {
       value: 'Percent',
       label: 'Percent',
-      icon: 'Percent'
+      icon: Percent
     },
     {
       value: 'Phone',
       label: 'Phone',
-      icon: 'Phone'
+      icon: Phone
     },
     {
       value: 'RefreshCw',
       label: 'RefreshCw',
-      icon: 'RefreshCw'
+      icon: RefreshCw
     },
     {
       value: 'School',
       label: 'School',
-      icon: 'School'
+      icon: School
     }
   ];
 
