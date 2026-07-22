@@ -66,7 +66,7 @@ export const verifyPayment = mutation({
     if (args.status === "verified") {
       await logActivity(ctx, payment.leadId, "payment_verified", `Payment verified: ₹${payment.amount} via ${payment.mode}`, args.verifiedBy);
       await createNotification(ctx, payment.enteredBy, "payment", "Payment Verified", `₹${payment.amount} payment verified for lead`, payment.leadId, "lead");
-      await checkAutoConversion(ctx, payment.leadId);
+      await checkAutoConversion(ctx, payment.leadId, payment.amount);
     } else {
       await logActivity(ctx, payment.leadId, "payment_rejected", `Payment rejected: ${args.rejectionReason || "No reason"}`, args.verifiedBy);
     }

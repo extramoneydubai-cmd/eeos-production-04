@@ -12,15 +12,30 @@ async function createNotification(ctx: any, userId: string, type: string, title:
   });
 }
 
-// Auto-conversion check (mirrored from crmHelpers to avoid circular imports)
-async function checkAutoConversion(ctx: any, leadId: string) {
+/**
+ * Auto-conversion check (mirrored from crmHelpers to avoid circular imports).
+ *
+ * CRITICAL: ctx.db.query() within a Convex mutation does NOT see pending
+ * ctx.db.patch() writes from the same transaction. When called from within
+ * decideOnVerification (where the payment was just patched to "verified"),
+ * callers MUST pass verifiedAmount directly. Without it, the re-query for
+ * verified payments would return empty and conversion would silently skip.
+ */
+async function checkAutoConversion(ctx: any, leadId: string, verifiedAmount?: number) {
   try {
     const lead = await ctx.db.get(leadId);
     if (!lead || lead.status === "converted" || lead.status === "lost") return;
-    const payments = await ctx.db.query("leadPayments").withIndex("leadId", (q: any) => q.eq("leadId", leadId)).collect();
-    const verifiedPayments = payments.filter((p: { status: string }) => p.status === "verified");
-    if (verifiedPayments.length === 0) return;
-    const totalPaid = verifiedPayments.reduce((s: number, p: { amount: number }) => s + p.amount, 0);
+
+    let totalPaid = verifiedAmount ?? 0;
+
+    // Only re-query payments when no amount was passed (external call path).
+    if (verifiedAmount === undefined) {
+      const payments = await ctx.db.query("leadPayments").withIndex("leadId", (q: any) => q.eq("leadId", leadId)).collect();
+      const verifiedPayments = payments.filter((p: { status: string }) => p.status === "verified");
+      if (verifiedPayments.length === 0) return;
+      totalPaid = verifiedPayments.reduce((s: number, p: { amount: number }) => s + p.amount, 0);
+    }
+
     if (totalPaid <= 0) return;
     const now = Date.now();
     const fromStage = lead.stage;
@@ -276,8 +291,9 @@ export const decideOnVerification = mutation({
             referenceId: payment.leadId, referenceType: "lead",
             isRead: false, createdAt: now,
           });
-          // Check auto-conversion (lead must have documents + >= 80% paid)
-          await checkAutoConversion(ctx, payment.leadId);
+          // Pass amount directly — ctx.db.query() cannot see ctx.db.patch()
+          // writes from the same mutation (Convex snapshot isolation)
+          await checkAutoConversion(ctx, payment.leadId, payment.amount);
         } else if (newStatus === "rejected" || newStatus === "returned") {
           await ctx.db.patch(paymentId as any, {
             status: "rejected",
