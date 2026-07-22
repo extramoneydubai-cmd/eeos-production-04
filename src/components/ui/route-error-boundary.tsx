@@ -6,8 +6,7 @@ interface RouteErrorBoundaryProps {
   children: React.ReactNode;
   fallback?: React.ReactNode;
   onRetry?: () => void;
-  /** When this key changes, the error state resets without remounting children. */
-  resetKey?: string;
+  /** When this key changes, the error boundary remounts along with its children. */
 }
 
 interface RouteErrorBoundaryState {
@@ -30,13 +29,6 @@ export class RouteErrorBoundary extends React.Component<
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error("[RouteErrorBoundary] Caught error:", error.message, info.componentStack);
-  }
-
-  componentDidUpdate(prevProps: RouteErrorBoundaryProps) {
-    // Reset error state when navigating to a new route
-    if (this.state.hasError && this.props.resetKey && this.props.resetKey !== prevProps.resetKey) {
-      this.setState({ hasError: false, error: null });
-    }
   }
 
   handleRetry = () => {

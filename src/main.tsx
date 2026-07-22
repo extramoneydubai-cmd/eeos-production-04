@@ -157,7 +157,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return (
     <Suspense fallback={<RouteLoading />}>
       <AppLayout>
-        <RouteErrorBoundary resetKey={location.pathname + location.search}>
+        <RouteErrorBoundary key={location.pathname + location.search}>
           {children}
         </RouteErrorBoundary>
       </AppLayout>
