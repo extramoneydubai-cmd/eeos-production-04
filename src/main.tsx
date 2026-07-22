@@ -153,10 +153,11 @@ function RouteSyncer() {
 const AppLayout = lazy(() => import("./components/AppLayout.tsx").then(m => ({ default: m.AppLayout })));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
   return (
     <Suspense fallback={<RouteLoading />}>
       <AppLayout>
-        <RouteErrorBoundary>
+        <RouteErrorBoundary key={location.pathname + location.search}>
           {children}
         </RouteErrorBoundary>
       </AppLayout>
