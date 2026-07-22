@@ -70,6 +70,12 @@ export const create = mutation({
     return ctx.db.insert("financeGstRates", {
       ...args,
       description: args.description ?? "",
+      gstType: source.gstType,
+      cgstRate: source.cgstRate,
+      sgstRate: source.sgstRate,
+      igstRate: source.igstRate,
+      totalRate: source.totalRate,
+
       sequence: maxSeq + 1,
       active: true,
       createdAt: Date.now(),

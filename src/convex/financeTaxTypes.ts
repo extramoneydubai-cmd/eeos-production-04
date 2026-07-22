@@ -67,6 +67,10 @@ export const create = mutation({
     return ctx.db.insert("financeTaxTypes", {
       ...args,
       description: args.description ?? "",
+      taxCategory: source.taxCategory,
+      taxRate: source.taxRate,
+      isCompound: source.isCompound,
+
       sequence: maxSeq + 1,
       active: true,
       createdAt: Date.now(),

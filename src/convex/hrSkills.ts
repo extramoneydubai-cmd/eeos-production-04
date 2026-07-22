@@ -68,6 +68,8 @@ export const create = mutation({
     return ctx.db.insert("hrSkills", {
       ...args,
       description: args.description ?? "",
+      skillCategory: source.skillCategory,
+
       sequence: maxSeq + 1,
       active: true,
       createdAt: Date.now(),

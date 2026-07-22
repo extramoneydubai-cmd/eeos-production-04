@@ -71,6 +71,11 @@ export const create = mutation({
     return ctx.db.insert("financeFeeCategories", {
       ...args,
       description: args.description ?? "",
+      feeType: source.feeType,
+      isRecurring: source.isRecurring,
+      isOptional: source.isOptional,
+      isRefundable: source.isRefundable,
+
       sequence: maxSeq + 1,
       active: true,
       createdAt: Date.now(),

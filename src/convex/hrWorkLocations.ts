@@ -68,6 +68,10 @@ export const create = mutation({
     return ctx.db.insert("hrWorkLocations", {
       ...args,
       description: args.description ?? "",
+      locationType: source.locationType,
+      city: source.city,
+      country: source.country,
+
       sequence: maxSeq + 1,
       active: true,
       createdAt: Date.now(),

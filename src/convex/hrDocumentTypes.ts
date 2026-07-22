@@ -69,6 +69,9 @@ export const create = mutation({
     return ctx.db.insert("hrDocumentTypes", {
       ...args,
       description: args.description ?? "",
+      documentCategory: source.documentCategory,
+      isMandatory: source.isMandatory,
+
       sequence: maxSeq + 1,
       active: true,
       createdAt: Date.now(),

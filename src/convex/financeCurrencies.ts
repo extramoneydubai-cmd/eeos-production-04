@@ -70,6 +70,12 @@ export const create = mutation({
     return ctx.db.insert("financeCurrencies", {
       ...args,
       description: args.description ?? "",
+      symbol: source.symbol,
+      isoCode: source.isoCode,
+      isBase: source.isBase,
+      exchangeRate: source.exchangeRate,
+      decimalPlaces: source.decimalPlaces,
+
       sequence: maxSeq + 1,
       active: true,
       createdAt: Date.now(),

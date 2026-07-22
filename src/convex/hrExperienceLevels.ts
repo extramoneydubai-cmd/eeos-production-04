@@ -69,6 +69,9 @@ export const create = mutation({
     return ctx.db.insert("hrExperienceLevels", {
       ...args,
       description: args.description ?? "",
+      minYears: source.minYears,
+      maxYears: source.maxYears,
+
       sequence: maxSeq + 1,
       active: true,
       createdAt: Date.now(),

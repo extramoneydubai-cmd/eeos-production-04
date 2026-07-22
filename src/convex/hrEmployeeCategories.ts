@@ -66,6 +66,9 @@ export const create = mutation({
     return ctx.db.insert("hrEmployeeCategories", {
       ...args,
       description: args.description ?? "",
+      employeeType: source.employeeType,
+      employmentStatus: source.employmentStatus,
+
       sequence: maxSeq + 1,
       active: true,
       createdAt: Date.now(),

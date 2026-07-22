@@ -71,6 +71,8 @@ export const create = mutation({
     return ctx.db.insert("crmIndustries", {
       ...args,
       description: args.description ?? "",
+      sector: source.sector,
+
       sequence: maxSeq + 1,
       active: true,
       createdAt: Date.now(),

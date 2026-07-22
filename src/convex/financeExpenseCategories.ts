@@ -69,6 +69,9 @@ export const create = mutation({
     return ctx.db.insert("financeExpenseCategories", {
       ...args,
       description: args.description ?? "",
+      expenseType: source.expenseType,
+      budgetable: source.budgetable,
+
       sequence: maxSeq + 1,
       active: true,
       createdAt: Date.now(),

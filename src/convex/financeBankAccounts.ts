@@ -70,6 +70,14 @@ export const create = mutation({
     return ctx.db.insert("financeBankAccounts", {
       ...args,
       description: args.description ?? "",
+      bankName: source.bankName,
+      accountNumber: source.accountNumber,
+      branchName: source.branchName,
+      ifscCode: source.ifscCode,
+      swiftCode: source.swiftCode,
+      accountType: source.accountType,
+      isDefault: source.isDefault,
+
       sequence: maxSeq + 1,
       active: true,
       createdAt: Date.now(),

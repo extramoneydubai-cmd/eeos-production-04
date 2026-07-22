@@ -69,6 +69,11 @@ export const create = mutation({
     return ctx.db.insert("salesTaxSlabs", {
       ...args,
       description: args.description ?? "",
+      slabType: source.slabType,
+      fromAmount: source.fromAmount,
+      toAmount: source.toAmount,
+      taxRate: source.taxRate,
+
       sequence: maxSeq + 1,
       active: true,
       createdAt: Date.now(),

@@ -120,6 +120,7 @@ export const duplicate = mutation({
       code: `${source.code}_COPY`,
       color: source.color,
       icon: source.icon,
+      channelType: source.channelType,
       description: source.description,
       sequence: maxSeq + 1,
       active: false,

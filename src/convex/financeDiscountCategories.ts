@@ -69,6 +69,10 @@ export const create = mutation({
     return ctx.db.insert("financeDiscountCategories", {
       ...args,
       description: args.description ?? "",
+      discountType: source.discountType,
+      isPercentage: source.isPercentage,
+      maxValue: source.maxValue,
+
       sequence: maxSeq + 1,
       active: true,
       createdAt: Date.now(),

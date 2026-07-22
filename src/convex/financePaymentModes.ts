@@ -69,6 +69,9 @@ export const create = mutation({
     return ctx.db.insert("financePaymentModes", {
       ...args,
       description: args.description ?? "",
+      modeCategory: source.modeCategory,
+      isDigital: source.isDigital,
+
       sequence: maxSeq + 1,
       active: true,
       createdAt: Date.now(),

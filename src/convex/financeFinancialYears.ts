@@ -68,6 +68,11 @@ export const create = mutation({
     return ctx.db.insert("financeFinancialYears", {
       ...args,
       description: args.description ?? "",
+      startDate: source.startDate,
+      endDate: source.endDate,
+      isCurrent: source.isCurrent,
+      isClosed: source.isClosed,
+
       sequence: maxSeq + 1,
       active: true,
       createdAt: Date.now(),

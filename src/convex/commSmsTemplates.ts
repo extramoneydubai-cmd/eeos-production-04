@@ -67,6 +67,9 @@ export const create = mutation({
     return ctx.db.insert("commSmsTemplates", {
       ...args,
       description: args.description ?? "",
+      templateCategory: source.templateCategory,
+      bodyPreview: source.bodyPreview,
+
       sequence: maxSeq + 1,
       active: true,
       createdAt: Date.now(),
