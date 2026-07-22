@@ -91,7 +91,7 @@ function TaskRow({ task }: { task: any }) {
 function NotificationItem({ notif }: { notif: any }) {
   const typeIcons: Record<string, React.ElementType> = {
     lead: UserPlus, admission: CheckCircle2, task: Clock,
-    payment: undefined, meeting: Calendar, success: CheckCircle2,
+    payment: undefined as any, meeting: Calendar, success: CheckCircle2,
     warning: AlertCircle, reminder: Clock,
   };
   const NIcon = typeIcons[notif.type] || Activity;

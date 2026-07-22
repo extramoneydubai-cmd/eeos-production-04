@@ -195,7 +195,7 @@ export default function Dashboard() {
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-1 h-2.5 rounded-full overflow-hidden bg-[#f1f3f4]">
-            {Object.entries(dashboardData.tasksByStatus).map(([status, count]) => {
+            {Object.entries(dashboardData.tasksByStatus as Record<string, number>).map(([status, count]) => {
               const total = dashboardData.totalTasks || 1;
               const pct = (count / total) * 100;
               if (pct === 0) return null;
@@ -210,7 +210,7 @@ export default function Dashboard() {
             })}
           </div>
           <div className="flex flex-wrap gap-3 mt-3">
-            {Object.entries(dashboardData.tasksByStatus).map(([status, count]) => {
+            {Object.entries(dashboardData.tasksByStatus as Record<string, number>).map(([status, count]) => {
               const config = statusConfig[status] || { label: status, color: "bg-[#9aa0a6]" };
               return (
                 <div key={status} className="flex items-center gap-1.5">

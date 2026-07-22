@@ -67,7 +67,7 @@ function ProgramCell({ programId }: { programId: string }) {
   const programs = useQuery(api.academicPrograms.listAcademicPrograms);
   const subVerticals = useQuery(api.academicSubVerticals.listAcademicSubVerticals);
   const program = programs?.find((p: any) => p._id === programId);
-  const sv = program ? subVerticals?.find((s: any) => s._id === program.subVerticalId) : null;
+  const sv = program ? (subVerticals as any[])?.find((s: any) => s._id === program.subVerticalId) : null as any;
   if (!program) return <span className="text-[11px] text-[#9aa0a6]">Unknown</span>;
   const IconComp = getIconComponent(program.icon);
   return (
@@ -136,7 +136,7 @@ function ProgramDropdown({ value, onChange }: { value: string; onChange: (v: str
                   </div>
                   <div className="flex flex-col">
                     <span>{p.name}</span>
-                    {sv && <span className="text-[10px] text-[#9aa0a6]">{sv.name}</span>}
+                    {sv ? <span className="text-[10px] text-[#9aa0a6]">{(sv as any).name}</span> : null}
                   </div>
                 </div>
               </SelectItem>

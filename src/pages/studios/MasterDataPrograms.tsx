@@ -96,7 +96,7 @@ function SubVerticalCell({ subVerticalId }: { subVerticalId: string }) {
   const subVerticals = useQuery(api.academicSubVerticals.listAcademicSubVerticals);
   const verticals = useQuery(api.academicVerticals.listAcademicVerticals);
   const sv = subVerticals?.find((s: any) => s._id === subVerticalId);
-  const vertical = sv ? verticals?.find((v: any) => v._id === sv.verticalId) : null;
+  const vertical = sv ? (verticals as any[])?.find((v: any) => v._id === sv.verticalId) : null as any;
   if (!sv) {
     return <span className="text-[11px] text-[#9aa0a6]">Unknown</span>;
   }
@@ -141,7 +141,7 @@ function SubVerticalDropdown({ value, onChange }: { value: string; onChange: (v:
                   </div>
                   <div className="flex flex-col">
                     <span>{sv.name}</span>
-                    {vert && <span className="text-[10px] text-[#9aa0a6]">{vert.name}</span>}
+                    {vert ? <span className="text-[10px] text-[#9aa0a6]">{(vert as any).name}</span> : null}
                   </div>
                 </div>
               </SelectItem>

@@ -38,7 +38,7 @@ export const getSalesPendingTasks = query({
       if (course) existing.push(course.courseName);
       leadCourseMap.set(link.leadId, existing);
     }
-    const leadsWithTasks = [];
+    const leadsWithTasks: any[] = [];
     for (const lead of validLeads) {
       if (!lead) continue;
       const leadTasks = pendingTasks.filter((t) => t.leadId === lead._id);
