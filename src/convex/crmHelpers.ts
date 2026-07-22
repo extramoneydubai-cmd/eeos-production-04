@@ -30,15 +30,12 @@ export async function checkAutoConversion(ctx: any, leadId: string) {
   if (!lead || lead.status === "converted" || lead.status === "lost") return;
   const payments = await ctx.db.query("leadPayments").withIndex("leadId", (q: any) => q.eq("leadId", leadId)).collect();
   const verifiedPayments = payments.filter((p: { status: string }) => p.status === "verified");
+  if (verifiedPayments.length === 0) return;
   const totalPaid = verifiedPayments.reduce((s: number, p: { amount: number }) => s + p.amount, 0);
-  const payable = lead.finalPayable || lead.expectedRevenue || 0;
-  const docs = await ctx.db.query("leadDocuments").withIndex("leadId", (q: any) => q.eq("leadId", leadId)).collect();
-  if (payable > 0 && totalPaid >= payable * 0.8 && docs.length > 0) {
-    await ctx.db.patch(leadId, { stage: "converted", status: "converted", updatedAt: Date.now() });
-    await ctx.db.insert("leadStageHistory", { leadId, fromStage: lead.stage, toStage: "converted", changedBy: lead.createdBy, note: "Auto-converted after payment verification", createdAt: Date.now() });
-    await logActivity(ctx, leadId, "stage_changed", `auto-converted after payment verification (₹${totalPaid} paid)`, lead.createdBy);
-    if (lead.ownerId) {
-      await createNotification(ctx, lead.ownerId, "conversion", "Lead Converted", `Lead ${lead.firstName} ${lead.lastName} auto-converted after payment`, leadId, "lead");
-    }
+  await ctx.db.patch(leadId, { stage: "converted", status: "converted", updatedAt: Date.now() });
+  await ctx.db.insert("leadStageHistory", { leadId, fromStage: lead.stage, toStage: "converted", changedBy: lead.createdBy, note: "Auto-converted after payment verification", createdAt: Date.now() });
+  await logActivity(ctx, leadId, "stage_changed", `auto-converted after payment verification (₹${totalPaid} paid)`, lead.createdBy);
+  if (lead.ownerId) {
+    await createNotification(ctx, lead.ownerId, "conversion", "Lead Converted", `Lead ${lead.firstName} ${lead.lastName} auto-converted after payment`, leadId, "lead");
   }
 }
