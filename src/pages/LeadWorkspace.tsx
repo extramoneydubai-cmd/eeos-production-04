@@ -337,7 +337,7 @@ export default function LeadWorkspace() {
   const handleSendWhatsApp = async () => {
     if (!waMessage || !user) return;
     // Priority 1: WhatsApp Username, Priority 2: Phone
-    const identifier = lead.whatsappUsername || lead.phone.replace(/[^0-9]/g, "");
+    const identifier = lead.whatsappUsername || (lead.phone || "").replace(/[^0-9]/g, "");
     const isEmail = identifier.includes("@");
     const url = isEmail
       ? `https://wa.me/?text=${encodeURIComponent(waMessage)}`
@@ -481,7 +481,8 @@ export default function LeadWorkspace() {
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <Avatar className="h-10 w-10 shrink-0">
-              <AvatarFallback className="text-[12px] bg-[#1a1a2e] text-white">{lead.firstName[0]}{lead.lastName[0]}</AvatarFallback>
+              <AvatarFallback className="text-[12px] bg-[#1a1a2e] text-white">{(lead.firstName || lead.firstName || "?")[0]}{(lead.lastName || "")[0] || "?"}
+</AvatarFallback>
             </Avatar>
             <div className="min-w-0">
               <h1 className="text-lg font-semibold text-[#1a1a2e] truncate">{lead.firstName} {lead.lastName}</h1>
