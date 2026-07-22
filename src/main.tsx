@@ -82,6 +82,32 @@ const MasterDataEmployeeTypes = lazy(() => import("./pages/studios/MasterDataEmp
 const MasterDataEmploymentStatus = lazy(() => import("./pages/studios/MasterDataEmploymentStatus.tsx"));
 const MasterDataOpportunityStages = lazy(() => import("./pages/studios/MasterDataOpportunityStages.tsx"));
 const MasterDataSales = lazy(() => import("./pages/studios/MasterDataSales.tsx"));
+const MasterDataSalesOpportunityTypes = lazy(() => import("./pages/studios/MasterDataSalesOpportunityTypes.tsx"));
+const MasterDataSalesQuotationStatuses = lazy(() => import("./pages/studios/MasterDataSalesQuotationStatuses.tsx"));
+const MasterDataPaymentStatuses = lazy(() => import("./pages/studios/MasterDataPaymentStatuses.tsx"));
+const MasterDataInvoiceTypes = lazy(() => import("./pages/studios/MasterDataInvoiceTypes.tsx"));
+const MasterDataTaxSlabs = lazy(() => import("./pages/studios/MasterDataTaxSlabs.tsx"));
+const MasterDataEmployeeCategories = lazy(() => import("./pages/studios/MasterDataEmployeeCategories.tsx"));
+const MasterDataWorkLocations = lazy(() => import("./pages/studios/MasterDataWorkLocations.tsx"));
+const MasterDataSkills = lazy(() => import("./pages/studios/MasterDataSkills.tsx"));
+const MasterDataExperienceLevels = lazy(() => import("./pages/studios/MasterDataExperienceLevels.tsx"));
+const MasterDataDocumentTypes = lazy(() => import("./pages/studios/MasterDataDocumentTypes.tsx"));
+const MasterDataPaymentModes = lazy(() => import("./pages/studios/MasterDataPaymentModes.tsx"));
+const MasterDataBankAccounts = lazy(() => import("./pages/studios/MasterDataBankAccounts.tsx"));
+const MasterDataTaxTypes = lazy(() => import("./pages/studios/MasterDataTaxTypes.tsx"));
+const MasterDataGstRates = lazy(() => import("./pages/studios/MasterDataGstRates.tsx"));
+const MasterDataExpenseCategories = lazy(() => import("./pages/studios/MasterDataExpenseCategories.tsx"));
+const MasterDataIncomeCategories = lazy(() => import("./pages/studios/MasterDataIncomeCategories.tsx"));
+const MasterDataFeeCategories = lazy(() => import("./pages/studios/MasterDataFeeCategories.tsx"));
+const MasterDataDiscountCategories = lazy(() => import("./pages/studios/MasterDataDiscountCategories.tsx"));
+const MasterDataCurrencies = lazy(() => import("./pages/studios/MasterDataCurrencies.tsx"));
+const MasterDataFinancialYears = lazy(() => import("./pages/studios/MasterDataFinancialYears.tsx"));
+const MasterDataIndustries = lazy(() => import("./pages/studios/MasterDataIndustries.tsx"));
+const MasterDataClassrooms = lazy(() => import("./pages/studios/MasterDataClassrooms.tsx"));
+const MasterDataNotificationTypes = lazy(() => import("./pages/studios/MasterDataNotificationTypes.tsx"));
+const MasterDataEmailTemplates = lazy(() => import("./pages/studios/MasterDataEmailTemplates.tsx"));
+const MasterDataSmsTemplates = lazy(() => import("./pages/studios/MasterDataSmsTemplates.tsx"));
+const MasterDataWhatsAppTemplates = lazy(() => import("./pages/studios/MasterDataWhatsAppTemplates.tsx"));
 const MasterDataSystem = lazy(() => import("./pages/studios/MasterDataSystem.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 import { RouteErrorBoundary } from "@/components/ui/route-error-boundary";
@@ -217,6 +243,32 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/studios/master-data/hr/employment-status" element={<ProtectedRoute><MasterDataEmploymentStatus /></ProtectedRoute>} />
               <Route path="/studios/master-data/sales" element={<ProtectedRoute><MasterDataSales /></ProtectedRoute>} />
               <Route path="/studios/master-data/sales/opportunity-stages" element={<ProtectedRoute><MasterDataOpportunityStages /></ProtectedRoute>} />
+              <Route path="/studios/master-data/sales/opportunity-types" element={<ProtectedRoute><MasterDataSalesOpportunityTypes /></ProtectedRoute>} />
+              <Route path="/studios/master-data/sales/quotation-statuses" element={<ProtectedRoute><MasterDataSalesQuotationStatuses /></ProtectedRoute>} />
+              <Route path="/studios/master-data/sales/payment-statuses" element={<ProtectedRoute><MasterDataPaymentStatuses /></ProtectedRoute>} />
+              <Route path="/studios/master-data/sales/invoice-types" element={<ProtectedRoute><MasterDataInvoiceTypes /></ProtectedRoute>} />
+              <Route path="/studios/master-data/sales/tax-slabs" element={<ProtectedRoute><MasterDataTaxSlabs /></ProtectedRoute>} />
+              <Route path="/studios/master-data/hr/employee-categories" element={<ProtectedRoute><MasterDataEmployeeCategories /></ProtectedRoute>} />
+              <Route path="/studios/master-data/hr/work-locations" element={<ProtectedRoute><MasterDataWorkLocations /></ProtectedRoute>} />
+              <Route path="/studios/master-data/hr/skills" element={<ProtectedRoute><MasterDataSkills /></ProtectedRoute>} />
+              <Route path="/studios/master-data/hr/experience-levels" element={<ProtectedRoute><MasterDataExperienceLevels /></ProtectedRoute>} />
+              <Route path="/studios/master-data/hr/document-types" element={<ProtectedRoute><MasterDataDocumentTypes /></ProtectedRoute>} />
+              <Route path="/studios/master-data/finance/payment-modes" element={<ProtectedRoute><MasterDataPaymentModes /></ProtectedRoute>} />
+              <Route path="/studios/master-data/finance/bank-accounts" element={<ProtectedRoute><MasterDataBankAccounts /></ProtectedRoute>} />
+              <Route path="/studios/master-data/finance/tax-types" element={<ProtectedRoute><MasterDataTaxTypes /></ProtectedRoute>} />
+              <Route path="/studios/master-data/finance/gst-rates" element={<ProtectedRoute><MasterDataGstRates /></ProtectedRoute>} />
+              <Route path="/studios/master-data/finance/expense-categories" element={<ProtectedRoute><MasterDataExpenseCategories /></ProtectedRoute>} />
+              <Route path="/studios/master-data/finance/income-categories" element={<ProtectedRoute><MasterDataIncomeCategories /></ProtectedRoute>} />
+              <Route path="/studios/master-data/finance/fee-categories" element={<ProtectedRoute><MasterDataFeeCategories /></ProtectedRoute>} />
+              <Route path="/studios/master-data/finance/discount-categories" element={<ProtectedRoute><MasterDataDiscountCategories /></ProtectedRoute>} />
+              <Route path="/studios/master-data/finance/currencies" element={<ProtectedRoute><MasterDataCurrencies /></ProtectedRoute>} />
+              <Route path="/studios/master-data/finance/financial-years" element={<ProtectedRoute><MasterDataFinancialYears /></ProtectedRoute>} />
+              <Route path="/studios/master-data/crm/industries" element={<ProtectedRoute><MasterDataIndustries /></ProtectedRoute>} />
+              <Route path="/studios/master-data/academic/classrooms" element={<ProtectedRoute><MasterDataClassrooms /></ProtectedRoute>} />
+              <Route path="/studios/master-data/communication/notification-types" element={<ProtectedRoute><MasterDataNotificationTypes /></ProtectedRoute>} />
+              <Route path="/studios/master-data/communication/email-templates" element={<ProtectedRoute><MasterDataEmailTemplates /></ProtectedRoute>} />
+              <Route path="/studios/master-data/communication/sms-templates" element={<ProtectedRoute><MasterDataSmsTemplates /></ProtectedRoute>} />
+              <Route path="/studios/master-data/communication/whatsapp-templates" element={<ProtectedRoute><MasterDataWhatsAppTemplates /></ProtectedRoute>} />
               <Route path="/studios/master-data/system" element={<ProtectedRoute><MasterDataSystem /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>

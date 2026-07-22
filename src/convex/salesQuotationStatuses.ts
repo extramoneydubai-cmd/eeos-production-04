@@ -5,16 +5,14 @@ import { mutation, query } from "./_generated/server";
    SEED DATA
    ──────────── */
 
-const SEED_DATA = [
-  { name: "Draft", code: "QST_DRAFT", statusCategory: "Pending", description: "Quotation is being drafted and not yet sent", color: "#9aa0a6", icon: "FileEdit" },
-  { name: "Sent", code: "QST_SENT", statusCategory: "Pending", description: "Quotation has been sent to the lead", color: "#4285f4", icon: "Send" },
-  { name: "Viewed", code: "QST_VIEWED", statusCategory: "Pending", description: "Lead has viewed the quotation", color: "#4f46e5", icon: "Eye" },
-  { name: "Accepted", code: "QST_ACCEPTED", statusCategory: "Finalized", description: "Quotation has been accepted by the lead", color: "#34a853", icon: "CheckCircle" },
-  { name: "Rejected", code: "QST_REJECTED", statusCategory: "Finalized", description: "Quotation has been rejected by the lead", color: "#ea4335", icon: "XCircle" },
-  { name: "Expired", code: "QST_EXPIRED", statusCategory: "Finalized", description: "Quotation validity period has expired", color: "#5f6368", icon: "Clock" },
-  { name: "Cancelled", code: "QST_CANCELLED", statusCategory: "Finalized", description: "Quotation was cancelled internally", color: "#f97316", icon: "Ban" },
-  { name: "Revised", code: "QST_REVISED", statusCategory: "Pending", description: "Quotation has been revised and re-sent", color: "#a855f7", icon: "RefreshCw" },
-];
+const SEED_DATA: Array<{
+  name: string;
+  code: string;
+  color: string;
+  icon: string;
+  description: string;
+  [key: string]: any;
+}> = [];
 
 /* ────────────
    HELPERS
@@ -22,12 +20,7 @@ const SEED_DATA = [
 
 function baseFields(data: (typeof SEED_DATA)[number], sequence: number) {
   return {
-    name: data.name,
-    code: data.code,
-    statusCategory: data.statusCategory,
-    description: data.description,
-    color: data.color,
-    icon: data.icon,
+    ...data,
     sequence,
     active: true,
     createdAt: Date.now(),
@@ -48,22 +41,21 @@ export const seedDefault = mutation({
       .collect();
     if (existing.length > 0) return { seeded: 0, message: "Already seeded" };
     let count = 0;
-    for (let i = 0; i < SEED_DATA.length; i++) {
-      await ctx.db.insert("salesQuotationStatuses", baseFields(SEED_DATA[i], i));
+    for (const data of SEED_DATA) {
+      await ctx.db.insert("salesQuotationStatuses", baseFields(data, count));
       count++;
     }
     return { seeded: count };
   },
 });
 
-export const createQuotationStatus = mutation({
+export const create = mutation({
   args: {
     name: v.string(),
     code: v.string(),
-    statusCategory: v.string(),
-    description: v.optional(v.string()),
     color: v.string(),
     icon: v.string(),
+    description: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const all = await ctx.db
@@ -82,39 +74,38 @@ export const createQuotationStatus = mutation({
   },
 });
 
-export const updateQuotationStatus = mutation({
+export const update = mutation({
   args: {
     id: v.id("salesQuotationStatuses"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
-    statusCategory: v.optional(v.string()),
-    description: v.optional(v.string()),
     color: v.optional(v.string()),
     icon: v.optional(v.string()),
+    description: v.optional(v.string()),
     active: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const { id, ...fields } = args;
     const existing = await ctx.db.get(id);
-    if (!existing) throw new Error("Quotation status not found");
+    if (!existing) throw new Error("QuotationStatus not found");
     return ctx.db.patch(id, { ...fields, updatedAt: Date.now() });
   },
 });
 
-export const deleteQuotationStatus = mutation({
+export const remove = mutation({
   args: { id: v.id("salesQuotationStatuses") },
   handler: async (ctx, args) => {
     const existing = await ctx.db.get(args.id);
-    if (!existing) throw new Error("Quotation status not found");
+    if (!existing) throw new Error("QuotationStatus not found");
     await ctx.db.delete(args.id);
   },
 });
 
-export const duplicateQuotationStatus = mutation({
+export const duplicate = mutation({
   args: { id: v.id("salesQuotationStatuses") },
   handler: async (ctx, args) => {
     const source = await ctx.db.get(args.id);
-    if (!source) throw new Error("Quotation status not found");
+    if (!source) throw new Error("QuotationStatus not found");
     const all = await ctx.db
       .query("salesQuotationStatuses")
       .withIndex("sequence")
@@ -123,10 +114,9 @@ export const duplicateQuotationStatus = mutation({
     return ctx.db.insert("salesQuotationStatuses", {
       name: `${source.name} (Copy)`,
       code: `${source.code}_COPY`,
-      statusCategory: source.statusCategory,
-      description: source.description,
       color: source.color,
       icon: source.icon,
+      description: source.description,
       sequence: maxSeq + 1,
       active: false,
       createdAt: Date.now(),
@@ -135,7 +125,7 @@ export const duplicateQuotationStatus = mutation({
   },
 });
 
-export const reorderQuotationStatuses = mutation({
+export const reorder = mutation({
   args: { orderedIds: v.array(v.id("salesQuotationStatuses")) },
   handler: async (ctx, args) => {
     for (let i = 0; i < args.orderedIds.length; i++) {
@@ -148,14 +138,14 @@ export const reorderQuotationStatuses = mutation({
    QUERIES
    ──────────── */
 
-export const listQuotationStatuses = query({
+export const list = query({
   args: {},
   handler: async (ctx) => {
     return ctx.db.query("salesQuotationStatuses").withIndex("sequence").collect();
   },
 });
 
-export const getQuotationStatus = query({
+export const get = query({
   args: { id: v.id("salesQuotationStatuses") },
   handler: async (ctx, args) => {
     return ctx.db.get(args.id);

@@ -963,6 +963,100 @@ const schema = defineSchema({
   }).index("sequence", ["sequence"]),
 
   // ============================
+  // Academic — Classrooms (Master Data Studio)
+  // ============================
+
+  academicClassrooms: defineTable({
+    name: v.string(),
+    code: v.string(),
+    building: v.optional(v.string()),
+    floor: v.optional(v.number()),
+    roomNumber: v.optional(v.string()),
+    capacity: v.optional(v.number()),
+    hasMultimedia: v.boolean(),
+    hasAirConditioning: v.boolean(),
+    description: v.optional(v.string()),
+    color: v.string(),
+    icon: v.string(),
+    sequence: v.number(),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("sequence", ["sequence"]),
+
+  // ============================
+  // Communication — Notification Types (Master Data Studio)
+  // ============================
+
+  commNotificationTypes: defineTable({
+    name: v.string(),
+    code: v.string(),
+    channelType: v.string(),
+    description: v.optional(v.string()),
+    color: v.string(),
+    icon: v.string(),
+    sequence: v.number(),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("sequence", ["sequence"]),
+
+  // ============================
+  // Communication — Email Templates (Master Data Studio)
+  // ============================
+
+  commEmailTemplates: defineTable({
+    name: v.string(),
+    code: v.string(),
+    templateCategory: v.string(),
+    subject: v.string(),
+    bodyPreview: v.optional(v.string()),
+    description: v.optional(v.string()),
+    color: v.string(),
+    icon: v.string(),
+    sequence: v.number(),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("sequence", ["sequence"]),
+
+  // ============================
+  // Communication — SMS Templates (Master Data Studio)
+  // ============================
+
+  commSmsTemplates: defineTable({
+    name: v.string(),
+    code: v.string(),
+    templateCategory: v.string(),
+    bodyPreview: v.optional(v.string()),
+    description: v.optional(v.string()),
+    color: v.string(),
+    icon: v.string(),
+    sequence: v.number(),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("sequence", ["sequence"]),
+
+  // ============================
+  // Communication — WhatsApp Templates (Master Data Studio)
+  // ============================
+
+  commWhatsAppTemplates: defineTable({
+    name: v.string(),
+    code: v.string(),
+    templateCategory: v.string(),
+    bodyPreview: v.optional(v.string()),
+    description: v.optional(v.string()),
+    color: v.string(),
+    icon: v.string(),
+    sequence: v.number(),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("sequence", ["sequence"]),
+
+  // ============================
   // Organization - Companies (Master Data Studio)
   // ============================
 
@@ -1416,6 +1510,51 @@ const schema = defineSchema({
     updatedAt: v.number(),
   }).index("sequence", ["sequence"]),
 
+  // ─── Sales: Payment Statuses ───
+  salesPaymentStatuses: defineTable({
+    name: v.string(),
+    code: v.string(),
+    statusCategory: v.optional(v.string()),
+    sequence: v.number(),
+    color: v.string(),
+    icon: v.string(),
+    description: v.optional(v.string()),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("sequence", ["sequence"]),
+
+  // ─── Sales: Invoice Types ───
+  salesInvoiceTypes: defineTable({
+    name: v.string(),
+    code: v.string(),
+    invoiceCategory: v.optional(v.string()),
+    sequence: v.number(),
+    color: v.string(),
+    icon: v.string(),
+    description: v.optional(v.string()),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("sequence", ["sequence"]),
+
+  // ─── Sales: Tax Slabs ───
+  salesTaxSlabs: defineTable({
+    name: v.string(),
+    code: v.string(),
+    slabType: v.optional(v.string()),
+    fromAmount: v.optional(v.number()),
+    toAmount: v.optional(v.number()),
+    taxRate: v.number(),
+    sequence: v.number(),
+    color: v.string(),
+    icon: v.string(),
+    description: v.optional(v.string()),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("sequence", ["sequence"]),
+
   // ============================
   // CRM - Lead Categories (Master Data Studio)
   // ============================
@@ -1424,6 +1563,23 @@ const schema = defineSchema({
     name: v.string(),
     code: v.string(),
     categoryType: v.string(),
+    description: v.optional(v.string()),
+    color: v.string(),
+    icon: v.string(),
+    sequence: v.number(),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("sequence", ["sequence"]),
+
+  // ============================
+  // CRM — Industries (Master Data Studio)
+  // ============================
+
+  crmIndustries: defineTable({
+    name: v.string(),
+    code: v.string(),
+    sector: v.string(),
     description: v.optional(v.string()),
     color: v.string(),
     icon: v.string(),
@@ -1577,8 +1733,292 @@ const schema = defineSchema({
   }).index("sequence", ["sequence"]),
 
   // ============================
-  // Collection Engine — Payment Plans
+  // HR — Employee Categories (Master Data Studio)
   // ============================
+
+  hrEmployeeCategories: defineTable({
+    name: v.string(),
+    code: v.string(),
+    categoryType: v.string(),
+    description: v.optional(v.string()),
+    color: v.string(),
+    icon: v.string(),
+    sequence: v.number(),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("sequence", ["sequence"]),
+
+  // ============================
+  // HR — Work Locations (Master Data Studio)
+  // ============================
+
+  hrWorkLocations: defineTable({
+    name: v.string(),
+    code: v.string(),
+    locationType: v.string(),
+    address: v.optional(v.string()),
+    city: v.optional(v.string()),
+    state: v.optional(v.string()),
+    country: v.string(),
+    description: v.optional(v.string()),
+    color: v.string(),
+    icon: v.string(),
+    sequence: v.number(),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("sequence", ["sequence"]),
+
+  // ============================
+  // HR — Skills (Master Data Studio)
+  // ============================
+
+  hrSkills: defineTable({
+    name: v.string(),
+    code: v.string(),
+    skillCategory: v.string(),
+    description: v.optional(v.string()),
+    color: v.string(),
+    icon: v.string(),
+    sequence: v.number(),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("sequence", ["sequence"]),
+
+  // ============================
+  // HR — Experience Levels (Master Data Studio)
+  // ============================
+
+  hrExperienceLevels: defineTable({
+    name: v.string(),
+    code: v.string(),
+    minYears: v.number(),
+    maxYears: v.optional(v.number()),
+    description: v.optional(v.string()),
+    color: v.string(),
+    icon: v.string(),
+    sequence: v.number(),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("sequence", ["sequence"]),
+
+  // ============================
+  // HR — Document Types (Master Data Studio)
+  // ============================
+
+  hrDocumentTypes: defineTable({
+    name: v.string(),
+    code: v.string(),
+    documentCategory: v.string(),
+    isMandatory: v.boolean(),
+    description: v.optional(v.string()),
+    color: v.string(),
+    icon: v.string(),
+    sequence: v.number(),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("sequence", ["sequence"]),
+
+  // ============================
+  // Finance — Payment Modes (Master Data Studio)
+  // ============================
+
+  financePaymentModes: defineTable({
+    name: v.string(),
+    code: v.string(),
+    modeCategory: v.string(),
+    isDigital: v.boolean(),
+    description: v.optional(v.string()),
+    color: v.string(),
+    icon: v.string(),
+    sequence: v.number(),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("sequence", ["sequence"]),
+
+  // ============================
+  // Finance — Bank Accounts (Master Data Studio)
+  // ============================
+
+  financeBankAccounts: defineTable({
+    name: v.string(),
+    code: v.string(),
+    accountNumber: v.string(),
+    bankName: v.string(),
+    branchName: v.optional(v.string()),
+    ifscCode: v.optional(v.string()),
+    swiftCode: v.optional(v.string()),
+    accountType: v.string(),
+    isDefault: v.boolean(),
+    description: v.optional(v.string()),
+    color: v.string(),
+    icon: v.string(),
+    sequence: v.number(),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("sequence", ["sequence"]),
+
+  // ============================
+  // Finance — Tax Types (Master Data Studio)
+  // ============================
+
+  financeTaxTypes: defineTable({
+    name: v.string(),
+    code: v.string(),
+    taxCategory: v.string(),
+    taxRate: v.number(),
+    isCompound: v.boolean(),
+    description: v.optional(v.string()),
+    color: v.string(),
+    icon: v.string(),
+    sequence: v.number(),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("sequence", ["sequence"]),
+
+  // ============================
+  // Finance — GST Rates (Master Data Studio)
+  // ============================
+
+  financeGstRates: defineTable({
+    name: v.string(),
+    code: v.string(),
+    gstType: v.string(),
+    cgstRate: v.number(),
+    sgstRate: v.number(),
+    igstRate: v.optional(v.number()),
+    totalRate: v.number(),
+    description: v.optional(v.string()),
+    color: v.string(),
+    icon: v.string(),
+    sequence: v.number(),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("sequence", ["sequence"]),
+
+  // ============================
+  // Finance — Expense Categories (Master Data Studio)
+  // ============================
+
+  financeExpenseCategories: defineTable({
+    name: v.string(),
+    code: v.string(),
+    expenseType: v.string(),
+    budgetable: v.boolean(),
+    description: v.optional(v.string()),
+    color: v.string(),
+    icon: v.string(),
+    sequence: v.number(),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("sequence", ["sequence"]),
+
+  // ============================
+  // Finance — Income Categories (Master Data Studio)
+  // ============================
+
+  financeIncomeCategories: defineTable({
+    name: v.string(),
+    code: v.string(),
+    incomeType: v.string(),
+    isTaxable: v.boolean(),
+    description: v.optional(v.string()),
+    color: v.string(),
+    icon: v.string(),
+    sequence: v.number(),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("sequence", ["sequence"]),
+
+  // ============================
+  // Finance — Fee Categories (Master Data Studio)
+  // ============================
+
+  financeFeeCategories: defineTable({
+    name: v.string(),
+    code: v.string(),
+    feeType: v.string(),
+    isRecurring: v.boolean(),
+    isOptional: v.boolean(),
+    isRefundable: v.boolean(),
+    description: v.optional(v.string()),
+    color: v.string(),
+    icon: v.string(),
+    sequence: v.number(),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("sequence", ["sequence"]),
+
+  // ============================
+  // Finance — Discount Categories (Master Data Studio)
+  // ============================
+
+  financeDiscountCategories: defineTable({
+    name: v.string(),
+    code: v.string(),
+    discountType: v.string(),
+    isPercentage: v.boolean(),
+    maxValue: v.optional(v.number()),
+    description: v.optional(v.string()),
+    color: v.string(),
+    icon: v.string(),
+    sequence: v.number(),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("sequence", ["sequence"]),
+
+  // ============================
+  // Finance — Currencies (Master Data Studio)
+  // ============================
+
+  financeCurrencies: defineTable({
+    name: v.string(),
+    code: v.string(),
+    symbol: v.string(),
+    isoCode: v.string(),
+    isBase: v.boolean(),
+    exchangeRate: v.optional(v.number()),
+    decimalPlaces: v.number(),
+    description: v.optional(v.string()),
+    color: v.string(),
+    icon: v.string(),
+    sequence: v.number(),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("sequence", ["sequence"]),
+
+  // ============================
+  // Finance — Financial Years (Master Data Studio)
+  // ============================
+
+  financeFinancialYears: defineTable({
+    name: v.string(),
+    code: v.string(),
+    startDate: v.number(),
+    endDate: v.number(),
+    isCurrent: v.boolean(),
+    isClosed: v.boolean(),
+    description: v.optional(v.string()),
+    color: v.string(),
+    icon: v.string(),
+    sequence: v.number(),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("sequence", ["sequence"]),
 
   payment_plans: defineTable({
     leadId: v.id("leadMaster"),

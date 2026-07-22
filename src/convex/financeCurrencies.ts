@@ -36,13 +36,13 @@ export const seedDefault = mutation({
   args: {},
   handler: async (ctx) => {
     const existing = await ctx.db
-      .query("salesOpportunityTypes")
+      .query("financeCurrencies")
       .withIndex("sequence")
       .collect();
     if (existing.length > 0) return { seeded: 0, message: "Already seeded" };
     let count = 0;
     for (const data of SEED_DATA) {
-      await ctx.db.insert("salesOpportunityTypes", baseFields(data, count));
+      await ctx.db.insert("financeCurrencies", baseFields(data, count));
       count++;
     }
     return { seeded: count };
@@ -59,11 +59,11 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const all = await ctx.db
-      .query("salesOpportunityTypes")
+      .query("financeCurrencies")
       .withIndex("sequence")
       .collect();
     const maxSeq = all.reduce((m, r) => Math.max(m, r.sequence), -1);
-    return ctx.db.insert("salesOpportunityTypes", {
+    return ctx.db.insert("financeCurrencies", {
       ...args,
       description: args.description ?? "",
       sequence: maxSeq + 1,
@@ -76,7 +76,7 @@ export const create = mutation({
 
 export const update = mutation({
   args: {
-    id: v.id("salesOpportunityTypes"),
+    id: v.id("financeCurrencies"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
     color: v.optional(v.string()),
@@ -87,31 +87,31 @@ export const update = mutation({
   handler: async (ctx, args) => {
     const { id, ...fields } = args;
     const existing = await ctx.db.get(id);
-    if (!existing) throw new Error("OpportunityType not found");
+    if (!existing) throw new Error("Currency not found");
     return ctx.db.patch(id, { ...fields, updatedAt: Date.now() });
   },
 });
 
 export const remove = mutation({
-  args: { id: v.id("salesOpportunityTypes") },
+  args: { id: v.id("financeCurrencies") },
   handler: async (ctx, args) => {
     const existing = await ctx.db.get(args.id);
-    if (!existing) throw new Error("OpportunityType not found");
+    if (!existing) throw new Error("Currency not found");
     await ctx.db.delete(args.id);
   },
 });
 
 export const duplicate = mutation({
-  args: { id: v.id("salesOpportunityTypes") },
+  args: { id: v.id("financeCurrencies") },
   handler: async (ctx, args) => {
     const source = await ctx.db.get(args.id);
-    if (!source) throw new Error("OpportunityType not found");
+    if (!source) throw new Error("Currency not found");
     const all = await ctx.db
-      .query("salesOpportunityTypes")
+      .query("financeCurrencies")
       .withIndex("sequence")
       .collect();
     const maxSeq = all.reduce((m, r) => Math.max(m, r.sequence), -1);
-    return ctx.db.insert("salesOpportunityTypes", {
+    return ctx.db.insert("financeCurrencies", {
       name: `${source.name} (Copy)`,
       code: `${source.code}_COPY`,
       color: source.color,
@@ -126,7 +126,7 @@ export const duplicate = mutation({
 });
 
 export const reorder = mutation({
-  args: { orderedIds: v.array(v.id("salesOpportunityTypes")) },
+  args: { orderedIds: v.array(v.id("financeCurrencies")) },
   handler: async (ctx, args) => {
     for (let i = 0; i < args.orderedIds.length; i++) {
       await ctx.db.patch(args.orderedIds[i], { sequence: i, updatedAt: Date.now() });
@@ -141,12 +141,12 @@ export const reorder = mutation({
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    return ctx.db.query("salesOpportunityTypes").withIndex("sequence").collect();
+    return ctx.db.query("financeCurrencies").withIndex("sequence").collect();
   },
 });
 
 export const get = query({
-  args: { id: v.id("salesOpportunityTypes") },
+  args: { id: v.id("financeCurrencies") },
   handler: async (ctx, args) => {
     return ctx.db.get(args.id);
   },

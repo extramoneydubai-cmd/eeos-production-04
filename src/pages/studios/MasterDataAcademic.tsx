@@ -392,7 +392,10 @@ const moduleCards = [
     iconColor: "text-[#a855f7]",
     status: "active" as const,
     href: "/studios/master-data/academic/terms",
-    isPlaceholder: false,
+    isPlaceholder: false,  {
+    id: "classrooms", title: "Classrooms", description: "Define classrooms, capacity, and facilities across campuses.",
+    icon: Home, color: "bg-[#f3e8ff]", iconColor: "text-[#a855f7]", status: "active" as const, href: "/studios/master-data/academic/classrooms", isPlaceholder: false,
+  },
   },
 ];
 

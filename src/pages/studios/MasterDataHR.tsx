@@ -59,7 +59,25 @@ const overviewCards = [
     totalRecords: 0,
     activeRecords: 0,
     href: "/studios/master-data/hr/employment-status",
-    isPlaceholder: false,
+  {
+    id: "employee-categories", title: "Employee Categories", description: "Define employee categories and functional roles.",
+    icon: UserCheck, color: "bg-[#e8f0fe]", iconColor: "text-[#1a73e8]", status: "active" as const, href: "/studios/master-data/hr/employee-categories", isPlaceholder: false,
+  },
+  {
+    id: "work-locations", title: "Work Locations", description: "Define offices, campuses, and remote work locations.",
+    icon: MapPin, color: "bg-[#e6f4ea]", iconColor: "text-[#34a853]", status: "active" as const, href: "/studios/master-data/hr/work-locations", isPlaceholder: false,
+  },
+  {
+    id: "skills", title: "Skills", description: "Define skills taxonomy for employee competencies.",
+    icon: Award, color: "bg-[#f3e8ff]", iconColor: "text-[#a855f7]", status: "active" as const, href: "/studios/master-data/hr/skills", isPlaceholder: false,
+  },
+  {
+    id: "experience-levels", title: "Experience Levels", description: "Define experience level bands.",
+    icon: TrendingUp, color: "bg-[#fef7e0]", iconColor: "text-[#fbbc04]", status: "active" as const, href: "/studios/master-data/hr/experience-levels", isPlaceholder: false,
+  },
+  {
+    id: "document-types", title: "Document Types", description: "Define document types for employee records.",
+    icon: FileText, color: "bg-[#fce8e6]", iconColor: "text-[#ea4335]", status: "active" as const, href: "/studios/master-data/hr/document-types", isPlaceholder: false,
   },
   {
     id: "departments",
