@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, RefreshCw, ArrowLeft } from "lucide-react";
+import { errorLog, notifyDevError } from "@/lib/error-logger";
 
 interface RouteErrorBoundaryProps {
   children: React.ReactNode;
@@ -28,7 +29,21 @@ export class RouteErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error("[RouteErrorBoundary] Caught error:", error.message, info.componentStack);
+    const msg = error.message || String(error);
+    console.error("[RouteErrorBoundary] Caught error:", msg, info.componentStack);
+
+    // Send to the global error log
+    try {
+      const entry = errorLog.push({
+        message: msg,
+        stack: error.stack || msg || "",
+        source: "boundary",
+        componentStack: info.componentStack,
+      });
+      notifyDevError(entry);
+    } catch {
+      // Logger infrastructure is best-effort
+    }
   }
 
   handleRetry = () => {

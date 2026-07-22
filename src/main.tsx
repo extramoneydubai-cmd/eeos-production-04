@@ -114,6 +114,8 @@ const MasterDataWhatsAppTemplates = lazy(() => import("./pages/studios/MasterDat
 const MasterDataSystem = lazy(() => import("./pages/studios/MasterDataSystem.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 import { RouteErrorBoundary } from "@/components/ui/route-error-boundary";
+import { InstrumentationProvider } from "@/instrumentation";
+import { DebugPanel } from "@/components/debug/DebugPanel";
 
 // Simple loading fallback
 function RouteLoading() {
@@ -169,6 +171,7 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <VlyToolbar />
     <>
+      <InstrumentationProvider>
       <ConvexAuthProvider client={convex}>
         <BrowserRouter>
           <RouteSyncer />
@@ -282,7 +285,9 @@ createRoot(document.getElementById("root")!).render(
           </Suspense>
           <Toaster />
         </BrowserRouter>
+        <DebugPanel />
       </ConvexAuthProvider>
+      </InstrumentationProvider>
     </>
   </StrictMode>,
 );
