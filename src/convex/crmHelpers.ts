@@ -26,16 +26,37 @@ export function recalculatePayable(stdAmount: number, approvedDiscounts: { amoun
 }
 
 export async function checkAutoConversion(ctx: any, leadId: string) {
-  const lead = await ctx.db.get(leadId);
-  if (!lead || lead.status === "converted" || lead.status === "lost") return;
-  const payments = await ctx.db.query("leadPayments").withIndex("leadId", (q: any) => q.eq("leadId", leadId)).collect();
-  const verifiedPayments = payments.filter((p: { status: string }) => p.status === "verified");
-  if (verifiedPayments.length === 0) return;
-  const totalPaid = verifiedPayments.reduce((s: number, p: { amount: number }) => s + p.amount, 0);
-  await ctx.db.patch(leadId, { stage: "converted", status: "converted", updatedAt: Date.now() });
-  await ctx.db.insert("leadStageHistory", { leadId, fromStage: lead.stage, toStage: "converted", changedBy: lead.createdBy, note: "Auto-converted after payment verification", createdAt: Date.now() });
-  await logActivity(ctx, leadId, "stage_changed", `auto-converted after payment verification (₹${totalPaid} paid)`, lead.createdBy);
-  if (lead.ownerId) {
-    await createNotification(ctx, lead.ownerId, "conversion", "Lead Converted", `Lead ${lead.firstName} ${lead.lastName} auto-converted after payment`, leadId, "lead");
+  try {
+    const lead = await ctx.db.get(leadId);
+    if (!lead || lead.status === "converted" || lead.status === "lost") return;
+    const payments = await ctx.db.query("leadPayments").withIndex("leadId", (q: any) => q.eq("leadId", leadId)).collect();
+    const verifiedPayments = payments.filter((p: { status: string }) => p.status === "verified");
+    if (verifiedPayments.length === 0) return;
+    const totalPaid = verifiedPayments.reduce((s: number, p: { amount: number }) => s + p.amount, 0);
+    if (totalPaid <= 0) return;
+    const now = Date.now();
+    const fromStage = lead.stage;
+    const ownerId = lead.ownerId || lead.createdBy;
+    await ctx.db.patch(leadId, { stage: "converted", status: "converted", updatedAt: now });
+    await ctx.db.insert("leadStageHistory", {
+      leadId, fromStage, toStage: "converted",
+      changedBy: ownerId,
+      note: `Auto-converted after verified payment of ₹${totalPaid}`,
+      createdAt: now,
+    });
+    await logActivity(ctx, leadId, "stage_changed", `auto-converted after payment verification (₹${totalPaid} paid)`, ownerId);
+    // Notify both owner and creator if they differ
+    const notifiedUsers = new Set<string>();
+    if (lead.ownerId && !notifiedUsers.has(lead.ownerId)) {
+      notifiedUsers.add(lead.ownerId);
+      await createNotification(ctx, lead.ownerId, "conversion", "Lead Converted",
+        `${lead.firstName} ${lead.lastName} auto-converted after ₹${totalPaid} payment`, leadId, "lead");
+    }
+    if (lead.createdBy && !notifiedUsers.has(lead.createdBy)) {
+      await createNotification(ctx, lead.createdBy, "conversion", "Lead Converted",
+        `${lead.firstName} ${lead.lastName} auto-converted after ₹${totalPaid} payment`, leadId, "lead");
+    }
+  } catch (error) {
+    console.error("[checkAutoConversion] Error:", error);
   }
 }

@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
   ArrowRight, CheckCircle2, Loader2, DollarSign, FileText, Target,
-  CreditCard, GraduationCap, Sparkles, AlertCircle,
+  CreditCard, GraduationCap,  Sparkles, AlertCircle, Clock,
 } from "lucide-react";
 import { Id } from "@/convex/_generated/dataModel";
 
@@ -324,22 +324,32 @@ export default function LeadConversionWizard({ leadId, open, onOpenChange, onCom
           </div>
         );
 
-      case 3: // Admission placeholder
+      case 3: // Awaiting verification
         return (
           <div className="text-center py-6 space-y-4">
-            <div className="w-16 h-16 rounded-full bg-[#f3e8ff] flex items-center justify-center mx-auto">
-              <GraduationCap className="h-8 w-8 text-[#a855f7]" />
+            <div className="w-16 h-16 rounded-full bg-[#fef3e2] flex items-center justify-center mx-auto">
+              <Clock className="h-8 w-8 text-[#e8710a]" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-[#1a1a2e]">Admission Engine</h3>
-              <p className="text-[12px] text-[#5f6368] mt-1">Admission processing will be available in the next release.</p>
-              <Badge className="mt-2 text-[10px] bg-[#f1f3f4] text-[#9aa0a6]">Coming Soon</Badge>
+              <h3 className="text-sm font-semibold text-[#1a1a2e]">Payment Recorded</h3>
+              <p className="text-[12px] text-[#5f6368] mt-1">
+                The payment has been recorded and sent for verification.
+                Once verified, the lead will be <strong>auto-converted</strong> to customer status.
+              </p>
+              <div className="flex items-center justify-center gap-1.5 mt-2">
+                <Loader2 className="h-3 w-3 animate-spin text-[#e8710a]" />
+                <span className="text-[11px] text-[#5f6368]">Waiting for verification...</span>
+              </div>
             </div>
-            <Button size="sm" onClick={handleComplete} disabled={loading}
-              className="h-8 text-[11px] bg-[#34a853] hover:bg-[#2d9249] mt-4">
-              {loading ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <CheckCircle2 className="h-3 w-3 mr-1" />}
-              Complete Conversion
-            </Button>
+            <div className="bg-[#f8f9fa] rounded-md p-3 text-left space-y-1">
+              <p className="text-[10px] text-[#5f6368] font-medium">What happens next?</p>
+              <ol className="text-[10px] text-[#5f6368] space-y-1 list-decimal list-inside">
+                <li>A verifier reviews the payment in the <strong>Verification Center</strong></li>
+                <li>Upon approval, payment status changes to <strong>Verified</strong></li>
+                <li>The lead is <strong>automatically converted</strong> to customer</li>
+                <li>You'll receive a notification once conversion is complete</li>
+              </ol>
+            </div>
           </div>
         );
 
