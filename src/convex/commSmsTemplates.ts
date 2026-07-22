@@ -56,6 +56,8 @@ export const create = mutation({
     color: v.string(),
     icon: v.string(),
     description: v.optional(v.string()),
+    templateCategory: v.string(),
+    bodyPreview: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const all = await ctx.db

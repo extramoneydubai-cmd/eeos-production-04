@@ -56,6 +56,8 @@ export const create = mutation({
     color: v.string(),
     icon: v.string(),
     description: v.optional(v.string()),
+    minYears: v.number(),
+    maxYears: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const all = await ctx.db
@@ -82,6 +84,8 @@ export const update = mutation({
     color: v.optional(v.string()),
     icon: v.optional(v.string()),
     description: v.optional(v.string()),
+    minYears: v.optional(v.number()),
+    maxYears: v.optional(v.number()),
     active: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {

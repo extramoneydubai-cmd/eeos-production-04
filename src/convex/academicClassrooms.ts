@@ -56,6 +56,12 @@ export const create = mutation({
     color: v.string(),
     icon: v.string(),
     description: v.optional(v.string()),
+    building: v.optional(v.string()),
+    floor: v.optional(v.number()),
+    roomNumber: v.optional(v.string()),
+    capacity: v.optional(v.number()),
+    hasMultimedia: v.boolean(),
+    hasAirConditioning: v.boolean(),
   },
   handler: async (ctx, args) => {
     const all = await ctx.db

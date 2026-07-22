@@ -510,10 +510,11 @@ const moduleCards = [
     iconColor: "text-[#1a73e8]",
     status: "active" as const,
     href: "/studios/master-data/crm/lead-categories",
-    isPlaceholder: false,  {
-    id: "industries", title: "Industries", description: "Define industry sectors for lead and organization classification.",
-    icon: Building, color: "bg-[#fef7e0]", iconColor: "text-[#e8710a]", status: "active" as const, href: "/studios/master-data/crm/industries", isPlaceholder: false,
+    isPlaceholder: false,
   },
+  {
+    id: "industries", title: "Industries", description: "Define industry sectors for lead and organization classification.",
+    icon: Building, color: "bg-[#fef7e0]", iconColor: "text-[#e8710a]", status: "active" as const, href: "/studios/master-data/crm/industries",    isPlaceholder: false,
   },
 ];
 

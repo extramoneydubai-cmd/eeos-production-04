@@ -59,9 +59,12 @@ const overviewCards = [
     totalRecords: 0,
     activeRecords: 0,
     href: "/studios/master-data/hr/employment-status",
+    isPlaceholder: false,
+  },
   {
     id: "employee-categories", title: "Employee Categories", description: "Define employee categories and functional roles.",
     icon: UserCheck, color: "bg-[#e8f0fe]", iconColor: "text-[#1a73e8]", status: "active" as const, href: "/studios/master-data/hr/employee-categories", isPlaceholder: false,
+    totalRecords: 0, activeRecords: 0,
   },
   {
     id: "work-locations", title: "Work Locations", description: "Define offices, campuses, and remote work locations.",

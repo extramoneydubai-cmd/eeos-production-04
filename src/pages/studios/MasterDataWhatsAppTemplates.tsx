@@ -2,7 +2,7 @@ import MasterDataTable, { formatDate } from "@/components/studios/MasterDataTabl
 import { api } from "@/convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import {
-  GraduationCap, Heart, Building, School, BookOpen, Building2, Handshake, Landmark, Shield, HeartHandshake, Globe, Star, User, UserCheck, Users, BadgeCheck, Briefcase, Award, Sparkles, Zap, Target, Flag, MapPin, Map, MessageCircle, Wifi, FileText, DollarSign, CreditCard, Wallet, Percent, Clock, Home, Calendar, Mail, MessageSquare, MessageCircle, TrendingUp, Layers, FileSpreadsheet, Coins, Megaphone, Phone, Monitor,
+  GraduationCap, Heart, Building, School, BookOpen, Building2, Handshake, Landmark, Shield, HeartHandshake, Globe, Star, User, UserCheck, Users, BadgeCheck, Briefcase, Award, Sparkles, Zap, Target, Flag, MapPin, Map, MessageCircle, Wifi, FileText, DollarSign, CreditCard, Wallet, Percent, Clock, Home, Calendar, Mail, MessageSquare, TrendingUp, Layers, FileSpreadsheet, Coins, Megaphone, Phone, Monitor,
 } from "lucide-react";
 
 const WA_CATEGORIES = ["Transactional","Promotional","Reminder","Alert","Follow-up","Greeting","Other"];

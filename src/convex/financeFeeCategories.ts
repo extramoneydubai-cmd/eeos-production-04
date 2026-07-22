@@ -56,6 +56,10 @@ export const create = mutation({
     color: v.string(),
     icon: v.string(),
     description: v.optional(v.string()),
+    feeType: v.string(),
+    isRecurring: v.boolean(),
+    isOptional: v.boolean(),
+    isRefundable: v.boolean(),
   },
   handler: async (ctx, args) => {
     const all = await ctx.db
@@ -82,6 +86,10 @@ export const update = mutation({
     color: v.optional(v.string()),
     icon: v.optional(v.string()),
     description: v.optional(v.string()),
+    feeType: v.optional(v.string()),
+    isRecurring: v.optional(v.boolean()),
+    isOptional: v.optional(v.boolean()),
+    isRefundable: v.optional(v.boolean()),
     active: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {

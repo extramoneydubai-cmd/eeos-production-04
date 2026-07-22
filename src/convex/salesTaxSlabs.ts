@@ -56,6 +56,10 @@ export const create = mutation({
     color: v.string(),
     icon: v.string(),
     description: v.optional(v.string()),
+    slabType: v.optional(v.string()),
+    fromAmount: v.optional(v.number()),
+    toAmount: v.optional(v.number()),
+    taxRate: v.number(),
   },
   handler: async (ctx, args) => {
     const all = await ctx.db

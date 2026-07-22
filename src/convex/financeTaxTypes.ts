@@ -56,6 +56,9 @@ export const create = mutation({
     color: v.string(),
     icon: v.string(),
     description: v.optional(v.string()),
+    taxCategory: v.string(),
+    taxRate: v.number(),
+    isCompound: v.boolean(),
   },
   handler: async (ctx, args) => {
     const all = await ctx.db
@@ -82,6 +85,9 @@ export const update = mutation({
     color: v.optional(v.string()),
     icon: v.optional(v.string()),
     description: v.optional(v.string()),
+    taxCategory: v.optional(v.string()),
+    taxRate: v.optional(v.number()),
+    isCompound: v.optional(v.boolean()),
     active: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {

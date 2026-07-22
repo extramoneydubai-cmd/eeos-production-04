@@ -56,6 +56,8 @@ export const create = mutation({
     color: v.string(),
     icon: v.string(),
     description: v.optional(v.string()),
+    templateCategory: v.string(),
+    bodyPreview: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const all = await ctx.db
@@ -65,7 +67,11 @@ export const create = mutation({
     const maxSeq = all.reduce((m, r) => Math.max(m, r.sequence), -1);
     return ctx.db.insert("commWhatsAppTemplates", {
       ...args,
+      templateCategory: args.templateCategory ?? "",
+      bodyPreview: args.bodyPreview ?? "",
       description: args.description ?? "",
+      templateCategory: args.templateCategory ?? "",
+      bodyPreview: args.bodyPreview ?? "",
       sequence: maxSeq + 1,
       active: true,
       createdAt: Date.now(),
