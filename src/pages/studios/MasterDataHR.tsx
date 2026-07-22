@@ -1,12 +1,17 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  useState } from "react";
+import { Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+  } from "@/components/ui/collapsible";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -14,7 +19,7 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+  } from "@/components/ui/breadcrumb";
 import {
   Home,
   UserCog,
@@ -32,7 +37,12 @@ import {
   GraduationCap,
   BarChart3,
   BadgeAlert,
-} from "lucide-react";
+  UserCheck,
+  MapPin,
+  Award,
+  TrendingUp,
+  FileText,
+} from "lucide-react";;
 
 /* ── Data ── */
 

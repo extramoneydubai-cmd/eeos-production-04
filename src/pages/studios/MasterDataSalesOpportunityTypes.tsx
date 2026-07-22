@@ -1,5 +1,6 @@
 import MasterDataTable, { formatDate } from "@/components/studios/MasterDataTable";
-import { api } from "@/convex/_generated/api";
+import {
+  api } from "@/convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import {
   BadgeCheck,
@@ -32,7 +33,8 @@ import {
   Phone,
   RefreshCw,
   School,
-} from "lucide-react";
+  Target,
+} from "lucide-react";;
 
 const OPPORTUNITY_CATEGORIES = ["Admission","Upsell","Corporate","Partnership","Institutional","Government","Retention","Other"];
 
