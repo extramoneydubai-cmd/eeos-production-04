@@ -5,14 +5,12 @@ import { mutation, query } from "./_generated/server";
    SEED DATA
    ──────────── */
 
-const SEED_DATA: Array<{
-  name: string;
-  code: string;
-  color: string;
-  icon: string;
-  description: string;
-  [key: string]: any;
-}> = [];
+const SEED_DATA = [
+  { name: "FY 2023-24", code: "FY2324", startDate: 1680307200000, endDate: 1711843199000, isCurrent: false, isClosed: true, description: "Financial year April 2023 - March 2024", color: "#9aa0a6", icon: "Calendar" },
+  { name: "FY 2024-25", code: "FY2425", startDate: 1711843200000, endDate: 1743379199000, isCurrent: false, isClosed: true, description: "Financial year April 2024 - March 2025", color: "#4285f4", icon: "Calendar" },
+  { name: "FY 2025-26", code: "FY2526", startDate: 1743379200000, endDate: 1774915199000, isCurrent: true, isClosed: false, description: "Current financial year", color: "#34a853", icon: "Calendar" },
+  { name: "FY 2026-27", code: "FY2627", startDate: 1774915200000, endDate: 1806451199000, isCurrent: false, isClosed: false, description: "Next financial year", color: "#a855f7", icon: "Calendar" },
+];
 
 /* ────────────
    HELPERS

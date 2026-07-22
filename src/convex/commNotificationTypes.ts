@@ -5,14 +5,16 @@ import { mutation, query } from "./_generated/server";
    SEED DATA
    ──────────── */
 
-const SEED_DATA: Array<{
-  name: string;
-  code: string;
-  color: string;
-  icon: string;
-  description: string;
-  [key: string]: any;
-}> = [];
+const SEED_DATA = [
+  { name: "Task Assignment", code: "TASK_ASSIGN", channelType: "In-App", description: "When a task is assigned to a user", color: "#4285f4", icon: "ClipboardList" },
+  { name: "Approval Request", code: "APPROVAL", channelType: "In-App", description: "When approval is requested", color: "#a855f7", icon: "CheckCircle" },
+  { name: "Payment Reminder", code: "PAY_REMIND", channelType: "SMS", description: "Payment due date reminders", color: "#f59e0b", icon: "Bell" },
+  { name: "Welcome Email", code: "WELCOME", channelType: "Email", description: "New user welcome notifications", color: "#34a853", icon: "Mail" },
+  { name: "WhatsApp Alert", code: "WA_ALERT", channelType: "WhatsApp", description: "Urgent WhatsApp notifications", color: "#25D366", icon: "MessageCircle" },
+  { name: "System Alert", code: "SYS_ALERT", channelType: "All", description: "Critical system alerts via all channels", color: "#ea4335", icon: "AlertTriangle" },
+  { name: "Follow-up Reminder", code: "FOLLOWUP", channelType: "In-App", description: "Reminders for pending follow-ups", color: "#0d9488", icon: "Bell" },
+  { name: "Announcement", code: "ANNOUNCE", channelType: "Email", description: "General announcements and updates", color: "#06b6d4", icon: "Megaphone" },
+];
 
 /* ────────────
    HELPERS

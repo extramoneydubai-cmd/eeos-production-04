@@ -5,14 +5,15 @@ import { mutation, query } from "./_generated/server";
    SEED DATA
    ──────────── */
 
-const SEED_DATA: Array<{
-  name: string;
-  code: string;
-  color: string;
-  icon: string;
-  description: string;
-  [key: string]: any;
-}> = [];
+const SEED_DATA = [
+  { name: "Rent", code: "RENT", expenseType: "Operational", budgetable: true, description: "Office and facility rent", color: "#4285f4", icon: "Home" },
+  { name: "Utilities", code: "UTIL", expenseType: "Operational", budgetable: true, description: "Electricity, water, internet bills", color: "#34a853", icon: "Wifi" },
+  { name: "Salary", code: "SALARY", expenseType: "Operational", budgetable: true, description: "Employee salaries and wages", color: "#a855f7", icon: "Users" },
+  { name: "Travel", code: "TRAVEL", expenseType: "Travel", budgetable: true, description: "Business travel and accommodation", color: "#f59e0b", icon: "MapPin" },
+  { name: "Marketing", code: "MKTG", expenseType: "Marketing", budgetable: true, description: "Marketing and advertising expenses", color: "#ea4335", icon: "Megaphone" },
+  { name: "Equipment", code: "EQUIP", expenseType: "Capital", budgetable: true, description: "Capital equipment purchases", color: "#4f46e5", icon: "Monitor" },
+  { name: "Maintenance", code: "MAINT", expenseType: "Maintenance", budgetable: true, description: "Repairs and maintenance", color: "#06b6d4", icon: "Wrench" },
+];
 
 /* ────────────
    HELPERS

@@ -5,14 +5,15 @@ import { mutation, query } from "./_generated/server";
    SEED DATA
    ──────────── */
 
-const SEED_DATA: Array<{
-  name: string;
-  code: string;
-  color: string;
-  icon: string;
-  description: string;
-  [key: string]: any;
-}> = [];
+const SEED_DATA = [
+  { name: "Entry Level", code: "ENTRY", minYears: 0, maxYears: 1, description: "Less than 1 year of experience", color: "#34a853", icon: "TrendingUp" },
+  { name: "Junior", code: "JR", minYears: 1, maxYears: 3, description: "1-3 years of experience", color: "#4285f4", icon: "TrendingUp" },
+  { name: "Mid Level", code: "MID", minYears: 3, maxYears: 5, description: "3-5 years of experience", color: "#f59e0b", icon: "TrendingUp" },
+  { name: "Senior", code: "SR", minYears: 5, maxYears: 8, description: "5-8 years of experience", color: "#e8710a", icon: "Award" },
+  { name: "Lead", code: "LEAD", minYears: 8, maxYears: 12, description: "8-12 years of experience", color: "#a855f7", icon: "Award" },
+  { name: "Principal", code: "PRIN", minYears: 12, maxYears: 15, description: "12-15 years of experience", color: "#4f46e5", icon: "Award" },
+  { name: "Executive", code: "EXEC", minYears: 15, maxYears: 0, description: "15+ years of experience", color: "#d4a017", icon: "Star" },
+];
 
 /* ────────────
    HELPERS

@@ -5,14 +5,13 @@ import { mutation, query } from "./_generated/server";
    SEED DATA
    ──────────── */
 
-const SEED_DATA: Array<{
-  name: string;
-  code: string;
-  color: string;
-  icon: string;
-  description: string;
-  [key: string]: any;
-}> = [];
+const SEED_DATA = [
+  { name: "UAE Dirham", code: "AED", symbol: "د.إ", isoCode: "AED", isBase: true, exchangeRate: 1, decimalPlaces: 2, description: "United Arab Emirates Dirham", color: "#34a853", icon: "DollarSign" },
+  { name: "US Dollar", code: "USD", symbol: "$", isoCode: "USD", isBase: false, exchangeRate: 3.67, decimalPlaces: 2, description: "United States Dollar", color: "#4285f4", icon: "DollarSign" },
+  { name: "Euro", code: "EUR", symbol: "€", isoCode: "EUR", isBase: false, exchangeRate: 4.02, decimalPlaces: 2, description: "Euro currency", color: "#a855f7", icon: "DollarSign" },
+  { name: "British Pound", code: "GBP", symbol: "£", isoCode: "GBP", isBase: false, exchangeRate: 4.65, decimalPlaces: 2, description: "British Pound Sterling", color: "#ea4335", icon: "DollarSign" },
+  { name: "Indian Rupee", code: "INR", symbol: "₹", isoCode: "INR", isBase: false, exchangeRate: 0.044, decimalPlaces: 2, description: "Indian Rupee", color: "#f59e0b", icon: "DollarSign" },
+];
 
 /* ────────────
    HELPERS

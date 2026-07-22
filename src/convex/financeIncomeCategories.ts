@@ -5,14 +5,15 @@ import { mutation, query } from "./_generated/server";
    SEED DATA
    ──────────── */
 
-const SEED_DATA: Array<{
-  name: string;
-  code: string;
-  color: string;
-  icon: string;
-  description: string;
-  [key: string]: any;
-}> = [];
+const SEED_DATA = [
+  { name: "Tuition Fee", code: "TUITION", incomeType: "Tuition Fee", isTaxable: true, description: "Student tuition fee income", color: "#4285f4", icon: "GraduationCap" },
+  { name: "Admission Fee", code: "ADM_FEE", incomeType: "Admission Fee", isTaxable: true, description: "One-time admission fee income", color: "#34a853", icon: "FileText" },
+  { name: "Hostel Fee", code: "HOSTEL", incomeType: "Hostel Fee", isTaxable: true, description: "Student hostel accommodation fee", color: "#a855f7", icon: "Home" },
+  { name: "Transport Fee", code: "TRANSPORT", incomeType: "Transport Fee", isTaxable: true, description: "Student transport fee income", color: "#f59e0b", icon: "Bus" },
+  { name: "Grant", code: "GRANT", incomeType: "Grant", isTaxable: false, description: "Government and research grants", color: "#06b6d4", icon: "Award" },
+  { name: "Donation", code: "DONATION", incomeType: "Donation", isTaxable: false, description: "Charitable donations and endowments", color: "#ea4335", icon: "Heart" },
+  { name: "Miscellaneous", code: "MISC", incomeType: "Miscellaneous", isTaxable: true, description: "Other income sources", color: "#9aa0a6", icon: "Coins" },
+];
 
 /* ────────────
    HELPERS

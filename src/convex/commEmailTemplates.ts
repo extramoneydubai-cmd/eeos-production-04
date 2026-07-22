@@ -5,14 +5,14 @@ import { mutation, query } from "./_generated/server";
    SEED DATA
    ──────────── */
 
-const SEED_DATA: Array<{
-  name: string;
-  code: string;
-  color: string;
-  icon: string;
-  description: string;
-  [key: string]: any;
-}> = [];
+const SEED_DATA = [
+  { name: "Welcome Email", code: "WELCOME", templateCategory: "Onboarding", subject: "Welcome to {{organization_name}}!", bodyPreview: "Dear {{name}}, welcome aboard...", description: "Welcome email for new users", color: "#4285f4", icon: "Mail" },
+  { name: "Payment Receipt", code: "RECEIPT", templateCategory: "Transactional", subject: "Payment Receipt - {{invoice_number}}", bodyPreview: "Thank you for your payment of {{amount}}...", description: "Payment confirmation receipt", color: "#34a853", icon: "Mail" },
+  { name: "Fee Reminder", code: "FEE_REM", templateCategory: "Reminder", subject: "Fee Payment Reminder - {{due_date}}", bodyPreview: "This is a reminder that your fee payment...", description: "Fee due date reminder", color: "#f59e0b", icon: "Mail" },
+  { name: "Admission Offer", code: "ADM_OFFER", templateCategory: "Notification", subject: "Admission Offer - {{program_name}}", bodyPreview: "Congratulations! We are pleased to offer you admission...", description: "Admission offer letter", color: "#a855f7", icon: "Mail" },
+  { name: "Newsletter", code: "NEWS", templateCategory: "Newsletter", subject: "{{org}} Newsletter - {{month}}", bodyPreview: "Here's what's happening...", description: "Monthly newsletter", color: "#0d9488", icon: "Mail" },
+  { name: "Follow Up", code: "FOLLOWUP", templateCategory: "Follow-up", subject: "Following up on your enquiry", bodyPreview: "We noticed you recently enquired...", description: "Lead follow-up email", color: "#06b6d4", icon: "Mail" },
+];
 
 /* ────────────
    HELPERS

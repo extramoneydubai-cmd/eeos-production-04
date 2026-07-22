@@ -5,14 +5,13 @@ import { mutation, query } from "./_generated/server";
    SEED DATA
    ──────────── */
 
-const SEED_DATA: Array<{
-  name: string;
-  code: string;
-  color: string;
-  icon: string;
-  description: string;
-  [key: string]: any;
-}> = [];
+const SEED_DATA = [
+  { name: "Greeting", code: "GREETING", templateCategory: "Greeting", bodyPreview: "Hello {{name}}! Welcome to {{org}}. How can we help?", description: "Initial WhatsApp greeting", color: "#25D366", icon: "MessageCircle" },
+  { name: "Follow Up", code: "FOLLOWUP", templateCategory: "Follow-up", bodyPreview: "Hi {{name}}, just checking in on your enquiry.", description: "Follow-up message for leads", color: "#4285f4", icon: "MessageCircle" },
+  { name: "Payment Reminder", code: "PAY_REM", templateCategory: "Reminder", bodyPreview: "Reminder: Payment of {{amount}} is due on {{date}}.", description: "WhatsApp payment reminder", color: "#f59e0b", icon: "MessageCircle" },
+  { name: "Offer Alert", code: "OFFER", templateCategory: "Promotional", bodyPreview: "Special offer! Get {{discount}} off on {{program}}.", description: "Promotional offer broadcast", color: "#ea4335", icon: "MessageCircle" },
+  { name: "Admission Update", code: "ADM_UPD", templateCategory: "Alert", bodyPreview: "Your application {{id}} status has changed to {{status}}.", description: "Admission status update", color: "#34a853", icon: "MessageCircle" },
+];
 
 /* ────────────
    HELPERS
@@ -67,11 +66,7 @@ export const create = mutation({
     const maxSeq = all.reduce((m, r) => Math.max(m, r.sequence), -1);
     return ctx.db.insert("commWhatsAppTemplates", {
       ...args,
-      templateCategory: args.templateCategory ?? "",
-      bodyPreview: args.bodyPreview ?? "",
       description: args.description ?? "",
-      templateCategory: args.templateCategory ?? "",
-      bodyPreview: args.bodyPreview ?? "",
       sequence: maxSeq + 1,
       active: true,
       createdAt: Date.now(),

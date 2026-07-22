@@ -5,14 +5,18 @@ import { mutation, query } from "./_generated/server";
    SEED DATA
    ──────────── */
 
-const SEED_DATA: Array<{
-  name: string;
-  code: string;
-  color: string;
-  icon: string;
-  description: string;
-  [key: string]: any;
-}> = [];
+const SEED_DATA = [
+  { name: "Education", code: "EDU", sector: "Education", description: "Educational institutions and training", color: "#4285f4", icon: "GraduationCap" },
+  { name: "Healthcare", code: "HEALTH", sector: "Healthcare", description: "Healthcare and medical services", color: "#34a853", icon: "Heart" },
+  { name: "Technology", code: "TECH", sector: "Technology", description: "IT and technology companies", color: "#a855f7", icon: "Monitor" },
+  { name: "Finance", code: "FIN", sector: "Finance", description: "Financial services and banking", color: "#f59e0b", icon: "Building2" },
+  { name: "Manufacturing", code: "MFG", sector: "Manufacturing", description: "Industrial manufacturing", color: "#ea4335", icon: "Building" },
+  { name: "Retail", code: "RETAIL", sector: "Retail", description: "Retail and e-commerce", color: "#0d9488", icon: "Globe" },
+  { name: "Real Estate", code: "RE", sector: "Real Estate", description: "Real estate and property", color: "#06b6d4", icon: "Home" },
+  { name: "Hospitality", code: "HOSP", sector: "Hospitality", description: "Hotels, restaurants, and tourism", color: "#4f46e5", icon: "Star" },
+  { name: "Government", code: "GOV", sector: "Government", description: "Government agencies and public sector", color: "#5f6368", icon: "Shield" },
+  { name: "Non-Profit", code: "NGO", sector: "Non-Profit", description: "Non-profit and charitable organizations", color: "#22c55e", icon: "HeartHandshake" },
+];
 
 /* ────────────
    HELPERS

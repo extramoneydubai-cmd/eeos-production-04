@@ -5,14 +5,15 @@ import { mutation, query } from "./_generated/server";
    SEED DATA
    ──────────── */
 
-const SEED_DATA: Array<{
-  name: string;
-  code: string;
-  color: string;
-  icon: string;
-  description: string;
-  [key: string]: any;
-}> = [];
+const SEED_DATA = [
+  { name: "JavaScript", code: "JS", skillCategory: "Technical", description: "JavaScript programming", color: "#f7df1e", icon: "Code" },
+  { name: "Python", code: "PY", skillCategory: "Technical", description: "Python programming", color: "#3776AB", icon: "Code" },
+  { name: "Leadership", code: "LEAD", skillCategory: "Management", description: "Team leadership and management", color: "#a855f7", icon: "UserCog" },
+  { name: "Communication", code: "COMM", skillCategory: "Soft Skill", description: "Verbal and written communication", color: "#4285f4", icon: "MessageSquare" },
+  { name: "Data Analysis", code: "DA", skillCategory: "Technical", description: "Data analysis and interpretation", color: "#34a853", icon: "FileSpreadsheet" },
+  { name: "Public Speaking", code: "PUB_SPK", skillCategory: "Soft Skill", description: "Public speaking and presentations", color: "#ea4335", icon: "Megaphone" },
+  { name: "UI/UX Design", code: "UIUX", skillCategory: "Creative", description: "User interface and experience design", color: "#06b6d4", icon: "Palette" },
+];
 
 /* ────────────
    HELPERS

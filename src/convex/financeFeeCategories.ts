@@ -5,14 +5,15 @@ import { mutation, query } from "./_generated/server";
    SEED DATA
    ──────────── */
 
-const SEED_DATA: Array<{
-  name: string;
-  code: string;
-  color: string;
-  icon: string;
-  description: string;
-  [key: string]: any;
-}> = [];
+const SEED_DATA = [
+  { name: "Tuition Fee", code: "TUITION", feeType: "Tuition", isRecurring: true, isOptional: false, isRefundable: false, description: "Standard tuition fee per term", color: "#4285f4", icon: "GraduationCap" },
+  { name: "Admission Fee", code: "ADMISSION", feeType: "Admission", isRecurring: false, isOptional: false, isRefundable: false, description: "One-time admission processing fee", color: "#34a853", icon: "FileText" },
+  { name: "Hostel Fee", code: "HOSTEL", feeType: "Hostel", isRecurring: true, isOptional: true, isRefundable: false, description: "Hostel accommodation fee", color: "#a855f7", icon: "Home" },
+  { name: "Transport Fee", code: "TRANSPORT", feeType: "Transport", isRecurring: true, isOptional: true, isRefundable: false, description: "Transport service fee", color: "#f59e0b", icon: "Bus" },
+  { name: "Library Fee", code: "LIBRARY", feeType: "Library", isRecurring: true, isOptional: false, isRefundable: false, description: "Library and learning resource fee", color: "#0d9488", icon: "BookOpen" },
+  { name: "Sports Fee", code: "SPORTS", feeType: "Sports", isRecurring: true, isOptional: true, isRefundable: false, description: "Sports and recreation fee", color: "#06b6d4", icon: "Award" },
+  { name: "Development Fee", code: "DEV", feeType: "Development", isRecurring: false, isOptional: false, isRefundable: false, description: "Infrastructure development fee", color: "#4f46e5", icon: "Building" },
+];
 
 /* ────────────
    HELPERS

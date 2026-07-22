@@ -5,14 +5,12 @@ import { mutation, query } from "./_generated/server";
    SEED DATA
    ──────────── */
 
-const SEED_DATA: Array<{
-  name: string;
-  code: string;
-  color: string;
-  icon: string;
-  description: string;
-  [key: string]: any;
-}> = [];
+const SEED_DATA = [
+  { name: "Income Tax", code: "IT", taxCategory: "Direct", taxRate: 0, isCompound: false, description: "Corporate income tax", color: "#ea4335", icon: "Percent" },
+  { name: "VAT", code: "VAT", taxCategory: "Indirect", taxRate: 5, isCompound: false, description: "Value Added Tax at 5%", color: "#4285f4", icon: "Percent" },
+  { name: "GST", code: "GST", taxCategory: "Indirect", taxRate: 18, isCompound: false, description: "Goods and Services Tax", color: "#34a853", icon: "Percent" },
+  { name: "Withholding Tax", code: "WHT", taxCategory: "Withholding", taxRate: 10, isCompound: false, description: "Withholding tax on payments", color: "#a855f7", icon: "Percent" },
+];
 
 /* ────────────
    HELPERS

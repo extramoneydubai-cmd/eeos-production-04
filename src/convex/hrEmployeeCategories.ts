@@ -5,14 +5,14 @@ import { mutation, query } from "./_generated/server";
    SEED DATA
    ──────────── */
 
-const SEED_DATA: Array<{
-  name: string;
-  code: string;
-  color: string;
-  icon: string;
-  description: string;
-  [key: string]: any;
-}> = [];
+const SEED_DATA = [
+  { name: "Faculty", code: "FAC", categoryType: "Academic", description: "Teaching and research faculty members", color: "#4285f4", icon: "GraduationCap" },
+  { name: "Staff", code: "STAFF", categoryType: "Non-Academic", description: "Administrative and support staff", color: "#34a853", icon: "Users" },
+  { name: "Management", code: "MGMT", categoryType: "Leadership", description: "Management and leadership roles", color: "#a855f7", icon: "UserCog" },
+  { name: "Contractual", code: "CONT", categoryType: "Temporary", description: "Contractual and outsourced employees", color: "#f59e0b", icon: "FileText" },
+  { name: "Intern", code: "INTERN", categoryType: "Trainee", description: "Interns and trainees", color: "#0d9488", icon: "BookOpen" },
+  { name: "Consultant", code: "CONS", categoryType: "Advisor", description: "External consultants and advisors", color: "#4f46e5", icon: "Briefcase" },
+];
 
 /* ────────────
    HELPERS

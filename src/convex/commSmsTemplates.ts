@@ -5,14 +5,13 @@ import { mutation, query } from "./_generated/server";
    SEED DATA
    ──────────── */
 
-const SEED_DATA: Array<{
-  name: string;
-  code: string;
-  color: string;
-  icon: string;
-  description: string;
-  [key: string]: any;
-}> = [];
+const SEED_DATA = [
+  { name: "OTP Verification", code: "OTP", templateCategory: "OTP", bodyPreview: "Your OTP for login is {{otp}}. Valid for 5 minutes.", description: "One-time password for authentication", color: "#4285f4", icon: "MessageSquare" },
+  { name: "Payment Reminder", code: "PAY_REM", templateCategory: "Reminder", bodyPreview: "Dear {{name}}, your fee payment of {{amount}} is due on {{date}}.", description: "Payment due date SMS reminder", color: "#f59e0b", icon: "MessageSquare" },
+  { name: "Admission Alert", code: "ADM_ALERT", templateCategory: "Alert", bodyPreview: "Admission update: Your application {{id}} status has been updated.", description: "Admission status alert", color: "#34a853", icon: "MessageSquare" },
+  { name: "Welcome SMS", code: "WELCOME", templateCategory: "Transactional", bodyPreview: "Welcome to {{org}}! Your account has been created.", description: "Welcome SMS for new registrations", color: "#a855f7", icon: "MessageSquare" },
+  { name: "Follow Up", code: "FOLLOWUP", templateCategory: "Follow-up", bodyPreview: "Hi {{name}}, this is {{org}}. We'd love to connect with you.", description: "Lead follow-up SMS", color: "#0d9488", icon: "MessageSquare" },
+];
 
 /* ────────────
    HELPERS

@@ -5,14 +5,15 @@ import { mutation, query } from "./_generated/server";
    SEED DATA
    ──────────── */
 
-const SEED_DATA: Array<{
-  name: string;
-  code: string;
-  color: string;
-  icon: string;
-  description: string;
-  [key: string]: any;
-}> = [];
+const SEED_DATA = [
+  { name: "Room 101", code: "R101", building: "Main Building", floor: 1, roomNumber: "101", capacity: 40, hasMultimedia: true, hasAirConditioning: true, description: "Standard classroom on ground floor", color: "#4285f4", icon: "Home" },
+  { name: "Room 102", code: "R102", building: "Main Building", floor: 1, roomNumber: "102", capacity: 40, hasMultimedia: true, hasAirConditioning: true, description: "Standard classroom", color: "#34a853", icon: "Home" },
+  { name: "Lecture Hall A", code: "LH_A", building: "Academic Block", floor: 2, roomNumber: "201", capacity: 120, hasMultimedia: true, hasAirConditioning: true, description: "Large lecture hall with AV equipment", color: "#a855f7", icon: "Monitor" },
+  { name: "Lecture Hall B", code: "LH_B", building: "Academic Block", floor: 2, roomNumber: "202", capacity: 100, hasMultimedia: true, hasAirConditioning: true, description: "Medium lecture hall", color: "#f59e0b", icon: "Monitor" },
+  { name: "Computer Lab 1", code: "CL1", building: "IT Block", floor: 1, roomNumber: "C01", capacity: 30, hasMultimedia: true, hasAirConditioning: true, description: "Computer laboratory with 30 workstations", color: "#ea4335", icon: "Monitor" },
+  { name: "Science Lab", code: "SLAB", building: "Science Block", floor: 1, roomNumber: "S01", capacity: 25, hasMultimedia: false, hasAirConditioning: true, description: "Science laboratory", color: "#0d9488", icon: "Flask" },
+  { name: "Seminar Room", code: "SEM", building: "Admin Block", floor: 3, roomNumber: "301", capacity: 20, hasMultimedia: true, hasAirConditioning: true, description: "Small seminar and meeting room", color: "#06b6d4", icon: "Home" },
+];
 
 /* ────────────
    HELPERS

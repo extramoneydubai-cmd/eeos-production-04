@@ -5,14 +5,13 @@ import { mutation, query } from "./_generated/server";
    SEED DATA
    ──────────── */
 
-const SEED_DATA: Array<{
-  name: string;
-  code: string;
-  color: string;
-  icon: string;
-  description: string;
-  [key: string]: any;
-}> = [];
+const SEED_DATA = [
+  { name: "Head Office", code: "HO", locationType: "Office", city: "Dubai", country: "UAE", description: "Main headquarters", color: "#4285f4", icon: "Building" },
+  { name: "Campus A", code: "CAMP_A", locationType: "Campus", city: "Dubai", country: "UAE", description: "Primary academic campus", color: "#34a853", icon: "School" },
+  { name: "Branch Office", code: "BO", locationType: "Office", city: "Abu Dhabi", country: "UAE", description: "Regional branch office", color: "#a855f7", icon: "Building2" },
+  { name: "Remote", code: "REMOTE", locationType: "Remote", city: "", country: "", description: "Remote work location", color: "#f59e0b", icon: "Wifi" },
+  { name: "Client Site", code: "CLIENT", locationType: "Client Site", city: "", country: "", description: "On-site at client location", color: "#e8710a", icon: "Briefcase" },
+];
 
 /* ────────────
    HELPERS

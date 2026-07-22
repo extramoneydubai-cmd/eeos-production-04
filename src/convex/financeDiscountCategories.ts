@@ -5,14 +5,14 @@ import { mutation, query } from "./_generated/server";
    SEED DATA
    ──────────── */
 
-const SEED_DATA: Array<{
-  name: string;
-  code: string;
-  color: string;
-  icon: string;
-  description: string;
-  [key: string]: any;
-}> = [];
+const SEED_DATA = [
+  { name: "Merit Scholarship", code: "MERIT", discountType: "Merit Discount", isPercentage: true, maxValue: 50, description: "Academic merit-based scholarship", color: "#4285f4", icon: "Award" },
+  { name: "Need-based Waiver", code: "NEED", discountType: "Need-based Waiver", isPercentage: true, maxValue: 100, description: "Financial need-based fee waiver", color: "#34a853", icon: "Heart" },
+  { name: "Sibling Discount", code: "SIBLING", discountType: "Sibling Discount", isPercentage: true, maxValue: 25, description: "Discount for siblings enrolled", color: "#a855f7", icon: "Users" },
+  { name: "Early Bird", code: "EARLY", discountType: "Early Bird", isPercentage: true, maxValue: 15, description: "Early enrollment discount", color: "#f59e0b", icon: "Clock" },
+  { name: "Corporate Discount", code: "CORP", discountType: "Corporate Discount", isPercentage: true, maxValue: 20, description: "Corporate partner employee discount", color: "#0d9488", icon: "Building2" },
+  { name: "Staff Discount", code: "STAFF", discountType: "Staff Discount", isPercentage: true, maxValue: 30, description: "Employee family discount", color: "#06b6d4", icon: "UserCheck" },
+];
 
 /* ────────────
    HELPERS

@@ -5,14 +5,14 @@ import { mutation, query } from "./_generated/server";
    SEED DATA
    ──────────── */
 
-const SEED_DATA: Array<{
-  name: string;
-  code: string;
-  color: string;
-  icon: string;
-  description: string;
-  [key: string]: any;
-}> = [];
+const SEED_DATA = [
+  { name: "Standard Invoice", code: "STD", invoiceCategory: "Standard", description: "Standard sales invoice", color: "#4285f4", icon: "FileText" },
+  { name: "Proforma Invoice", code: "PRO", invoiceCategory: "Proforma", description: "Proforma invoice for quotation", color: "#a855f7", icon: "FileText" },
+  { name: "Credit Note", code: "CN", invoiceCategory: "Credit Note", description: "Credit note for returns/adjustments", color: "#34a853", icon: "FileText" },
+  { name: "Debit Note", code: "DN", invoiceCategory: "Debit Note", description: "Debit note for additional charges", color: "#ea4335", icon: "FileText" },
+  { name: "Recurring Invoice", code: "RECUR", invoiceCategory: "Recurring", description: "Recurring subscription invoice", color: "#f59e0b", icon: "RefreshCw" },
+  { name: "Final Invoice", code: "FINAL", invoiceCategory: "Final", description: "Final settlement invoice", color: "#06b6d4", icon: "CheckCircle" },
+];
 
 /* ────────────
    HELPERS

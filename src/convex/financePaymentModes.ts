@@ -5,14 +5,15 @@ import { mutation, query } from "./_generated/server";
    SEED DATA
    ──────────── */
 
-const SEED_DATA: Array<{
-  name: string;
-  code: string;
-  color: string;
-  icon: string;
-  description: string;
-  [key: string]: any;
-}> = [];
+const SEED_DATA = [
+  { name: "Cash", code: "CASH", modeCategory: "Cash", isDigital: false, description: "Physical cash payment", color: "#34a853", icon: "Wallet" },
+  { name: "Credit Card", code: "CC", modeCategory: "Card", isDigital: true, description: "Credit card payment", color: "#4285f4", icon: "CreditCard" },
+  { name: "Debit Card", code: "DC", modeCategory: "Card", isDigital: true, description: "Debit card payment", color: "#1a73e8", icon: "CreditCard" },
+  { name: "Bank Transfer", code: "BT", modeCategory: "Bank Transfer", isDigital: true, description: "Direct bank transfer", color: "#a855f7", icon: "Building2" },
+  { name: "UPI", code: "UPI", modeCategory: "Digital", isDigital: true, description: "UPI payment", color: "#0d9488", icon: "Smartphone" },
+  { name: "Cheque", code: "CHEQUE", modeCategory: "Cheque", isDigital: false, description: "Cheque payment", color: "#f59e0b", icon: "FileText" },
+  { name: "Online Wallet", code: "WALLET", modeCategory: "Digital", isDigital: true, description: "Online wallet payment", color: "#ea4335", icon: "Wallet" },
+];
 
 /* ────────────
    HELPERS

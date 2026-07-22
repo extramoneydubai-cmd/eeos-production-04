@@ -5,14 +5,11 @@ import { mutation, query } from "./_generated/server";
    SEED DATA
    ──────────── */
 
-const SEED_DATA: Array<{
-  name: string;
-  code: string;
-  color: string;
-  icon: string;
-  description: string;
-  [key: string]: any;
-}> = [];
+const SEED_DATA = [
+  { name: "Main Account", code: "MAIN", bankName: "Emirates NBD", accountNumber: "AE123456789", branchName: "Dubai Main", ifscCode: "EBILAEAD", swiftCode: "EBILAEAD", accountType: "Current", isDefault: true, description: "Primary operating account", color: "#4285f4", icon: "Building2" },
+  { name: "Payroll Account", code: "PAYROLL", bankName: "Dubai Islamic Bank", accountNumber: "AE987654321", branchName: "DIFC", ifscCode: "DIBLAEAD", swiftCode: "DIBLAEAD", accountType: "Current", isDefault: false, description: "Employee salary account", color: "#34a853", icon: "Building2" },
+  { name: "Savings Account", code: "SAVINGS", bankName: "ADCB", accountNumber: "AE555555555", branchName: "Abu Dhabi Main", ifscCode: "ADCBAEAA", swiftCode: "ADCBAEAA", accountType: "Savings", isDefault: false, description: "Corporate savings account", color: "#f59e0b", icon: "Building2" },
+];
 
 /* ────────────
    HELPERS

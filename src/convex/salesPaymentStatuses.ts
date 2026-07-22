@@ -5,14 +5,14 @@ import { mutation, query } from "./_generated/server";
    SEED DATA
    ──────────── */
 
-const SEED_DATA: Array<{
-  name: string;
-  code: string;
-  color: string;
-  icon: string;
-  description: string;
-  [key: string]: any;
-}> = [];
+const SEED_DATA = [
+  { name: "Pending", code: "PENDING", statusCategory: "Pending", description: "Payment is pending", color: "#f59e0b", icon: "Clock" },
+  { name: "Partially Paid", code: "PARTIAL", statusCategory: "Pending", description: "Partial payment received", color: "#4285f4", icon: "Clock" },
+  { name: "Completed", code: "COMPLETED", statusCategory: "Completed", description: "Payment completed successfully", color: "#34a853", icon: "CheckCircle" },
+  { name: "Failed", code: "FAILED", statusCategory: "Failed", description: "Payment processing failed", color: "#ea4335", icon: "XCircle" },
+  { name: "Refunded", code: "REFUNDED", statusCategory: "Refunded", description: "Payment has been refunded", color: "#a855f7", icon: "RefreshCw" },
+  { name: "Cancelled", code: "CANCELLED", statusCategory: "Cancelled", description: "Payment was cancelled", color: "#5f6368", icon: "Ban" },
+];
 
 /* ────────────
    HELPERS

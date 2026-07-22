@@ -5,14 +5,15 @@ import { mutation, query } from "./_generated/server";
    SEED DATA
    ──────────── */
 
-const SEED_DATA: Array<{
-  name: string;
-  code: string;
-  color: string;
-  icon: string;
-  description: string;
-  [key: string]: any;
-}> = [];
+const SEED_DATA = [
+  { name: "Passport", code: "PASSPORT", documentCategory: "Identity", isMandatory: true, description: "Valid passport copy", color: "#4285f4", icon: "FileText" },
+  { name: "National ID", code: "NAT_ID", documentCategory: "Identity", isMandatory: true, description: "National identity card", color: "#34a853", icon: "FileText" },
+  { name: "Degree Certificate", code: "DEGREE", documentCategory: "Education", isMandatory: true, description: "Highest degree certificate", color: "#a855f7", icon: "GraduationCap" },
+  { name: "Resume/CV", code: "RESUME", documentCategory: "Employment", isMandatory: true, description: "Updated resume or CV", color: "#f59e0b", icon: "FileText" },
+  { name: "Bank Details", code: "BANK", documentCategory: "Bank", isMandatory: true, description: "Bank account details for payroll", color: "#0d9488", icon: "CreditCard" },
+  { name: "Medical Certificate", code: "MEDICAL", documentCategory: "Medical", isMandatory: false, description: "Medical fitness certificate", color: "#06b6d4", icon: "Heart" },
+  { name: "Experience Letter", code: "EXP_LTR", documentCategory: "Employment", isMandatory: false, description: "Previous employment experience letter", color: "#4f46e5", icon: "FileText" },
+];
 
 /* ────────────
    HELPERS

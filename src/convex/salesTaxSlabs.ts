@@ -5,14 +5,13 @@ import { mutation, query } from "./_generated/server";
    SEED DATA
    ──────────── */
 
-const SEED_DATA: Array<{
-  name: string;
-  code: string;
-  color: string;
-  icon: string;
-  description: string;
-  [key: string]: any;
-}> = [];
+const SEED_DATA = [
+  { name: "Nil", code: "SLAB_NIL", slabType: "GST", fromAmount: 0, toAmount: 0, taxRate: 0, description: "Nil tax rate", color: "#9aa0a6", icon: "Percent" },
+  { name: "5% GST", code: "SLAB_5", slabType: "GST", fromAmount: 0, toAmount: 999999, taxRate: 5, description: "5% GST on essential goods", color: "#4285f4", icon: "Percent" },
+  { name: "12% GST", code: "SLAB_12", slabType: "GST", fromAmount: 0, toAmount: 999999, taxRate: 12, description: "12% GST on standard goods", color: "#a855f7", icon: "Percent" },
+  { name: "18% GST", code: "SLAB_18", slabType: "GST", fromAmount: 0, toAmount: 999999, taxRate: 18, description: "18% GST on most services", color: "#f59e0b", icon: "Percent" },
+  { name: "28% GST", code: "SLAB_28", slabType: "GST", fromAmount: 0, toAmount: 999999, taxRate: 28, description: "28% GST on luxury goods", color: "#ea4335", icon: "Percent" },
+];
 
 /* ────────────
    HELPERS
