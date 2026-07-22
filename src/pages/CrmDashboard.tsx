@@ -573,12 +573,12 @@ export default function CrmDashboard() {
                 <thead>
                   <tr className="border-b border-[#e8eaed]">
                     <th className="text-left text-[10px] text-[#5f6368] font-medium px-4 py-2">Lead</th>
-                    <th className="text-left text-[10px] text-[#5f6368] font-medium px-4 py-2">Phone</th>
+                    <th className="text-left text-[10px] text-[#5f6368] font-medium px-4 py-2">Duration</th>
                     <th className="text-left text-[10px] text-[#5f6368] font-medium px-4 py-2">Converted At</th>
                     <th className="text-left text-[10px] text-[#5f6368] font-medium px-4 py-2">Type</th>
-                    <th className="text-right text-[10px] text-[#5f6368] font-medium px-4 py-2">Payment Amt</th>
+                    <th className="text-right text-[10px] text-[#5f6368] font-medium px-4 py-2">Payment</th>
                     <th className="text-left text-[10px] text-[#5f6368] font-medium px-4 py-2">Mode</th>
-                    <th className="text-right text-[10px] text-[#5f6368] font-medium px-4 py-2">Total Paid</th>
+                    <th className="text-right text-[10px] text-[#5f6368] font-medium px-4 py-2">Total</th>
                     <th className="text-left text-[10px] text-[#5f6368] font-medium px-4 py-2">By</th>
                   </tr>
                 </thead>
@@ -592,7 +592,26 @@ export default function CrmDashboard() {
                       <td className="px-4 py-2.5">
                         <span className="font-medium text-[#1a1a2e]">{c.leadName}</span>
                       </td>
-                      <td className="px-4 py-2.5 text-[#5f6368]">{c.leadPhone}</td>
+                      <td className="px-4 py-2.5">
+                        {(() => {
+                          const ms = c.durationMs;
+                          if (ms < 3600000) {
+                            const m = Math.round(ms / 60000);
+                            return <span className="text-[11px] text-[#5f6368]">{m < 1 ? '<1m' : `${m}m`}</span>;
+                          }
+                          if (ms < 86400000) {
+                            const h = Math.floor(ms / 3600000);
+                            return <span className="text-[11px] text-[#5f6368]">{h}h {Math.round((ms % 3600000) / 60000)}m</span>;
+                          }
+                          if (ms < 604800000) {
+                            const d = Math.floor(ms / 86400000);
+                            return <span className="text-[11px] font-medium text-[#1a1a2e]">{d}d</span>;
+                          }
+                          const w = Math.floor(ms / 604800000);
+                          const rd = Math.floor((ms % 604800000) / 86400000);
+                          return <span className="text-[11px] font-medium text-[#1a1a2e]">{w}w {rd}d</span>;
+                        })()}
+                      </td>
                       <td className="px-4 py-2.5 text-[#5f6368]">
                         {new Date(c.convertedAt).toLocaleDateString("en-US", {
                           month: "short", day: "numeric", hour: "numeric", minute: "2-digit",

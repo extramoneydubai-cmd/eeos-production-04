@@ -68,6 +68,8 @@ export const getConversionHistory = query({
         leadName: lead ? `${lead.firstName} ${lead.lastName}` : "Unknown",
         leadPhone: lead?.phone || "—",
         leadOwnerId: lead?.ownerId,
+        leadCreatedAt: lead?.createdAt || 0,
+        durationMs: entry.createdAt - (lead?.createdAt || entry.createdAt),
         changedBy: user?.name || "System",
         changedById: entry.changedBy,
         convertedAt: entry.createdAt,
