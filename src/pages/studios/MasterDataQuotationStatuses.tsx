@@ -68,13 +68,13 @@ const config: import("@/components/studios/MasterDataTable").MasterDataConfig = 
   backLabel: "Back to Sales Masters",
 
   apiModule: {
-    list: api.salesQuotationStatuses.listQuotationStatuses,
-    get: api.salesQuotationStatuses.getQuotationStatus,
-    create: api.salesQuotationStatuses.createQuotationStatus,
-    update: api.salesQuotationStatuses.updateQuotationStatus,
-    delete: api.salesQuotationStatuses.deleteQuotationStatus,
-    duplicate: api.salesQuotationStatuses.duplicateQuotationStatus,
-    reorder: api.salesQuotationStatuses.reorderQuotationStatuses,
+    list: api.salesQuotationStatuses.list,
+    get: api.salesQuotationStatuses.get,
+    create: api.salesQuotationStatuses.create,
+    update: api.salesQuotationStatuses.update,
+    delete: api.salesQuotationStatuses.remove,
+    duplicate: api.salesQuotationStatuses.duplicate,
+    reorder: api.salesQuotationStatuses.reorder,
     seedDefault: api.salesQuotationStatuses.seedDefault,
   },
 

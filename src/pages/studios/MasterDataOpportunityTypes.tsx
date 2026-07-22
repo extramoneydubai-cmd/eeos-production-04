@@ -78,13 +78,13 @@ const config: import("@/components/studios/MasterDataTable").MasterDataConfig = 
   backLabel: "Back to Sales Masters",
 
   apiModule: {
-    list: api.salesOpportunityTypes.listOpportunityTypes,
-    get: api.salesOpportunityTypes.getOpportunityType,
-    create: api.salesOpportunityTypes.createOpportunityType,
-    update: api.salesOpportunityTypes.updateOpportunityType,
-    delete: api.salesOpportunityTypes.deleteOpportunityType,
-    duplicate: api.salesOpportunityTypes.duplicateOpportunityType,
-    reorder: api.salesOpportunityTypes.reorderOpportunityTypes,
+    list: api.salesOpportunityTypes.list,
+    get: api.salesOpportunityTypes.get,
+    create: api.salesOpportunityTypes.create,
+    update: api.salesOpportunityTypes.update,
+    delete: api.salesOpportunityTypes.remove,
+    duplicate: api.salesOpportunityTypes.duplicate,
+    reorder: api.salesOpportunityTypes.reorder,
     seedDefault: api.salesOpportunityTypes.seedDefault,
   },
 

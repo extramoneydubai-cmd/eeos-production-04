@@ -83,7 +83,7 @@ function getName(n: any): string {
 function UsersTab() {
   const { isDemoMode } = useAuth();
   const allUsers = useQuery(
-    api.users.listAll,
+    api.users.listUsers,
     isDemoMode ? "skip" : {},
   ) || [];
   const roles = useQuery(
