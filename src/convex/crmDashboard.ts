@@ -126,8 +126,11 @@ export const getCrmDashboardData = query({
     const convertedLeads = dateFilteredLeads.filter((l) => l.status === "converted");
     const pipelineTotalBase = activeLeads.length + convertedLeads.length;
     const myLeads = activeLeads.filter((l) => l.ownerId === args.userId);
+    // Include both active AND converted leads in pipeline counts so
+    // that stages like "converted" show real numbers instead of 0.
+    const pipelineLeads = [...activeLeads, ...convertedLeads];
     const pipeline: Record<string, number> = {};
-    for (const stage of LEAD_PIPELINE_STAGES) pipeline[stage] = activeLeads.filter((l) => l.stage === stage).length;
+    for (const stage of LEAD_PIPELINE_STAGES) pipeline[stage] = pipelineLeads.filter((l) => l.stage === stage).length;
     const totalExpectedRevenue = activeLeads.reduce((s, l) => s + (l.standardAmount || l.expectedRevenue || 0), 0);
     const totalDiscountAmount = activeLeads.reduce((s, l) => s + (l.discountAmount || 0), 0);
     const totalWaiverAmount = activeLeads.reduce((s, l) => s + (l.waiverAmount || 0), 0);
