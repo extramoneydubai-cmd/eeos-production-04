@@ -176,8 +176,17 @@ export const getCrmDashboardData = query({
       );
     }
     const allLeadCourses = await ctx.db.query("leadCourses").collect();
-    const enrolledLeadIds = new Set(allLeadCourses.map((lc) => lc.leadId));
-    const paidLeadIds = new Set(verifiedPayments.map((p) => p.leadId));
+    const dateFilteredLeadIds = new Set(dateFilteredLeads.filter((l) => l.status !== "archived").map((l) => l._id));
+    const enrolledLeadIds = new Set(
+      allLeadCourses
+        .filter((lc) => dateFilteredLeadIds.has(lc.leadId))
+        .map((lc) => lc.leadId)
+    );
+    const paidLeadIds = new Set(
+      verifiedPayments
+        .filter((p) => dateFilteredLeadIds.has(p.leadId))
+        .map((p) => p.leadId)
+    );
     const filterPeriodPayments = dateFrom > 0 ? allPayments.filter((p) => p.createdAt >= dateFrom && p.status === "verified") : verifiedPayments;
     const collectionsTotal = filterPeriodPayments.reduce((s, p) => s + p.amount, 0);
     return {
