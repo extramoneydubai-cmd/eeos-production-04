@@ -27,6 +27,8 @@ const LeadDatabase = lazy(() => import("./pages/LeadDatabase.tsx"));
 const LeadWorkspace = lazy(() => import("./pages/LeadWorkspace.tsx"));
 const SalesWorkspace = lazy(() => import("./pages/SalesWorkspace.tsx"));
 const SalesTasksPage = lazy(() => import("./pages/SalesTasksPage.tsx"));
+const SalesOpportunitiesPage = lazy(() => import("./pages/SalesOpportunitiesPage.tsx"));
+const QuotationDetail = lazy(() => import("./pages/QuotationDetail.tsx"));
 const SalesPaymentsDashboard = lazy(() => import("./pages/SalesPaymentsDashboard.tsx"));
 const SalesPerformanceDashboard = lazy(() => import("./pages/SalesPerformanceDashboard.tsx"));
 const CollectionCenter = lazy(() => import("./pages/CollectionCenter.tsx"));
@@ -190,6 +192,8 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/courses" element={<ProtectedRoute><CourseStudio /></ProtectedRoute>} />
               <Route path="/collections" element={<ProtectedRoute><CollectionDashboard /></ProtectedRoute>} />
               <Route path="/crm/sales" element={<ProtectedRoute><SalesWorkspace /></ProtectedRoute>} />
+              <Route path="/crm/sales/opportunities" element={<ProtectedRoute><SalesOpportunitiesPage /></ProtectedRoute>} />
+              <Route path="/crm/sales/quotations/:quoteId" element={<ProtectedRoute><QuotationDetail /></ProtectedRoute>} />
               <Route path="/crm/sales/tasks" element={<ProtectedRoute><SalesTasksPage /></ProtectedRoute>} />
               <Route path="/crm/sales/performance" element={<ProtectedRoute><SalesPerformanceDashboard /></ProtectedRoute>} />
               <Route path="/crm/sales/payments" element={<ProtectedRoute><SalesPaymentsDashboard /></ProtectedRoute>} />

@@ -420,6 +420,97 @@ const schema = defineSchema({
   })
     .index("userId", ["userId"]),
 
+  // ─── Sales Opportunities ───
+  opportunities: defineTable({
+    leadId: v.id("leadMaster"),
+    ownerId: v.id("users"),
+    title: v.string(),
+    stageId: v.id("salesOpportunityStages"),
+    probability: v.number(),
+    expectedRevenue: v.optional(v.number()),
+    actualRevenue: v.optional(v.number()),
+    currency: v.optional(v.string()),
+    expectedCloseDate: v.optional(v.number()),
+    actualCloseDate: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
+    lostReasonId: v.optional(v.id("crmLostReasons")),
+    competitiveInfo: v.optional(v.string()),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("leadId", ["leadId"])
+    .index("ownerId", ["ownerId"])
+    .index("stageId", ["stageId"]),
+
+  opportunityStageHistory: defineTable({
+    opportunityId: v.id("opportunities"),
+    fromStageId: v.optional(v.id("salesOpportunityStages")),
+    toStageId: v.id("salesOpportunityStages"),
+    changedBy: v.id("users"),
+    note: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("opportunityId", ["opportunityId"])
+    .index("opportunityId_createdAt", ["opportunityId", "createdAt"]),
+
+  // ─── Quotations ───
+  quotations: defineTable({
+    opportunityId: v.id("opportunities"),
+    leadId: v.id("leadMaster"),
+    quoteNumber: v.string(),
+    status: v.union(v.literal("draft"), v.literal("sent"), v.literal("accepted"), v.literal("rejected"), v.literal("expired"), v.literal("revised")),
+    issuedDate: v.number(),
+    expiryDate: v.optional(v.number()),
+    subtotal: v.number(),
+    discountPercent: v.optional(v.number()),
+    discountAmount: v.optional(v.number()),
+    gstPercent: v.optional(v.number()),
+    gstAmount: v.optional(v.number()),
+    total: v.number(),
+    currency: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    terms: v.optional(v.string()),
+    validUntil: v.optional(v.number()),
+    createdBy: v.id("users"),
+    approvedBy: v.optional(v.id("users")),
+    pdfUrl: v.optional(v.string()),
+    isActive: v.boolean(),
+    version: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("opportunityId", ["opportunityId"])
+    .index("leadId", ["leadId"])
+    .index("status", ["status"]),
+
+  quotationLineItems: defineTable({
+    quotationId: v.id("quotations"),
+    description: v.string(),
+    quantity: v.number(),
+    unitPrice: v.number(),
+    discountPercent: v.optional(v.number()),
+    discountAmount: v.optional(v.number()),
+    taxPercent: v.optional(v.number()),
+    taxAmount: v.optional(v.number()),
+    total: v.number(),
+    sortOrder: v.number(),
+    createdAt: v.number(),
+  })
+    .index("quotationId", ["quotationId"]),
+
+  quotationVersions: defineTable({
+    quotationId: v.id("quotations"),
+    version: v.number(),
+    data: v.string(),
+    changedBy: v.id("users"),
+    changeNotes: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("quotationId", ["quotationId"])
+    .index("quotationId_version", ["quotationId", "version"]),
+
   // ============================
   // CRM - Lead Management
   // ============================

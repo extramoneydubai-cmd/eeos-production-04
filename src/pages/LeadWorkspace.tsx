@@ -22,6 +22,7 @@ import { useState } from "react";
 import { useParams } from "react-router";
 import { useAppNavigate } from "@/hooks/use-app-navigate";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import LeadConversionWizard from "@/components/crm/LeadConversionWizard";
 import { Doc } from "@/convex/_generated/dataModel";
 
 const PIPELINE_STAGES = [
@@ -206,6 +207,7 @@ export default function LeadWorkspace() {
   const [payMode, setPayMode] = useState<"cash" | "upi" | "bank" | "card" | "cheque" | "online">("cash");
   const [payReference, setPayReference] = useState("");
   const [payNotes, setPayNotes] = useState("");
+  const [showConversionWizard, setShowConversionWizard] = useState(false);
 
   if (!lead) {
     return (
@@ -526,6 +528,12 @@ export default function LeadWorkspace() {
               onClick={handleCreateTask}>
               <Plus className="h-3 w-3 mr-1" /> Task
             </Button>
+            {lead.stage !== "converted" && lead.stage !== "lost" && lead.stage === "negotiation" && (
+              <Button size="sm" className="h-8 text-[10px] bg-[#e8710a] hover:bg-[#d06200] text-white"
+                onClick={() => setShowConversionWizard(true)}>
+                <Sparkles className="h-3 w-3 mr-1" /> Convert Wizard
+              </Button>
+            )}
             {lead.stage !== "converted" && lead.stage !== "lost" && (
               <Button size="sm" className="h-8 text-[10px] bg-[#34a853] hover:bg-[#2d9249] text-white"
                 onClick={() => handleStageChange("converted")}>
@@ -2541,6 +2549,16 @@ export default function LeadWorkspace() {
             </div>
           </div>
         </div>
+      )}
+
+    {/* Lead Conversion Wizard */}
+      {leadId && (
+        <LeadConversionWizard
+          leadId={leadId as any}
+          open={showConversionWizard}
+          onOpenChange={setShowConversionWizard}
+          onComplete={() => setShowConversionWizard(false)}
+        />
       )}
 
     </div>
