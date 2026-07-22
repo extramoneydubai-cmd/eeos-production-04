@@ -1,90 +1,112 @@
 #!/usr/bin/env node
 /**
- * Fix all duplicate mutations in MasterData convex files
- * that are missing required schema fields.
+ * Fix duplicate mutations missing required schema fields.
+ * The duplicate mutation should copy all data fields from source,
+ * not just name/code.
  */
+
 import fs from "fs";
 
-const files = [
-  "commSmsTemplates", "commWhatsAppTemplates", "crmIndustries",
-  "financeBankAccounts", "financeCurrencies", "financeDiscountCategories",
-  "financeExpenseCategories", "financeFeeCategories", "financeFinancialYears",
-  "financeGstRates", "financeIncomeCategories", "financePaymentModes",
-  "financeTaxTypes", "hrDocumentTypes", "hrEmployeeCategories",
-  "hrExperienceLevels", "hrSkills", "hrWorkLocations", "salesTaxSlabs",
+const FILES = [
+  "src/convex/financeBankAccounts.ts",
+  "src/convex/financeCurrencies.ts",
+  "src/convex/financeGstRates.ts",
+  "src/convex/financeFeeCategories.ts",
+  "src/convex/financeFinancialYears.ts",
+  "src/convex/salesTaxSlabs.ts",
+  "src/convex/financeDiscountCategories.ts",
+  "src/convex/hrEmployeeCategories.ts",
+  "src/convex/hrWorkLocations.ts",
+  "src/convex/financeTaxTypes.ts",
+  "src/convex/commSmsTemplates.ts",
+  "src/convex/commWhatsAppTemplates.ts",
+  "src/convex/financeExpenseCategories.ts",
+  "src/convex/financeIncomeCategories.ts",
+  "src/convex/financePaymentModes.ts",
+  "src/convex/hrDocumentTypes.ts",
+  "src/convex/hrExperienceLevels.ts",
+  "src/convex/crmIndustries.ts",
+  "src/convex/hrSkills.ts",
 ];
 
-// Required extra fields for each file (beyond the base: name, code, color, icon, description, sequence, active)
-const EXTRA_FIELDS = {
-  commSmsTemplates: ["templateCategory", "bodyPreview"],
-  commWhatsAppTemplates: ["templateCategory", "bodyPreview"],
-  crmIndustries: ["sector"],
-  financeBankAccounts: ["bankName", "accountNumber", "branchName", "ifscCode", "swiftCode", "accountType", "isDefault"],
-  financeCurrencies: ["symbol", "isoCode", "isBase", "exchangeRate", "decimalPlaces"],
-  financeDiscountCategories: ["discountType", "isPercentage", "maxValue"],
-  financeExpenseCategories: ["expenseType", "budgetable"],
-  financeFeeCategories: ["feeType", "isRecurring", "isOptional", "isRefundable"],
-  financeFinancialYears: ["startDate", "endDate", "isCurrent", "isClosed"],
-  financeGstRates: ["gstType", "cgstRate", "sgstRate", "igstRate", "totalRate"],
-  financeIncomeCategories: ["incomeType", "isTaxable"],
-  financePaymentModes: ["modeCategory", "isDigital"],
-  financeTaxTypes: ["taxCategory", "taxRate", "isCompound"],
-  hrDocumentTypes: ["documentCategory", "isMandatory"],
-  hrEmployeeCategories: ["employeeType", "employmentStatus"],
-  hrExperienceLevels: ["minYears", "maxYears"],
-  hrSkills: ["skillCategory"],
-  hrWorkLocations: ["locationType", "city", "country"],
-  salesTaxSlabs: ["slabType", "fromAmount", "toAmount", "taxRate"],
-};
-
-let fixed = 0;
-for (const file of files) {
-  const fp = `src/convex/${file}.ts`;
-  if (!fs.existsSync(fp)) {
-    console.log(`  - ${file}.ts not found`);
-    continue;
+/**
+ * Extract field names from the create mutation's args block.
+ * Returns the set of custom field names (excluding standard system fields).
+ */
+function getCreateArgsFields(content) {
+  // Find the create mutation args block
+  const match = content.match(/export const create = mutation\(\{\n\s+args: \{\n([\s\S]*?)\n\s+},\n\s+handler:/);
+  if (!match) return { allFields: [], customFields: [] };
+  
+  const argsBlock = match[1];
+  const fieldRegex = /(\w+): v\.(string|number|boolean|optional)/g;
+  const allFields = [];
+  let m;
+  while ((m = fieldRegex.exec(argsBlock)) !== null) {
+    allFields.push(m[1]);
   }
   
-  let content = fs.readFileSync(fp, "utf8");
-  const extraFields = EXTRA_FIELDS[file];
-  if (!extraFields) {
-    console.log(`  ? ${file}.ts: no extra fields defined`);
-    continue;
-  }
+  const standardFields = new Set(["name", "code", "color", "icon", "description", "sequence", "active", "createdAt", "updatedAt"]);
+  const customFields = allFields.filter(f => !standardFields.has(f));
   
-  // Find the duplicate mutation insert block
-  // Pattern: return ctx.db.insert("tableName", {\n      name: ...
-  const insertRegex = new RegExp(`return ctx\\.db\\.insert\\("${file}"\\s*,\\s*\\{([^}]+)\\}\\s*\\)\\s*;`, "m");
-  const match = content.match(insertRegex);
-  
-  if (!match) {
-    console.log(`  ? ${file}.ts: could not find duplicate insert block`);
-    continue;
-  }
-  
-  const insertBlock = match[0];
-  const insertBody = match[1];
-  
-  // Check which extra fields are missing
-  const missingFields = extraFields.filter(f => !insertBody.includes(f + ":"));
-  
-  if (missingFields.length === 0) {
-    console.log(`  ✓ ${file}.ts: already has all fields`);
-    continue;
-  }
-  
-  // Add missing fields before the "sequence:" line
-  const fieldLines = missingFields.map(f => `      ${f}: source.${f},`).join("\n");
-  
-  const newInsert = insertBlock.replace(
-    /(\s+sequence:)/,
-    `\n${fieldLines}\n$1`
-  );
-  
-  content = content.replace(insertBlock, newInsert);
-  fs.writeFileSync(fp, content, "utf8");
-  console.log(`  ✓ ${file}.ts: added ${missingFields.join(", ")}`);
-  fixed++;
+  return { allFields, customFields };
 }
 
-console.log(`\n✅ Fixed ${fixed} files`);
+/**
+ * Get fields currently set in the duplicate mutation's insert block.
+ */
+function getDuplicateFields(content) {
+  // Find the insert block inside duplicate mutation
+  const match = content.match(/export const duplicate = mutation\(\{[\s\S]*?return ctx\.db\.insert\("[^"]+", \{\n([\s\S]*?)\n\s+\}\);\n\s+},\n\}\);/);
+  if (!match) return [];
+  
+  const block = match[1];
+  const fieldRegex = /(\w+):/g;
+  const fields = [];
+  let m;
+  while ((m = fieldRegex.exec(block)) !== null) {
+    fields.push(m[1]);
+  }
+  return fields;
+}
+
+let fixedCount = 0;
+
+for (const file of FILES) {
+  let content = fs.readFileSync(file, "utf8");
+  const original = content;
+  
+  const { customFields } = getCreateArgsFields(content);
+  
+  if (customFields.length === 0) {
+    console.log(`  Skipped (no custom fields): ${file}`);
+    continue;
+  }
+  
+  const dupFields = getDuplicateFields(content);
+  
+  // Find missing custom fields in duplicate mutation
+  const missingFields = customFields.filter(f => !dupFields.includes(f));
+  
+  if (missingFields.length === 0) {
+    console.log(`  ${file}: No missing fields`);
+    continue;
+  }
+  
+  // Build the fix: add missing fields after "code: `${source.code}_COPY`,"
+  const fixLines = missingFields.map(f => `      ${f}: source.${f},`).join("\n");
+  
+  // Insert missing fields after the code line in the duplicate mutation
+  content = content.replace(
+    /(code: `\$\{source\.code}_COPY`,)/,
+    `$1\n${fixLines}`
+  );
+  
+  if (content !== original) {
+    fs.writeFileSync(file, content, "utf8");
+    console.log(`✓ Fixed ${file}: added [${missingFields.join(", ")}]`);
+    fixedCount++;
+  }
+}
+
+console.log(`\nFixed ${fixedCount}/${FILES.length} files`);

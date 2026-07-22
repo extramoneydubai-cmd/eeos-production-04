@@ -68,6 +68,8 @@ export const create = mutation({
     return ctx.db.insert("hrSkills", {
       ...args,
       description: args.description ?? "",
+
+
       sequence: maxSeq + 1,
       active: true,
       createdAt: Date.now(),
@@ -116,7 +118,8 @@ export const duplicate = mutation({
     const maxSeq = all.reduce((m, r) => Math.max(m, r.sequence), -1);
     return ctx.db.insert("hrSkills", {
       name: `${source.name} (Copy)`,
-      code: `${source.code}_COPY`,      sequence: maxSeq + 1,
+      code: `${source.code}_COPY`,
+      skillCategory: source.skillCategory,      sequence: maxSeq + 1,
       active: false,
       createdAt: Date.now(),
       updatedAt: Date.now(),

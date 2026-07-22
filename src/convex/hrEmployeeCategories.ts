@@ -56,6 +56,7 @@ export const create = mutation({
     color: v.string(),
     icon: v.string(),
     description: v.optional(v.string()),
+    categoryType: v.string(),
   },
   handler: async (ctx, args) => {
     const all = await ctx.db
@@ -113,7 +114,12 @@ export const duplicate = mutation({
     const maxSeq = all.reduce((m, r) => Math.max(m, r.sequence), -1);
     return ctx.db.insert("hrEmployeeCategories", {
       name: `${source.name} (Copy)`,
-      code: `${source.code}_COPY`,      sequence: maxSeq + 1,
+      code: `${source.code}_COPY`,
+      color: source.color,
+      icon: source.icon,
+      categoryType: source.categoryType,
+      description: source.description,
+      sequence: maxSeq + 1,
       active: false,
       createdAt: Date.now(),
       updatedAt: Date.now(),

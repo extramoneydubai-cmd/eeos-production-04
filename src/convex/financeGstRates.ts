@@ -70,6 +70,8 @@ export const create = mutation({
     return ctx.db.insert("financeGstRates", {
       ...args,
       description: args.description ?? "",
+
+
       sequence: maxSeq + 1,
       active: true,
       createdAt: Date.now(),
@@ -122,7 +124,12 @@ export const duplicate = mutation({
     const maxSeq = all.reduce((m, r) => Math.max(m, r.sequence), -1);
     return ctx.db.insert("financeGstRates", {
       name: `${source.name} (Copy)`,
-      code: `${source.code}_COPY`,      sequence: maxSeq + 1,
+      code: `${source.code}_COPY`,
+      gstType: source.gstType,
+      cgstRate: source.cgstRate,
+      sgstRate: source.sgstRate,
+      igstRate: source.igstRate,
+      totalRate: source.totalRate,      sequence: maxSeq + 1,
       active: false,
       createdAt: Date.now(),
       updatedAt: Date.now(),
