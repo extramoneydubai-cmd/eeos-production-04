@@ -70,14 +70,6 @@ export const create = mutation({
     return ctx.db.insert("financeBankAccounts", {
       ...args,
       description: args.description ?? "",
-      bankName: source.bankName,
-      accountNumber: source.accountNumber,
-      branchName: source.branchName,
-      ifscCode: source.ifscCode,
-      swiftCode: source.swiftCode,
-      accountType: source.accountType,
-      isDefault: source.isDefault,
-
       sequence: maxSeq + 1,
       active: true,
       createdAt: Date.now(),
@@ -132,11 +124,7 @@ export const duplicate = mutation({
     const maxSeq = all.reduce((m, r) => Math.max(m, r.sequence), -1);
     return ctx.db.insert("financeBankAccounts", {
       name: `${source.name} (Copy)`,
-      code: `${source.code}_COPY`,
-      color: source.color,
-      icon: source.icon,
-      description: source.description,
-      sequence: maxSeq + 1,
+      code: `${source.code}_COPY`,      sequence: maxSeq + 1,
       active: false,
       createdAt: Date.now(),
       updatedAt: Date.now(),

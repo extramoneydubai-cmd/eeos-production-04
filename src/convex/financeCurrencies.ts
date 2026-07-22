@@ -70,12 +70,6 @@ export const create = mutation({
     return ctx.db.insert("financeCurrencies", {
       ...args,
       description: args.description ?? "",
-      symbol: source.symbol,
-      isoCode: source.isoCode,
-      isBase: source.isBase,
-      exchangeRate: source.exchangeRate,
-      decimalPlaces: source.decimalPlaces,
-
       sequence: maxSeq + 1,
       active: true,
       createdAt: Date.now(),
@@ -128,11 +122,7 @@ export const duplicate = mutation({
     const maxSeq = all.reduce((m, r) => Math.max(m, r.sequence), -1);
     return ctx.db.insert("financeCurrencies", {
       name: `${source.name} (Copy)`,
-      code: `${source.code}_COPY`,
-      color: source.color,
-      icon: source.icon,
-      description: source.description,
-      sequence: maxSeq + 1,
+      code: `${source.code}_COPY`,      sequence: maxSeq + 1,
       active: false,
       createdAt: Date.now(),
       updatedAt: Date.now(),
