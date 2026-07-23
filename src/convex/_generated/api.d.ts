@@ -92,6 +92,7 @@ import type * as financeGstRates from "../financeGstRates.js";
 import type * as financeIncomeCategories from "../financeIncomeCategories.js";
 import type * as financePaymentModes from "../financePaymentModes.js";
 import type * as financeTaxTypes from "../financeTaxTypes.js";
+import type * as formEngine from "../formEngine.js";
 import type * as github from "../github.js";
 import type * as hrDocumentTypes from "../hrDocumentTypes.js";
 import type * as hrEmployeeCategories from "../hrEmployeeCategories.js";
@@ -221,6 +222,7 @@ declare const fullApi: ApiFromModules<{
   financeIncomeCategories: typeof financeIncomeCategories;
   financePaymentModes: typeof financePaymentModes;
   financeTaxTypes: typeof financeTaxTypes;
+  formEngine: typeof formEngine;
   github: typeof github;
   hrDocumentTypes: typeof hrDocumentTypes;
   hrEmployeeCategories: typeof hrEmployeeCategories;

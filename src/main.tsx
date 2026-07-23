@@ -113,6 +113,7 @@ const MasterDataSmsTemplates = lazy(() => import("./pages/studios/MasterDataSmsT
 const MasterDataWhatsAppTemplates = lazy(() => import("./pages/studios/MasterDataWhatsAppTemplates.tsx"));
 const MasterDataSystem = lazy(() => import("./pages/studios/MasterDataSystem.tsx"));
 const PlatformStudio = lazy(() => import("./pages/PlatformStudio.tsx"));
+const FormStudio = lazy(() => import("./pages/FormStudio.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 import { RouteErrorBoundary } from "@/components/ui/route-error-boundary";
 import { InstrumentationProvider } from "@/instrumentation";
@@ -283,6 +284,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/studios/master-data/communication/whatsapp-templates" element={<ProtectedRoute><MasterDataWhatsAppTemplates /></ProtectedRoute>} />
               <Route path="/studios/master-data/system" element={<ProtectedRoute><MasterDataSystem /></ProtectedRoute>} />
               <Route path="/platform-studio" element={<ProtectedRoute><PlatformStudio /></ProtectedRoute>} />
+              <Route path="/studios/forms" element={<ProtectedRoute><FormStudio /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

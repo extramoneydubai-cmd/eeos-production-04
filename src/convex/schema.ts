@@ -96,6 +96,57 @@ export const approvalModeValidator = v.union(
   v.literal(APPROVAL_MODE.HIERARCHY),
 );
 
+// ─── Form Field Types ─────────────────────────────────────────────
+
+export const FORM_STATUS = {
+  DRAFT: "draft",
+  PUBLISHED: "published",
+  ARCHIVED: "archived",
+  DEACTIVATED: "deactivated",
+} as const;
+
+export const formStatusValidator = v.union(
+  v.literal(FORM_STATUS.DRAFT),
+  v.literal(FORM_STATUS.PUBLISHED),
+  v.literal(FORM_STATUS.ARCHIVED),
+  v.literal(FORM_STATUS.DEACTIVATED),
+);
+
+export const FIELD_TYPES = [
+  "text", "textarea", "number", "currency", "date", "time", "datetime",
+  "email", "phone", "whatsapp", "url", "password",
+  "dropdown", "multi_select", "radio", "checkbox", "toggle",
+  "file_upload", "image_upload", "signature", "qr_scanner", "barcode",
+  "lookup", "branch_lookup", "department_lookup", "course_lookup",
+  "employee_lookup", "user_lookup", "student_lookup", "parent_lookup",
+  "table_grid", "section", "divider", "heading", "html", "label", "hidden",
+  "formula", "auto_number", "system_field",
+] as const;
+
+export const fieldTypeValidator = v.union(
+  ...FIELD_TYPES.map((t) => v.literal(t)),
+);
+
+export const SUBMISSION_STATUS = {
+  DRAFT: "draft",
+  SUBMITTED: "submitted",
+  VALIDATED: "validated",
+  DUPLICATE: "duplicate",
+  ROUTING: "routing",
+  COMPLETED: "completed",
+  REJECTED: "rejected",
+} as const;
+
+export const submissionStatusValidator = v.union(
+  v.literal(SUBMISSION_STATUS.DRAFT),
+  v.literal(SUBMISSION_STATUS.SUBMITTED),
+  v.literal(SUBMISSION_STATUS.VALIDATED),
+  v.literal(SUBMISSION_STATUS.DUPLICATE),
+  v.literal(SUBMISSION_STATUS.ROUTING),
+  v.literal(SUBMISSION_STATUS.COMPLETED),
+  v.literal(SUBMISSION_STATUS.REJECTED),
+);
+
 const schema = defineSchema({
   ...authTables,
 
@@ -2402,7 +2453,106 @@ const schema = defineSchema({
   })
     .index("action", ["action"]),
 
+  // ============================
+  // FORM STUDIO — Universal Intake Engine
+  // ============================
 
+  forms: defineTable({
+    name: v.string(),
+    code: v.string(),
+    description: v.optional(v.string()),
+    category: v.optional(v.string()),
+    status: formStatusValidator,
+    version: v.number(),
+    ownerId: v.optional(v.id("users")),
+    createdBy: v.optional(v.id("users")),
+    isPublic: v.boolean(),
+    requiresAuth: v.boolean(),
+    allowAnonymous: v.boolean(),
+    enableQr: v.boolean(),
+    publicUrl: v.optional(v.string()),
+    expiryDate: v.optional(v.number()),
+    submissionLimit: v.optional(v.number()),
+    autoSaveDraft: v.boolean(),
+    theme: v.optional(v.string()),
+    successMessage: v.optional(v.string()),
+    redirectUrl: v.optional(v.string()),
+    isArchived: v.optional(v.boolean()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("code", ["code"])
+    .index("status", ["status"])
+    .index("ownerId", ["ownerId"])
+    .index("category", ["category"]),
+
+  formVersions: defineTable({
+    formId: v.id("forms"),
+    version: v.number(),
+    status: v.union(v.literal("draft"), v.literal("published"), v.literal("archived")),
+    schemaData: v.string(),
+    publishedAt: v.optional(v.number()),
+    publishedBy: v.optional(v.id("users")),
+    changeNotes: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("formId", ["formId"])
+    .index("formId_version", ["formId", "version"]),
+
+  formFields: defineTable({
+    formId: v.id("forms"),
+    version: v.number(),
+    fieldCode: v.string(),
+    fieldType: fieldTypeValidator,
+    label: v.string(),
+    placeholder: v.optional(v.string()),
+    description: v.optional(v.string()),
+    required: v.boolean(),
+    unique: v.boolean(),
+    readOnly: v.boolean(),
+    hidden: v.boolean(),
+    defaultValue: v.optional(v.string()),
+    validationRegex: v.optional(v.string()),
+    minValue: v.optional(v.number()),
+    maxValue: v.optional(v.number()),
+    options: v.optional(v.array(v.string())),
+    conditionalVisibility: v.optional(v.string()),
+    conditionalRequired: v.optional(v.string()),
+    calculated: v.optional(v.string()),
+    lookupSource: v.optional(v.string()),
+    dependentField: v.optional(v.string()),
+    width: v.optional(v.string()),
+    displayOrder: v.number(),
+    sectionId: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("formId", ["formId"])
+    .index("formId_fieldCode", ["formId", "fieldCode"])
+    .index("formId_version", ["formId", "version"]),
+
+  formSubmissions: defineTable({
+    formId: v.id("forms"),
+    formVersion: v.number(),
+    payload: v.string(),
+    status: submissionStatusValidator,
+    submittedBy: v.optional(v.id("users")),
+    source: v.optional(v.string()),
+    device: v.optional(v.string()),
+    ipAddress: v.optional(v.string()),
+    browser: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    validationState: v.optional(v.string()),
+    duplicateState: v.optional(v.string()),
+    routingState: v.optional(v.string()),
+    processingState: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("formId", ["formId"])
+    .index("status", ["status"])
+    .index("formId_status", ["formId", "status"])
+    .index("submittedBy", ["submittedBy"]),
 }, {
   schemaValidation: false,
 });
