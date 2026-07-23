@@ -1,7 +1,49 @@
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { mutation, query } from "./_generated/server";
-import { getCurrentUser } from "./users";
+
+// ============================
+// GROUP (organizations table — single record)
+// ============================
+
+export const getGroup = query({
+  args: {},
+  handler: async (ctx) => {
+    const orgs = await ctx.db.query("organizations").collect();
+    return orgs[0] || null;
+  },
+});
+
+export const updateGroup = mutation({
+  args: {
+    name: v.string(),
+    code: v.string(),
+    description: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const orgs = await ctx.db.query("organizations").collect();
+    const existing = orgs[0];
+    const now = Date.now();
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        name: args.name,
+        code: args.code,
+        description: args.description,
+        updatedAt: now,
+      });
+      return existing._id;
+    } else {
+      return await ctx.db.insert("organizations", {
+        name: args.name,
+        code: args.code,
+        description: args.description,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+  },
+});
 
 // ============================
 // DESIGNATIONS
@@ -21,6 +63,8 @@ export const createDesignation = mutation({
     status: v.string(),
     description: v.optional(v.string()),
     reportsTo: v.optional(v.id("designations")),
+    color: v.optional(v.string()),
+    icon: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -30,6 +74,8 @@ export const createDesignation = mutation({
       status: args.status,
       description: args.description,
       reportsTo: args.reportsTo,
+      color: args.color,
+      icon: args.icon,
       createdAt: now,
       updatedAt: now,
     });
@@ -44,6 +90,8 @@ export const updateDesignation = mutation({
     status: v.optional(v.string()),
     description: v.optional(v.string()),
     reportsTo: v.optional(v.id("designations")),
+    color: v.optional(v.string()),
+    icon: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { id, ...fields } = args;
@@ -69,20 +117,43 @@ export const listDepartments = query({
   },
 });
 
+export const listDepartmentsByParent = query({
+  args: {
+    parentType: v.union(v.literal("group"), v.literal("company")),
+    parentId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("departments")
+      .withIndex("parentType_parentId", (q) =>
+        q.eq("parentType", args.parentType).eq("parentId", args.parentId),
+      )
+      .collect();
+  },
+});
+
 export const createDepartment = mutation({
   args: {
     name: v.string(),
     code: v.string(),
-    branchId: v.id("branches"),
+    parentType: v.string(),
+    parentId: v.string(),
+    branchId: v.optional(v.id("branches")),
     description: v.optional(v.string()),
+    color: v.optional(v.string()),
+    icon: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
     return await ctx.db.insert("departments", {
       name: args.name,
       code: args.code,
+      parentType: args.parentType as "group" | "company",
+      parentId: args.parentId,
       branchId: args.branchId,
       description: args.description,
+      color: args.color,
+      icon: args.icon,
       isActive: true,
       createdAt: now,
       updatedAt: now,
@@ -96,6 +167,9 @@ export const updateDepartment = mutation({
     name: v.optional(v.string()),
     code: v.optional(v.string()),
     description: v.optional(v.string()),
+    color: v.optional(v.string()),
+    icon: v.optional(v.string()),
+    isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const { id, ...fields } = args;
@@ -106,10 +180,15 @@ export const updateDepartment = mutation({
 export const deleteDepartment = mutation({
   args: { id: v.id("departments") },
   handler: async (ctx, args) => {
-    // Also delete associated teams
-    const teams = await ctx.db.query("teams").withIndex("by_department", (q) => q.eq("departmentId", args.id)).collect();
-    for (const team of teams) {
-      await ctx.db.delete(team._id);
+    // Check for dependent teams
+    const teams = await ctx.db
+      .query("teams")
+      .withIndex("by_department", (q) => q.eq("departmentId", args.id))
+      .collect();
+    if (teams.length > 0) {
+      throw new Error(
+        `Cannot delete department. ${teams.length} team(s) depend on it. Remove teams first.`,
+      );
     }
     await ctx.db.delete(args.id);
   },
@@ -126,27 +205,31 @@ export const listCompanies = query({
   },
 });
 
-export const listCompaniesByDepartment = query({
-  args: { departmentId: v.id("departments") },
-  handler: async (ctx, args) => {
-    return await ctx.db.query("companies").withIndex("departmentId", (q) => q.eq("departmentId", args.departmentId)).collect();
-  },
-});
-
 export const createCompany = mutation({
   args: {
     name: v.string(),
     code: v.string(),
-    departmentId: v.id("departments"),
+    companyType: v.optional(v.string()),
+    status: v.optional(v.string()),
     description: v.optional(v.string()),
+    color: v.optional(v.string()),
+    icon: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Get the single group
+    const orgs = await ctx.db.query("organizations").collect();
+    const groupId = orgs[0]?._id;
     const now = Date.now();
     return await ctx.db.insert("companies", {
       name: args.name,
       code: args.code,
-      departmentId: args.departmentId,
+      companyType: args.companyType || "",
+      status: args.status || "active",
+      parentType: "group",
+      parentId: groupId || "",
       description: args.description,
+      color: args.color,
+      icon: args.icon,
       createdAt: now,
       updatedAt: now,
     });
@@ -158,7 +241,11 @@ export const updateCompany = mutation({
     id: v.id("companies"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
+    companyType: v.optional(v.string()),
+    status: v.optional(v.string()),
     description: v.optional(v.string()),
+    color: v.optional(v.string()),
+    icon: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { id, ...fields } = args;
@@ -169,6 +256,30 @@ export const updateCompany = mutation({
 export const deleteCompany = mutation({
   args: { id: v.id("companies") },
   handler: async (ctx, args) => {
+    // Check for dependent branches
+    const branches = await ctx.db
+      .query("branches")
+      .withIndex("parentType_parentId", (q) =>
+        q.eq("parentType", "company").eq("parentId", args.id),
+      )
+      .collect();
+    if (branches.length > 0) {
+      throw new Error(
+        `Cannot delete company. ${branches.length} branch(es) depend on it. Remove branches first.`,
+      );
+    }
+    // Check for dependent departments
+    const depts = await ctx.db
+      .query("departments")
+      .withIndex("parentType_parentId", (q) =>
+        q.eq("parentType", "company").eq("parentId", args.id),
+      )
+      .collect();
+    if (depts.length > 0) {
+      throw new Error(
+        `Cannot delete company. ${depts.length} department(s) depend on it. Remove departments first.`,
+      );
+    }
     await ctx.db.delete(args.id);
   },
 });
@@ -184,19 +295,42 @@ export const listBranches = query({
   },
 });
 
+export const listBranchesByParent = query({
+  args: {
+    parentType: v.union(v.literal("group"), v.literal("company")),
+    parentId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("branches")
+      .withIndex("parentType_parentId", (q) =>
+        q.eq("parentType", args.parentType).eq("parentId", args.parentId),
+      )
+      .collect();
+  },
+});
+
 export const createBranch = mutation({
   args: {
     name: v.string(),
     code: v.string(),
+    parentType: v.string(),
+    parentId: v.string(),
     description: v.optional(v.string()),
+    color: v.optional(v.string()),
+    icon: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
     return await ctx.db.insert("branches", {
       name: args.name,
       code: args.code,
-      description: args.description,
+      parentType: args.parentType as "group" | "company",
+      parentId: args.parentId,
       isActive: true,
+      description: args.description,
+      color: args.color,
+      icon: args.icon,
       createdAt: now,
       updatedAt: now,
     });
@@ -209,6 +343,9 @@ export const updateBranch = mutation({
     name: v.optional(v.string()),
     code: v.optional(v.string()),
     description: v.optional(v.string()),
+    color: v.optional(v.string()),
+    icon: v.optional(v.string()),
+    isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const { id, ...fields } = args;
@@ -237,7 +374,10 @@ export const listTeams = query({
 export const listTeamsByDepartment = query({
   args: { departmentId: v.id("departments") },
   handler: async (ctx, args) => {
-    return await ctx.db.query("teams").withIndex("by_department", (q) => q.eq("departmentId", args.departmentId)).collect();
+    return await ctx.db
+      .query("teams")
+      .withIndex("by_department", (q) => q.eq("departmentId", args.departmentId))
+      .collect();
   },
 });
 
@@ -248,6 +388,8 @@ export const createTeam = mutation({
     departmentId: v.id("departments"),
     description: v.optional(v.string()),
     leadId: v.optional(v.id("users")),
+    color: v.optional(v.string()),
+    icon: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -258,6 +400,8 @@ export const createTeam = mutation({
       description: args.description,
       leadId: args.leadId,
       isActive: true,
+      color: args.color,
+      icon: args.icon,
       createdAt: now,
       updatedAt: now,
     });
@@ -271,6 +415,9 @@ export const updateTeam = mutation({
     code: v.optional(v.string()),
     description: v.optional(v.string()),
     leadId: v.optional(v.id("users")),
+    isActive: v.optional(v.boolean()),
+    color: v.optional(v.string()),
+    icon: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { id, ...fields } = args;
@@ -342,7 +489,10 @@ export const listSubVerticals = query({
   args: { verticalId: v.optional(v.id("verticals")) },
   handler: async (ctx, args) => {
     if (args.verticalId) {
-      return await ctx.db.query("subVerticals").withIndex("verticalId", (q) => q.eq("verticalId", args.verticalId!)).collect();
+      return await ctx.db
+        .query("subVerticals")
+        .withIndex("verticalId", (q) => q.eq("verticalId", args.verticalId!))
+        .collect();
     }
     return await ctx.db.query("subVerticals").collect();
   },
@@ -396,10 +546,16 @@ export const deleteSubVertical = mutation({
 // ============================
 
 export const listBoards = query({
-  args: { subVerticalId: v.optional(v.id("subVerticals")), verticalId: v.optional(v.id("verticals")) },
+  args: {
+    subVerticalId: v.optional(v.id("subVerticals")),
+    verticalId: v.optional(v.id("verticals")),
+  },
   handler: async (ctx, args) => {
     if (args.subVerticalId) {
-      return await ctx.db.query("boards").withIndex("subVerticalId", (q) => q.eq("subVerticalId", args.subVerticalId!)).collect();
+      return await ctx.db
+        .query("boards")
+        .withIndex("subVerticalId", (q) => q.eq("subVerticalId", args.subVerticalId!))
+        .collect();
     }
     return (await ctx.db.query("boards").collect()).filter((b) => {
       if (args.verticalId) return b.verticalId === args.verticalId;

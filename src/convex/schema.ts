@@ -129,6 +129,8 @@ const schema = defineSchema({
     reportsTo: v.optional(v.id("designations")),
     status: v.string(),
     description: v.optional(v.string()),
+    color: v.optional(v.string()),
+    icon: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index("code", ["code"]),
@@ -136,21 +138,32 @@ const schema = defineSchema({
   departments: defineTable({
     name: v.string(),
     code: v.string(),
-    branchId: v.id("branches"),
+    parentType: v.optional(v.union(v.literal("group"), v.literal("company"))),
+    parentId: v.optional(v.string()),
+    branchId: v.optional(v.id("branches")),
     managerId: v.optional(v.id("users")),
     isActive: v.optional(v.boolean()),
     description: v.optional(v.string()),
+    color: v.optional(v.string()),
+    icon: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_code", ["code"])
-    .index("by_branch", ["branchId"]),
+    .index("by_branch", ["branchId"])
+    .index("parentType_parentId", ["parentType", "parentId"]),
 
   companies: defineTable({
     name: v.string(),
     code: v.string(),
-    departmentId: v.id("departments"),
+    companyType: v.optional(v.string()),
+    status: v.optional(v.string()),
+    parentType: v.optional(v.union(v.literal("group"))),
+    parentId: v.optional(v.string()),
+    departmentId: v.optional(v.id("departments")),
     description: v.optional(v.string()),
+    color: v.optional(v.string()),
+    icon: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -160,17 +173,22 @@ const schema = defineSchema({
   branches: defineTable({
     name: v.string(),
     code: v.string(),
+    parentType: v.optional(v.union(v.literal("group"), v.literal("company"))),
+    parentId: v.optional(v.string()),
     organizationId: v.optional(v.id("organizations")),
     email: v.optional(v.string()),
     phone: v.optional(v.string()),
     address: v.optional(v.string()),
     isActive: v.boolean(),
     description: v.optional(v.string()),
+    color: v.optional(v.string()),
+    icon: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_code", ["code"])
-    .index("by_organization", ["organizationId"]),
+    .index("by_organization", ["organizationId"])
+    .index("parentType_parentId", ["parentType", "parentId"]),
 
   teams: defineTable({
     name: v.string(),
@@ -179,6 +197,8 @@ const schema = defineSchema({
     description: v.optional(v.string()),
     leadId: v.optional(v.id("users")),
     isActive: v.optional(v.boolean()),
+    color: v.optional(v.string()),
+    icon: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -188,11 +208,14 @@ const schema = defineSchema({
   organizations: defineTable({
     name: v.string(),
     code: v.string(),
+    description: v.optional(v.string()),
     email: v.optional(v.string()),
     phone: v.optional(v.string()),
     address: v.optional(v.string()),
     taxId: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
+    color: v.optional(v.string()),
+    icon: v.optional(v.string()),
     createdAt: v.optional(v.number()),
     updatedAt: v.optional(v.number()),
   })

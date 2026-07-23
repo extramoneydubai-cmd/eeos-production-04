@@ -10,6 +10,16 @@ export const seed = mutation({
 
     const now = Date.now();
 
+    // Create Group (Organization)
+    await ctx.db.insert("organizations", {
+      name: "Veda EdTech",
+      code: "VEDA",
+      description: "Enterprise Education Technology Group",
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+
     // Create Designations
     const ceoDesigId = await ctx.db.insert("designations", {
       name: "CEO",
