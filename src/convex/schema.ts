@@ -2914,6 +2914,91 @@ const schema = defineSchema({
   })
     .index("leadId", ["leadId"]),
 
+  // ============================
+  // ANALYTICS & FORECASTING ENGINE
+  // ============================
+
+  analyticsSnapshots: defineTable({
+    snapshotType: v.string(),
+    period: v.string(),
+    periodStart: v.number(),
+    periodEnd: v.number(),
+    data: v.string(),
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+  })
+    .index("snapshotType_period", ["snapshotType", "period"])
+    .index("createdAt", ["createdAt"]),
+
+  conversionFunnels: defineTable({
+    period: v.string(),
+    periodStart: v.number(),
+    periodEnd: v.number(),
+    totalInquiries: v.number(),
+    stageBreakdown: v.string(),
+    dropOffRates: v.string(),
+    conversionRate: v.number(),
+    createdAt: v.number(),
+  })
+    .index("period", ["period"]),
+
+  counselorMetrics: defineTable({
+    userId: v.id("users"),
+    period: v.string(),
+    periodStart: v.number(),
+    periodEnd: v.number(),
+    assignedLeads: v.number(),
+    callsMade: v.number(),
+    meetingsHeld: v.number(),
+    followupsCompleted: v.number(),
+    conversions: v.number(),
+    lostLeads: v.number(),
+    revenueGenerated: v.number(),
+    avgResponseTime: v.number(),
+    winRate: v.number(),
+    score: v.number(),
+    createdAt: v.number(),
+  })
+    .index("userId", ["userId"])
+    .index("period", ["period"])
+    .index("score", ["score"]),
+
+  branchMetrics: defineTable({
+    branchId: v.id("branches"),
+    period: v.string(),
+    periodStart: v.number(),
+    periodEnd: v.number(),
+    newLeads: v.number(),
+    activeLeads: v.number(),
+    demoRate: v.number(),
+    trialRate: v.number(),
+    admissionRate: v.number(),
+    revenue: v.number(),
+    pendingFollowups: v.number(),
+    slaCompliance: v.number(),
+    counselorCount: v.number(),
+    createdAt: v.number(),
+  })
+    .index("branchId", ["branchId"])
+    .index("period", ["period"]),
+
+  forecastSnapshots: defineTable({
+    forecastType: v.string(),
+    period: v.string(),
+    forecastDate: v.number(),
+    predictedAdmissions: v.number(),
+    predictedRevenue: v.number(),
+    confidenceInterval: v.optional(v.string()),
+    actualAdmissions: v.optional(v.number()),
+    actualRevenue: v.optional(v.number()),
+    accuracy: v.optional(v.number()),
+    methodology: v.string(),
+    data: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("forecastType_period", ["forecastType", "period"])
+    .index("forecastDate", ["forecastDate"]),
+
 }, {
   schemaValidation: false,
 });

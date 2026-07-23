@@ -23,6 +23,7 @@ import type * as academicSubVerticals from "../academicSubVerticals.js";
 import type * as academicSubjects from "../academicSubjects.js";
 import type * as academicTerms from "../academicTerms.js";
 import type * as academicVerticals from "../academicVerticals.js";
+import type * as analyticsEngine from "../analyticsEngine.js";
 import type * as approvals from "../approvals.js";
 import type * as assignmentEngine from "../assignmentEngine.js";
 import type * as auth from "../auth.js";
@@ -163,6 +164,7 @@ declare const fullApi: ApiFromModules<{
   academicSubjects: typeof academicSubjects;
   academicTerms: typeof academicTerms;
   academicVerticals: typeof academicVerticals;
+  analyticsEngine: typeof analyticsEngine;
   approvals: typeof approvals;
   assignmentEngine: typeof assignmentEngine;
   auth: typeof auth;
