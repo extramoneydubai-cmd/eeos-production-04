@@ -22,6 +22,7 @@ import {
   Database,
   FileText,
   Inbox,
+  Workflow,
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "react-router";
@@ -54,6 +55,7 @@ const studiosNav = [
   { name: "Master Data Studio", href: "/studios/master-data", icon: Database },
   { name: "Form Studio", href: "/studios/forms", icon: FileText },
   { name: "Intake Dashboard", href: "/studios/intake", icon: Inbox },
+  { name: "Workflow Studio", href: "/studios/workflows", icon: Workflow },
   { name: "Platform Studio", href: "/platform-studio", icon: BookOpenText },
 ];
 

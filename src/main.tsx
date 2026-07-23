@@ -115,6 +115,7 @@ const MasterDataSystem = lazy(() => import("./pages/studios/MasterDataSystem.tsx
 const PlatformStudio = lazy(() => import("./pages/PlatformStudio.tsx"));
 const IntakeDashboard = lazy(() => import("./pages/IntakeDashboard.tsx"));
 const FormStudio = lazy(() => import("./pages/FormStudio.tsx"));
+const WorkflowStudio = lazy(() => import("./pages/WorkflowStudio.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 import { RouteErrorBoundary } from "@/components/ui/route-error-boundary";
 import { InstrumentationProvider } from "@/instrumentation";
@@ -287,6 +288,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/platform-studio" element={<ProtectedRoute><PlatformStudio /></ProtectedRoute>} />
               <Route path="/studios/forms" element={<ProtectedRoute><FormStudio /></ProtectedRoute>} />
               <Route path="/studios/intake" element={<ProtectedRoute><IntakeDashboard /></ProtectedRoute>} />
+              <Route path="/studios/workflows" element={<ProtectedRoute><WorkflowStudio /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

@@ -2671,6 +2671,97 @@ const schema = defineSchema({
     .index("eventType", ["eventType"])
     .index("status", ["status"]),
 
+
+  // ============================
+  // WORKFLOW & AUTOMATION ENGINE
+  // ============================
+
+  workflows: defineTable({
+    name: v.string(),
+    code: v.string(),
+    description: v.optional(v.string()),
+    module: v.string(),
+    status: v.string(),
+    version: v.number(),
+    isActive: v.boolean(),
+    tag: v.optional(v.string()),
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("code", ["code"])
+    .index("module", ["module"])
+    .index("status", ["status"])
+    .index("isActive", ["isActive"]),
+
+  workflowNodes: defineTable({
+    workflowId: v.id("workflows"),
+    nodeType: v.string(),
+    label: v.string(),
+    positionX: v.number(),
+    positionY: v.number(),
+    config: v.optional(v.string()),
+    configSchema: v.optional(v.string()),
+    description: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("workflowId", ["workflowId"])
+    .index("nodeType", ["nodeType"]),
+
+  workflowEdges: defineTable({
+    workflowId: v.id("workflows"),
+    sourceNodeId: v.id("workflowNodes"),
+    targetNodeId: v.id("workflowNodes"),
+    label: v.optional(v.string()),
+    condition: v.optional(v.string()),
+    displayOrder: v.number(),
+    createdAt: v.number(),
+  })
+    .index("workflowId", ["workflowId"])
+    .index("sourceNodeId", ["sourceNodeId"])
+    .index("targetNodeId", ["targetNodeId"]),
+
+  workflowInstances: defineTable({
+    workflowId: v.id("workflows"),
+    workflowVersion: v.number(),
+    status: v.string(),
+    currentStepId: v.optional(v.id("workflowNodes")),
+    triggerSource: v.string(),
+    triggerEntityId: v.optional(v.string()),
+    triggerPayload: v.optional(v.string()),
+    context: v.optional(v.string()),
+    assignedTo: v.optional(v.id("users")),
+    assignedTeam: v.optional(v.id("organizationTeams")),
+    startedAt: v.number(),
+    completedAt: v.optional(v.number()),
+    error: v.optional(v.string()),
+    retryCount: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("workflowId", ["workflowId"])
+    .index("status", ["status"])
+    .index("currentStepId", ["currentStepId"])
+    .index("assignedTo", ["assignedTo"]),
+
+  workflowLogs: defineTable({
+    instanceId: v.id("workflowInstances"),
+    workflowId: v.id("workflows"),
+    nodeId: v.optional(v.id("workflowNodes")),
+    action: v.string(),
+    status: v.string(),
+    details: v.optional(v.string()),
+    metadata: v.optional(v.string()),
+    performedBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+  })
+    .index("instanceId", ["instanceId"])
+    .index("workflowId", ["workflowId"])
+    .index("action", ["action"])
+    .index("createdAt", ["createdAt"]),
+
+
 }, {
   schemaValidation: false,
 });
