@@ -17,9 +17,10 @@ import {
   LayoutDashboard, Layers, Box, Cog, Database, FileJson, Cpu, Workflow,
   Shield, Route, AlertTriangle, Bug, Search, ChevronDown, ChevronRight,
   ArrowRight, ArrowDown, BarChart3, Flag, BookOpenText, GitBranch,
-  ListChecks, Target, Plus, Edit3, Trash2, X, Circle,
+  ListChecks, Target, Plus, Edit3, Trash2, X, Circle, Copy, ExternalLink,
 } from "lucide-react";
 import { useAppNavigate } from "@/hooks/use-app-navigate";
+import { toast } from "sonner";
 
 // ─── Tabs ────────────────────────────────────────────────────────
 
@@ -301,6 +302,7 @@ function ProgressSection() {
 
 function PageInspector({ page, open, onClose }: { page: PageInfo | null; open: boolean; onClose: () => void }) {
   if (!page) return null;
+  const { navigate } = useAppNavigate();
   const depGraph = buildDependencyGraph();
   const node = depGraph.pages.find(n => n.id === page.id);
   const mod = getModules().find(m => m.id === `MOD-${page.module.toUpperCase()}`);
@@ -319,8 +321,37 @@ function PageInspector({ page, open, onClose }: { page: PageInfo | null; open: b
           {/* Overview */}
           <SectionCard title="Overview">
             <div className="grid grid-cols-2 gap-2 text-[11px]">
-              <div><span className="text-[#9aa0a6]">Route:</span> <code className="text-[#1a73e8]">{page.route}</code></div>
-              <div><span className="text-[#9aa0a6]">File:</span> <code className="text-[#e8710a]">{page.filePath}</code></div>
+              <div>
+                <span className="text-[#9aa0a6]">Route:</span>{' '}
+                {page.route && page.route !== "/" ? (
+                  <button
+                    onClick={() => { navigate(page.route); onClose(); }}
+                    title="Open page"
+                    className="inline-flex items-center gap-1 text-[#1a73e8] hover:text-[#1557b0] hover:underline cursor-pointer"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    <code>{page.route}</code>
+                  </button>
+                ) : (
+                  <span title="Route unavailable" className="inline-flex items-center gap-1 text-[#9aa0a6] cursor-not-allowed">
+                    <code className="line-through">{page.route || "N/A"}</code>
+                  </span>
+                )}
+              </div>
+              <div>
+                <span className="text-[#9aa0a6]">File:</span>{' '}
+                <code className="text-[#e8710a]">{page.filePath}</code>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(page.filePath);
+                    toast.success("Copied file path");
+                  }}
+                  title="Copy file path"
+                  className="inline-flex items-center ml-1 text-[#9aa0a6] hover:text-[#5f6368] transition-colors cursor-pointer"
+                >
+                  <Copy className="h-3 w-3" />
+                </button>
+              </div>
               <div><span className="text-[#9aa0a6]">Layout:</span> <code>{page.layout}</code></div>
               <div><span className="text-[#9aa0a6]">Module:</span> <code>{page.module}</code></div>
             </div>
