@@ -1,6 +1,7 @@
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/hooks/use-auth";
+import { useAppNavigate } from "@/hooks/use-app-navigate";
 import {
   Users,
   Target,
@@ -15,6 +16,11 @@ import {
   BarChart3,
   Briefcase,
   Loader2,
+  Code2,
+  Settings,
+  Building2,
+  Database,
+  ArrowRight,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -150,6 +156,7 @@ function NotificationsList({ notifications }: { notifications: any[] }) {
 
 export default function DashboardCEO() {
   const { user } = useAuth();
+  const { navigate } = useAppNavigate();
   const leads = useQuery(api.demo.queries.getAllLeads);
   const students = useQuery(api.demo.queries.getAllStudents);
   const admissions = useQuery(api.demo.queries.getAdmissions);
@@ -195,6 +202,70 @@ export default function DashboardCEO() {
           <p className="text-sm text-slate-500 mt-0.5">
             {demoProfile?.designation} • {demoProfile?.demoRole}
           </p>
+        </div>
+      </div>
+
+      {/* Quick Access */}
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-slate-900">Quick Access</h2>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <button
+            onClick={() => navigate("/platform-studio")}
+            className="flex items-center gap-3 p-3 rounded-lg border border-indigo-200 bg-indigo-50/50 hover:bg-indigo-100 hover:border-indigo-300 transition-all group text-left"
+          >
+            <div className="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0">
+              <Code2 className="w-4.5 h-4.5 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-indigo-900">Platform Studio</p>
+              <p className="text-[11px] text-indigo-600/70 truncate">Developer Intelligence System</p>
+            </div>
+            <ArrowRight className="w-4 h-4 text-indigo-400 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all shrink-0" />
+          </button>
+
+          <button
+            onClick={() => navigate("/control")}
+            className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all group text-left"
+          >
+            <div className="w-9 h-9 rounded-lg bg-slate-700 flex items-center justify-center shrink-0">
+              <Settings className="w-4.5 h-4.5 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-900">Control Center</p>
+              <p className="text-[11px] text-slate-500 truncate">Create users, teams, broadcast</p>
+            </div>
+            <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all shrink-0" />
+          </button>
+
+          <button
+            onClick={() => navigate("/org")}
+            className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all group text-left"
+          >
+            <div className="w-9 h-9 rounded-lg bg-emerald-600 flex items-center justify-center shrink-0">
+              <Building2 className="w-4.5 h-4.5 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-900">Organization Studio</p>
+              <p className="text-[11px] text-slate-500 truncate">Departments, teams, hierarchy</p>
+            </div>
+            <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all shrink-0" />
+          </button>
+
+          <button
+            onClick={() => navigate("/studios/master-data")}
+            className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all group text-left"
+          >
+            <div className="w-9 h-9 rounded-lg bg-amber-600 flex items-center justify-center shrink-0">
+              <Database className="w-4.5 h-4.5 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-900">Master Data Studio</p>
+              <p className="text-[11px] text-slate-500 truncate">CRUD for all master entities</p>
+            </div>
+            <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-slate-500 group-hover:translate-x-0.5 transition-all shrink-0" />
+          </button>
         </div>
       </div>
 
