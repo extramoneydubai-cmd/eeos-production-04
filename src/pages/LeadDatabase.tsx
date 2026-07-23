@@ -64,6 +64,12 @@ export default function LeadDatabase() {
     api.leadHealthEngine.getBatchHealthScores,
     (leads && user) ? { leadIds: leads.slice(0, 25).map((l) => l._id) as any } : "skip",
   );
+
+  // Quick indicators — batched
+  const activityIndicators = useQuery(
+    api.leadActivityEngine.getBatchActivityIndicators,
+    (leads && user) ? { leadIds: leads.slice(0, 25).map((l) => l._id) as any } : "skip",
+  );
   const createLead = useMutation(api.crm.createLead);
   const importLeads = useMutation(api.crm.importLeads);
 
@@ -418,6 +424,8 @@ const [newStage, setNewStage] = useState("new");
                 <th className="text-[11px] font-semibold text-[#5f6368] uppercase tracking-wider px-3 py-2.5 whitespace-nowrap">Health</th>
                 <SortHeader field="priority" label="Priority" />
                 <SortHeader field="standardAmount" label="Revenue" />
+                <th className="text-[11px] font-semibold text-[#5f6368] uppercase tracking-wider px-3 py-2.5 whitespace-nowrap">Tasks</th>
+                <th className="text-[11px] font-semibold text-[#5f6368] uppercase tracking-wider px-3 py-2.5 whitespace-nowrap">Activity</th>
                 <th className="text-[11px] font-semibold text-[#5f6368] uppercase tracking-wider px-3 py-2.5 whitespace-nowrap">Conv.</th>
                 <SortHeader field="nextActionDate" label="Next Action" />
                 <SortHeader field="createdAt" label="Created" />
@@ -498,6 +506,36 @@ const [newStage, setNewStage] = useState("new");
                       </td>
                       <td className="px-3 py-2 text-[12px] font-medium text-[#1a1a2e]">
                         {lead.standardAmount != null ? `₹${lead.standardAmount.toLocaleString()}` : "—"}
+                      </td>
+                      {/* Task count indicator */}
+                      <td className="px-3 py-2">
+                        {(() => {
+                          const indicators = activityIndicators ? (activityIndicators as any)[lead._id] : null;
+                          const count = indicators?.taskCount || 0;
+                          return count > 0 ? (
+                            <span className="text-[11px] font-medium text-[#1a1a2e]">{count}</span>
+                          ) : (
+                            <span className="text-[10px] text-[#9aa0a6]">—</span>
+                          );
+                        })()}
+                      </td>
+                      {/* Last activity indicator */}
+                      <td className="px-3 py-2">
+                        {(() => {
+                          const indicators = activityIndicators ? (activityIndicators as any)[lead._id] : null;
+                          const lastAt = indicators?.lastActivityAt;
+                          const lastTitle = indicators?.lastActivityTitle;
+                          if (!lastAt) return <span className="text-[10px] text-[#9aa0a6]">—</span>;
+                          const daysAgo = Math.floor((Date.now() - lastAt) / 86400000);
+                          return (
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3 text-[#9aa0a6] shrink-0" />
+                              <span className={`text-[10px] ${daysAgo > 7 ? "text-[#9aa0a6]" : daysAgo > 3 ? "text-[#fbbc04]" : "text-[#34a853]"}`}>
+                                {daysAgo === 0 ? "Today" : daysAgo === 1 ? "1d ago" : `${daysAgo}d ago`}
+                              </span>
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td className="px-3 py-2">
                         {lead.status === "converted" ? (

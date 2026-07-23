@@ -2844,6 +2844,76 @@ const schema = defineSchema({
     .index("createdAt", ["createdAt"]),
 
 
+  // ============================
+  // LEAD ACTIVITY & COMMUNICATION ENGINE
+  // ============================
+
+  leadTimeline: defineTable({
+    leadId: v.id("leadMaster"),
+    organizationId: v.optional(v.id("organization")),
+    companyId: v.optional(v.id("companies")),
+    branchId: v.optional(v.id("branches")),
+    eventType: v.string(),
+    title: v.string(),
+    description: v.optional(v.string()),
+    metadata: v.optional(v.string()),
+    performedBy: v.optional(v.id("users")),
+    performedAt: v.number(),
+    createdAt: v.number(),
+  })
+    .index("leadId", ["leadId"])
+    .index("leadId_performedAt", ["leadId", "performedAt"])
+    .index("eventType", ["eventType"]),
+
+  leadCommunications: defineTable({
+    leadId: v.id("leadMaster"),
+    type: v.union(
+      v.literal("Call"), v.literal("WhatsApp"),
+      v.literal("Email"), v.literal("SMS"),
+    ),
+    direction: v.union(v.literal("Inbound"), v.literal("Outbound")),
+    subject: v.optional(v.string()),
+    message: v.optional(v.string()),
+    duration: v.optional(v.number()),
+    status: v.optional(v.string()),
+    metadata: v.optional(v.string()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("leadId", ["leadId"])
+    .index("leadId_type", ["leadId", "type"]),
+
+  leadMeetings: defineTable({
+    leadId: v.id("leadMaster"),
+    meetingType: v.string(),
+    meetingDate: v.number(),
+    duration: v.optional(v.number()),
+    location: v.optional(v.string()),
+    meetingLink: v.optional(v.string()),
+    attendees: v.optional(v.array(v.id("users"))),
+    status: v.union(
+      v.literal("scheduled"), v.literal("completed"),
+      v.literal("cancelled"), v.literal("rescheduled"),
+    ),
+    notes: v.optional(v.string()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("leadId", ["leadId"])
+    .index("leadId_meetingDate", ["leadId", "meetingDate"])
+    .index("status", ["status"]),
+
+  leadAttachments: defineTable({
+    leadId: v.id("leadMaster"),
+    fileName: v.string(),
+    fileUrl: v.string(),
+    fileSize: v.optional(v.number()),
+    uploadedBy: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("leadId", ["leadId"]),
+
 }, {
   schemaValidation: false,
 });

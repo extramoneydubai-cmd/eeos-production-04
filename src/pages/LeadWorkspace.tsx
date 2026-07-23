@@ -131,6 +131,28 @@ export default function LeadWorkspace() {
   const lifecycleData = useQuery(api.leadLifecycle.getLeadLifecycle, leadId ? { leadId: leadId as any } : "skip");
   const conversionPipeline = useQuery(api.leadConversionEngine.getConversionPipeline, leadId ? { leadId: leadId as any } : "skip");
 
+  // Activity & Communication Engine
+  const timelineData = useQuery(api.leadActivityEngine.getTimeline, leadId ? { leadId: leadId as any, limit: 50 } : "skip");
+  const leadNotes = useQuery(api.leadActivityEngine.getNotes, leadId ? { leadId: leadId as any } : "skip");
+  const leadMeetings = useQuery(api.leadMeetingEngine.getMeetings, leadId ? { leadId: leadId as any } : "skip");
+  const communications = useQuery(api.leadCommunicationEngine.getCommunications, leadId ? { leadId: leadId as any } : "skip");
+  const communicationSummary = useQuery(api.leadCommunicationEngine.getCommunicationSummary, leadId ? { leadId: leadId as any } : "skip");
+  const leadAttachments = useQuery(api.leadActivityEngine.getAttachments, leadId ? { leadId: leadId as any } : "skip");
+
+  // Activity & Communication mutations
+  const addNoteEngine = useMutation(api.leadActivityEngine.addNote);
+  const pinNoteEngine = useMutation(api.leadActivityEngine.pinNote);
+  const deleteNoteEngine = useMutation(api.leadActivityEngine.deleteNote);
+  const createTaskEngine = useMutation(api.leadActivityEngine.createTask);
+  const completeTaskEngine = useMutation(api.leadActivityEngine.completeTask);
+  const uploadAttachment = useMutation(api.leadActivityEngine.uploadAttachment);
+  const deleteAttachment = useMutation(api.leadActivityEngine.deleteAttachment);
+  const scheduleMeeting = useMutation(api.leadMeetingEngine.scheduleMeeting);
+  const completeMeeting = useMutation(api.leadMeetingEngine.completeMeeting);
+  const cancelMeeting = useMutation(api.leadMeetingEngine.cancelMeeting);
+  const logCallEngine = useMutation(api.leadCommunicationEngine.logCall);
+  const sendWhatsAppEngine = useMutation(api.leadCommunicationEngine.sendWhatsApp);
+
   // Mutations for lifecycle actions
   const scheduleFollowUpLifecycle = useMutation(api.leadLifecycle.scheduleFollowUp);
   const startTrial = useMutation(api.leadLifecycle.startTrial);
@@ -571,7 +593,11 @@ export default function LeadWorkspace() {
           <TabsList className="bg-[#f1f3f4] p-0.5 sticky top-[108px] z-10">
             <TabsTrigger value="overview" className="text-[11px] data-[state=active]:bg-white px-2.5">Overview</TabsTrigger>
             <TabsTrigger value="timeline" className="text-[11px] data-[state=active]:bg-white px-2.5">Timeline</TabsTrigger>
+            <TabsTrigger value="overview" className="text-[11px] data-[state=active]:bg-white px-2.5">Overview</TabsTrigger>
+            <TabsTrigger value="timeline" className="text-[11px] data-[state=active]:bg-white px-2.5">Timeline</TabsTrigger>
+            <TabsTrigger value="notes" className="text-[11px] data-[state=active]:bg-white px-2.5">Notes</TabsTrigger>
             <TabsTrigger value="tasks" className="text-[11px] data-[state=active]:bg-white px-2.5">Tasks</TabsTrigger>
+            <TabsTrigger value="meetings" className="text-[11px] data-[state=active]:bg-white px-2.5">Meetings</TabsTrigger>
             <TabsTrigger value="communication" className="text-[11px] data-[state=active]:bg-white px-2.5">Communication</TabsTrigger>
             <TabsTrigger value="call_logs" className="text-[11px] data-[state=active]:bg-white px-2.5">Call Logs</TabsTrigger>
             <TabsTrigger value="courses" className="text-[11px] data-[state=active]:bg-white px-2.5">Courses</TabsTrigger>
@@ -853,6 +879,87 @@ export default function LeadWorkspace() {
             </Card>
           </TabsContent>
 
+          {/* Notes */}
+          <TabsContent value="notes">
+            <Card className="border-[#e8eaed] shadow-sm bg-white">
+              <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                <CardTitle className="text-sm font-semibold text-[#1a1a2e]">Notes</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-4">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Add a note..."
+                      className="h-8 text-[12px] flex-1"
+                      id="newNoteInput"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          const input = document.getElementById("newNoteInput") as HTMLInputElement;
+                          if (input?.value?.trim() && user) {
+                            addNoteEngine({ leadId: lead._id, content: input.value, createdBy: user._id });
+                            input.value = "";
+                          }
+                        }
+                      }}
+                    />
+                    <Button size="sm" className="h-8 text-[11px] bg-[#1a1a2e] hover:bg-[#2d2d4a]"
+                      onClick={() => {
+                        const input = document.getElementById("newNoteInput") as HTMLInputElement;
+                        if (input?.value?.trim() && user) {
+                          addNoteEngine({ leadId: lead._id, content: input.value, createdBy: user._id });
+                          input.value = "";
+                        }
+                      }}>
+                      <Plus className="h-3 w-3 mr-1" /> Add
+                    </Button>
+                  </div>
+                </div>
+                {(!leadNotes || leadNotes.length === 0) ? (
+                  <p className="text-[12px] text-[#9aa0a6] text-center py-6">No notes yet</p>
+                ) : (
+                  <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                    {leadNotes.map((note: any) => {
+                      const noteUser = users?.find((u) => u._id === note.createdBy);
+                      return (
+                        <div key={note._id} className="p-3 rounded-lg border border-[#e8eaed] bg-[#f8f9fa] group">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[12px] text-[#1a1a2e] whitespace-pre-wrap">{note.content}</p>
+                              <div className="flex items-center gap-2 mt-1.5">
+                                <span className="text-[10px] text-[#9aa0a6]">{noteUser?.name || "Unknown"}</span>
+                                <span className="text-[10px] text-[#9aa0a6]">·</span>
+                                <span className="text-[10px] text-[#9aa0a6]">{new Date(note.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric" })}</span>
+                                {(note as any).pinned && (
+                                  <Badge className="text-[8px] px-1 bg-[#fce8e6] text-[#ea4335]">Pinned</Badge>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => pinNoteEngine({ noteId: note._id, pinned: !(note as any).pinned, userId: user?._id })}
+                                className="h-6 w-6 rounded flex items-center justify-center text-[#9aa0a6] hover:text-[#fbbc04] hover:bg-[#f1f3f4]"
+                                title={(note as any).pinned ? "Unpin" : "Pin"}
+                              >
+                                <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24"><path d="M16 12V4h1V2H7v2h1v8l-2 2v2h5.2v6h1.6v-6H18v-2l-2-2z"/></svg>
+                              </button>
+                              <button
+                                onClick={() => { if (confirm("Delete this note?")) deleteNoteEngine({ noteId: note._id, userId: user?._id }); }}
+                                className="h-6 w-6 rounded flex items-center justify-center text-[#9aa0a6] hover:text-[#ea4335] hover:bg-[#f1f3f4]"
+                                title="Delete"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Tasks */}
           <TabsContent value="tasks">
             <Card className="border-[#e8eaed] shadow-sm bg-white">
@@ -897,6 +1004,75 @@ export default function LeadWorkspace() {
                             onClick={() => deleteLeadTask({ taskId: t._id })}>
                             <Trash2 className="h-3 w-3" />
                           </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Meetings */}
+          <TabsContent value="meetings">
+            <Card className="border-[#e8eaed] shadow-sm bg-white">
+              <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                <CardTitle className="text-sm font-semibold text-[#1a1a2e]">Meetings</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {(!leadMeetings || leadMeetings.length === 0) ? (
+                  <div className="text-center py-6">
+                    <Calendar className="h-8 w-8 text-[#9aa0a6] mx-auto mb-1" />
+                    <p className="text-[12px] text-[#9aa0a6]">No meetings scheduled</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {leadMeetings.map((meeting) => {
+                      return (
+                        <div key={meeting._id} className="flex items-start gap-3 p-3 rounded-lg border border-[#e8eaed]">
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+                            meeting.status === "completed" ? "bg-[#e8f5e9]" :
+                            meeting.status === "cancelled" ? "bg-[#fce8e6]" :
+                            "bg-[#e8f0fe]"
+                          }`}>
+                            <Calendar className={`h-5 w-5 ${
+                              meeting.status === "completed" ? "text-[#34a853]" :
+                              meeting.status === "cancelled" ? "text-[#ea4335]" :
+                              "text-[#4285f4]"
+                            }`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[12px] font-medium text-[#1a1a2e]">{meeting.meetingType}</p>
+                            <p className="text-[11px] text-[#5f6368]">
+                              {new Date(meeting.meetingDate).toLocaleDateString("en-US", {
+                                weekday: "short", month: "short", day: "numeric",
+                                hour: "numeric", minute: "2-digit",
+                              })}
+                              {meeting.duration ? ` (${meeting.duration}min)` : ""}
+                            </p>
+                            {meeting.location && <p className="text-[10px] text-[#9aa0a6]">📍 {meeting.location}</p>}
+                            {meeting.meetingLink && (
+                              <a href={meeting.meetingLink} target="_blank" rel="noopener noreferrer"
+                                className="text-[10px] text-[#4285f4] hover:underline">
+                                Open Meeting
+                              </a>
+                            )}
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <Badge className={`text-[8px] px-1 h-3.5 ${
+                                meeting.status === "completed" ? "bg-[#e8f5e9] text-[#34a853]" :
+                                meeting.status === "cancelled" ? "bg-[#fce8e6] text-[#ea4335]" :
+                                meeting.status === "rescheduled" ? "bg-[#fff3e0] text-[#f57c00]" :
+                                meeting.meetingDate > Date.now() ? "bg-[#e8f0fe] text-[#4285f4]" :
+                                "bg-[#f1f3f4] text-[#5f6368]"
+                              }`}>{meeting.status}</Badge>
+                            </div>
+                          </div>
+                          {meeting.status === "scheduled" && meeting.meetingDate <= Date.now() && (
+                            <Button variant="outline" size="sm" className="h-7 text-[10px] border-[#34a853] text-[#34a853] ml-auto"
+                              onClick={() => completeMeeting({ meetingId: meeting._id, userId: user?._id })}>
+                              <CheckCircle2 className="h-3 w-3 mr-1" /> Complete
+                            </Button>
+                          )}
                         </div>
                       );
                     })}
