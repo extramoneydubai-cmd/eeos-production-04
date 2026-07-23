@@ -651,9 +651,9 @@ async function executeNextStep(
       // Find edges — first matching condition wins
       const outgoingEdges = await ctx.db
         .query("workflowEdges")
-        .withIndex("sourceNodeId", (qb) => qb.eq("sourceNodeId", currentNodeId))
+        .withIndex("sourceNodeId", (qb: any) => qb.eq("sourceNodeId", currentNodeId))
         .collect()
-        .then((edges: any[]) => edges.sort((a, b) => a.displayOrder - b.displayOrder));
+        .then((edges: any[]) => edges.sort((a: any, b: any) => a.displayOrder - b.displayOrder));
 
       let targetEdge: any = null;
 
@@ -868,7 +868,7 @@ function evaluateCondition(
 async function findNextEdge(ctx: any, workflowId: Id<"workflows">, sourceNodeId: Id<"workflowNodes">) {
   const edges: any[] = await ctx.db
     .query("workflowEdges")
-    .withIndex("sourceNodeId", (qb) => qb.eq("sourceNodeId", sourceNodeId))
+    .withIndex("sourceNodeId", (qb: any) => qb.eq("sourceNodeId", sourceNodeId))
     .collect();
 
   // Return first non-condition edge (conditions are handled by condition/decision nodes)
