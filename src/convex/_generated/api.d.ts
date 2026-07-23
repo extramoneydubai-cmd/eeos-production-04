@@ -102,6 +102,7 @@ import type * as hrExperienceLevels from "../hrExperienceLevels.js";
 import type * as hrSkills from "../hrSkills.js";
 import type * as hrWorkLocations from "../hrWorkLocations.js";
 import type * as http from "../http.js";
+import type * as intakeEngine from "../intakeEngine.js";
 import type * as integrations_github from "../integrations/github.js";
 import type * as messenger from "../messenger.js";
 import type * as notifications from "../notifications.js";
@@ -232,6 +233,7 @@ declare const fullApi: ApiFromModules<{
   hrSkills: typeof hrSkills;
   hrWorkLocations: typeof hrWorkLocations;
   http: typeof http;
+  intakeEngine: typeof intakeEngine;
   "integrations/github": typeof integrations_github;
   messenger: typeof messenger;
   notifications: typeof notifications;
