@@ -112,10 +112,12 @@ const MasterDataEmailTemplates = lazy(() => import("./pages/studios/MasterDataEm
 const MasterDataSmsTemplates = lazy(() => import("./pages/studios/MasterDataSmsTemplates.tsx"));
 const MasterDataWhatsAppTemplates = lazy(() => import("./pages/studios/MasterDataWhatsAppTemplates.tsx"));
 const MasterDataSystem = lazy(() => import("./pages/studios/MasterDataSystem.tsx"));
+const PlatformStudio = lazy(() => import("./pages/PlatformStudio.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 import { RouteErrorBoundary } from "@/components/ui/route-error-boundary";
 import { InstrumentationProvider } from "@/instrumentation";
 import { DebugPanel } from "@/components/debug/DebugPanel";
+import { DeveloperModeProvider } from "@/contexts/DeveloperModeContext";
 
 // Simple loading fallback
 function RouteLoading() {
@@ -171,13 +173,13 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <VlyToolbar />
     <>
-      <InstrumentationProvider>
-      <ConvexAuthProvider client={convex}>
+      <InstrumentationProvider>      <ConvexAuthProvider client={convex}>
+        <DeveloperModeProvider>
         <BrowserRouter>
-          <RouteSyncer />
-          <Suspense fallback={<RouteLoading />}>
-            <Routes>
-              <Route path="/" element={<LoginPage />} />
+            <RouteSyncer />
+            <Suspense fallback={<RouteLoading />}>
+              <Routes>
+                <Route path="/" element={<LoginPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/org" element={<ProtectedRoute><OrganizationStudio /></ProtectedRoute>} />
@@ -280,12 +282,14 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/studios/master-data/communication/sms-templates" element={<ProtectedRoute><MasterDataSmsTemplates /></ProtectedRoute>} />
               <Route path="/studios/master-data/communication/whatsapp-templates" element={<ProtectedRoute><MasterDataWhatsAppTemplates /></ProtectedRoute>} />
               <Route path="/studios/master-data/system" element={<ProtectedRoute><MasterDataSystem /></ProtectedRoute>} />
+              <Route path="/platform-studio" element={<ProtectedRoute><PlatformStudio /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
           <Toaster />
+          <DebugPanel />
         </BrowserRouter>
-        <DebugPanel />
+        </DeveloperModeProvider>
       </ConvexAuthProvider>
       </InstrumentationProvider>
     </>

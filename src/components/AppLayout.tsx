@@ -50,6 +50,7 @@ const navigation = [
 
 const studiosNav = [
   { name: "Master Data Studio", href: "/studios/master-data", icon: Database },
+  { name: "Platform Studio", href: "/platform-studio", icon: BookOpenText },
 ];
 
 const crmSettingsItems = [
