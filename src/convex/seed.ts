@@ -309,6 +309,11 @@ export const seed = mutation({
       departmentId: technologyDeptId,
       branchId: npBranchId,
       employeeCode: "EMP-001",
+      employeeId: "EMP-00001",
+      employmentType: "Permanent",
+      employmentStatus: "active",
+      profileCompletion: 65,
+      joiningDate: now - 365 * 86400000,
     });
 
     const ctoUser = await ctx.db.insert("users", {
@@ -321,6 +326,12 @@ export const seed = mutation({
       departmentId: technologyDeptId,
       branchId: npBranchId,
       employeeCode: "EMP-002",
+      employeeId: "EMP-00002",
+      employmentType: "Permanent",
+      employmentStatus: "active",
+      profileCompletion: 55,
+      joiningDate: now - 270 * 86400000,
+      reportingManagerId: ceoUser,
       teamIds: [techTeamId, techInfraId],
     });
 
@@ -334,6 +345,12 @@ export const seed = mutation({
       departmentId: financeDeptId,
       branchId: npBranchId,
       employeeCode: "EMP-003",
+      employeeId: "EMP-00003",
+      employmentType: "Permanent",
+      employmentStatus: "active",
+      profileCompletion: 50,
+      joiningDate: now - 200 * 86400000,
+      reportingManagerId: ceoUser,
       teamIds: [financeTeamId],
     });
 
@@ -347,6 +364,12 @@ export const seed = mutation({
       departmentId: hrDeptId,
       branchId: npBranchId,
       employeeCode: "EMP-004",
+      employeeId: "EMP-00004",
+      employmentType: "Permanent",
+      employmentStatus: "active",
+      profileCompletion: 45,
+      joiningDate: now - 180 * 86400000,
+      reportingManagerId: ceoUser,
       teamIds: [hrTeamId],
     });
 
@@ -360,6 +383,12 @@ export const seed = mutation({
       departmentId: technologyDeptId,
       branchId: npBranchId,
       employeeCode: "EMP-005",
+      employeeId: "EMP-00005",
+      employmentType: "Permanent",
+      employmentStatus: "active",
+      profileCompletion: 40,
+      joiningDate: now - 120 * 86400000,
+      reportingManagerId: ctoUser,
       teamIds: [techTeamId],
     });
 
@@ -373,6 +402,12 @@ export const seed = mutation({
       departmentId: marketingDeptId,
       branchId: opBranchId,
       employeeCode: "EMP-006",
+      employeeId: "EMP-00006",
+      employmentType: "Permanent",
+      employmentStatus: "active",
+      profileCompletion: 35,
+      joiningDate: now - 90 * 86400000,
+      reportingManagerId: hrHead,
       teamIds: [marketingTeamId],
     });
 
@@ -386,6 +421,12 @@ export const seed = mutation({
       departmentId: financeDeptId,
       branchId: npBranchId,
       employeeCode: "EMP-007",
+      employeeId: "EMP-00007",
+      employmentType: "Contract",
+      employmentStatus: "active",
+      profileCompletion: 30,
+      joiningDate: now - 60 * 86400000,
+      reportingManagerId: cfoUser,
       teamIds: [financeTeamId],
     });
 
@@ -399,6 +440,12 @@ export const seed = mutation({
       departmentId: knowledgeDeptId,
       branchId: klBranchId,
       employeeCode: "EMP-008",
+      employeeId: "EMP-00008",
+      employmentType: "Permanent",
+      employmentStatus: "active",
+      profileCompletion: 50,
+      joiningDate: now - 150 * 86400000,
+      reportingManagerId: ctoUser,
       teamIds: [knowledgeTeamId],
     });
 

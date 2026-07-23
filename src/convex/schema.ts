@@ -117,11 +117,25 @@ const schema = defineSchema({
     teamIds: v.optional(v.array(v.id("teams"))),
     phone: v.optional(v.string()),
     employeeCode: v.optional(v.string()),
+    employeeId: v.optional(v.string()),
+    employmentType: v.optional(v.string()),
+    joiningDate: v.optional(v.number()),
+    probationEndDate: v.optional(v.number()),
+    reportingManagerId: v.optional(v.id("users")),
+    employeeCategoryId: v.optional(v.id("hrEmployeeCategories")),
+    workLocationId: v.optional(v.id("hrWorkLocations")),
+    skillIds: v.optional(v.array(v.id("hrSkills"))),
+    experienceLevelId: v.optional(v.id("hrExperienceLevels")),
+    employmentStatus: v.optional(v.string()),
+    profileCompletion: v.optional(v.number()),
     lastLoginAt: v.optional(v.number()),
   })
     .index("email", ["email"])
     .index("username", ["username"])
-    .index("role", ["role"]),
+    .index("role", ["role"])
+    .index("employeeId", ["employeeId"])
+    .index("reportingManagerId", ["reportingManagerId"])
+    .index("employmentType", ["employmentType"]),
 
   designations: defineTable({
     name: v.string(),
