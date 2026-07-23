@@ -131,6 +131,7 @@ import type * as tasks from "../tasks.js";
 import type * as userManagement from "../userManagement.js";
 import type * as users from "../users.js";
 import type * as verification from "../verification.js";
+import type * as workflowEngine from "../workflowEngine.js";
 
 import type {
   ApiFromModules,
@@ -262,6 +263,7 @@ declare const fullApi: ApiFromModules<{
   userManagement: typeof userManagement;
   users: typeof users;
   verification: typeof verification;
+  workflowEngine: typeof workflowEngine;
 }>;
 
 /**
