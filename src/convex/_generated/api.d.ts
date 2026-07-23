@@ -35,6 +35,7 @@ import type * as commEmailTemplates from "../commEmailTemplates.js";
 import type * as commNotificationTypes from "../commNotificationTypes.js";
 import type * as commSmsTemplates from "../commSmsTemplates.js";
 import type * as commWhatsAppTemplates from "../commWhatsAppTemplates.js";
+import type * as communicationHub from "../communicationHub.js";
 import type * as crm from "../crm.js";
 import type * as crmActivity from "../crmActivity.js";
 import type * as crmApprovals from "../crmApprovals.js";
@@ -76,6 +77,7 @@ import type * as demo_auth from "../demo/auth.js";
 import type * as demo_data from "../demo/data.js";
 import type * as demo_queries from "../demo/queries.js";
 import type * as demo_seed from "../demo/seed.js";
+import type * as emailEngine from "../emailEngine.js";
 import type * as engines_accessControlEngine from "../engines/accessControlEngine.js";
 import type * as engines_activityEngine from "../engines/activityEngine.js";
 import type * as engines_attachmentEngine from "../engines/attachmentEngine.js";
@@ -130,6 +132,7 @@ import type * as organizationDepartments from "../organizationDepartments.js";
 import type * as organizationDesignations from "../organizationDesignations.js";
 import type * as organizationTeams from "../organizationTeams.js";
 import type * as paymentEngine from "../paymentEngine.js";
+import type * as pushEngine from "../pushEngine.js";
 import type * as quotations from "../quotations.js";
 import type * as salesInvoiceTypes from "../salesInvoiceTypes.js";
 import type * as salesOpportunityStages from "../salesOpportunityStages.js";
@@ -141,11 +144,14 @@ import type * as salesTaxSlabs from "../salesTaxSlabs.js";
 import type * as salesTerritories from "../salesTerritories.js";
 import type * as seed from "../seed.js";
 import type * as slaEngine from "../slaEngine.js";
+import type * as smsEngine from "../smsEngine.js";
 import type * as studentLifecycle from "../studentLifecycle.js";
 import type * as tasks from "../tasks.js";
+import type * as templateEngine from "../templateEngine.js";
 import type * as userManagement from "../userManagement.js";
 import type * as users from "../users.js";
 import type * as verification from "../verification.js";
+import type * as whatsappEngine from "../whatsappEngine.js";
 import type * as workflowEngine from "../workflowEngine.js";
 
 import type {
@@ -182,6 +188,7 @@ declare const fullApi: ApiFromModules<{
   commNotificationTypes: typeof commNotificationTypes;
   commSmsTemplates: typeof commSmsTemplates;
   commWhatsAppTemplates: typeof commWhatsAppTemplates;
+  communicationHub: typeof communicationHub;
   crm: typeof crm;
   crmActivity: typeof crmActivity;
   crmApprovals: typeof crmApprovals;
@@ -223,6 +230,7 @@ declare const fullApi: ApiFromModules<{
   "demo/data": typeof demo_data;
   "demo/queries": typeof demo_queries;
   "demo/seed": typeof demo_seed;
+  emailEngine: typeof emailEngine;
   "engines/accessControlEngine": typeof engines_accessControlEngine;
   "engines/activityEngine": typeof engines_activityEngine;
   "engines/attachmentEngine": typeof engines_attachmentEngine;
@@ -277,6 +285,7 @@ declare const fullApi: ApiFromModules<{
   organizationDesignations: typeof organizationDesignations;
   organizationTeams: typeof organizationTeams;
   paymentEngine: typeof paymentEngine;
+  pushEngine: typeof pushEngine;
   quotations: typeof quotations;
   salesInvoiceTypes: typeof salesInvoiceTypes;
   salesOpportunityStages: typeof salesOpportunityStages;
@@ -288,11 +297,14 @@ declare const fullApi: ApiFromModules<{
   salesTerritories: typeof salesTerritories;
   seed: typeof seed;
   slaEngine: typeof slaEngine;
+  smsEngine: typeof smsEngine;
   studentLifecycle: typeof studentLifecycle;
   tasks: typeof tasks;
+  templateEngine: typeof templateEngine;
   userManagement: typeof userManagement;
   users: typeof users;
   verification: typeof verification;
+  whatsappEngine: typeof whatsappEngine;
   workflowEngine: typeof workflowEngine;
 }>;
 

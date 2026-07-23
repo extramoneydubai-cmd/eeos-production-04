@@ -3156,6 +3156,159 @@ const schema = defineSchema({
   })
     .index("studentId", ["studentId"]),
 
+    
+
+  // ============================
+  // COMMUNICATION HUB
+  // ============================
+
+  communicationTemplates: defineTable({
+    name: v.string(),
+    code: v.string(),
+    description: v.optional(v.string()),
+    channel: v.union(v.literal("email"), v.literal("whatsapp"), v.literal("sms"), v.literal("push"), v.literal("in_app")),
+    subject: v.optional(v.string()),
+    body: v.string(),
+    variables: v.optional(v.array(v.string())),
+    category: v.optional(v.string()),
+    isActive: v.boolean(),
+    isSystem: v.boolean(),
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("code", ["code"])
+    .index("channel", ["channel"])
+    .index("category", ["category"])
+    .index("isActive", ["isActive"]),
+
+  communicationQueue: defineTable({
+    templateId: v.optional(v.id("communicationTemplates")),
+    channel: v.union(v.literal("email"), v.literal("whatsapp"), v.literal("sms"), v.literal("push"), v.literal("in_app")),
+    recipientId: v.optional(v.string()),
+    recipientType: v.optional(v.string()),
+    recipientAddress: v.string(),
+    recipientName: v.optional(v.string()),
+    subject: v.optional(v.string()),
+    body: v.string(),
+    variables: v.optional(v.string()),
+    status: v.union(
+      v.literal("queued"), v.literal("processing"),
+      v.literal("sent"), v.literal("delivered"),
+      v.literal("read"), v.literal("failed"),
+      v.literal("retrying"), v.literal("cancelled"),
+    ),
+    priority: v.union(v.literal("low"), v.literal("normal"), v.literal("high"), v.literal("urgent")),
+    scheduledAt: v.optional(v.number()),
+    sentAt: v.optional(v.number()),
+    deliveredAt: v.optional(v.number()),
+    readAt: v.optional(v.number()),
+    failedAt: v.optional(v.number()),
+    errorMessage: v.optional(v.string()),
+    retryCount: v.number(),
+    maxRetries: v.number(),
+    campaignId: v.optional(v.id("messageCampaigns")),
+    referenceType: v.optional(v.string()),
+    referenceId: v.optional(v.string()),
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("status", ["status"])
+    .index("channel", ["channel"])
+    .index("recipientId", ["recipientId"])
+    .index("scheduledAt", ["scheduledAt"])
+    .index("campaignId", ["campaignId"])
+    .index("referenceType", ["referenceType"])
+    .index("createdAt", ["createdAt"]),
+
+  communicationLogs: defineTable({
+    queueId: v.id("communicationQueue"),
+    action: v.string(),
+    status: v.string(),
+    details: v.optional(v.string()),
+    metadata: v.optional(v.string()),
+    performedAt: v.number(),
+  })
+    .index("queueId", ["queueId"])
+    .index("queueId_performedAt", ["queueId", "performedAt"]),
+
+  communicationPreferences: defineTable({
+    userId: v.optional(v.id("users")),
+    entityType: v.optional(v.string()),
+    entityId: v.optional(v.string()),
+    channel: v.union(v.literal("email"), v.literal("whatsapp"), v.literal("sms"), v.literal("push"), v.literal("in_app")),
+    category: v.string(),
+    enabled: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("userId", ["userId"])
+    .index("userId_category", ["userId", "category"])
+    .index("entityType", ["entityType"]),
+
+  notificationCenter: defineTable({
+    userId: v.id("users"),
+    title: v.string(),
+    message: v.string(),
+    category: v.string(),
+    priority: v.union(v.literal("low"), v.literal("normal"), v.literal("high"), v.literal("urgent")),
+    channel: v.union(v.literal("email"), v.literal("whatsapp"), v.literal("sms"), v.literal("push"), v.literal("in_app")),
+    referenceType: v.optional(v.string()),
+    referenceId: v.optional(v.string()),
+    actionUrl: v.optional(v.string()),
+    isRead: v.boolean(),
+    isPinned: v.boolean(),
+    isArchived: v.boolean(),
+    readAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("userId", ["userId"])
+    .index("userId_isRead", ["userId", "isRead"])
+    .index("userId_isArchived", ["userId", "isArchived"])
+    .index("category", ["category"])
+    .index("priority", ["priority"])
+    .index("createdAt", ["createdAt"]),
+
+  deliveryStatus: defineTable({
+    queueId: v.id("communicationQueue"),
+    provider: v.string(),
+    providerMessageId: v.optional(v.string()),
+    status: v.string(),
+    timestamp: v.number(),
+    details: v.optional(v.string()),
+    errorCode: v.optional(v.string()),
+    errorMessage: v.optional(v.string()),
+  })
+    .index("queueId", ["queueId"])
+    .index("status", ["status"])
+    .index("providerMessageId", ["providerMessageId"]),
+
+  messageCampaigns: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    channel: v.union(v.literal("email"), v.literal("whatsapp"), v.literal("sms"), v.literal("push")),
+    templateId: v.optional(v.id("communicationTemplates")),
+    targetType: v.string(),
+    targetFilter: v.optional(v.string()),
+    totalRecipients: v.number(),
+    sentCount: v.number(),
+    deliveredCount: v.number(),
+    readCount: v.number(),
+    failedCount: v.number(),
+    status: v.union(v.literal("draft"), v.literal("scheduled"), v.literal("running"), v.literal("completed"), v.literal("paused"), v.literal("cancelled"), v.literal("failed")),
+    scheduledAt: v.optional(v.number()),
+    startedAt: v.optional(v.number()),
+    completedAt: v.optional(v.number()),
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("status", ["status"])
+    .index("channel", ["channel"])
+    .index("scheduledAt", ["scheduledAt"])
+    .index("createdAt", ["createdAt"]),
+
 }, {
   schemaValidation: false,
 });
