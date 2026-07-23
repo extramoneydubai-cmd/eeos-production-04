@@ -3309,7 +3309,68 @@ const schema = defineSchema({
     .index("scheduledAt", ["scheduledAt"])
     .index("createdAt", ["createdAt"]),
 
-}, {
+
+
+  // ============================
+  // CEO CONTROL CENTER & ENTERPRISE DASHBOARDS
+  // ============================
+
+  dashboardWidgets: defineTable({
+    name: v.string(),
+    code: v.string(),
+    description: v.optional(v.string()),
+    widgetType: v.string(),
+    dataSource: v.optional(v.string()),
+    defaultConfig: v.optional(v.string()),
+    defaultSize: v.optional(v.string()),
+    allowedRoles: v.optional(v.array(v.string())),
+    isSystem: v.boolean(),
+    isActive: v.boolean(),
+    displayOrder: v.number(),
+    category: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("code", ["code"])
+    .index("widgetType", ["widgetType"])
+    .index("category", ["category"])
+    .index("isActive", ["isActive"]),
+
+  dashboardLayouts: defineTable({
+    name: v.string(),
+    userId: v.optional(v.id("users")),
+    role: v.optional(v.string()),
+    isDefault: v.boolean(),
+    widgets: v.string(),
+    layoutConfig: v.optional(v.string()),
+    filters: v.optional(v.string()),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("userId", ["userId"])
+    .index("role", ["role"])
+    
+
+  kpiDefinitions: defineTable({
+    name: v.string(),
+    code: v.string(),
+    description: v.optional(v.string()),
+    category: v.string(),
+    unit: v.optional(v.string()),
+    formula: v.optional(v.string()),
+    target: v.optional(v.number()),
+    minimum: v.optional(v.number()),
+    maximum: v.optional(v.number()),
+    frequency: v.union(v.literal("daily"), v.literal("weekly"), v.literal("monthly"), v.literal("quarterly"), v.literal("yearly")),
+    dataSource: v.string(),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("code", ["code"])
+    .index("category", ["category"])
+    .index("isActive", ["isActive"]),.index("isDefault", ["isDefault"]),}, {
   schemaValidation: false,
 });
 
