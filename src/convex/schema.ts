@@ -1828,6 +1828,88 @@ const schema = defineSchema({
     .index("leadId_status", ["leadId", "status"]),
 
   // ============================
+  // LEAD LIFECYCLE — Health Scores
+  // ============================
+
+  leadHealthScores: defineTable({
+    leadId: v.id("leadMaster"),
+    score: v.number(),
+    maxScore: v.number(),
+    dimensions: v.string(),
+    tier: v.string(),
+    calculatedAt: v.number(),
+    createdAt: v.number(),
+  })
+    .index("leadId", ["leadId"])
+    .index("tier", ["tier"])
+    .index("leadId_calculatedAt", ["leadId", "calculatedAt"]),
+
+  // ============================
+  // LEAD LIFECYCLE — Follow-up Rules
+  // ============================
+
+  leadFollowUpRules: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    leadStage: v.optional(v.string()),
+    leadStatus: v.optional(v.string()),
+    daysAfterCreation: v.optional(v.number()),
+    daysAfterLastActivity: v.optional(v.number()),
+    daysAfterNextAction: v.optional(v.number()),
+    actionTemplate: v.string(),
+    priority: v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("critical")),
+    assignedTo: v.union(v.literal("owner"), v.literal("manager"), v.literal("team"), v.literal("round_robin")),
+    createTask: v.boolean(),
+    sendNotification: v.boolean(),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("isActive", ["isActive"])
+    .index("leadStage", ["leadStage"]),
+
+  // ============================
+  // LEAD LIFECYCLE — Conversion Pipeline
+  // ============================
+
+  leadConversionPipeline: defineTable({
+    leadId: v.id("leadMaster"),
+    pipelineType: v.union(v.literal("trial"), v.literal("direct_conversion"), v.literal("installment")),
+    trialStartDate: v.optional(v.number()),
+    trialEndDate: v.optional(v.number()),
+    trialPhase: v.optional(v.union(v.literal("not_started"), v.literal("in_progress"), v.literal("extended"), v.literal("completed"), v.literal("cancelled"))),
+    conversionDate: v.optional(v.number()),
+    convertedBy: v.optional(v.id("users")),
+    revenueAmount: v.optional(v.number()),
+    revenueCollected: v.optional(v.number()),
+    conversionNotes: v.optional(v.string()),
+    paymentPlan: v.optional(v.string()),
+    installmentCount: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("leadId", ["leadId"])
+    .index("pipelineType", ["pipelineType"])
+    .index("trialPhase", ["trialPhase"]),
+
+  // ============================
+  // LEAD LIFECYCLE — Status Engine
+  // ============================
+
+  leadStatusEngine: defineTable({
+    fromStatus: v.string(),
+    toStatus: v.string(),
+    allowed: v.boolean(),
+    requiresPayment: v.boolean(),
+    requiresApproval: v.boolean(),
+    irreversible: v.boolean(),
+    triggerWorkflowId: v.optional(v.id("workflows")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("fromStatus_toStatus", ["fromStatus", "toStatus"]),
+
+  // ============================
   // Universal Verification Engine
   // ============================
 

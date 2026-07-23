@@ -911,6 +911,184 @@ export const processSubmission = mutation({
 });
 
 /* ────────────
+   ROUTE AND CREATE LEAD
+   Combines routing with lead creation via lifecycle engine
+   ──────────── */
+
+export const routeAndCreateLead = mutation({
+  args: {
+    submissionId: v.id("intakeSubmissions"),
+    createdBy: v.id("users"),
+    targetModule: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Step 1: Route the submission
+    const submission = await ctx.db.get(args.submissionId);
+    if (!submission) throw new Error("Submission not found");
+
+    let targetModule = args.targetModule || submission.targetModule;
+
+    if (!targetModule) {
+      // Auto-route using rules
+      const rules = await ctx.db
+        .query("intakeRoutingRules")
+        .withIndex("isActive", (q) => q.eq("isActive", true))
+        .order("asc")
+        .collect();
+
+      const payload = JSON.parse(submission.payload || "{}");
+
+      for (const rule of rules) {
+        if (rule.sourceFormIds && rule.sourceFormIds.length > 0 && submission.formId) {
+          if (!rule.sourceFormIds.includes(submission.formId)) continue;
+        }
+        if (rule.defaultRoute) {
+          targetModule = rule.targetModule;
+          break;
+        }
+        if (rule.conditionField && payload[rule.conditionField] !== undefined) {
+          const value = String(payload[rule.conditionField]);
+          const conditionValue = rule.conditionValue || "";
+          const matches =
+            rule.conditionOperator === "equals" ? value === conditionValue :
+            rule.conditionOperator === "contains" ? value.includes(conditionValue) :
+            rule.conditionOperator === "starts_with" ? value.startsWith(conditionValue) :
+            rule.conditionOperator === "ends_with" ? value.endsWith(conditionValue) :
+            rule.conditionOperator === "in" ? conditionValue.split(",").map(s => s.trim()).includes(value) :
+            true;
+          if (matches) { targetModule = rule.targetModule; break; }
+        }
+      }
+    }
+
+    if (!targetModule) {
+      throw new Error("No target module determined — configure routing rules");
+    }
+
+    const now = Date.now();
+
+    await ctx.db.patch(args.submissionId, {
+      targetModule,
+      routingStatus: ROUTING_STATUS.ROUTED,
+      processingStatus: PROCESSING_STATUS.ROUTED,
+      updatedAt: now,
+    });
+
+    await addTimelineEntry(
+      ctx, args.submissionId, "routed", "completed",
+      `Routed to ${targetModule}`,
+      args.createdBy,
+    );
+
+    await emitEvent(
+      ctx, args.submissionId, "submission_routed", "routed",
+      JSON.stringify({ targetModule }),
+    );
+
+    // Step 2: If routed to CRM, create lead via lifecycle engine
+    if (targetModule === "crm") {
+      const payload = JSON.parse(submission.payload || "{}");
+
+      const firstName = payload.firstName || payload.first_name || payload.name || "Unknown";
+      const lastName = payload.lastName || payload.last_name || "";
+      const phone = payload.phone || payload.mobile || payload.whatsapp || "";
+      const email = payload.email || payload.emailAddress || undefined;
+      const stage = payload.stage || "new";
+      const source = payload.source || submission.source || "intake";
+      const priority = payload.priority || "medium";
+      const location = payload.location || payload.city || undefined;
+
+      // Create lead directly (inline to avoid mutation chaining)
+      const leadId = await ctx.db.insert("leadMaster", {
+        firstName, lastName, phone, email, location, stage, source,
+        priority: priority as "low" | "medium" | "high" | "critical",
+        status: "active",
+        createdBy: args.createdBy,
+        verticalId: payload.verticalId || undefined,
+        subVerticalId: payload.subVerticalId || undefined,
+        boardId: payload.boardId || undefined,
+        branchInterestId: payload.branchInterestId || undefined,
+        courseInterest: payload.courseInterest || payload.course || undefined,
+        whatsappUsername: payload.whatsappUsername || undefined,
+        whatsappPin: payload.whatsappPin || undefined,
+        tags: payload.tags || undefined,
+        createdAt: now, updatedAt: now,
+      });
+
+      await ctx.db.insert("leadStageHistory", {
+        leadId, toStage: stage, changedBy: args.createdBy, createdAt: now,
+      });
+
+      // Add timeline entry linking to lead
+      await addTimelineEntry(
+        ctx, args.submissionId, "lead_created", "completed",
+        `Lead created: ${firstName} ${lastName} (${leadId})`,
+        args.createdBy,
+      );
+
+      // Link submission to lead
+      await ctx.db.patch(args.submissionId, {
+        targetEntityId: leadId,
+        processingStatus: PROCESSING_STATUS.COMPLETED,
+        processingTime: now - submission.submissionDate,
+        updatedAt: now,
+      });
+
+      await emitEvent(
+        ctx, args.submissionId, "submission_completed", "completed",
+        JSON.stringify({ targetEntityId: leadId, targetModule: "crm" }),
+      );
+
+      // Calculate initial health score (inline)
+      try {
+        const lead = await ctx.db.get(leadId);
+        if (lead) {
+          const dimensions: Record<string, { score: number; max: number; label: string }> = {};
+          let score = 0;
+          let maxScore = 100;
+          let profileScore = 0;
+          if (lead.firstName && lead.lastName) profileScore += 8;
+          if (lead.phone) profileScore += 8;
+          if (lead.email) profileScore += 7;
+          if (lead.location) profileScore += 7;
+          dimensions.profile = { score: profileScore, max: 30, label: "Profile Completeness" };
+          score += profileScore;
+          const engagementScore = 10;
+          const stageScores: Record<string, number> = {
+            new: 5, contacted: 10, qualified: 15, demo: 18, negotiation: 22, converted: 25,
+          };
+          const pipelineScore = stageScores[lead.stage] || 5;
+          dimensions.pipeline = { score: pipelineScore, max: 25, label: "Pipeline Position" };
+          score += pipelineScore;
+          score += engagementScore;
+          const pct = score / maxScore * 100;
+          const tier = pct >= 80 ? "hot" : pct >= 60 ? "warm" : pct >= 35 ? "cool" : "cold";
+          await ctx.db.insert("leadHealthScores", {
+            leadId, score, maxScore, dimensions: JSON.stringify(dimensions),
+            tier, calculatedAt: now, createdAt: now,
+          });
+        }
+      } catch {
+        // Health score calculation is non-critical
+      }
+
+      return {
+        submissionId: args.submissionId,
+        targetModule,
+        leadId,
+        leadCreated: true,
+      };
+    }
+
+    return {
+      submissionId: args.submissionId,
+      targetModule,
+      leadCreated: false,
+    };
+  },
+});
+
+/* ────────────
    BULK OPERATIONS
    ──────────── */
 
