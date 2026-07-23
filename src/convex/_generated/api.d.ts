@@ -84,6 +84,7 @@ import type * as engines_notificationEngine from "../engines/notificationEngine.
 import type * as engines_seedEngine from "../engines/seedEngine.js";
 import type * as engines_sequenceEngine from "../engines/sequenceEngine.js";
 import type * as engines_timelineEngine from "../engines/timelineEngine.js";
+import type * as enrollmentEngine from "../enrollmentEngine.js";
 import type * as financeBankAccounts from "../financeBankAccounts.js";
 import type * as financeCurrencies from "../financeCurrencies.js";
 import type * as financeDiscountCategories from "../financeDiscountCategories.js";
@@ -136,6 +137,7 @@ import type * as salesTaxSlabs from "../salesTaxSlabs.js";
 import type * as salesTerritories from "../salesTerritories.js";
 import type * as seed from "../seed.js";
 import type * as slaEngine from "../slaEngine.js";
+import type * as studentLifecycle from "../studentLifecycle.js";
 import type * as tasks from "../tasks.js";
 import type * as userManagement from "../userManagement.js";
 import type * as users from "../users.js";
@@ -225,6 +227,7 @@ declare const fullApi: ApiFromModules<{
   "engines/seedEngine": typeof engines_seedEngine;
   "engines/sequenceEngine": typeof engines_sequenceEngine;
   "engines/timelineEngine": typeof engines_timelineEngine;
+  enrollmentEngine: typeof enrollmentEngine;
   financeBankAccounts: typeof financeBankAccounts;
   financeCurrencies: typeof financeCurrencies;
   financeDiscountCategories: typeof financeDiscountCategories;
@@ -277,6 +280,7 @@ declare const fullApi: ApiFromModules<{
   salesTerritories: typeof salesTerritories;
   seed: typeof seed;
   slaEngine: typeof slaEngine;
+  studentLifecycle: typeof studentLifecycle;
   tasks: typeof tasks;
   userManagement: typeof userManagement;
   users: typeof users;
