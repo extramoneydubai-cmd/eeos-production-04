@@ -210,6 +210,38 @@ export const deleteStatusEngineRule = mutation({
 });
 
 /* ────────────
+   BATCH HEALTH SCORE LOOKUP (for Lead Database)
+   ──────────── */
+
+export const getBatchHealthScores = query({
+  args: {
+    leadIds: v.array(v.id("leadMaster")),
+  },
+  handler: async (ctx, args) => {
+    const allScores = await ctx.db.query("leadHealthScores").collect();
+
+    // Latest score per lead
+    const latestPerLead = new Map<Id<"leadMaster">, typeof allScores[number]>();
+    for (const score of allScores) {
+      const existing = latestPerLead.get(score.leadId);
+      if (!existing || score.calculatedAt > existing.calculatedAt) {
+        latestPerLead.set(score.leadId, score);
+      }
+    }
+
+    const result: Record<string, { score: number; tier: string; maxScore: number } | null> = {};
+    for (const leadId of args.leadIds) {
+      const score = latestPerLead.get(leadId);
+      result[leadId] = score
+        ? { score: score.score, tier: score.tier, maxScore: score.maxScore }
+        : null;
+    }
+
+    return result;
+  },
+});
+
+/* ────────────
    HEALTH SCORE ANALYTICS DASHBOARD
    ──────────── */
 

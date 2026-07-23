@@ -60,6 +60,10 @@ export default function LeadDatabase() {
   const branches = useQuery(api.organization.listBranches);
   const verticals = useQuery(api.organization.listVerticals);
   const sources = useQuery(api.crm.listLeadSources);
+  const healthScores = useQuery(
+    api.leadHealthEngine.getBatchHealthScores,
+    (leads && user) ? { leadIds: leads.slice(0, 25).map((l) => l._id) as any } : "skip",
+  );
   const createLead = useMutation(api.crm.createLead);
   const importLeads = useMutation(api.crm.importLeads);
 
@@ -411,8 +415,10 @@ const [newStage, setNewStage] = useState("new");
                 <th className="text-[11px] font-semibold text-[#5f6368] uppercase tracking-wider px-3 py-2.5 whitespace-nowrap">Branch</th>
                 <th className="text-[11px] font-semibold text-[#5f6368] uppercase tracking-wider px-3 py-2.5 whitespace-nowrap">Vertical</th>
                 <SortHeader field="source" label="Source" />
+                <th className="text-[11px] font-semibold text-[#5f6368] uppercase tracking-wider px-3 py-2.5 whitespace-nowrap">Health</th>
                 <SortHeader field="priority" label="Priority" />
                 <SortHeader field="standardAmount" label="Revenue" />
+                <th className="text-[11px] font-semibold text-[#5f6368] uppercase tracking-wider px-3 py-2.5 whitespace-nowrap">Conv.</th>
                 <SortHeader field="nextActionDate" label="Next Action" />
                 <SortHeader field="createdAt" label="Created" />
                 <th className="px-3 py-2.5 w-20 text-right"><span className="text-[11px] font-semibold text-[#5f6368] uppercase tracking-wider">Actions</span></th>
@@ -472,10 +478,37 @@ const [newStage, setNewStage] = useState("new");
                       <td className="px-3 py-2 text-[11px] text-[#5f6368]">{vertical?.code || "—"}</td>
                       <td className="px-3 py-2 text-[11px] text-[#5f6368]">{lead.source || "—"}</td>
                       <td className="px-3 py-2">
+                        {(() => {
+                          const hs = healthScores ? (healthScores as any)[lead._id] : null;
+                          if (!hs) return <span className="text-[10px] text-[#9aa0a6]">—</span>;
+                          const tierColors: Record<string, string> = {
+                            hot: "bg-[#ea4335]", warm: "bg-[#fbbc04]",
+                            cool: "bg-[#4285f4]", cold: "bg-[#9aa0a6]",
+                          };
+                          return (
+                            <div className="flex items-center gap-1.5">
+                              <div className={`w-2 h-2 rounded-full ${tierColors[hs.tier] || "bg-[#9aa0a6]"}`} />
+                              <span className="text-[10px] capitalize text-[#5f6368]">{hs.tier}</span>
+                            </div>
+                          );
+                        })()}
+                      </td>
+                      <td className="px-3 py-2">
                         <Badge className={`text-[8px] px-1 py-0 h-3.5 ${priorityColors[lead.priority] || priorityColors.medium}`}>{lead.priority}</Badge>
                       </td>
                       <td className="px-3 py-2 text-[12px] font-medium text-[#1a1a2e]">
                         {lead.standardAmount != null ? `₹${lead.standardAmount.toLocaleString()}` : "—"}
+                      </td>
+                      <td className="px-3 py-2">
+                        {lead.status === "converted" ? (
+                          <Badge className="text-[8px] px-1 py-0 h-3.5 bg-[#e8f5e9] text-[#34a853]">Converted</Badge>
+                        ) : lead.status === "lost" ? (
+                          <Badge className="text-[8px] px-1 py-0 h-3.5 bg-[#fce8e6] text-[#ea4335]">Lost</Badge>
+                        ) : lead.status === "archived" ? (
+                          <Badge className="text-[8px] px-1 py-0 h-3.5 bg-[#f1f3f4] text-[#9aa0a6]">Archived</Badge>
+                        ) : (
+                          <span className="text-[10px] text-[#9aa0a6]">—</span>
+                        )}
                       </td>
                       <td className="px-3 py-2">
                         {lead.nextAction ? (

@@ -16,7 +16,7 @@ import {
   MessageSquare, FileText, Activity, Plus, Send, Trash2, Loader2, AlertCircle,
   CheckCircle2, XCircle, Edit3, UserPlus, Paperclip, ChevronDown, Sparkles, BarChart3,
   ThumbsUp, ThumbsDown, MessageCircle, ExternalLink, Percent, Receipt, X,
-  History, Search, ArrowRight, Layers, BookOpen, RotateCcw, Info, Lock,
+  History, Search, ArrowRight, Layers, BookOpen, RotateCcw, Info, Lock, TrendingUp,
 } from "lucide-react";
 import { useState } from "react";
 import { useParams } from "react-router";
@@ -126,6 +126,17 @@ export default function LeadWorkspace() {
   const installments = useQuery(api.collectionEngine.getInstallments, leadId ? { leadId: leadId as any } : "skip");
   const leadPDCs = useQuery(api.collectionEngine.getLeadPDCs, leadId ? { leadId: leadId as any } : "skip");
   const leadCommitments = useQuery(api.collectionEngine.getLeadCommitments, leadId ? { leadId: leadId as any } : "skip");
+
+  // Lifecycle Engine — Health Score + Conversion Pipeline
+  const lifecycleData = useQuery(api.leadLifecycle.getLeadLifecycle, leadId ? { leadId: leadId as any } : "skip");
+  const conversionPipeline = useQuery(api.leadConversionEngine.getConversionPipeline, leadId ? { leadId: leadId as any } : "skip");
+
+  // Mutations for lifecycle actions
+  const scheduleFollowUpLifecycle = useMutation(api.leadLifecycle.scheduleFollowUp);
+  const startTrial = useMutation(api.leadLifecycle.startTrial);
+  const updateTrialPhase = useMutation(api.leadLifecycle.updateTrialPhase);
+  const convertLeadLifecycle = useMutation(api.leadLifecycle.convertLead);
+  const calculateHealthScore = useMutation(api.leadLifecycle.calculateHealthScore);
   const createPaymentPlan = useMutation(api.collectionEngine.createPaymentPlan);
   const createPDC = useMutation(api.collectionEngine.createPDC);
   const updatePDCStatus = useMutation(api.collectionEngine.updatePDCStatus);
@@ -279,6 +290,12 @@ export default function LeadWorkspace() {
 
   // Payment state machine — verification actions moved to Approval Center
   // Payments can only be decided in the Verification tab of Approval Center
+
+  // Health score refresh
+  const handleRefreshHealthScore = async () => {
+    if (!lead || !user) return;
+    await calculateHealthScore({ leadId: lead._id });
+  };
 
   // Smart suggestions based on request type + amount routing rules
   const getSmartSuggestions = (type: string, amount: number): string[] => {
@@ -662,6 +679,159 @@ export default function LeadWorkspace() {
                       onChange={(e) => handleUpdateField("nextActionDate", e.target.value ? new Date(e.target.value).getTime() : undefined)}
                       className="h-7 text-[12px] w-[160px] border-[#e8eaed]" />
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Health Score Widget */}
+              <Card className="border-[#e8eaed] shadow-sm bg-white">
+                <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                  <CardTitle className="text-sm font-semibold text-[#1a1a2e]">Lead Health</CardTitle>
+                  <button onClick={handleRefreshHealthScore} className="text-[10px] text-[#4285f4] hover:text-[#1a73e8] flex items-center gap-1">
+                    <RotateCcw className="h-3 w-3" /> Refresh
+                  </button>
+                </CardHeader>
+                <CardContent>
+                  {lifecycleData?.healthScore ? (
+                    <div className="space-y-3">
+                      {/* Score circle */}
+                      <div className="flex items-center gap-3">
+                        <div className={`relative w-16 h-16 rounded-full flex items-center justify-center text-sm font-bold ${
+                          lifecycleData.healthScore.tier === "hot" ? "bg-[#ea4335] text-white" :
+                          lifecycleData.healthScore.tier === "warm" ? "bg-[#fbbc04] text-[#1a1a2e]" :
+                          lifecycleData.healthScore.tier === "cool" ? "bg-[#4285f4] text-white" :
+                          "bg-[#f1f3f4] text-[#5f6368]"
+                        }`}>
+                          {lifecycleData.healthScore.maxScore > 0
+                            ? Math.round((lifecycleData.healthScore.score / lifecycleData.healthScore.maxScore) * 100)
+                            : 0}%
+                          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2">
+                            <span className="text-[8px] uppercase tracking-wider font-semibold">{lifecycleData.healthScore.tier}</span>
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[11px] text-[#5f6368]">Score</span>
+                            <span className="text-[13px] font-semibold text-[#1a1a2e]">{lifecycleData.healthScore.score}/{lifecycleData.healthScore.maxScore}</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-[#f1f3f4] rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full transition-all ${
+                              lifecycleData.healthScore.tier === "hot" ? "bg-[#ea4335]" :
+                              lifecycleData.healthScore.tier === "warm" ? "bg-[#fbbc04]" :
+                              lifecycleData.healthScore.tier === "cool" ? "bg-[#4285f4]" :
+                              "bg-[#9aa0a6]"
+                            }`}
+                              style={{ width: `${lifecycleData.healthScore.maxScore > 0 ? (lifecycleData.healthScore.score / lifecycleData.healthScore.maxScore) * 100 : 0}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      {/* Dimension breakdown */}
+                      {(() => {
+                        try {
+                          const dims = JSON.parse(lifecycleData.healthScore.dimensions);
+                          return (
+                            <div className="space-y-1.5 pt-1">
+                              {Object.entries(dims).map(([key, dim]: [string, any]) => (
+                                <div key={key} className="flex items-center gap-2">
+                                  <span className="text-[10px] text-[#5f6368] w-[90px] truncate">{dim.label}</span>
+                                  <div className="flex-1 h-1.5 bg-[#f1f3f4] rounded-full overflow-hidden">
+                                    <div className="h-full bg-[#4285f4] rounded-full"
+                                      style={{ width: `${dim.max > 0 ? (dim.score / dim.max) * 100 : 0}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-[10px] font-medium text-[#5f6368] w-[30px] text-right">{dim.score}</span>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        } catch { return null; }
+                      })()}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <BarChart3 className="h-8 w-8 text-[#9aa0a6] mx-auto mb-1" />
+                      <p className="text-[11px] text-[#9aa0a6]">No health score yet</p>
+                      <Button variant="outline" size="sm" className="h-7 text-[10px] mt-2" onClick={handleRefreshHealthScore}>
+                        Calculate Now
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Trial / Conversion Pipeline Widget */}
+              <Card className="border-[#e8eaed] shadow-sm bg-white">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold text-[#1a1a2e]">
+                    {conversionPipeline?.trialPhase === "in_progress" ? "Trial Progress" : "Conversion Pipeline"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {lead.status === "converted" ? (
+                    <div className="text-center py-3">
+                      <CheckCircle2 className="h-8 w-8 text-[#34a853] mx-auto mb-1" />
+                      <p className="text-[12px] font-medium text-[#1a1a2e]">Converted</p>
+                      <p className="text-[10px] text-[#9aa0a6] mt-0.5">
+                        {conversionPipeline?.conversionDate
+                          ? new Date(conversionPipeline.conversionDate).toLocaleDateString()
+                          : ""}
+                      </p>
+                      {conversionPipeline?.revenueAmount && (
+                        <p className="text-[11px] font-medium text-[#1a1a2e] mt-1">₹{conversionPipeline.revenueAmount.toLocaleString()}</p>
+                      )}
+                      <div className="flex items-center justify-center gap-2 mt-2">
+                        <Badge className="text-[9px] px-1.5 bg-[#e8f5e9] text-[#34a853]">{conversionPipeline?.pipelineType || "—"}</Badge>
+                        {conversionPipeline?.paymentPlan && (
+                          <Badge className="text-[9px] px-1.5 bg-[#e8f0fe] text-[#4285f4]">{conversionPipeline.paymentPlan}</Badge>
+                        )}
+                      </div>
+                    </div>
+                  ) : conversionPipeline?.trialPhase === "in_progress" ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] text-[#5f6368]">Trial In Progress</span>
+                        <Badge className="text-[9px] px-1.5 bg-[#e8f0fe] text-[#4285f4]">Active</Badge>
+                      </div>
+                      {conversionPipeline.trialEndDate && (
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-3.5 w-3.5 text-[#5f6368]" />
+                          <span className="text-[11px] text-[#5f6368]">
+                            Ends: {new Date(conversionPipeline.trialEndDate).toLocaleDateString()}
+                          </span>
+                          <span className={`text-[10px] font-medium ${
+                            conversionPipeline.trialEndDate < Date.now() ? "text-[#ea4335]" :
+                            conversionPipeline.trialEndDate < Date.now() + 3 * 86400000 ? "text-[#fbbc04]" :
+                            "text-[#34a853]"
+                          }`}>
+                            {conversionPipeline.trialEndDate < Date.now()
+                              ? "(Expired)"
+                              : `${Math.ceil((conversionPipeline.trialEndDate - Date.now()) / 86400000)} days left`}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ) : conversionPipeline?.trialPhase === "completed" ? (
+                    <div className="text-center py-3">
+                      <CheckCircle2 className="h-6 w-6 text-[#34a853] mx-auto mb-1" />
+                      <p className="text-[11px] text-[#5f6368]">Trial completed</p>
+                    </div>
+                  ) : conversionPipeline?.trialPhase === "cancelled" ? (
+                    <div className="text-center py-3">
+                      <XCircle className="h-6 w-6 text-[#ea4335] mx-auto mb-1" />
+                      <p className="text-[11px] text-[#5f6368]">Trial cancelled</p>
+                    </div>
+                  ) : lead.status === "lost" ? (
+                    <div className="text-center py-3">
+                      <XCircle className="h-6 w-6 text-[#9aa0a6] mx-auto mb-1" />
+                      <p className="text-[11px] text-[#5f6368]">Lead marked as lost</p>
+                    </div>
+                  ) : (
+                    <div className="text-center py-3">
+                      <TrendingUp className="h-6 w-6 text-[#9aa0a6] mx-auto mb-1" />
+                      <p className="text-[11px] text-[#9aa0a6]">No trial or conversion started</p>
+                      <p className="text-[9px] text-[#9aa0a6] mt-0.5">Stage: {PIPELINE_STAGES.find((s) => s.id === lead.stage)?.label || lead.stage}</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
