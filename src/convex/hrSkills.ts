@@ -119,7 +119,10 @@ export const duplicate = mutation({
     return ctx.db.insert("hrSkills", {
       name: `${source.name} (Copy)`,
       code: `${source.code}_COPY`,
-      skillCategory: source.skillCategory,      sequence: maxSeq + 1,
+      skillCategory: source.skillCategory,
+      color: source.color,
+      icon: source.icon,
+      sequence: maxSeq + 1,
       active: false,
       createdAt: Date.now(),
       updatedAt: Date.now(),

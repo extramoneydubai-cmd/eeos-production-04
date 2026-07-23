@@ -122,7 +122,10 @@ export const duplicate = mutation({
     return ctx.db.insert("crmIndustries", {
       name: `${source.name} (Copy)`,
       code: `${source.code}_COPY`,
-      sector: source.sector,      sequence: maxSeq + 1,
+      sector: source.sector,
+      color: source.color,
+      icon: source.icon,
+      sequence: maxSeq + 1,
       active: false,
       createdAt: Date.now(),
       updatedAt: Date.now(),

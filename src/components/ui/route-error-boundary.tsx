@@ -38,7 +38,7 @@ export class RouteErrorBoundary extends React.Component<
         message: msg,
         stack: error.stack || msg || "",
         source: "boundary",
-        componentStack: info.componentStack,
+        componentStack: info.componentStack ?? undefined,
       });
       notifyDevError(entry);
     } catch {
