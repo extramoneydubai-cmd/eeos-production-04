@@ -27,7 +27,7 @@ export const getSalesPendingTasks = query({
     ]);
     const validLeads = leads.filter((l): l is NonNullable<typeof l> => l != null);
     const courseIds = [...new Set(allCoursesLinks.map((lc) => lc.courseId))];
-    const courseDocs = (await Promise.all(courseIds.map((id) => ctx.db.get(id)))).filter((c): c is NonNullable<typeof c> => c != null);
+    const courseDocs = (await Promise.all(courseIds.map((id: any) => ctx.db.get(id as any)))).filter((c): c is NonNullable<typeof c> => c != null);
     const courseMap = new Map(courseDocs.map((c) => [c._id, c]));
     const userMap = new Map(allUsers.map((u) => [u._id, u]));
     const leadCourseLinks = allCoursesLinks.filter((lc) => leadIds.includes(lc.leadId));

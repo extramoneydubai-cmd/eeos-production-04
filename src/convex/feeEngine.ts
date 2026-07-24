@@ -259,7 +259,7 @@ export const generateInstallments = mutation({
     // Update next due date
     if (installments.length > 0) {
       await ctx.db.patch(args.feeAccountId, {
-        nextDueDate: (feeStructure as any).startDate + (installments.length * interval),
+        nextDueDate: args.startDate + (installments.length * interval),
       });
     }
 

@@ -38,8 +38,8 @@ export const getConversionHistory = query({
       Promise.all(userIds.map((id) => ctx.db.get(id))),
     ]);
 
-    const leadMap = new Map(leads.filter(Boolean).map((l) => [l!._id, l!]));
-    const userMap = new Map(users.filter(Boolean).map((u) => [u!._id, u!]));
+    const leadMap = new Map(leads.filter(Boolean).map((l) => [l!._id, l as any]));
+    const userMap = new Map(users.filter(Boolean).map((u) => [u!._id, u as any]));
 
     // Group payments by lead
     const paymentsByLead = new Map<string, typeof allPayments>();

@@ -16,7 +16,7 @@ type SecurityLevel =
 // ─── Audit Helper ─────────────────────────────────────────
 
 async function logAccessAttempt(
-  ctx: { db: { insert: (table: string, doc: any) => Promise<any> } },
+  ctx: any,
   userId: Id<"users"> | undefined,
   module: string,
   action: string,
