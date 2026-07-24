@@ -216,6 +216,13 @@ export const routes: RouteEntry[] = [
     isPlaceholder: placeholder,
   },
   {
+    label: "Documents",
+    href: "/documents",
+    icon: FileText,
+    group: "Business Modules",
+    visible,
+  },
+  {
     label: "Recruiting",
     href: "/recruiting",
     icon: ContactRound,

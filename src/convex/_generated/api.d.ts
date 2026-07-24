@@ -83,6 +83,7 @@ import type * as demo_auth from "../demo/auth.js";
 import type * as demo_data from "../demo/data.js";
 import type * as demo_queries from "../demo/queries.js";
 import type * as demo_seed from "../demo/seed.js";
+import type * as documentEngine from "../documentEngine.js";
 import type * as emailEngine from "../emailEngine.js";
 import type * as employeeEngine from "../employeeEngine.js";
 import type * as employeeLifecycle from "../employeeLifecycle.js";
@@ -278,6 +279,7 @@ declare const fullApi: ApiFromModules<{
   "demo/data": typeof demo_data;
   "demo/queries": typeof demo_queries;
   "demo/seed": typeof demo_seed;
+  documentEngine: typeof documentEngine;
   emailEngine: typeof emailEngine;
   employeeEngine: typeof employeeEngine;
   employeeLifecycle: typeof employeeLifecycle;
