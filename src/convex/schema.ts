@@ -4995,5 +4995,174 @@ const schema = defineSchema({
     .index("studentId", ["studentId"])
     .index("certificateNumber", ["certificateNumber"]),
 
+  // ============================
+  // REPORTING & ANALYTICS PLATFORM
+  // ============================
+
+  // ─── Report Definitions ──────────────────────────────
+  reportDefinitions: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    module: v.union(
+      v.literal("crm"), v.literal("admissions"), v.literal("students"),
+      v.literal("employees"), v.literal("academics"), v.literal("finance"),
+      v.literal("examinations"), v.literal("lms"), v.literal("inventory"),
+      v.literal("hr"), v.literal("support"), v.literal("procurement"),
+      v.literal("custom"),
+    ),
+    reportType: v.union(
+      v.literal("tabular"), v.literal("summary"), v.literal("chart"),
+      v.literal("kpi"), v.literal("leaderboard"), v.literal("heatmap"),
+      v.literal("timeline"), v.literal("progress"),
+    ),
+    dataSource: v.string(),
+    config: v.string(),
+    defaultFilters: v.optional(v.string()),
+    allowedRoles: v.optional(v.array(v.string())),
+    isSystem: v.boolean(),
+    isActive: v.boolean(),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("module", ["module"])
+    .index("reportType", ["reportType"])
+    .index("isActive", ["isActive"])
+    .index("createdBy", ["createdBy"]),
+
+  // ─── Saved Reports (user favorites) ───────────────────
+  savedReports: defineTable({
+    definitionId: v.id("reportDefinitions"),
+    userId: v.id("users"),
+    name: v.string(),
+    filters: v.string(),
+    chartConfig: v.optional(v.string()),
+    isFavorite: v.boolean(),
+    lastRunAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("userId", ["userId"])
+    .index("definitionId", ["definitionId"])
+    .index("isFavorite", ["isFavorite"]),
+
+  // ─── Report Schedules ────────────────────────────────
+  reportSchedules: defineTable({
+    reportId: v.id("reportDefinitions"),
+    userId: v.id("users"),
+    name: v.string(),
+    frequency: v.union(v.literal("daily"), v.literal("weekly"), v.literal("monthly")),
+    dayOfWeek: v.optional(v.number()),
+    dayOfMonth: v.optional(v.number()),
+    time: v.string(),
+    filters: v.optional(v.string()),
+    recipients: v.array(v.string()),
+    exportFormat: v.union(v.literal("pdf"), v.literal("csv"), v.literal("excel")),
+    isActive: v.boolean(),
+    lastSentAt: v.optional(v.number()),
+    nextRunAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("userId", ["userId"])
+    .index("isActive", ["isActive"])
+    .index("nextRunAt", ["nextRunAt"]),
+
+  // ─── Report Execution Log ────────────────────────────
+  reportExecutions: defineTable({
+    reportId: v.id("reportDefinitions"),
+    userId: v.id("users"),
+    savedReportId: v.optional(v.id("savedReports")),
+    scheduleId: v.optional(v.id("reportSchedules")),
+    filters: v.optional(v.string()),
+    resultData: v.optional(v.string()),
+    recordCount: v.number(),
+    executionTime: v.number(),
+    status: v.union(v.literal("success"), v.literal("failed"), v.literal("cancelled")),
+    errorMessage: v.optional(v.string()),
+    executedAt: v.number(),
+  })
+    .index("reportId", ["reportId"])
+    .index("userId", ["userId"])
+    .index("executedAt", ["executedAt"])
+    .index("status", ["status"]),
+
+  // ─── KPI Definitions ─────────────────────────────────
+  kpiDefinitions: defineTable({
+    name: v.string(),
+    code: v.string(),
+    description: v.optional(v.string()),
+    module: v.union(
+      v.literal("crm"), v.literal("admissions"), v.literal("students"),
+      v.literal("employees"), v.literal("academics"), v.literal("finance"),
+      v.literal("examinations"), v.literal("lms"), v.literal("inventory"),
+      v.literal("hr"), v.literal("support"), v.literal("procurement"),
+    ),
+    dataSource: v.string(),
+    aggregation: v.union(
+      v.literal("count"), v.literal("sum"), v.literal("avg"),
+      v.literal("min"), v.literal("max"), v.literal("rate"),
+      v.literal("percentage"), v.literal("ratio"),
+    ),
+    targetValue: v.optional(v.number()),
+    unit: v.optional(v.string()),
+    icon: v.optional(v.string()),
+    color: v.optional(v.string()),
+    isActive: v.boolean(),
+    displayOrder: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("code", ["code"])
+    .index("module", ["module"])
+    .index("isActive", ["isActive"]),
+
+  // ─── KPI Snapshots (time-series data) ─────────────────
+  kpiSnapshots: defineTable({
+    kpiId: v.id("kpiDefinitions"),
+    value: v.number(),
+    period: v.string(),
+    periodStart: v.number(),
+    periodEnd: v.number(),
+    metadata: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("kpiId", ["kpiId"])
+    .index("kpiId_period", ["kpiId", "period"])
+    .index("periodStart", ["periodStart"]),
+
+  // ─── User Dashboard Layouts ──────────────────────────
+  userDashboardLayouts: defineTable({
+    userId: v.id("users"),
+    name: v.string(),
+    layout: v.string(),
+    widgets: v.string(),
+    globalFilters: v.optional(v.string()),
+    isDefault: v.boolean(),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("userId", ["userId"])
+    .index("isDefault", ["isDefault"]),
+
+  // ─── Report Exports ──────────────────────────────────
+  reportExports: defineTable({
+    reportId: v.optional(v.id("reportDefinitions")),
+    savedReportId: v.optional(v.id("savedReports")),
+    userId: v.id("users"),
+    format: v.union(v.literal("pdf"), v.literal("csv"), v.literal("excel"), v.literal("json")),
+    filters: v.optional(v.string()),
+    status: v.union(v.literal("pending"), v.literal("processing"), v.literal("completed"), v.literal("failed")),
+    fileUrl: v.optional(v.string()),
+    fileSize: v.optional(v.number()),
+    recordCount: v.optional(v.number()),
+    errorMessage: v.optional(v.string()),
+    createdAt: v.number(),
+    completedAt: v.optional(v.number()),
+  })
+    .index("userId", ["userId"])
+    .index("status", ["status"]),
+
 });
 export default schema;

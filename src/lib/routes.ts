@@ -223,6 +223,13 @@ export const routes: RouteEntry[] = [
     visible,
   },
   {
+    label: "Analytics",
+    href: "/analytics",
+    icon: BarChart3,
+    group: "System",
+    visible,
+  },
+  {
     label: "Settings",
     href: "/settings",
     icon: Settings,
