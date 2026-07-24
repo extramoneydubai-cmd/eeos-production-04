@@ -3339,7 +3339,7 @@ const schema = defineSchema({
     updatedAt: v.number(),
   })
     .index("userId", ["userId"])
-    .index("role", ["role"])
+    .index("role", ["role"]),
     
 
   kpiDefinitions: defineTable({
@@ -3627,7 +3627,143 @@ const schema = defineSchema({
     .index("module", ["module"])
     .index("timestamp", ["timestamp"])
     .index("userId_timestamp", ["userId", "timestamp"]),}, {
+
+
+  // ============================
+  // EMPLOYEE INFORMATION SYSTEM (EIS)
+  // ============================
+
+  employeeMaster: defineTable({
+    employeeCode: v.string(),
+    personId: v.id("personMaster"),
+    organizationId: v.optional(v.id("organizations")),
+    companyId: v.optional(v.id("companies")),
+    branchId: v.optional(v.id("branches")),
+    departmentId: v.optional(v.id("departments")),
+    designationId: v.optional(v.id("designations")),
+    reportingManagerId: v.optional(v.id("employeeMaster")),
+    employmentType: v.union(
+      v.literal("permanent"), v.literal("contract"),
+      v.literal("part_time"), v.literal("intern"),
+      v.literal("freelancer"), v.literal("consultant"),
+    ),
+    joiningDate: v.optional(v.number()),
+    confirmationDate: v.optional(v.number()),
+    resignationDate: v.optional(v.number()),
+    relievingDate: v.optional(v.number()),
+    probationEndDate: v.optional(v.number()),
+    primaryRole: v.union(
+      v.literal("super_admin"), v.literal("ceo"), v.literal("coo"),
+      v.literal("cto"), v.literal("department_head"),
+      v.literal("manager"), v.literal("employee"),
+    ),
+    employeeCategoryId: v.optional(v.id("hrEmployeeCategories")),
+    workLocation: v.optional(v.string()),
+    experienceLevel: v.optional(v.string()),
+    status: v.union(
+      v.literal("active"), v.literal("onboarding"),
+      v.literal("probation"), v.literal("suspended"),
+      v.literal("resigned"), v.literal("terminated"),
+      v.literal("retired"), v.literal("archived"),
+    ),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("employeeCode", ["employeeCode"])
+    .index("personId", ["personId"])
+    .index("status", ["status"])
+    .index("departmentId", ["departmentId"])
+    .index("branchId", ["branchId"])
+    .index("companyId", ["companyId"])
+    .index("reportingManagerId", ["reportingManagerId"])
+    .index("employmentType", ["employmentType"])
+    .index("departmentId_status", ["departmentId", "status"]),
+
+  employeeEmployment: defineTable({
+    employeeId: v.id("employeeMaster"),
+    shiftPolicyId: v.optional(v.id("shiftPolicies")),
+    leavePolicyId: v.optional(v.id("leavePolicies")),
+    holidayCalendarId: v.optional(v.id("holidayCalendars")),
+    attendancePolicyId: v.optional(v.id("attendancePolicies")),
+    payrollProfileId: v.optional(v.id("payrollProfiles")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("employeeId", ["employeeId"]),
+
+  employeeHistory: defineTable({
+    employeeId: v.id("employeeMaster"),
+    eventType: v.string(),
+    eventName: v.optional(v.string()),
+    oldValue: v.optional(v.string()),
+    newValue: v.optional(v.string()),
+    changedBy: v.id("employeeMaster"),
+    remarks: v.optional(v.string()),
+    metadata: v.optional(v.string()),
+    changedAt: v.number(),
+    createdAt: v.number(),
+  })
+    .index("employeeId", ["employeeId"])
+    .index("employeeId_changedAt", ["employeeId", "changedAt"])
+    .index("eventType", ["eventType"]),
+
+  employeeDocuments: defineTable({
+    employeeId: v.id("employeeMaster"),
+    documentType: v.string(),
+    documentName: v.optional(v.string()),
+    fileReference: v.optional(v.string()),
+    fileUrl: v.optional(v.string()),
+    verificationStatus: v.union(
+      v.literal("pending"), v.literal("verified"),
+      v.literal("rejected"), v.literal("expired"),
+    ),
+    expiryDate: v.optional(v.number()),
+    uploadedAt: v.number(),
+  })
+    .index("employeeId", ["employeeId"])
+    .index("verificationStatus", ["verificationStatus"]),
+
+  employeeSkills: defineTable({
+    employeeId: v.id("employeeMaster"),
+    skill: v.string(),
+    proficiency: v.union(
+      v.literal("beginner"), v.literal("intermediate"),
+      v.literal("advanced"), v.literal("expert"),
+    ),
+    certification: v.optional(v.string()),
+    experienceYears: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("employeeId", ["employeeId"])
+    .index("skill", ["skill"]),
+
+  employeeQualifications: defineTable({
+    employeeId: v.id("employeeMaster"),
+    qualification: v.string(),
+    institute: v.optional(v.string()),
+    year: v.optional(v.number()),
+    grade: v.optional(v.string()),
+    fieldOfStudy: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("employeeId", ["employeeId"]),
+
+  employeeAssets: defineTable({
+    employeeId: v.id("employeeMaster"),
+    assetName: v.string(),
+    assetType: v.optional(v.string()),
+    assetTag: v.optional(v.string()),
+    assignedDate: v.number(),
+    returnDate: v.optional(v.number()),
+    status: v.union(
+      v.literal("assigned"), v.literal("returned"),
+      v.literal("lost"), v.literal("damaged"),
+    ),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("employeeId", ["employeeId"])
+    .index("status", ["status"]),
+}, {
   schemaValidation: false,
 });
-
-export default schema;

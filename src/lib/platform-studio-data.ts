@@ -1261,6 +1261,25 @@ export const platformApis: ApiInfo[] = [
   { name: "feeEngine:getFeeStructure", id: "API-131", type: "query", module: "Finance", parameters: "{ studentId? }", returnType: "FeeStructure", usedBy: ["/students"], permission: "admin" },
   { name: "feeEngine:generateInvoice", id: "API-132", type: "mutation", module: "Finance", parameters: "{ studentId, amount, dueDate }", returnType: "Id", usedBy: ["/students"], permission: "admin" },
   { name: "paymentEngine:recordPayment", id: "API-133", type: "mutation", module: "Finance", parameters: "{ invoiceId, amount, mode, reference? }", returnType: "Id", usedBy: ["/students", "/crm/leads/:leadId"], permission: "admin" },
+  // Employee Information System
+  { name: "employeeEngine:createEmployee", id: "API-134", type: "mutation", module: "HR", parameters: "{ firstName, lastName, mobile, employmentType, primaryRole, ... }", returnType: "{ employeeId, personId, employeeCode }", usedBy: ["/employees"], permission: "admin" },
+  { name: "employeeEngine:getEmployee", id: "API-135", type: "query", module: "HR", parameters: "{ employeeId }", returnType: "EmployeeFull", usedBy: ["/employees/:empId"], permission: "all" },
+  { name: "employeeEngine:listEmployees", id: "API-136", type: "query", module: "HR", parameters: "{ status?, departmentId?, branchId?, companyId? }", returnType: "EmployeeSummary[]", usedBy: ["/employees"], permission: "admin" },
+  { name: "employeeEngine:archiveEmployee", id: "API-137", type: "mutation", module: "HR", parameters: "{ employeeId, changedBy, reason? }", returnType: "void", usedBy: ["/employees/:empId"], permission: "admin" },
+  { name: "employeeSearch:searchEmployees", id: "API-138", type: "query", module: "HR", parameters: "{ query, status?, departmentId?, limit?, cursor? }", returnType: "SearchResult[]", usedBy: ["/employees", "/people"], permission: "all" },
+  { name: "employeeSearch:quickEmployeeSearch", id: "API-139", type: "query", module: "HR", parameters: "{ q, limit? }", returnType: "QuickResult[]", usedBy: ["/employees"], permission: "all" },
+  { name: "employeeLifecycle:onboardEmployee", id: "API-140", type: "mutation", module: "HR", parameters: "{ employeeId, joiningDate?, probationEndDate? }", returnType: "void", usedBy: ["/employees/:empId"], permission: "admin" },
+  { name: "employeeLifecycle:confirmEmployee", id: "API-141", type: "mutation", module: "HR", parameters: "{ employeeId, confirmationDate? }", returnType: "void", usedBy: ["/employees/:empId"], permission: "admin" },
+  { name: "employeeLifecycle:transferEmployee", id: "API-142", type: "mutation", module: "HR", parameters: "{ employeeId, newDepartmentId?, newBranchId?, effectiveDate? }", returnType: "void", usedBy: ["/employees/:empId"], permission: "admin" },
+  { name: "employeeLifecycle:promoteEmployee", id: "API-143", type: "mutation", module: "HR", parameters: "{ employeeId, newDesignationId, newPrimaryRole? }", returnType: "void", usedBy: ["/employees/:empId"], permission: "admin" },
+  { name: "employeeLifecycle:suspendEmployee", id: "API-144", type: "mutation", module: "HR", parameters: "{ employeeId, remarks }", returnType: "void", usedBy: ["/employees/:empId"], permission: "admin" },
+  { name: "employeeLifecycle:reinstateEmployee", id: "API-145", type: "mutation", module: "HR", parameters: "{ employeeId, remarks? }", returnType: "void", usedBy: ["/employees/:empId"], permission: "admin" },
+  { name: "employeeLifecycle:resignEmployee", id: "API-146", type: "mutation", module: "HR", parameters: "{ employeeId, resignationDate }", returnType: "void", usedBy: ["/employees/:empId"], permission: "admin" },
+  { name: "employeeLifecycle:terminateEmployee", id: "API-147", type: "mutation", module: "HR", parameters: "{ employeeId, remarks }", returnType: "void", usedBy: ["/employees/:empId"], permission: "admin" },
+  { name: "employeeLifecycle:retireEmployee", id: "API-148", type: "mutation", module: "HR", parameters: "{ employeeId, retirementDate? }", returnType: "void", usedBy: ["/employees/:empId"], permission: "admin" },
+  { name: "employeeLifecycle:getEmployeeTimeline", id: "API-149", type: "query", module: "HR", parameters: "{ employeeId }", returnType: "TimelineEvent[]", usedBy: ["/employees/:empId"], permission: "all" },
+  { name: "employeeEngine:getEmployeeStats", id: "API-150", type: "query", module: "HR", parameters: "{}", returnType: "EmployeeStats", usedBy: ["/employees", "/ceo"], permission: "admin" },
+], type: "mutation", module: "Finance", parameters: "{ invoiceId, amount, mode, reference? }", returnType: "Id", usedBy: ["/students", "/crm/leads/:leadId"], permission: "admin" },
 ]
 
 // ─── Engines ─────────────────────────────────────────────────────
@@ -1508,6 +1527,15 @@ export const platformEngines: EngineInfo[] = [
     tables: ["visibilityPolicies", "categoryPermissions", "fieldPermissions", "sectionPermissions", "actionPermissions", "recordPolicies", "accessAuditLogs"],
     events: ["access.denied", "permission.changed", "policy.created"],
     consumers: ["All modules", "API layer", "Search", "QR"],
+  },
+  {
+    id: "ENG-028",
+    name: "Employee Information System",
+    purpose: "Canonical employee domain with complete lifecycle from onboarding to exit, People Registry integration, and organization-based access",
+    apis: ["employeeEngine:createEmployee", "employeeEngine:getEmployee", "employeeEngine:listEmployees", "employeeSearch:searchEmployees", "employeeSearch:quickEmployeeSearch", "employeeLifecycle:onboardEmployee", "employeeLifecycle:confirmEmployee", "employeeLifecycle:transferEmployee", "employeeLifecycle:promoteEmployee", "employeeLifecycle:suspendEmployee", "employeeLifecycle:reinstateEmployee", "employeeLifecycle:resignEmployee", "employeeLifecycle:relieveEmployee", "employeeLifecycle:terminateEmployee"],
+    tables: ["employeeMaster", "employeeEmployment", "employeeHistory", "employeeDocuments", "employeeSkills", "employeeQualifications", "employeeAssets"],
+    events: ["employee.created", "employee.confirmed", "employee.transferred", "employee.promoted", "employee.suspended", "employee.resigned", "employee.terminated", "employee.retired"],
+    consumers: ["People Registry", "HR Module", "Payroll Engine", "Workflow Engine", "Communication Hub", "Access Engine"],
   },
 ];
 
