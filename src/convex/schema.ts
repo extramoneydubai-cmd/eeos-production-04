@@ -244,7 +244,7 @@ const schema = defineSchema({
     email: v.optional(v.string()),
     phone: v.optional(v.string()),
     address: v.optional(v.string()),
-    isActive: v.boolean(),
+    isActive: v.optional(v.boolean()),
     description: v.optional(v.string()),
     color: v.optional(v.string()),
     icon: v.optional(v.string()),
