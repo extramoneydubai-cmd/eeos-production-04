@@ -144,7 +144,6 @@ export const routes: RouteEntry[] = [
     icon: PiggyBank,
     group: "Business Modules",
     visible,
-    isPlaceholder: placeholder,
   },
   {
     label: "HR",

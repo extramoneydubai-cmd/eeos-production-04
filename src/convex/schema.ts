@@ -4107,7 +4107,357 @@ const schema = defineSchema({
     createdAt: v.number(),
   })
     .index("examSessionId", ["examSessionId"])
-    .index("action", ["action"]),
+        .index("action", ["action"]),
+
+  // ============================
+  // FINANCE & ACCOUNTING ENGINE
+  // ============================
+
+  feeStructures: defineTable({
+    name: v.string(),
+    code: v.optional(v.string()),
+    description: v.optional(v.string()),
+    feeCategoryId: v.optional(v.id("financeFeeCategories")),
+    amount: v.number(),
+    isRecurring: v.boolean(),
+    frequency: v.union(v.literal("one_time"), v.literal("monthly"), v.literal("quarterly"), v.literal("half_yearly"), v.literal("yearly")),
+    isOptional: v.boolean(),
+    isRefundable: v.boolean(),
+    applicableToVerticals: v.optional(v.array(v.string())),
+    applicableToCourses: v.optional(v.array(v.id("courses"))),
+    isActive: v.boolean(),
+    createdBy: v.id("users"),
+  }).index("feeCategoryId", ["feeCategoryId"]),
+
+  studentFeeAccounts: defineTable({
+    studentId: v.id("studentMaster"),
+    totalFee: v.number(),
+    totalPaid: v.number(),
+    outstandingBalance: v.number(),
+    totalDiscount: v.number(),
+    totalScholarship: v.number(),
+    totalWaiver: v.number(),
+    installmentsCount: v.number(),
+    installmentFrequency: v.string(),
+    nextDueDate: v.optional(v.number()),
+    lastPaymentDate: v.optional(v.number()),
+    status: v.union(v.literal("active"), v.literal("closed"), v.literal("defaulted")),
+    createdBy: v.id("users"),
+  })
+    .index("studentId", ["studentId"])
+    .index("status", ["status"]),
+
+  feeInstallments: defineTable({
+    studentId: v.id("studentMaster"),
+    feeAccountId: v.id("studentFeeAccounts"),
+    invoiceId: v.optional(v.id("feeInvoices")),
+    installmentNumber: v.number(),
+    totalInstallments: v.number(),
+    amount: v.number(),
+    paidAmount: v.number(),
+    lateFee: v.number(),
+    dueDate: v.number(),
+    paidDate: v.optional(v.number()),
+    status: v.union(v.literal("pending"), v.literal("paid"), v.literal("partial"), v.literal("overdue"), v.literal("cancelled")),
+  })
+    .index("studentId", ["studentId"])
+    .index("feeAccountId", ["feeAccountId"])
+    .index("status", ["status"])
+    .index("dueDate", ["dueDate"]),
+
+  feeDiscounts: defineTable({
+    name: v.string(),
+    code: v.string(),
+    discountType: v.union(v.literal("percentage"), v.literal("fixed")),
+    value: v.number(),
+    maxAmount: v.optional(v.number()),
+    applicableToVerticals: v.optional(v.array(v.string())),
+    applicableToCourses: v.optional(v.array(v.id("courses"))),
+    validFrom: v.optional(v.number()),
+    validUntil: v.optional(v.number()),
+    maxApplications: v.optional(v.number()),
+    currentApplications: v.number(),
+    description: v.optional(v.string()),
+    isActive: v.boolean(),
+    createdBy: v.id("users"),
+  })
+    .index("code", ["code"])
+    .index("isActive", ["isActive"]),
+
+  feeScholarships: defineTable({
+    name: v.string(),
+    code: v.string(),
+    scholarshipType: v.union(v.literal("percentage"), v.literal("fixed")),
+    value: v.number(),
+    maxAmount: v.optional(v.number()),
+    criteria: v.string(),
+    applicableToVerticals: v.optional(v.array(v.string())),
+    minGrade: v.optional(v.string()),
+    minIncome: v.optional(v.number()),
+    validFrom: v.optional(v.number()),
+    validUntil: v.optional(v.number()),
+    maxApplications: v.optional(v.number()),
+    currentApplications: v.number(),
+    description: v.optional(v.string()),
+    isActive: v.boolean(),
+    createdBy: v.id("users"),
+  })
+    .index("code", ["code"])
+    .index("isActive", ["isActive"]),
+
+  feeWaivers: defineTable({
+    studentId: v.id("studentMaster"),
+    feeAccountId: v.id("studentFeeAccounts"),
+    waiverType: v.union(v.literal("full"), v.literal("partial")),
+    amount: v.number(),
+    reason: v.string(),
+    notes: v.optional(v.string()),
+    status: v.union(v.literal("pending"), v.literal("approved"), v.literal("rejected")),
+    approvedBy: v.optional(v.id("users")),
+    approvedAt: v.optional(v.number()),
+    createdBy: v.id("users"),
+  })
+    .index("studentId", ["studentId"])
+    .index("status", ["status"]),
+
+  lateFeeRules: defineTable({
+    name: v.string(),
+    feeStructureId: v.optional(v.id("feeStructures")),
+    gracePeriod: v.number(),
+    gracePeriodUnit: v.union(v.literal("days"), v.literal("weeks")),
+    lateFeeType: v.union(v.literal("percentage"), v.literal("fixed"), v.literal("per_day")),
+    value: v.number(),
+    maxLateFee: v.optional(v.number()),
+    waiveFirstLateFee: v.boolean(),
+    notes: v.optional(v.string()),
+    isActive: v.boolean(),
+  })
+    .index("feeStructureId", ["feeStructureId"])
+    .index("isActive", ["isActive"]),
+
+  feeInvoices: defineTable({
+    invoiceNumber: v.string(),
+    studentId: v.id("studentMaster"),
+    feeAccountId: v.id("studentFeeAccounts"),
+    invoiceDate: v.number(),
+    dueDate: v.number(),
+    lineItems: v.string(),
+    subtotal: v.number(),
+    discountAmount: v.number(),
+    taxAmount: v.number(),
+    totalAmount: v.number(),
+    paidAmount: v.number(),
+    balanceDue: v.number(),
+    status: v.union(v.literal("draft"), v.literal("pending"), v.literal("paid"), v.literal("partial"), v.literal("overdue"), v.literal("cancelled"), v.literal("refunded")),
+    billingPeriod: v.optional(v.string()),
+    gstPercentage: v.optional(v.number()),
+    gstAmount: v.optional(v.number()),
+    createdBy: v.id("users"),
+  })
+    .index("invoiceNumber", ["invoiceNumber"])
+    .index("studentId", ["studentId"])
+    .index("status", ["status"])
+    .index("dueDate", ["dueDate"]),
+
+  paymentMethods: defineTable({
+    name: v.string(),
+    code: v.string(),
+    type: v.union(v.literal("cash"), v.literal("bank_transfer"), v.literal("credit_card"), v.literal("debit_card"), v.literal("upi"), v.literal("online_gateway"), v.literal("wallet"), v.literal("cheque"), v.literal("pdc")),
+    requiresReference: v.boolean(),
+    processingFee: v.optional(v.number()),
+    description: v.optional(v.string()),
+    isActive: v.boolean(),
+  }).index("code", ["code"]),
+
+  paymentTransactions: defineTable({
+    transactionNumber: v.string(),
+    studentId: v.id("studentMaster"),
+    feeAccountId: v.id("studentFeeAccounts"),
+    invoiceId: v.optional(v.id("feeInvoices")),
+    installmentId: v.optional(v.id("feeInstallments")),
+    paymentMethod: v.string(),
+    paymentDate: v.number(),
+    amount: v.number(),
+    referenceNumber: v.optional(v.string()),
+    gatewayTransactionId: v.optional(v.string()),
+    bankName: v.optional(v.string()),
+    chequeNumber: v.optional(v.string()),
+    chequeDate: v.optional(v.number()),
+    status: v.union(v.literal("pending"), v.literal("verified"), v.literal("completed"), v.literal("failed"), v.literal("reversed"), v.literal("refunded")),
+    verifiedBy: v.optional(v.id("users")),
+    verifiedAt: v.optional(v.number()),
+    reconciledAt: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    createdBy: v.id("users"),
+  })
+    .index("transactionNumber", ["transactionNumber"])
+    .index("studentId", ["studentId"])
+    .index("invoiceId", ["invoiceId"])
+    .index("status", ["status"])
+    .index("paymentDate", ["paymentDate"]),
+
+  taxRules: defineTable({
+    name: v.string(),
+    code: v.string(),
+    taxType: v.union(v.literal("gst"), v.literal("vat"), v.literal("service_tax"), v.literal("custom")),
+    rate: v.number(),
+    applicableToVerticals: v.optional(v.array(v.string())),
+    description: v.optional(v.string()),
+    isActive: v.boolean(),
+  })
+    .index("code", ["code"])
+    .index("isActive", ["isActive"]),
+
+  receiptHistory: defineTable({
+    receiptNumber: v.string(),
+    invoiceId: v.optional(v.id("feeInvoices")),
+    studentId: v.id("studentMaster"),
+    transactionId: v.optional(v.id("paymentTransactions")),
+    amount: v.number(),
+    receiptDate: v.number(),
+    receiptType: v.union(v.literal("payment"), v.literal("refund"), v.literal("adjustment")),
+    receiptData: v.optional(v.string()),
+    pdfUrl: v.optional(v.string()),
+    emailedAt: v.optional(v.number()),
+    whatsappSentAt: v.optional(v.number()),
+    createdBy: v.id("users"),
+  })
+    .index("receiptNumber", ["receiptNumber"])
+    .index("invoiceId", ["invoiceId"])
+    .index("studentId", ["studentId"])
+    .index("receiptDate", ["receiptDate"]),
+
+  expenseRecords: defineTable({
+    branchId: v.optional(v.id("branches")),
+    departmentId: v.optional(v.id("departments")),
+    expenseCategoryId: v.optional(v.id("financeExpenseCategories")),
+    amount: v.number(),
+    description: v.string(),
+    expenseDate: v.number(),
+    isRecurring: v.boolean(),
+    recurringFrequency: v.optional(v.union(v.literal("monthly"), v.literal("quarterly"), v.literal("yearly"))),
+    vendorName: v.optional(v.string()),
+    billReference: v.optional(v.string()),
+    attachmentUrl: v.optional(v.string()),
+    status: v.union(v.literal("draft"), v.literal("pending_approval"), v.literal("approved"), v.literal("rejected"), v.literal("paid")),
+    approvedBy: v.optional(v.id("users")),
+    approvedAt: v.optional(v.number()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("branchId", ["branchId"])
+    .index("departmentId", ["departmentId"])
+    .index("expenseCategoryId", ["expenseCategoryId"])
+    .index("status", ["status"])
+    .index("expenseDate", ["expenseDate"]),
+
+  vendorBills: defineTable({
+    vendorName: v.string(),
+    vendorContact: v.optional(v.string()),
+    billNumber: v.string(),
+    billDate: v.number(),
+    dueDate: v.number(),
+    amount: v.number(),
+    paidAmount: v.number(),
+    balanceDue: v.number(),
+    description: v.optional(v.string()),
+    categoryId: v.optional(v.id("financeExpenseCategories")),
+    attachmentUrls: v.optional(v.array(v.string())),
+    status: v.union(v.literal("pending"), v.literal("partial"), v.literal("paid"), v.literal("cancelled"), v.literal("overdue")),
+    approvedBy: v.optional(v.id("users")),
+    paidAt: v.optional(v.number()),
+    paymentReference: v.optional(v.string()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("billNumber", ["billNumber"])
+    .index("vendorName", ["vendorName"])
+    .index("status", ["status"])
+    .index("dueDate", ["dueDate"]),
+
+  journalEntries: defineTable({
+    entryNumber: v.string(),
+    entryDate: v.number(),
+    description: v.string(),
+    debitAccount: v.string(),
+    creditAccount: v.string(),
+    amount: v.number(),
+    referenceType: v.optional(v.union(v.literal("invoice"), v.literal("payment"), v.literal("expense"), v.literal("receipt"), v.literal("adjustment"), v.literal("refund"))),
+    referenceId: v.optional(v.string()),
+    status: v.union(v.literal("draft"), v.literal("posted"), v.literal("reversed")),
+    approvedBy: v.optional(v.id("users")),
+    postedAt: v.optional(v.number()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("entryNumber", ["entryNumber"])
+    .index("entryDate", ["entryDate"])
+    .index("status", ["status"]),
+
+  cashBookEntries: defineTable({
+    entryNumber: v.string(),
+    entryDate: v.number(),
+    entryType: v.union(v.literal("debit"), v.literal("credit")),
+    amount: v.number(),
+    description: v.string(),
+    category: v.union(v.literal("fee_collection"), v.literal("expense"), v.literal("refund"), v.literal("transfer"), v.literal("miscellaneous")),
+    paymentMode: v.string(),
+    branchId: v.optional(v.id("branches")),
+    referenceType: v.optional(v.string()),
+    referenceId: v.optional(v.string()),
+    balanceAfter: v.number(),
+    notes: v.optional(v.string()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+  })
+    .index("entryNumber", ["entryNumber"])
+    .index("entryDate", ["entryDate"])
+    .index("entryType", ["entryType"])
+    .index("category", ["category"])
+    .index("branchId", ["branchId"]),
+
+  refundRequests: defineTable({
+    studentId: v.optional(v.id("studentMaster")),
+    transactionId: v.optional(v.id("paymentTransactions")),
+    invoiceId: v.optional(v.id("feeInvoices")),
+    amount: v.number(),
+    reason: v.string(),
+    reasonCategory: v.union(v.literal("academic"), v.literal("administrative"), v.literal("financial"), v.literal("withdrawal"), v.literal("other")),
+    status: v.union(v.literal("draft"), v.literal("pending"), v.literal("approved"), v.literal("rejected"), v.literal("processing"), v.literal("completed")),
+    approvedBy: v.optional(v.id("users")),
+    approvedAt: v.optional(v.number()),
+    processedAt: v.optional(v.number()),
+    refundMethod: v.optional(v.string()),
+    refundReference: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("studentId", ["studentId"])
+    .index("transactionId", ["transactionId"])
+    .index("status", ["status"]),
+
+  creditNotes: defineTable({
+    creditNoteNumber: v.string(),
+    invoiceId: v.optional(v.id("feeInvoices")),
+    studentId: v.id("studentMaster"),
+    amount: v.number(),
+    reason: v.string(),
+    status: v.union(v.literal("draft"), v.literal("issued"), v.literal("applied"), v.literal("cancelled")),
+    appliedToInvoice: v.optional(v.boolean()),
+    createdBy: v.id("users"),
+    approvedBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("creditNoteNumber", ["creditNoteNumber"])
+    .index("invoiceId", ["invoiceId"])
+    .index("studentId", ["studentId"])
+    .index("status", ["status"]),
 
 });
 export default schema;
