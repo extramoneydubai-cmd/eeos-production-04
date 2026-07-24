@@ -340,7 +340,7 @@ export default function IntakeDashboard() {
                             style={{ width: `${pct}%` }}
                           />
                         </div>
-                        <span className="text-[10px] font-medium text-[#5f6368] w-8 text-right">{count}</span>
+                        <span className="text-[10px] font-medium text-[#5f6368] w-8 text-right">{count as number}</span>
                       </div>
                     );
                   })}
@@ -370,7 +370,7 @@ export default function IntakeDashboard() {
                             style={{ width: `${pct}%` }}
                           />
                         </div>
-                        <span className="text-[10px] font-medium text-[#5f6368] w-8 text-right">{count}</span>
+                        <span className="text-[10px] font-medium text-[#5f6368] w-8 text-right">{count as number}</span>
                       </div>
                     );
                   })}
@@ -395,7 +395,7 @@ export default function IntakeDashboard() {
                   {Object.entries(moduleDist).map(([mod, count]) => (
                     <div key={mod} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#f1f3f4]">
                       <span className="text-[11px] font-medium text-[#1a1a2e] capitalize">{mod}</span>
-                      <Badge className="text-[9px] bg-[#e8f0fe] text-[#1a73e8]">{count}</Badge>
+                      <Badge className="text-[9px] bg-[#e8f0fe] text-[#1a73e8]">{count as number}</Badge>
                     </div>
                   ))}
                 </div>
