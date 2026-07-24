@@ -48,7 +48,7 @@ export const listWidgets = query({
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    let query = ctx.db.query("dashboardWidgets");
+    let query: any = ctx.db.query("dashboardWidgets");
     if (args.category) {
       query = query.withIndex("category", (q: any) => q.eq("category", args.category));
     }
@@ -138,7 +138,7 @@ export const getMyLayout = query({
 export const listLayouts = query({
   args: { userId: v.optional(v.id("users")), role: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    let query = ctx.db.query("dashboardLayouts");
+    let query: any = ctx.db.query("dashboardLayouts");
     if (args.userId) {
       query = query.withIndex("userId", (q: any) => q.eq("userId", args.userId));
     }

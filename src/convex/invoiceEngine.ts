@@ -314,7 +314,7 @@ export const getInvoiceDashboard = query({
     )),
   },
   handler: async (ctx, args) => {
-    let query = ctx.db.query("feeInvoices");
+    let query: any = ctx.db.query("feeInvoices");
     if (args.status) {
       query = query.withIndex("status", (q: any) => q.eq("status", args.status));
     }

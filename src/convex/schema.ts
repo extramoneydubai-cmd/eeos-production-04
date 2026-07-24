@@ -3764,6 +3764,4 @@ const schema = defineSchema({
   })
     .index("employeeId", ["employeeId"])
     .index("status", ["status"]),
-}, {
-  schemaValidation: false,
 });

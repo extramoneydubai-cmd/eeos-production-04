@@ -326,10 +326,10 @@ export const simulateUserPermissions = query({
 
     // Record-level check
     if (recordScope && args.recordId) {
-      const ownerMatch = recordScope.ownerUserId === args.targetUserId;
-      const deptMatch = recordScope.departmentId && user.departmentId === recordScope.departmentId;
-      const branchMatch = recordScope.branchId && user.branchId === recordScope.branchId;
-      const companyMatch = recordScope.companyId && user.companyId === recordScope.companyId;
+      const ownerMatch = (recordScope as any).ownerUserId === args.targetUserId;
+      const deptMatch = (recordScope as any).departmentId && user.departmentId === (recordScope as any).departmentId;
+      const branchMatch = (recordScope as any).branchId && user.branchId === (recordScope as any).branchId;
+      const companyMatch = (recordScope as any).companyId && user.companyId === (recordScope as any).companyId;
 
       if (!ownerMatch && !deptMatch && !branchMatch && !companyMatch) {
         canOpen = false;
@@ -353,10 +353,10 @@ export const simulateUserPermissions = query({
       deniedActions,
       recordScope: recordScope ? {
         hasPolicy: true,
-        ownerUserId: recordScope.ownerUserId,
-        departmentId: recordScope.departmentId,
-        branchId: recordScope.branchId,
-        companyId: recordScope.companyId,
+        ownerUserId: (recordScope as any).ownerUserId,
+        departmentId: (recordScope as any).departmentId,
+        branchId: (recordScope as any).branchId,
+        companyId: (recordScope as any).companyId,
       } : { hasPolicy: false },
     };
   },

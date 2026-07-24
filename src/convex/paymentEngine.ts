@@ -55,7 +55,7 @@ export const createPaymentMethod = mutation({
 export const listPaymentMethods = query({
   args: { isActive: v.optional(v.boolean()) },
   handler: async (ctx, args) => {
-    let query = ctx.db.query("paymentMethods");
+    let query: any = ctx.db.query("paymentMethods");
     if (args.isActive !== undefined) {
       query = query.filter((q: any) => q.eq(q.field("isActive"), args.isActive));
     }
@@ -88,7 +88,7 @@ export const createTaxRule = mutation({
 export const listTaxRules = query({
   args: { isActive: v.optional(v.boolean()) },
   handler: async (ctx, args) => {
-    let query = ctx.db.query("taxRules");
+    let query: any = ctx.db.query("taxRules");
     if (args.isActive !== undefined) {
       query = query.filter((q: any) => q.eq(q.field("isActive"), args.isActive));
     }
@@ -348,7 +348,7 @@ export const listPayments = query({
     )),
   },
   handler: async (ctx, args) => {
-    let query = ctx.db.query("paymentTransactions");
+    let query: any = ctx.db.query("paymentTransactions");
     if (args.studentId) {
       query = query.withIndex("studentId", (q: any) => q.eq("studentId", args.studentId));
     }

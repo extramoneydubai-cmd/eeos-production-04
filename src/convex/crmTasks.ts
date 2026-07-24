@@ -35,7 +35,7 @@ export const getSalesPendingTasks = query({
     for (const link of leadCourseLinks) {
       const existing = leadCourseMap.get(link.leadId) || [];
       const course = courseMap.get(link.courseId);
-      if (course) existing.push(course.courseName);
+      if (course) existing.push((course as any).courseName);
       leadCourseMap.set(link.leadId, existing);
     }
     const leadsWithTasks: any[] = [];

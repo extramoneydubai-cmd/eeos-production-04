@@ -176,7 +176,7 @@ export const listInvoices = query({
     )),
   },
   handler: async (ctx, args) => {
-    let query = ctx.db.query("feeInvoices");
+    let query: any = ctx.db.query("feeInvoices");
     if (args.studentId) {
       query = query.withIndex("studentId", (q: any) => q.eq("studentId", args.studentId));
     }
@@ -243,7 +243,7 @@ export const listReceipts = query({
     invoiceId: v.optional(v.id("feeInvoices")),
   },
   handler: async (ctx, args) => {
-    let query = ctx.db.query("receiptHistory");
+    let query: any = ctx.db.query("receiptHistory");
     if (args.studentId) {
       query = query.withIndex("studentId", (q: any) => q.eq("studentId", args.studentId));
     }
@@ -407,7 +407,7 @@ export const listRefunds = query({
     status: v.optional(v.union(v.literal("pending"), v.literal("processing"), v.literal("completed"), v.literal("failed"))),
   },
   handler: async (ctx, args) => {
-    let query = ctx.db.query("feeRefunds");
+    let query: any = ctx.db.query("feeRefunds");
     if (args.studentId) {
       query = query.withIndex("studentId", (q: any) => q.eq("studentId", args.studentId));
     }

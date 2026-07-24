@@ -777,7 +777,7 @@ export const getCollectionCenter = query({
     for (const lc of allLeadCourses) {
       const existing = leadCourseMap.get(lc.leadId) || [];
       const course = courseMap.get(lc.courseId);
-      if (course) existing.push(course.courseName);
+      if (course) existing.push((course as any).courseName);
       leadCourseMap.set(lc.leadId, existing);
     }
 

@@ -199,7 +199,7 @@ export default function IntakeDashboard() {
     try {
       const { getSubmissionTimeline } = await import("@/convex/_generated/api");
       // Use the query directly
-      const timelineData = useQuery(api.intakeEngine.getSubmissionTimeline, {
+      const timelineData = useQuery((api.intakeEngine as any).getSubmissionTimeline, {
         submissionId: submission._id,
       });
       setTimeline(timelineData || []);

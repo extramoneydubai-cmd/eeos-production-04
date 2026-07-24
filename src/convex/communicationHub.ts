@@ -440,7 +440,7 @@ export const listMessages = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    let query = ctx.db.query("communicationQueue");
+    let query: any = ctx.db.query("communicationQueue");
     if (args.channel) {
       query = query.withIndex("channel", (q: any) => q.eq("channel", args.channel));
     }
@@ -525,7 +525,7 @@ export const getMyNotifications = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    let query = ctx.db.query("notificationCenter")
+    let query: any = ctx.db.query("notificationCenter")
       .withIndex("userId", (q: any) => q.eq("userId", args.userId));
     if (args.isRead !== undefined) {
       query = query.filter((q: any) => q.eq(q.field("isRead"), args.isRead));

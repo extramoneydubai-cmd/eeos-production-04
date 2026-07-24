@@ -83,7 +83,7 @@ export const listFeeStructures = query({
     feeCategoryId: v.optional(v.id("financeFeeCategories")),
   },
   handler: async (ctx, args) => {
-    let query = ctx.db.query("feeStructures");
+    let query: any = ctx.db.query("feeStructures");
     if (args.isActive !== undefined) {
       query = query.filter((q: any) => q.eq(q.field("isActive"), args.isActive));
     }
@@ -259,7 +259,7 @@ export const generateInstallments = mutation({
     // Update next due date
     if (installments.length > 0) {
       await ctx.db.patch(args.feeAccountId, {
-        nextDueDate: startDate,
+        nextDueDate: (feeStructure as any).startDate,
       });
     }
 
@@ -281,7 +281,7 @@ export const listInstallments = query({
     status: v.optional(v.union(v.literal("pending"), v.literal("paid"), v.literal("partial"), v.literal("overdue"), v.literal("cancelled"))),
   },
   handler: async (ctx, args) => {
-    let query = ctx.db.query("feeInstallments")
+    let query: any = ctx.db.query("feeInstallments")
       .withIndex("studentId", (q: any) => q.eq("studentId", args.studentId));
     if (args.status) {
       query = query.filter((q: any) => q.eq(q.field("status"), args.status));
@@ -375,7 +375,7 @@ export const applyDiscount = mutation({
 export const listDiscounts = query({
   args: { isActive: v.optional(v.boolean()) },
   handler: async (ctx, args) => {
-    let query = ctx.db.query("feeDiscounts");
+    let query: any = ctx.db.query("feeDiscounts");
     if (args.isActive !== undefined) {
       query = query.filter((q: any) => q.eq(q.field("isActive"), args.isActive));
     }
@@ -468,7 +468,7 @@ export const applyScholarship = mutation({
 export const listScholarships = query({
   args: { isActive: v.optional(v.boolean()) },
   handler: async (ctx, args) => {
-    let query = ctx.db.query("feeScholarships");
+    let query: any = ctx.db.query("feeScholarships");
     if (args.isActive !== undefined) {
       query = query.filter((q: any) => q.eq(q.field("isActive"), args.isActive));
     }
@@ -550,7 +550,7 @@ export const listWaivers = query({
     status: v.optional(v.union(v.literal("pending"), v.literal("approved"), v.literal("rejected"))),
   },
   handler: async (ctx, args) => {
-    let query = ctx.db.query("feeWaivers");
+    let query: any = ctx.db.query("feeWaivers");
     if (args.studentId) {
       query = query.withIndex("studentId", (q: any) => q.eq("studentId", args.studentId));
     }
@@ -648,7 +648,7 @@ export const calculateLateFees = mutation({
 export const listLateFeeRules = query({
   args: { isActive: v.optional(v.boolean()) },
   handler: async (ctx, args) => {
-    let query = ctx.db.query("lateFeeRules");
+    let query: any = ctx.db.query("lateFeeRules");
     if (args.isActive !== undefined) {
       query = query.filter((q: any) => q.eq(q.field("isActive"), args.isActive));
     }

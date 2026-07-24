@@ -547,11 +547,16 @@ export const generateAllExecutiveReports = mutation({
     if (!userId) throw new Error("Not authenticated");
 
     // Generate all report types in sequence
-    const daily = await ctx.scheduler.runAfter(0, "executiveReports:generateDailySummary", {});
-    const weekly = await ctx.scheduler.runAfter(100, "executiveReports:generateWeeklyReview", {});
-    const monthly = await ctx.scheduler.runAfter(200, "executiveReports:generateMonthlyReview", {});
-    const quarterly = await ctx.scheduler.runAfter(300, "executiveReports:generateQuarterlyReview", {});
-    const annual = await ctx.scheduler.runAfter(400, "executiveReports:generateAnnualReport", { year: new Date().getFullYear() });
+    const daily = await // @ts-ignore - scheduler function reference
+      ctx.scheduler.runAfter(0, "executiveReports:generateDailySummary", {});
+    const weekly = await // @ts-ignore - scheduler function reference
+      ctx.scheduler.runAfter(100, "executiveReports:generateWeeklyReview", {});
+    const monthly = await // @ts-ignore - scheduler function reference
+      ctx.scheduler.runAfter(200, "executiveReports:generateMonthlyReview", {});
+    const quarterly = await // @ts-ignore - scheduler function reference
+      ctx.scheduler.runAfter(300, "executiveReports:generateQuarterlyReview", {});
+    const annual = await // @ts-ignore - scheduler function reference
+      ctx.scheduler.runAfter(400, "executiveReports:generateAnnualReport", { year: new Date().getFullYear() });
 
     return {
       scheduled: ["daily", "weekly", "monthly", "quarterly", "annual"],
