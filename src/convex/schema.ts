@@ -3905,3 +3905,4 @@ const schema = defineSchema({
     .index("assignedTo", ["assignedTo"]),
 
 });
+export default schema;
