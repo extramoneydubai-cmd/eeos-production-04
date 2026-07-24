@@ -3765,4 +3765,143 @@ const schema = defineSchema({
   })
     .index("employeeId", ["employeeId"])
     .index("status", ["status"]),
+
+  // ─── RECRUITMENT & ATS ─────────────────────────────────────
+
+  jobRequisitions: defineTable({
+    departmentId: v.id("organizationDepartments"),
+    designationId: v.optional(v.id("organizationDesignations")),
+    companyId: v.optional(v.id("organizationCompanies")),
+    branchId: v.optional(v.id("organizationBranches")),
+    requestedBy: v.id("users"),
+    vacancies: v.number(),
+    employmentType: v.string(),
+    salaryRange: v.optional(v.string()),
+    description: v.optional(v.string()),
+    status: v.union(
+      v.literal("draft"), v.literal("pending_approval"),
+      v.literal("approved"), v.literal("rejected"),
+      v.literal("filled"), v.literal("cancelled"),
+    ),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("departmentId", ["departmentId"])
+    .index("requestedBy", ["requestedBy"])
+    .index("status", ["status"]),
+
+  jobPostings: defineTable({
+    requisitionId: v.id("jobRequisitions"),
+    title: v.string(),
+    description: v.optional(v.string()),
+    skills: v.array(v.string()),
+    locations: v.array(v.string()),
+    applicationDeadline: v.optional(v.number()),
+    status: v.union(
+      v.literal("draft"), v.literal("published"),
+      v.literal("closed"), v.literal("cancelled"),
+    ),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("requisitionId", ["requisitionId"])
+    .index("status", ["status"]),
+
+  candidates: defineTable({
+    personId: v.id("personMaster"),
+    jobPostingId: v.optional(v.id("jobPostings")),
+    source: v.string(),
+    appliedPosition: v.string(),
+    expectedSalary: v.optional(v.number()),
+    currentSalary: v.optional(v.number()),
+    noticePeriod: v.optional(v.number()),
+    experience: v.optional(v.number()),
+    resumeUrl: v.optional(v.string()),
+    status: v.union(
+      v.literal("applied"), v.literal("screening"),
+      v.literal("shortlisted"), v.literal("interview_scheduled"),
+      v.literal("interview_completed"), v.literal("assessment"),
+      v.literal("offer_pending"), v.literal("offer_accepted"),
+      v.literal("hired"), v.literal("employee_created"),
+      v.literal("rejected"), v.literal("archived"),
+    ),
+    rejectionReason: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("personId", ["personId"])
+    .index("jobPostingId", ["jobPostingId"])
+    .index("status", ["status"]),
+
+  interviewRounds: defineTable({
+    candidateId: v.id("candidates"),
+    roundName: v.string(),
+    interviewerIds: v.array(v.id("users")),
+    schedule: v.number(),
+    mode: v.union(
+      v.literal("online"), v.literal("offline"),
+      v.literal("phone"),
+    ),
+    duration: v.optional(v.number()),
+    result: v.optional(v.union(
+      v.literal("pending"), v.literal("passed"),
+      v.literal("failed"), v.literal("rescheduled"),
+    )),
+    score: v.optional(v.number()),
+    remarks: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("candidateId", ["candidateId"])
+    .index("schedule", ["schedule"]),
+
+  assessments: defineTable({
+    candidateId: v.id("candidates"),
+    assessmentType: v.string(),
+    score: v.optional(v.number()),
+    maxScore: v.optional(v.number()),
+    evaluator: v.id("users"),
+    result: v.union(
+      v.literal("pending"), v.literal("pass"),
+      v.literal("fail"),
+    ),
+    remarks: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("candidateId", ["candidateId"])
+    .index("evaluator", ["evaluator"]),
+
+  offers: defineTable({
+    candidateId: v.id("candidates"),
+    offeredSalary: v.number(),
+    joiningDate: v.number(),
+    offerLetter: v.optional(v.string()),
+    status: v.union(
+      v.literal("pending"), v.literal("approved"),
+      v.literal("rejected"), v.literal("accepted"),
+      v.literal("declined"), v.literal("withdrawn"),
+    ),
+    approvedBy: v.optional(v.id("users")),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("candidateId", ["candidateId"])
+    .index("status", ["status"]),
+
+  onboardingTasks: defineTable({
+    employeeId: v.optional(v.id("employeeMaster")),
+    candidateId: v.id("candidates"),
+    checklistItem: v.string(),
+    assignedTo: v.optional(v.id("users")),
+    dueDate: v.optional(v.number()),
+    completed: v.boolean(),
+    completedAt: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("candidateId", ["candidateId"])
+    .index("employeeId", ["employeeId"])
+    .index("assignedTo", ["assignedTo"]),
+
 });
