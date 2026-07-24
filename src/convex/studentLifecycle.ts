@@ -1,324 +1,474 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
-import { logActivity, createNotification } from "./crmHelpers";
+import { Doc, Id } from "./_generated/dataModel";
 
-/* ────────────
-   CONSTANTS
-   ──────────── */
+// ─── Valid Status Transitions ────────────────────────────
 
-const STUDENT_STATUS_TRANSITIONS: Record<string, string[]> = {
-  enquiry: ["lead", "cancelled"],
-  lead: ["qualified", "cancelled"],
-  qualified: ["trial", "cancelled"],
-  trial: ["admitted", "cancelled"],
+const VALID_TRANSITIONS: Record<string, string[]> = {
+  enquiry: ["lead", "qualified", "cancelled"],
+  lead: ["qualified", "trial", "admitted", "cancelled"],
+  qualified: ["trial", "admitted", "cancelled"],
+  trial: ["admitted", "active", "qualified", "cancelled"],
   admitted: ["active", "cancelled"],
-  active: ["completed", "cancelled", "alumni"],
+  active: ["completed", "suspended", "cancelled"],
+  suspended: ["active", "cancelled"],
   completed: ["alumni"],
   alumni: [],
-  cancelled: ["enquiry", "lead"],
 };
 
-/* ────────────
-   UPDATE STUDENT STATUS
-   Validates lifecycle transitions with timeline events
-   ──────────── */
+// ─── Helper ──────────────────────────────────────────────
 
-export const updateStudentStatus = mutation({
+async function createTimelineEvent(
+  ctx: { db: { insert: (table: string, doc: any) => Promise<any> } },
+  studentId: Id<"studentMaster">,
+  eventType: string,
+  title: string,
+  description?: string,
+  performedBy?: Id<"users">,
+  metadata?: string,
+) {
+  await ctx.db.insert("studentTimeline", {
+    studentId,
+    eventType,
+    title,
+    description,
+    metadata,
+    performedBy,
+    createdAt: Date.now(),
+  });
+}
+
+async function transitionStatus(
+  ctx: {
+    db: { get: (id: Id<"studentMaster">) => Promise<Doc<"studentMaster"> | null>; patch: (id: Id<"studentMaster">, updates: Record<string, any>) => Promise<void>; insert: (table: string, doc: any) => Promise<any> };
+  },
+  studentId: Id<"studentMaster">,
+  toStatus: string,
+  performedBy: Id<"users">,
+  remarks?: string,
+): Promise<void> {
+  const student = await ctx.db.get(studentId);
+  if (!student) throw new Error("Student not found");
+
+  const currentStatus = student.currentStatus;
+  const allowed = VALID_TRANSITIONS[currentStatus] || [];
+
+  if (!allowed.includes(toStatus)) {
+    throw new Error(
+      `Invalid transition: ${currentStatus} → ${toStatus}. Allowed: ${allowed.join(", ") || "none"}`
+    );
+  }
+
+  const now = Date.now();
+
+  await ctx.db.patch(studentId, { currentStatus: toStatus as any, updatedAt: now });
+
+  await ctx.db.insert("studentStatusHistory", {
+    studentId,
+    fromStatus: currentStatus,
+    toStatus,
+    remarks: remarks || `Status changed from ${currentStatus} to ${toStatus}`,
+    changedBy: performedBy,
+    changedAt: now,
+    createdAt: now,
+  });
+}
+
+// ─── Lifecycle Mutations ─────────────────────────────────
+
+export const admitStudent = mutation({
   args: {
     studentId: v.id("studentMaster"),
-    newStatus: v.union(
-      v.literal("enquiry"), v.literal("lead"),
-      v.literal("qualified"), v.literal("trial"),
-      v.literal("admitted"), v.literal("active"),
-      v.literal("completed"), v.literal("alumni"),
-      v.literal("cancelled"),
-    ),
-    changedBy: v.id("users"),
-    reason: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const student = await ctx.db.get(args.studentId);
-    if (!student) throw new Error("Student not found");
-
-    if (student.status === args.newStatus) {
-      return { status: student.status, changed: false };
-    }
-
-    // Validate transition
-    const allowedNext = STUDENT_STATUS_TRANSITIONS[student.status];
-    if (!allowedNext || !allowedNext.includes(args.newStatus)) {
-      throw new Error(`Cannot transition from '${student.status}' to '${args.newStatus}'`);
-    }
-
-    const now = Date.now();
-    await ctx.db.patch(args.studentId, { status: args.newStatus, updatedAt: now });
-
-    // Enrollment history
-    await ctx.db.insert("studentEnrollmentHistory", {
-      studentId: args.studentId,
-      eventType: "status_changed",
-      title: `Status changed: ${student.status} → ${args.newStatus}`,
-      description: args.reason,
-      performedBy: args.changedBy,
-      createdAt: now,
-    });
-
-    // Lead link — sync with CRM if linked
-    if (student.leadId) {
-      const lead = await ctx.db.get(student.leadId);
-      if (lead) {
-        await logActivity(ctx, student.leadId, "student_status_changed", `Student status: ${args.newStatus}${args.reason ? ` — ${args.reason}` : ""}`, args.changedBy);
-      }
-    }
-
-    return { status: args.newStatus, changed: true };
-  },
-});
-
-/* ────────────
-   ADD GUARDIAN
-   ──────────── */
-
-export const addGuardian = mutation({
-  args: {
-    studentId: v.id("studentMaster"),
-    relationship: v.union(
-      v.literal("father"), v.literal("mother"),
-      v.literal("guardian"), v.literal("sibling"),
-      v.literal("spouse"), v.literal("other"),
-    ),
-    firstName: v.string(),
-    lastName: v.string(),
-    phone: v.string(),
-    email: v.optional(v.string()),
-    occupation: v.optional(v.string()),
-    income: v.optional(v.number()),
-    address: v.optional(v.string()),
-    isPrimary: v.boolean(),
-    addedBy: v.id("users"),
-  },
-  handler: async (ctx, args) => {
-    const guardianId = await ctx.db.insert("guardianDetails", {
-      studentId: args.studentId,
-      relationship: args.relationship,
-      firstName: args.firstName,
-      lastName: args.lastName,
-      phone: args.phone,
-      email: args.email,
-      occupation: args.occupation,
-      income: args.income,
-      address: args.address,
-      isPrimary: args.isPrimary,
-      createdAt: Date.now(),
-    });
-
-    await ctx.db.insert("studentEnrollmentHistory", {
-      studentId: args.studentId,
-      eventType: "guardian_added",
-      title: `${args.relationship} added: ${args.firstName} ${args.lastName}`,
-      performedBy: args.addedBy,
-      createdAt: Date.now(),
-    });
-
-    return guardianId;
-  },
-});
-
-/* ────────────
-   ACADEMIC YEAR PROGRESSION
-   ──────────── */
-
-export const progressAcademicYear = mutation({
-  args: {
-    studentId: v.id("studentMaster"),
-    newAcademicYearId: v.id("academicSessions"),
-    newBatchId: v.optional(v.id("academicBatches")),
-    newCourseId: v.optional(v.id("courses")),
-    progressedBy: v.id("users"),
+    performedBy: v.id("users"),
+    admissionType: v.optional(v.string()),
+    courseId: v.optional(v.id("courses")),
+    batchId: v.optional(v.id("academicBatches")),
+    totalFee: v.optional(v.number()),
+    discountAmount: v.optional(v.number()),
+    finalFee: v.optional(v.number()),
+    installmentCount: v.optional(v.number()),
+    remarks: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const student = await ctx.db.get(args.studentId);
     if (!student) throw new Error("Student not found");
 
     const now = Date.now();
-
-    // Mark current allocation as not current
-    const currentAllocations = await ctx.db
-      .query("studentAcademicAllocation")
-      .withIndex("studentId", (q) => q.eq("studentId", args.studentId))
-      .filter((q) => q.eq(q.field("isCurrent"), true))
-      .collect();
-
-    for (const alloc of currentAllocations) {
-      await ctx.db.patch(alloc._id, { isCurrent: false });
+    const allowedFrom = ["lead", "qualified", "trial"];
+    if (!allowedFrom.includes(student.currentStatus)) {
+      throw new Error(`Cannot admit student from status: ${student.currentStatus}`);
     }
 
-    // Create new allocation
-    await ctx.db.insert("studentAcademicAllocation", {
-      studentId: args.studentId,
-      academicYearId: args.newAcademicYearId,
-      batchId: args.newBatchId || student.batchId,
-      courseId: args.newCourseId || student.courseId,
-      verticalId: student.verticalId,
-      subVerticalId: student.subVerticalId,
-      boardId: student.boardId,
-      isCurrent: true,
-      allocatedAt: now,
-      allocatedBy: args.progressedBy,
-      createdAt: now,
-    });
+    // Update status
+    await ctx.db.patch(args.studentId, { currentStatus: "admitted" as any, updatedAt: now });
 
-    // Update student master
-    await ctx.db.patch(args.studentId, {
-      academicYearId: args.newAcademicYearId,
-      batchId: args.newBatchId || student.batchId,
-      courseId: args.newCourseId || student.courseId,
+    // Create admission record
+    const admissionNumber = student.admissionNumber;
+    await ctx.db.insert("studentAdmissions", {
+      studentId: args.studentId,
+      leadId: student.leadId,
+      admissionNumber,
+      admissionType: args.admissionType || "regular",
+      courseId: args.courseId,
+      batchId: args.batchId,
+      totalFee: args.totalFee,
+      discountAmount: args.discountAmount,
+      finalFee: args.finalFee,
+      installmentCount: args.installmentCount,
+      admittedBy: args.performedBy,
+      status: "admitted",
+      decisionDate: now,
+      remarks: args.remarks,
+      createdAt: now,
       updatedAt: now,
     });
 
-    await ctx.db.insert("studentEnrollmentHistory", {
+    // Status history
+    await ctx.db.insert("studentStatusHistory", {
       studentId: args.studentId,
-      eventType: "academic_year_progressed",
-      title: "Academic year progressed",
-      metadata: JSON.stringify({ newAcademicYearId: args.newAcademicYearId }),
-      performedBy: args.progressedBy,
+      fromStatus: student.currentStatus,
+      toStatus: "admitted",
+      remarks: args.remarks || "Student admitted",
+      changedBy: args.performedBy,
+      changedAt: now,
       createdAt: now,
     });
 
-    return { progressed: true };
+    // Timeline event
+    await createTimelineEvent(
+      ctx, args.studentId, "student_admitted", "Student Admitted",
+      `Admission completed: ${admissionNumber}`, args.performedBy,
+    );
+
+    return { studentId: args.studentId, admissionNumber };
   },
 });
 
-/* ────────────
-   STUDENT COMPLETION & ALUMNI
-   ──────────── */
-
-export const completeStudent = mutation({
+export const enrollStudent = mutation({
   args: {
     studentId: v.id("studentMaster"),
-    completedBy: v.id("users"),
-    notes: v.optional(v.string()),
+    performedBy: v.id("users"),
+    academicProfile: v.optional(
+      v.object({
+        verticalId: v.optional(v.id("verticals")),
+        subVerticalId: v.optional(v.id("subVerticals")),
+        boardId: v.optional(v.id("boards")),
+        courseId: v.optional(v.id("courses")),
+        batchId: v.optional(v.id("academicBatches")),
+        sectionId: v.optional(v.id("academicSections")),
+        semesterId: v.optional(v.id("academicSemesters")),
+        termId: v.optional(v.id("academicTerms")),
+      })
+    ),
+    remarks: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const student = await ctx.db.get(args.studentId);
     if (!student) throw new Error("Student not found");
-    if (student.status !== "active") throw new Error("Student must be in active status to complete");
 
     const now = Date.now();
-    await ctx.db.patch(args.studentId, { status: "completed", updatedAt: now });
 
-    await ctx.db.insert("studentEnrollmentHistory", {
-      studentId: args.studentId,
-      eventType: "completed",
-      title: "Course completed",
-      description: args.notes,
-      performedBy: args.completedBy,
-      createdAt: now,
-    });
+    // Active can only come from admitted
+    await transitionStatus(ctx, args.studentId, "active", args.performedBy, args.remarks || "Student enrolled");
 
-    return { completed: true };
+    // Create academic profile if provided
+    if (args.academicProfile) {
+      // Deactivate existing profiles
+      const existingProfiles = await ctx.db
+        .query("studentAcademicProfile")
+        .withIndex("studentId", (q) => q.eq("studentId", args.studentId))
+        .collect();
+      for (const p of existingProfiles) {
+        await ctx.db.patch(p._id, { isCurrent: false, endDate: now, updatedAt: now });
+      }
+
+      await ctx.db.insert("studentAcademicProfile", {
+        studentId: args.studentId,
+        verticalId: args.academicProfile.verticalId,
+        subVerticalId: args.academicProfile.subVerticalId,
+        boardId: args.academicProfile.boardId,
+        courseId: args.academicProfile.courseId,
+        batchId: args.academicProfile.batchId,
+        sectionId: args.academicProfile.sectionId,
+        semesterId: args.academicProfile.semesterId,
+        termId: args.academicProfile.termId,
+        currentYear: 1,
+        currentTerm: "1",
+        isCurrent: true,
+        startDate: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    await createTimelineEvent(ctx, args.studentId, "student_enrolled", "Student Enrolled", "Student started active enrollment", args.performedBy);
+    return args.studentId;
   },
 });
 
-export const markAsAlumni = mutation({
+export const promoteStudent = mutation({
   args: {
     studentId: v.id("studentMaster"),
-    alumniBy: v.id("users"),
-    notes: v.optional(v.string()),
+    performedBy: v.id("users"),
+    nextYear: v.number(),
+    nextAcademicProfile: v.optional(
+      v.object({
+        verticalId: v.optional(v.id("verticals")),
+        subVerticalId: v.optional(v.id("subVerticals")),
+        boardId: v.optional(v.id("boards")),
+        courseId: v.optional(v.id("courses")),
+        batchId: v.optional(v.id("academicBatches")),
+        sectionId: v.optional(v.id("academicSections")),
+        semesterId: v.optional(v.id("academicSemesters")),
+        termId: v.optional(v.id("academicTerms")),
+      })
+    ),
+    remarks: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const student = await ctx.db.get(args.studentId);
     if (!student) throw new Error("Student not found");
-    if (student.status !== "completed") throw new Error("Student must be in completed status to mark as alumni");
+
+    if (student.currentStatus !== "active") {
+      throw new Error("Only active students can be promoted");
+    }
 
     const now = Date.now();
-    await ctx.db.patch(args.studentId, { status: "alumni", updatedAt: now });
 
-    await ctx.db.insert("studentEnrollmentHistory", {
+    // Deactivate current academic profile
+    const currentProfile = await ctx.db
+      .query("studentAcademicProfile")
+      .withIndex("studentId", (q) => q.eq("studentId", args.studentId))
+      .filter((q) => q.eq(q.field("isCurrent"), true))
+      .first();
+
+    if (currentProfile) {
+      await ctx.db.patch(currentProfile._id, { isCurrent: false, endDate: now, updatedAt: now });
+    }
+
+    // Create new academic profile
+    const profileData = args.nextAcademicProfile || {};
+    await ctx.db.insert("studentAcademicProfile", {
       studentId: args.studentId,
-      eventType: "alumni",
-      title: "Marked as alumni",
-      description: args.notes,
-      performedBy: args.alumniBy,
+      verticalId: profileData.verticalId,
+      subVerticalId: profileData.subVerticalId,
+      boardId: profileData.boardId,
+      courseId: profileData.courseId,
+      batchId: profileData.batchId,
+      sectionId: profileData.sectionId,
+      semesterId: profileData.semesterId,
+      termId: profileData.termId,
+      currentYear: args.nextYear,
+      currentTerm: "1",
+      isCurrent: true,
+      startDate: now,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Status history
+    await ctx.db.insert("studentStatusHistory", {
+      studentId: args.studentId,
+      fromStatus: student.currentStatus,
+      toStatus: student.currentStatus,
+      remarks: args.remarks || `Promoted to year ${args.nextYear}`,
+      changedBy: args.performedBy,
+      changedAt: now,
       createdAt: now,
     });
 
-    return { alumni: true };
+    await createTimelineEvent(ctx, args.studentId, "student_promoted", "Student Promoted", `Promoted to academic year ${args.nextYear}`, args.performedBy);
+    return args.studentId;
   },
 });
 
-/* ────────────
-   QUERIES
-   ──────────── */
+export const transferStudent = mutation({
+  args: {
+    studentId: v.id("studentMaster"),
+    performedBy: v.id("users"),
+    toBranchId: v.optional(v.id("branches")),
+    toCompanyId: v.optional(v.id("companies")),
+    remarks: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const student = await ctx.db.get(args.studentId);
+    if (!student) throw new Error("Student not found");
 
-export const getStudentSummary = query({
+    const now = Date.now();
+    const updates: Record<string, any> = { updatedAt: now };
+    if (args.toBranchId) updates.branchId = args.toBranchId;
+    if (args.toCompanyId) updates.companyId = args.toCompanyId;
+
+    await ctx.db.patch(args.studentId, updates);
+
+    await ctx.db.insert("studentStatusHistory", {
+      studentId: args.studentId,
+      fromStatus: student.currentStatus,
+      toStatus: student.currentStatus,
+      remarks: args.remarks || "Student transferred",
+      changedBy: args.performedBy,
+      changedAt: now,
+      createdAt: now,
+    });
+
+    await createTimelineEvent(ctx, args.studentId, "student_transferred", "Student Transferred", args.remarks || "Branch/Company transfer", args.performedBy);
+    return args.studentId;
+  },
+});
+
+export const suspendStudent = mutation({
+  args: {
+    studentId: v.id("studentMaster"),
+    performedBy: v.id("users"),
+    reason: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await transitionStatus(ctx, args.studentId, "suspended", args.performedBy, args.reason);
+    await createTimelineEvent(ctx, args.studentId, "student_suspended", "Student Suspended", args.reason, args.performedBy);
+    return args.studentId;
+  },
+});
+
+export const reinstateStudent = mutation({
+  args: {
+    studentId: v.id("studentMaster"),
+    performedBy: v.id("users"),
+    remarks: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await transitionStatus(ctx, args.studentId, "active", args.performedBy, args.remarks || "Student reinstated");
+    await createTimelineEvent(ctx, args.studentId, "student_reinstated", "Student Reinstated", args.remarks || "Suspension lifted", args.performedBy);
+    return args.studentId;
+  },
+});
+
+export const graduateStudent = mutation({
+  args: {
+    studentId: v.id("studentMaster"),
+    performedBy: v.id("users"),
+    remarks: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await transitionStatus(ctx, args.studentId, "completed", args.performedBy, args.remarks || "Student graduated");
+
+    const now = Date.now();
+    const currentProfile = await ctx.db
+      .query("studentAcademicProfile")
+      .withIndex("studentId", (q) => q.eq("studentId", args.studentId))
+      .filter((q) => q.eq(q.field("isCurrent"), true))
+      .first();
+    if (currentProfile) {
+      await ctx.db.patch(currentProfile._id, { isCurrent: false, endDate: now, updatedAt: now });
+    }
+
+    await createTimelineEvent(ctx, args.studentId, "student_graduated", "Student Graduated", args.remarks || "Course completed", args.performedBy);
+    return args.studentId;
+  },
+});
+
+export const convertToAlumni = mutation({
+  args: {
+    studentId: v.id("studentMaster"),
+    performedBy: v.id("users"),
+    remarks: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await transitionStatus(ctx, args.studentId, "alumni", args.performedBy, args.remarks || "Converted to alumni");
+
+    // Update People Registry profile
+    const student = await ctx.db.get(args.studentId);
+    if (student) {
+      const existingProfile = await ctx.db
+        .query("personProfiles")
+        .withIndex("personId_profileType", (q) =>
+          q.eq("personId", student.personId).eq("profileType", "alumni")
+        )
+        .first();
+
+      if (!existingProfile) {
+        await ctx.db.insert("personProfiles", {
+          personId: student.personId,
+          profileType: "alumni",
+          active: true,
+          primaryProfile: false,
+          displayLabel: "Alumni",
+          startDate: Date.now(),
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        });
+      }
+    }
+
+    await createTimelineEvent(ctx, args.studentId, "student_alumni", "Converted to Alumni", args.remarks || "Alumni status granted", args.performedBy);
+    return args.studentId;
+  },
+});
+
+// ─── Queries ────────────────────────────────────────────
+
+export const getStudentStatusHistory = query({
   args: { studentId: v.id("studentMaster") },
   handler: async (ctx, args) => {
-    const student = await ctx.db.get(args.studentId);
-    if (!student) return null;
-
-    const admissions = await ctx.db.query("studentAdmissions").withIndex("studentId", (q) => q.eq("studentId", args.studentId)).collect();
-    const allocations = await ctx.db.query("studentAcademicAllocation").withIndex("studentId", (q) => q.eq("studentId", args.studentId)).order("desc").take(5);
-    const guardians = await ctx.db.query("guardianDetails").withIndex("studentId", (q) => q.eq("studentId", args.studentId)).collect();
-    const documents = await ctx.db.query("studentDocuments").withIndex("studentId", (q) => q.eq("studentId", args.studentId)).collect();
-    const history = await ctx.db.query("studentEnrollmentHistory").withIndex("studentId_createdAt", (q) => q.eq("studentId", args.studentId)).order("desc").take(20);
-
-    return {
-      student,
-      admission: admissions[0] || null,
-      currentAllocation: allocations.find((a) => a.isCurrent) || null,
-      allocations,
-      guardians,
-      documents,
-      history,
-    };
+    return await ctx.db
+      .query("studentStatusHistory")
+      .withIndex("studentId_changedAt", (q) => q.eq("studentId", args.studentId))
+      .order("desc")
+      .collect();
   },
 });
 
-export const searchStudents = query({
+export const getStudentTimeline = query({
   args: {
-    query: v.string(),
+    studentId: v.id("studentMaster"),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const all = await ctx.db.query("studentMaster").order("desc").take(200);
-    const q = args.query.toLowerCase();
-    return all
-      .filter((s) =>
-        s.firstName.toLowerCase().includes(q) ||
-        s.lastName.toLowerCase().includes(q) ||
-        s.phone.includes(q) ||
-        s.admissionNumber.toLowerCase().includes(q) ||
-        (s.rollNumber && s.rollNumber.toLowerCase().includes(q)),
-      )
-      .slice(0, args.limit || 20);
+    const limit = args.limit || 50;
+    return await ctx.db
+      .query("studentTimeline")
+      .withIndex("studentId_createdAt", (q) => q.eq("studentId", args.studentId))
+      .order("desc")
+      .take(limit);
+  },
+});
+
+export const getStudentAcademicHistory = query({
+  args: { studentId: v.id("studentMaster") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("studentAcademicProfile")
+      .withIndex("studentId", (q) => q.eq("studentId", args.studentId))
+      .order("desc")
+      .collect();
   },
 });
 
 export const getEnrollmentStats = query({
   args: {
     branchId: v.optional(v.id("branches")),
+    companyId: v.optional(v.id("companies")),
   },
   handler: async (ctx, args) => {
-    const allStudents = await ctx.db.query("studentMaster").collect();
-    let filtered = allStudents;
+    let students = await ctx.db.query("studentMaster").collect();
 
     if (args.branchId) {
-      filtered = filtered.filter((s) => s.branchId === args.branchId);
+      students = students.filter((s) => s.branchId === args.branchId);
+    }
+    if (args.companyId) {
+      students = students.filter((s) => s.companyId === args.companyId);
+    }
+
+    const stats: Record<string, number> = {};
+    for (const s of students) {
+      stats[s.currentStatus] = (stats[s.currentStatus] || 0) + 1;
     }
 
     return {
-      total: filtered.length,
-      enquiry: filtered.filter((s) => s.status === "enquiry").length,
-      lead: filtered.filter((s) => s.status === "lead").length,
-      qualified: filtered.filter((s) => s.status === "qualified").length,
-      trial: filtered.filter((s) => s.status === "trial").length,
-      admitted: filtered.filter((s) => s.status === "admitted").length,
-      active: filtered.filter((s) => s.status === "active").length,
-      completed: filtered.filter((s) => s.status === "completed").length,
-      alumni: filtered.filter((s) => s.status === "alumni").length,
-      cancelled: filtered.filter((s) => s.status === "cancelled").length,
+      total: students.length,
+      byStatus: stats,
+      activeCount: students.filter((s) => s.currentStatus === "active").length,
+      admittedCount: students.filter((s) => s.currentStatus === "admitted").length,
+      alumniCount: students.filter((s) => s.currentStatus === "alumni").length,
     };
   },
 });

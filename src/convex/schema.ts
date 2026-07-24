@@ -3000,79 +3000,55 @@ const schema = defineSchema({
     .index("forecastDate", ["forecastDate"]),
 
   // ============================
-  // STUDENT ENROLLMENT ENGINE
+  // STUDENT INFORMATION SYSTEM (SIS)
   // ============================
 
   studentMaster: defineTable({
-    firstName: v.string(),
-    lastName: v.string(),
-    dateOfBirth: v.optional(v.number()),
-    gender: v.optional(v.string()),
-    phone: v.string(),
-    email: v.optional(v.string()),
-    address: v.optional(v.string()),
-    city: v.optional(v.string()),
-    state: v.optional(v.string()),
-    pincode: v.optional(v.string()),
-    nationality: v.optional(v.string()),
-    aadhaarNumber: v.optional(v.string()),
-    passportNumber: v.optional(v.string()),
-    photoUrl: v.optional(v.string()),
+    studentCode: v.string(),
+    personId: v.id("personMaster"),
     leadId: v.optional(v.id("leadMaster")),
     admissionNumber: v.string(),
     rollNumber: v.optional(v.string()),
-    academicYearId: v.optional(v.id("academicSessions")),
-    verticalId: v.optional(v.id("verticals")),
-    subVerticalId: v.optional(v.id("subVerticals")),
-    boardId: v.optional(v.id("boards")),
-    batchId: v.optional(v.id("academicBatches")),
-    courseId: v.optional(v.id("courses")),
-    status: v.union(
+    enrollmentDate: v.number(),
+    currentStatus: v.union(
       v.literal("enquiry"), v.literal("lead"),
       v.literal("qualified"), v.literal("trial"),
       v.literal("admitted"), v.literal("active"),
       v.literal("completed"), v.literal("alumni"),
       v.literal("cancelled"),
     ),
-    branchId: v.optional(v.id("branches")),
     companyId: v.optional(v.id("companies")),
+    branchId: v.optional(v.id("branches")),
+    organizationId: v.optional(v.id("organizations")),
+    academicYearId: v.optional(v.id("academicSessions")),
     createdBy: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
+    .index("studentCode", ["studentCode"])
+    .index("personId", ["personId"])
     .index("admissionNumber", ["admissionNumber"])
     .index("rollNumber", ["rollNumber"])
     .index("leadId", ["leadId"])
-    .index("status", ["status"])
-    .index("batchId", ["batchId"])
-    .index("courseId", ["courseId"]),
+    .index("currentStatus", ["currentStatus"])
+    .index("branchId", ["branchId"])
+    .index("academicYearId", ["academicYearId"]),
 
   studentAdmissions: defineTable({
     studentId: v.id("studentMaster"),
     leadId: v.optional(v.id("leadMaster")),
     admissionNumber: v.string(),
-    admissionDate: v.number(),
-    admissionType: v.union(
-      v.literal("fresh"), v.literal("transfer"),
-      v.literal("re_admission"), v.literal("direct"),
-    ),
-    academicYearId: v.optional(v.id("academicSessions")),
+    admissionType: v.optional(v.string()),
+    courseId: v.optional(v.id("courses")),
     batchId: v.optional(v.id("academicBatches")),
-    courseId: v.id("courses"),
-    feeStructureId: v.optional(v.string()),
-    totalFee: v.number(),
-    discountAmount: v.number(),
-    finalFee: v.number(),
-    paymentPlan: v.optional(v.string()),
-    installmentCount: v.number(),
-    status: v.union(
-      v.literal("pending"), v.literal("approved"),
-      v.literal("rejected"), v.literal("cancelled"),
-    ),
-    approvedBy: v.optional(v.id("users")),
-    approvedAt: v.optional(v.number()),
+    totalFee: v.optional(v.number()),
+    discountAmount: v.optional(v.number()),
+    finalFee: v.optional(v.number()),
+    installmentCount: v.optional(v.number()),
+    admittedBy: v.id("users"),
+    status: v.string(),
+    decisionDate: v.optional(v.number()),
     remarks: v.optional(v.string()),
-    createdBy: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -3080,81 +3056,95 @@ const schema = defineSchema({
     .index("admissionNumber", ["admissionNumber"])
     .index("status", ["status"]),
 
-  studentAcademicAllocation: defineTable({
+  studentAcademicProfile: defineTable({
     studentId: v.id("studentMaster"),
-    academicYearId: v.optional(v.id("academicSessions")),
     verticalId: v.optional(v.id("verticals")),
     subVerticalId: v.optional(v.id("subVerticals")),
     boardId: v.optional(v.id("boards")),
     courseId: v.optional(v.id("courses")),
     batchId: v.optional(v.id("academicBatches")),
-    classroomId: v.optional(v.id("academicClassrooms")),
-    languageId: v.optional(v.id("academicLanguages")),
-    mediumId: v.optional(v.id("academicMediums")),
     sectionId: v.optional(v.id("academicSections")),
     semesterId: v.optional(v.id("academicSemesters")),
-    streamId: v.optional(v.id("academicStreams")),
     termId: v.optional(v.id("academicTerms")),
+    currentYear: v.optional(v.number()),
+    currentTerm: v.optional(v.string()),
     isCurrent: v.boolean(),
-    allocatedAt: v.number(),
-    allocatedBy: v.id("users"),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
     createdAt: v.number(),
+    updatedAt: v.number(),
   })
     .index("studentId", ["studentId"])
     .index("batchId", ["batchId"])
+    .index("courseId", ["courseId"])
     .index("isCurrent", ["isCurrent"]),
 
-  studentEnrollmentHistory: defineTable({
+  studentStatusHistory: defineTable({
+    studentId: v.id("studentMaster"),
+    fromStatus: v.optional(v.string()),
+    toStatus: v.string(),
+    remarks: v.optional(v.string()),
+    changedBy: v.id("users"),
+    changedAt: v.number(),
+    createdAt: v.number(),
+  })
+    .index("studentId", ["studentId"])
+    .index("studentId_changedAt", ["studentId", "changedAt"]),
+
+  studentMedicalProfile: defineTable({
+    studentId: v.id("studentMaster"),
+    allergies: v.optional(v.string()),
+    medicalConditions: v.optional(v.string()),
+    bloodGroup: v.optional(v.string()),
+    doctorName: v.optional(v.string()),
+    doctorContact: v.optional(v.string()),
+    insuranceInfo: v.optional(v.string()),
+    emergencyNotes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("studentId", ["studentId"]),
+
+  studentAchievements: defineTable({
+    studentId: v.id("studentMaster"),
+    title: v.string(),
+    category: v.string(),
+    description: v.optional(v.string()),
+    issuedBy: v.optional(v.string()),
+    issueDate: v.optional(v.number()),
+    certificateUrl: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("studentId", ["studentId"])
+    .index("category", ["category"]),
+
+  studentDisciplinaryRecords: defineTable({
+    studentId: v.id("studentMaster"),
+    incident: v.string(),
+    actionTaken: v.string(),
+    status: v.union(v.literal("open"), v.literal("resolved"), v.literal("appealed"), v.literal("closed")),
+    incidentDate: v.optional(v.number()),
+    reportedBy: v.optional(v.id("users")),
+    resolutionDate: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("studentId", ["studentId"])
+    .index("status", ["status"]),
+
+  studentTimeline: defineTable({
     studentId: v.id("studentMaster"),
     eventType: v.string(),
     title: v.string(),
     description: v.optional(v.string()),
     metadata: v.optional(v.string()),
-    performedBy: v.id("users"),
+    performedBy: v.optional(v.id("users")),
     createdAt: v.number(),
   })
     .index("studentId", ["studentId"])
     .index("studentId_createdAt", ["studentId", "createdAt"]),
-
-  studentDocuments: defineTable({
-    studentId: v.id("studentMaster"),
-    documentType: v.union(
-      v.literal("aadhaar"), v.literal("passport"),
-      v.literal("photo"), v.literal("transfer_certificate"),
-      v.literal("marksheet"), v.literal("parent_id"),
-      v.literal("birth_certificate"), v.literal("address_proof"),
-      v.literal("other"),
-    ),
-    fileName: v.string(),
-    fileUrl: v.string(),
-    fileSize: v.optional(v.number()),
-    isVerified: v.boolean(),
-    verifiedBy: v.optional(v.id("users")),
-    verifiedAt: v.optional(v.number()),
-    uploadedBy: v.id("users"),
-    createdAt: v.number(),
-  })
-    .index("studentId", ["studentId"])
-    .index("documentType", ["documentType"]),
-
-  guardianDetails: defineTable({
-    studentId: v.id("studentMaster"),
-    relationship: v.union(
-      v.literal("father"), v.literal("mother"),
-      v.literal("guardian"), v.literal("sibling"),
-      v.literal("spouse"), v.literal("other"),
-    ),
-    firstName: v.string(),
-    lastName: v.string(),
-    phone: v.string(),
-    email: v.optional(v.string()),
-    occupation: v.optional(v.string()),
-    income: v.optional(v.number()),
-    address: v.optional(v.string()),
-    isPrimary: v.boolean(),
-    createdAt: v.number(),
-  })
-    .index("studentId", ["studentId"]),
 
     
 
