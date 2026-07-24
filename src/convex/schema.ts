@@ -3904,6 +3904,210 @@ const schema = defineSchema({
     .index("candidateId", ["candidateId"])
     .index("employeeId", ["employeeId"])
     .index("assignedTo", ["assignedTo"]),
+  // ─── EXAMINATION ENGINE ──────────────────────────────────
+
+  examTemplates: defineTable({
+    name: v.string(),
+    code: v.string(),
+    examType: v.union(
+      v.literal("unit_test"), v.literal("weekly_test"),
+      v.literal("monthly_test"), v.literal("mid_term"),
+      v.literal("final_exam"), v.literal("practical"),
+      v.literal("viva"), v.literal("mock_test"),
+      v.literal("custom"),
+    ),
+    description: v.optional(v.string()),
+    duration: v.optional(v.number()),
+    maxMarks: v.number(),
+    passPercentage: v.number(),
+    weightage: v.optional(v.number()),
+    gradeScheme: v.optional(v.string()),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("code", ["code"]),
+
+  examSessions: defineTable({
+    templateId: v.id("examTemplates"),
+    academicSessionId: v.id("academicSessions"),
+    branchId: v.id("orgBranches"),
+    courseId: v.optional(v.id("courses")),
+    batchId: v.optional(v.id("academicBatches")),
+    sectionId: v.optional(v.id("academicSections")),
+    programId: v.optional(v.id("academicPrograms")),
+    semesterId: v.optional(v.id("academicSemesters")),
+    termId: v.optional(v.id("academicTerms")),
+    name: v.string(),
+    startDate: v.number(),
+    endDate: v.optional(v.number()),
+    coordinatorId: v.optional(v.id("users")),
+    totalStudents: v.optional(v.number()),
+    status: v.union(
+      v.literal("draft"), v.literal("scheduled"),
+      v.literal("in_progress"), v.literal("completed"),
+      v.literal("published"), v.literal("archived"),
+    ),
+    instructions: v.optional(v.string()),
+    metadata: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("templateId", ["templateId"])
+    .index("academicSessionId", ["academicSessionId"])
+    .index("branchId", ["branchId"])
+    .index("batchId", ["batchId"])
+    .index("status", ["status"])
+    .index("startDate", ["startDate"]),
+
+  examTimetable: defineTable({
+    examSessionId: v.id("examSessions"),
+    subjectId: v.id("academicSubjects"),
+    facultyId: v.optional(v.id("users")),
+    roomId: v.optional(v.id("academicClassrooms")),
+    examDate: v.number(),
+    startTime: v.number(),
+    endTime: v.number(),
+    duration: v.optional(v.number()),
+    maxMarks: v.number(),
+    passPercentage: v.optional(v.number()),
+    instructions: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("examSessionId", ["examSessionId"])
+    .index("subjectId", ["subjectId"])
+    .index("examDate", ["examDate"])
+    .index("facultyId", ["facultyId"]),
+
+  examInvigilators: defineTable({
+    timetableId: v.id("examTimetable"),
+    invigilatorId: v.id("users"),
+    role: v.union(v.literal("chief"), v.literal("assistant"), v.literal("alternate")),
+    assignedAt: v.number(),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("timetableId", ["timetableId"])
+    .index("invigilatorId", ["invigilatorId"]),
+
+  examSubjects: defineTable({
+    examSessionId: v.id("examSessions"),
+    subjectId: v.id("academicSubjects"),
+    maxMarks: v.number(),
+    passPercentage: v.optional(v.number()),
+    weightage: v.optional(v.number()),
+    examDate: v.optional(v.number()),
+    duration: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("examSessionId", ["examSessionId"])
+    .index("subjectId", ["subjectId"])
+    .index("examSessionId_subjectId", ["examSessionId", "subjectId"]),
+
+  examMarks: defineTable({
+    examSessionId: v.id("examSessions"),
+    examSubjectId: v.optional(v.id("examSubjects")),
+    studentId: v.id("personMaster"),
+    marksObtained: v.optional(v.number()),
+    totalMarks: v.number(),
+    percentage: v.optional(v.number()),
+    grade: v.optional(v.string()),
+    gradePoint: v.optional(v.number()),
+    attendance: v.union(
+      v.literal("present"), v.literal("absent"),
+      v.literal("medical"), v.literal("leave"),
+    ),
+    graceMarks: v.optional(v.number()),
+    remarks: v.optional(v.string()),
+    enteredBy: v.id("users"),
+    enteredAt: v.number(),
+    verifiedBy: v.optional(v.id("users")),
+    verifiedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("examSessionId", ["examSessionId"])
+    .index("examSubjectId", ["examSubjectId"])
+    .index("studentId", ["studentId"])
+    .index("enteredBy", ["enteredBy"])
+    .index("examSessionId_studentId", ["examSessionId", "studentId"]),
+
+  examResults: defineTable({
+    examSessionId: v.id("examSessions"),
+    studentId: v.id("personMaster"),
+    totalMarks: v.number(),
+    marksObtained: v.number(),
+    percentage: v.number(),
+    cgpa: v.optional(v.number()),
+    grade: v.optional(v.string()),
+    rank: v.optional(v.number()),
+    division: v.union(
+      v.literal("distinction"), v.literal("first"),
+      v.literal("second"), v.literal("third"),
+      v.literal("fail"),
+    ),
+    passFail: v.union(v.literal("pass"), v.literal("fail"), v.literal("supplementary")),
+    subjectResults: v.optional(v.string()),
+    calculatedAt: v.number(),
+    publishedAt: v.optional(v.number()),
+    publishedBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("examSessionId", ["examSessionId"])
+    .index("studentId", ["studentId"])
+    .index("passFail", ["passFail"])
+    .index("rank", ["rank"])
+    .index("examSessionId_studentId", ["examSessionId", "studentId"]),
+
+  examReportCards: defineTable({
+    examSessionId: v.id("examSessions"),
+    studentId: v.id("personMaster"),
+    resultId: v.id("examResults"),
+    reportData: v.string(),
+    pdfUrl: v.optional(v.string()),
+    generatedAt: v.number(),
+    downloadedAt: v.optional(v.number()),
+    downloadCount: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("examSessionId", ["examSessionId"])
+    .index("studentId", ["studentId"])
+    .index("resultId", ["resultId"])
+    .index("generatedAt", ["generatedAt"]),
+
+  examTimeline: defineTable({
+    examSessionId: v.id("examSessions"),
+    eventType: v.union(
+      v.literal("exam_created"), v.literal("marks_submitted"),
+      v.literal("marks_verified"), v.literal("result_calculated"),
+      v.literal("result_published"), v.literal("report_downloaded"),
+      v.literal("timetable_updated"), v.literal("exam_completed"),
+    ),
+    description: v.string(),
+    userId: v.id("users"),
+    metadata: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("examSessionId", ["examSessionId"])
+    .index("eventType", ["eventType"])
+    .index("examSessionId_createdAt", ["examSessionId", "createdAt"]),
+
+  examPublishLog: defineTable({
+    examSessionId: v.id("examSessions"),
+    action: v.union(
+      v.literal("draft"), v.literal("submitted_for_approval"),
+      v.literal("approved"), v.literal("rejected"),
+      v.literal("published"), v.literal("archived"),
+    ),
+    performedBy: v.id("users"),
+    remarks: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("examSessionId", ["examSessionId"])
+    .index("action", ["action"]),
 
 });
 export default schema;

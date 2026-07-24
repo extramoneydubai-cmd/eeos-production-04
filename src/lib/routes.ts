@@ -20,6 +20,7 @@ import {
   Settings,
   Target,
   ContactRound,
+  FileCheck,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -197,6 +198,13 @@ export const routes: RouteEntry[] = [
     label: "Recruiting",
     href: "/recruiting",
     icon: ContactRound,
+    group: "Business Modules",
+    visible,
+  },
+  {
+    label: "Examinations",
+    href: "/examinations",
+    icon: FileCheck,
     group: "Business Modules",
     visible,
   },
