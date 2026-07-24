@@ -19,6 +19,7 @@ import {
   BarChart3,
   Settings,
   Target,
+  ContactRound,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -191,6 +192,13 @@ export const routes: RouteEntry[] = [
     group: "Business Modules",
     visible,
     isPlaceholder: placeholder,
+  },
+  {
+    label: "Recruiting",
+    href: "/recruiting",
+    icon: ContactRound,
+    group: "Business Modules",
+    visible,
   },
   {
     label: "Settings",
