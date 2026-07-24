@@ -79,6 +79,13 @@ export const routes: RouteEntry[] = [
     visible,
   },
   {
+    label: "Dashboards",
+    href: "/studio/dashboards",
+    icon: LayoutDashboard,
+    group: "Studios",
+    visible,
+  },
+  {
     label: "Workflow",
     href: "/studio/workflow",
     icon: Workflow,

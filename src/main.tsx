@@ -119,6 +119,7 @@ const FinanceDashboard = lazy(() => import("./pages/FinanceDashboard.tsx"));
 const ProcurementDashboard = lazy(() => import("./pages/ProcurementDashboard.tsx"));
 const LMSDashboard = lazy(() => import("./pages/LMSDashboard.tsx"));
 const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage.tsx"));
+const DashboardStudio = lazy(() => import("./pages/DashboardStudio.tsx"));
 const IntakeDashboard = lazy(() => import("./pages/IntakeDashboard.tsx"));
 const FormStudio = lazy(() => import("./pages/FormStudio.tsx"));
 const WorkflowStudio = lazy(() => import("./pages/WorkflowStudio.tsx"));
@@ -299,6 +300,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/studio/procurement" element={<ProtectedRoute><ProcurementDashboard /></ProtectedRoute>} />
               <Route path="/studio/lms" element={<ProtectedRoute><LMSDashboard /></ProtectedRoute>} />
               <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
+              <Route path="/studio/dashboards" element={<ProtectedRoute><DashboardStudio /></ProtectedRoute>} />
               <Route path="/studios/intake" element={<ProtectedRoute><IntakeDashboard /></ProtectedRoute>} />
               <Route path="/studios/workflows" element={<ProtectedRoute><WorkflowStudio /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
