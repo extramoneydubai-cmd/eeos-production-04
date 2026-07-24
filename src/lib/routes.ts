@@ -21,6 +21,7 @@ import {
   Target,
   ContactRound,
   FileCheck,
+  ShoppingCart,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -168,6 +169,13 @@ export const routes: RouteEntry[] = [
     group: "Business Modules",
     visible,
     isPlaceholder: placeholder,
+  },
+  {
+    label: "Procurement",
+    href: "/studio/procurement",
+    icon: ShoppingCart,
+    group: "Business Modules",
+    visible,
   },
   {
     label: "Technology",
