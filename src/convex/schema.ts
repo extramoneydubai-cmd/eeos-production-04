@@ -261,6 +261,7 @@ const schema = defineSchema({
     departmentId: v.id("departments"),
     description: v.optional(v.string()),
     leadId: v.optional(v.id("users")),
+    leadUserId: v.optional(v.id("users")),
     isActive: v.optional(v.boolean()),
     color: v.optional(v.string()),
     icon: v.optional(v.string()),
