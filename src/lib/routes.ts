@@ -213,7 +213,6 @@ export const routes: RouteEntry[] = [
     icon: BarChart3,
     group: "Business Modules",
     visible,
-    isPlaceholder: placeholder,
   },
   {
     label: "Documents",

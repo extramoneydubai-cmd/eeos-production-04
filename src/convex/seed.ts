@@ -1237,3 +1237,426 @@ export const seedRecruitment = mutation({
     };
   },
 });
+
+// ══════════════════════════════════════════════════════════
+// SEED: FINANCE & ACCOUNTING
+// ══════════════════════════════════════════════════════════
+
+export const seedFinance = mutation({
+  handler: async (ctx) => {
+    const existingFees = await ctx.db.query("feeStructures").collect();
+    if (existingFees.length > 0) return { seeded: false, message: "Finance data already exists" };
+
+    const users = await ctx.db.query("users").collect();
+    const admin = users.find((u: any) => u.role === "super_admin") || users[0];
+    if (!admin) return { seeded: false, message: "No admin user found" };
+
+    const courses = await ctx.db.query("courses").collect();
+    const students = await ctx.db.query("studentMaster").collect();
+    const now = Date.now();
+
+    // Fee Structures
+    const tuitionFee = await ctx.db.insert("feeStructures", {
+      name: "Tuition Fee - Standard", description: "Standard tuition for all courses", amount: 75000,
+      isRecurring: true, frequency: "yearly", isOptional: false, isRefundable: false,
+      isActive: true, createdBy: admin._id,
+    });
+
+    const labFee = await ctx.db.insert("feeStructures", {
+      name: "Lab Fee", amount: 15000, isRecurring: true, frequency: "half_yearly",
+      isOptional: false, isRefundable: false, isActive: true, createdBy: admin._id,
+    });
+
+    const libraryFee = await ctx.db.insert("feeStructures", {
+      name: "Library Fee", amount: 5000, isRecurring: true, frequency: "yearly",
+      isOptional: false, isRefundable: false, isActive: true, createdBy: admin._id,
+    });
+
+    // Discounts
+    await ctx.db.insert("feeDiscounts", {
+      name: "Early Bird Discount", code: "EARLY10", discountType: "percentage", value: 10,
+      maxAmount: 10000, isActive: true, currentApplications: 0, createdBy: admin._id,
+    });
+    await ctx.db.insert("feeDiscounts", {
+      name: "Sibling Discount", code: "SIBLING15", discountType: "percentage", value: 15,
+      maxAmount: 15000, isActive: true, currentApplications: 0, createdBy: admin._id,
+    });
+
+    // Student Fee Accounts & Invoices
+    for (let i = 0; i < Math.min(students.length, 5); i++) {
+      const student = students[i];
+      const totalFee = 95000 + (i * 5000);
+      const accountId = await ctx.db.insert("studentFeeAccounts", {
+        studentId: student._id, totalFee, totalPaid: i === 0 ? totalFee : 25000,
+        outstandingBalance: i === 0 ? 0 : totalFee - 25000,
+        totalDiscount: 0, totalScholarship: 0, totalWaiver: 0,
+        installmentsCount: 4, installmentFrequency: "quarterly",
+        status: i === 0 ? "active" : "active", createdBy: admin._id,
+      });
+
+      if (i === 0) {
+        await ctx.db.insert("feeInstallments", {
+          studentId: student._id, feeAccountId: accountId, installmentNumber: 1, totalInstallments: 4,
+          amount: totalFee / 4, paidAmount: totalFee / 4, lateFee: 0,
+          dueDate: now - 60 * day, paidDate: now - 55 * day, status: "paid",
+        });
+      }
+      await ctx.db.insert("feeInstallments", {
+        studentId: student._id, feeAccountId: accountId, installmentNumber: i === 0 ? 2 : 1,
+        totalInstallments: 4, amount: totalFee / 4, paidAmount: i === 0 ? totalFee / 4 : 0,
+        lateFee: i === 2 ? 500 : 0, dueDate: now + 15 * day, status: i === 0 ? "paid" : (i === 2 ? "overdue" : "pending"),
+      });
+
+      // Invoice
+      const invoice = await ctx.db.insert("feeInvoices", {
+        invoiceNumber: `INV-${String(1000 + i).padStart(6, "0")}`,
+        studentId: student._id, feeAccountId: accountId, invoiceDate: now - 30 * day, dueDate: now + 15 * day,
+        lineItems: JSON.stringify([{ index: 1, description: "Tuition Fee", amount: totalFee, total: totalFee }]),
+        subtotal: totalFee, discountAmount: 0, taxAmount: 0, totalAmount: totalFee,
+        paidAmount: i === 0 ? totalFee : 25000, balanceDue: i === 0 ? 0 : totalFee - 25000,
+        status: i === 0 ? "paid" : "partial", createdBy: admin._id,
+      });
+
+      // Payment transactions
+      if (i <= 1) {
+        await ctx.db.insert("paymentTransactions", {
+          transactionNumber: `TXN-${String(Date.now()).slice(-6)}${i}`,
+          studentId: student._id, feeAccountId: accountId, invoiceId: invoice,
+          paymentMethod: i === 0 ? "bank_transfer" : "cash",
+          paymentDate: i === 0 ? now - 55 * day : now - 10 * day,
+          amount: i === 0 ? totalFee : 25000, status: "verified", createdBy: admin._id,
+        });
+      }
+    }
+
+    return { seeded: true, message: "Finance data seeded successfully", stats: { feeStructures: 3, discounts: 2, accounts: Math.min(students.length, 5) } };
+  },
+});
+
+// ══════════════════════════════════════════════════════════
+// SEED: EXAMINATIONS
+// ══════════════════════════════════════════════════════════
+
+export const seedExams = mutation({
+  handler: async (ctx) => {
+    const existing = await ctx.db.query("examTemplates").collect();
+    if (existing.length > 0) return { seeded: false, message: "Exam data already exists" };
+
+    const users = await ctx.db.query("users").collect();
+    const admin = users.find((u: any) => u.role === "super_admin") || users[0];
+    const faculty = users.find((u: any) => u.role === "staff") || admin;
+    if (!admin) return { seeded: false, message: "No admin user found" };
+
+    const sessions = await ctx.db.query("academicSessions").collect();
+    const subjects = await ctx.db.query("academicSubjects").collect();
+    const branches = await ctx.db.query("branches").collect();
+    const now = Date.now();
+
+    const sessionId = sessions[0]?._id;
+    const branchId = branches[0]?._id;
+    const subj1 = subjects[0]?._id;
+    const subj2 = subjects[1]?._id;
+
+    // Exam Templates
+    const midTerm = await ctx.db.insert("examTemplates", {
+      name: "Mid Term Examination", code: "MID-2026", examType: "mid_term",
+      description: "Standard mid-term examination", maxMarks: 100, passPercentage: 35,
+      isActive: true, createdAt: now, updatedAt: now,
+    });
+    const finalExam = await ctx.db.insert("examTemplates", {
+      name: "Final Examination", code: "FINAL-2026", examType: "final_exam",
+      description: "End of year final examination", duration: 180, maxMarks: 100, passPercentage: 35,
+      isActive: true, createdAt: now, updatedAt: now,
+    });
+    const practical = await ctx.db.insert("examTemplates", {
+      name: "Practical Examination", code: "PRAC-2026", examType: "practical",
+      maxMarks: 50, passPercentage: 40, isActive: true, createdAt: now, updatedAt: now,
+    });
+
+    // Exam Sessions
+    if (sessionId && branchId) {
+      const examSessionId = await ctx.db.insert("examSessions", {
+        templateId: midTerm, academicSessionId: sessionId, branchId,
+        name: "Mid Term 2026 - Batch A", startDate: now - 45 * day, endDate: now - 40 * day,
+        coordinatorId: faculty?._id, totalStudents: 30, status: "published", createdAt: now, updatedAt: now,
+      });
+
+      const examSessionId2 = await ctx.db.insert("examSessions", {
+        templateId: finalExam, academicSessionId: sessionId, branchId,
+        name: "Final Exam 2026 - Batch A", startDate: now + 30 * day, endDate: now + 35 * day,
+        coordinatorId: faculty?._id, totalStudents: 30, status: "scheduled", createdAt: now, updatedAt: now,
+      });
+
+      // Exam timetable
+      if (subj1) {
+        await ctx.db.insert("examTimetable", {
+          examSessionId: examSessionId, subjectId: subj1, facultyId: faculty?._id,
+          examDate: now - 43 * day, startTime: now - 43 * day + 9 * hour, endTime: now - 43 * day + 12 * hour,
+          duration: 180, maxMarks: 100, createdAt: now, updatedAt: now,
+        });
+      }
+      if (subj2) {
+        await ctx.db.insert("examTimetable", {
+          examSessionId: examSessionId, subjectId: subj2, facultyId: faculty?._id,
+          examDate: now - 42 * day, startTime: now - 42 * day + 9 * hour, endTime: now - 42 * day + 12 * hour,
+          duration: 180, maxMarks: 100, createdAt: now, updatedAt: now,
+        });
+      }
+    }
+
+    return { seeded: true, message: "Exam data seeded successfully", stats: { templates: 3, sessions: 2 } };
+  },
+});
+
+// ══════════════════════════════════════════════════════════
+// SEED: LEARNING MANAGEMENT SYSTEM
+// ══════════════════════════════════════════════════════════
+
+export const seedLms = mutation({
+  handler: async (ctx) => {
+    const existing = await ctx.db.query("lmsCourses").collect();
+    if (existing.length > 0) return { seeded: false, message: "LMS data already exists" };
+
+    const users = await ctx.db.query("users").collect();
+    const faculty = users.find((u: any) => u.role === "staff") || users[0] || users.find((u: any) => true);
+    const admin = users.find((u: any) => u.role === "super_admin") || users[0];
+    if (!faculty) return { seeded: false, message: "No faculty user found" };
+
+    const now = Date.now();
+
+    // Courses
+    const reactCourse = await ctx.db.insert("lmsCourses", {
+      title: "Introduction to React", code: "REACT-101",
+      description: "Learn React fundamentals including components, hooks, state management, and routing",
+      instructorId: faculty._id, difficulty: "beginner", status: "published",
+      totalLessons: 0, enrolledCount: 15, tags: ["frontend", "react", "javascript"],
+      createdAt: now - 60 * day, updatedAt: now - 10 * day,
+    });
+
+    const nodeCourse = await ctx.db.insert("lmsCourses", {
+      title: "Node.js Backend Development", code: "NODE-201",
+      description: "Build scalable backend applications with Node.js, Express, and databases",
+      instructorId: faculty._id, difficulty: "intermediate", status: "published",
+      totalLessons: 0, enrolledCount: 12, tags: ["backend", "nodejs", "api"],
+      createdAt: now - 50 * day, updatedAt: now - 5 * day,
+    });
+
+    const dataScienceCourse = await ctx.db.insert("lmsCourses", {
+      title: "Data Science Fundamentals", code: "DS-301",
+      description: "Introduction to data science with Python, statistics, and machine learning",
+      instructorId: faculty._id, difficulty: "advanced", status: "draft",
+      totalLessons: 0, enrolledCount: 0, tags: ["data-science", "python", "ml"],
+      createdAt: now - 10 * day, updatedAt: now,
+    });
+
+    // Lessons for React course
+    for (let i = 1; i <= 5; i++) {
+      const lessonId = await ctx.db.insert("lmsLessons", {
+        courseId: reactCourse, title: `Lesson ${i}: ${["JSX & Components", "Props & State", "Hooks Deep Dive", "Event Handling", "Forms & Validation"][i-1]}`,
+        orderIndex: i, contentType: i % 2 === 0 ? "video" : "text",
+        contentData: `# Lesson ${i}\n\nThis is the content for lesson ${i} of Introduction to React.`,
+        duration: 30 + i * 5, isPublished: true, publishedAt: now - (6 - i) * 7 * day,
+        createdBy: faculty._id, createdAt: now - 60 * day, updatedAt: now - (6 - i) * 7 * day,
+      });
+
+      if (i <= 3) {
+        await ctx.db.insert("lmsTopics", {
+          lessonId, title: `Topic ${i}.1: Key Concepts`, orderIndex: 1,
+          contentType: "text", contentData: `Detailed content for topic ${i}.1`,
+          duration: 10, createdAt: now, updatedAt: now,
+        });
+      }
+    }
+
+    // Lessons for Node course
+    for (let i = 1; i <= 3; i++) {
+      await ctx.db.insert("lmsLessons", {
+        courseId: nodeCourse, title: `Module ${i}: ${["Express.js", "Database Integration", "REST API Design"][i-1]}`,
+        orderIndex: i, contentType: "video",
+        contentData: `# Module ${i} content`,
+        duration: 45, isPublished: i <= 2,
+        createdBy: faculty._id, createdAt: now - 50 * day, updatedAt: now,
+      });
+    }
+
+    // Update lesson counts
+    const reactLessons = await ctx.db.query("lmsLessons").withIndex("courseId", (q:any) => q.eq("courseId", reactCourse)).collect();
+    await ctx.db.patch(reactCourse, { totalLessons: reactLessons.length, updatedAt: now });
+    const nodeLessons = await ctx.db.query("lmsLessons").withIndex("courseId", (q:any) => q.eq("courseId", nodeCourse)).collect();
+    await ctx.db.patch(nodeCourse, { totalLessons: nodeLessons.length, updatedAt: now });
+
+    // Announcements
+    await ctx.db.insert("lmsAnnouncements", {
+      courseId: reactCourse, title: "Welcome to React Course",
+      content: "Welcome everyone! Please go through the first lesson before our live session.",
+      createdBy: faculty._id, priority: "important", createdAt: now - 55 * day, updatedAt: now - 55 * day,
+    });
+
+    return { seeded: true, message: "LMS data seeded successfully", stats: { courses: 3, lessons: 8 } };
+  },
+});
+
+// ══════════════════════════════════════════════════════════
+// SEED: INVENTORY
+// ══════════════════════════════════════════════════════════
+
+export const seedInventory = mutation({
+  handler: async (ctx) => {
+    const existing = await ctx.db.query("inventoryItems").collect();
+    if (existing.length > 0) return { seeded: false, message: "Inventory data already exists" };
+
+    const users = await ctx.db.query("users").collect();
+    const admin = users.find((u: any) => u.role === "super_admin") || users[0];
+    const branches = await ctx.db.query("branches").collect();
+    const branchId = branches[0]?._id;
+
+    if (!admin || !branchId) return { seeded: false, message: "Missing admin or branch" };
+
+    const now = Date.now();
+
+    // Categories
+    const electronics = await ctx.db.insert("inventoryCategories", {
+      name: "Electronics", code: "ELEC", description: "Electronic items and gadgets", isActive: true, createdAt: now, updatedAt: now,
+    });
+    const furniture = await ctx.db.insert("inventoryCategories", {
+      name: "Furniture", code: "FURN", description: "Office and classroom furniture", isActive: true, createdAt: now, updatedAt: now,
+    });
+    const stationery = await ctx.db.insert("inventoryCategories", {
+      name: "Stationery", code: "STAT", description: "Office supplies and stationery", isActive: true, createdAt: now, updatedAt: now,
+    });
+
+    // Warehouse
+    const mainWarehouse = await ctx.db.insert("warehouses", {
+      name: "Main Warehouse", code: "WH-MAIN", branchId, location: "Ground Floor", type: "warehouse", isActive: true, createdAt: now, updatedAt: now,
+    });
+
+    // Items
+    const items = [
+      { sku: "LAP-001", name: "Laptop - Dell Latitude 5420", categoryId: electronics, unit: "pcs", unitPrice: 65000, minStock: 5, maxStock: 50, reorderLevel: 10, currentStock: 25 },
+      { sku: "MNT-001", name: "Monitor - 24 inch Dell", categoryId: electronics, unit: "pcs", unitPrice: 15000, minStock: 5, maxStock: 30, reorderLevel: 8, currentStock: 3 },
+      { sku: "PRJ-001", name: "Projector - Epson EB-2055", categoryId: electronics, unit: "pcs", unitPrice: 45000, minStock: 2, maxStock: 10, reorderLevel: 3, currentStock: 2 },
+      { sku: "CHR-001", name: "Office Chair - Ergonomic", categoryId: furniture, unit: "pcs", unitPrice: 12000, minStock: 10, maxStock: 100, reorderLevel: 20, currentStock: 45 },
+      { sku: "TBL-001", name: "Classroom Table - 6 seater", categoryId: furniture, unit: "pcs", unitPrice: 18000, minStock: 5, maxStock: 40, reorderLevel: 10, currentStock: 0 },
+      { sku: "PEN-001", name: "Whiteboard Markers (box)", categoryId: stationery, unit: "box", unitPrice: 350, minStock: 20, maxStock: 200, reorderLevel: 50, currentStock: 12 },
+      { sku: "PAP-001", name: "A4 Paper (ream)", categoryId: stationery, unit: "ream", unitPrice: 500, minStock: 50, maxStock: 500, reorderLevel: 100, currentStock: 75 },
+    ];
+
+    for (const item of items) {
+      const itemId = await ctx.db.insert("inventoryItems", {
+        ...item, warehouseId: mainWarehouse, isActive: true, createdBy: admin._id, createdAt: now, updatedAt: now,
+      });
+      await ctx.db.insert("stockMovements", {
+        itemId, warehouseId: mainWarehouse, movementType: "purchase_receipt",
+        quantity: item.currentStock, balanceBefore: 0, balanceAfter: item.currentStock,
+        referenceType: "initial_stock", performedBy: admin._id, createdAt: now - 30 * day,
+      });
+    }
+
+    return { seeded: true, message: "Inventory data seeded successfully", stats: { categories: 3, warehouses: 1, items: items.length } };
+  },
+});
+
+// ══════════════════════════════════════════════════════════
+// SEED: PROCUREMENT
+// ══════════════════════════════════════════════════════════
+
+export const seedProcurement = mutation({
+  handler: async (ctx) => {
+    const existing = await ctx.db.query("vendorMaster").collect();
+    if (existing.length > 0) return { seeded: false, message: "Procurement data already exists" };
+
+    const users = await ctx.db.query("users").collect();
+    const admin = users.find((u: any) => u.role === "super_admin") || users[0];
+    const departments = await ctx.db.query("departments").collect();
+    const dept = departments[0];
+    if (!admin) return { seeded: false, message: "No admin user found" };
+
+    const now = Date.now();
+
+    // Vendors
+    const vendor1 = await ctx.db.insert("vendorMaster", {
+      vendorName: "TechMart Solutions", vendorCode: "V-TM-001",
+      contactPerson: "Rajesh Kumar", email: "rajesh@techmart.com", phone: "+91-9876543210",
+      gstNumber: "GSTIN-27AABCU1234", paymentTerms: "Net 30", leadTime: 7, rating: 4,
+      status: "active", createdBy: admin._id, createdAt: now - 60 * day, updatedAt: now,
+    });
+    const vendor2 = await ctx.db.insert("vendorMaster", {
+      vendorName: "OfficePro Supplies", vendorCode: "V-OP-001",
+      contactPerson: "Priya Sharma", email: "priya@officepro.com", phone: "+91-9876543211",
+      gstNumber: "GSTIN-27AABCU5678", paymentTerms: "Net 15", leadTime: 3, rating: 5,
+      status: "active", createdBy: admin._id, createdAt: now - 45 * day, updatedAt: now,
+    });
+
+    // Purchase Requisition
+    const prItems = [
+      { itemName: "Office Chairs", quantity: 20, estimatedUnitPrice: 12000, totalEstimated: 240000 },
+      { itemName: "Whiteboard Markers", quantity: 50, estimatedUnitPrice: 350, totalEstimated: 17500 },
+    ];
+    const totalEst = prItems.reduce((s, i) => s + i.totalEstimated, 0);
+
+    const reqId = await ctx.db.insert("purchaseRequisitions", {
+      requisitionNumber: "PR-000001", departmentId: dept?._id, requestedBy: admin._id,
+      priority: "high", status: "approved", totalEstimated: totalEst,
+      createdAt: now - 30 * day, updatedAt: now - 25 * day,
+    });
+    for (const item of prItems) {
+      await ctx.db.insert("requisitionItems", {
+        requisitionId: reqId, itemName: item.itemName, quantity: item.quantity,
+        estimatedUnitPrice: item.estimatedUnitPrice, totalEstimated: item.totalEstimated,
+        createdAt: now - 30 * day,
+      });
+    }
+
+    // Purchase Order
+    const poId = await ctx.db.insert("purchaseOrders", {
+      poNumber: "PO-000001", requisitionId: reqId, vendorId: vendor1,
+      orderDate: now - 25 * day, expectedDelivery: now + 5 * day,
+      subtotal: 257500, taxAmount: 46350, totalAmount: 303850,
+      status: "approved", createdBy: admin._id, createdAt: now - 25 * day, updatedAt: now - 20 * day,
+    });
+    for (const item of prItems) {
+      await ctx.db.insert("purchaseOrderItems", {
+        poId, itemName: item.itemName, quantity: item.quantity,
+        unitPrice: item.estimatedUnitPrice, totalPrice: item.totalEstimated,
+        receivedQuantity: 0, createdAt: now - 25 * day,
+      });
+    }
+
+    return { seeded: true, message: "Procurement data seeded successfully", stats: { vendors: 2, requisitions: 1, purchaseOrders: 1 } };
+  },
+});
+
+// ══════════════════════════════════════════════════════════
+// SEED: ALL MODULES
+// ══════════════════════════════════════════════════════════
+
+import { internalMutation } from "./_generated/server";
+
+export const seedAll = internalMutation({
+  handler: async (ctx) => {
+    const results: Record<string, any> = {};
+
+    const modules = [
+      { name: "finance", fn: seedFinance },
+      { name: "exams", fn: seedExams },
+      { name: "lms", fn: seedLms },
+      { name: "inventory", fn: seedInventory },
+      { name: "procurement", fn: seedProcurement },
+    ];
+
+    for (const mod of modules) {
+      try {
+        const result = await mod.fn.handler(ctx, {} as any);
+        results[mod.name] = result;
+      } catch (err: any) {
+        results[mod.name] = { seeded: false, message: err.message };
+      }
+    }
+
+    return {
+      seeded: true,
+      message: "All modules seeded",
+      results,
+    };
+  },
+});

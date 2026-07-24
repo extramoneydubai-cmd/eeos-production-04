@@ -6,10 +6,10 @@
 // ══════════════════════════════════════════════════════════
 
 /** CEO Collection Intelligence cards on CRM Dashboard */
-export const ENABLE_COLLECTION_DASHBOARD = false;
+export const ENABLE_COLLECTION_DASHBOARD = true;
 
 /** /collections dedicated dashboard page */
-export const ENABLE_COLLECTIONS_PAGE = false;
+export const ENABLE_COLLECTIONS_PAGE = true;
 
 /** Daily automation (overdue installments + PDC reminders) */
-export const ENABLE_AUTOMATION = false;
+export const ENABLE_AUTOMATION = true;
