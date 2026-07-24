@@ -240,7 +240,7 @@ export const rejectCandidate = mutation({
     reason: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    return transitionCandidateStatus(ctx, {
+    return (transitionCandidateStatus as any)(ctx, {
       candidateId: args.candidateId,
       newStatus: "rejected",
       rejectionReason: args.reason,
@@ -251,7 +251,7 @@ export const rejectCandidate = mutation({
 export const archiveCandidate = mutation({
   args: { candidateId: v.id("candidates") },
   handler: async (ctx, args) => {
-    return transitionCandidateStatus(ctx, {
+    return (transitionCandidateStatus as any)(ctx, {
       candidateId: args.candidateId,
       newStatus: "archived",
     });

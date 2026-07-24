@@ -250,7 +250,7 @@ export const getUpcomingInterviews = query({
       .slice(0, args.limit || 20);
 
     // Enrich with candidate names
-    const enriched = [];
+    const enriched: any[] = [];
     for (const interview of upcoming) {
       const candidate = await ctx.db.get(interview.candidateId);
       const person = candidate ? await ctx.db.get(candidate.personId) : null;
