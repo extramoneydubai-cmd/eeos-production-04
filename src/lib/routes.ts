@@ -178,6 +178,13 @@ export const routes: RouteEntry[] = [
     visible,
   },
   {
+    label: "LMS",
+    href: "/studio/lms",
+    icon: BookOpen,
+    group: "Business Modules",
+    visible,
+  },
+  {
     label: "Technology",
     href: "/studio/technology",
     icon: Monitor,
