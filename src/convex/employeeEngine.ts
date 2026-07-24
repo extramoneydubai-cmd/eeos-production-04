@@ -180,7 +180,7 @@ export const getEmployee = query({
     const company = employee.companyId ? await ctx.db.get(employee.companyId) : null;
 
     // Fetch reporting manager
-    let reportingManager = null;
+    let reportingManager: any = null;
     if (employee.reportingManagerId) {
       const mgr = await ctx.db.get(employee.reportingManagerId);
       if (mgr) {

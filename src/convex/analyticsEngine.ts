@@ -492,7 +492,7 @@ export const getConversionFunnels = query({
   handler: async (ctx, args) => {
     if (args.months) {
       const monthPeriods = getMonthPeriods(args.months);
-      const results = [];
+      const results: any[] = [];
       for (const mp of monthPeriods) {
         const funnel = await ctx.db
           .query("conversionFunnels")
@@ -632,8 +632,7 @@ export const generateForecast = mutation({
       conversionProbability = Math.round((avgConversion + trend) / 2);
     }
 
-    // @ts-expect-error - legacy analytics table
-    const forecastId = await ctx.db.insert("forecastSnapshots", {
+    const forecastId = await ctx.db.insert("forecastSnapshots" as any, {
       forecastType: args.forecastType,
       period,
       forecastDate: now,
@@ -801,8 +800,7 @@ export const refreshAnalyticsSnapshot = mutation({
       };
     }
 
-    // @ts-expect-error - legacy analytics table
-    const snapshotId = await ctx.db.insert("analyticsSnapshots", {
+    const snapshotId = await ctx.db.insert("analyticsSnapshots" as any, {
       snapshotType: args.snapshotType,
       period,
       periodStart,

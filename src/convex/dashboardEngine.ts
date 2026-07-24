@@ -543,7 +543,7 @@ export const getBranchComparison = query({
     const accounts = await ctx.db.query("studentFeeAccounts").collect();
     const payments = await ctx.db.query("paymentTransactions").collect();
 
-    const branchData = [];
+    const branchData: any[] = [];
 
     for (const branch of branches) {
       const branchStudents = students.filter((s: any) => s.branchId === branch._id.toString());
@@ -598,7 +598,7 @@ export const getCompanyComparison = query({
     const leads = await ctx.db.query("leadMaster").collect();
     const payments = await ctx.db.query("paymentTransactions").collect();
 
-    const companyData = [];
+    const companyData: any[] = [];
 
     for (const company of companies) {
       const companyBranches = branches.filter((b: any) =>

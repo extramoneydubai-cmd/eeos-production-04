@@ -19,8 +19,7 @@ async function createTimelineEvent(
   },
 ) {
   const now = Date.now();
-  return // @ts-expect-error
-      ctx.db.insert("leadTimeline", {
+  return ctx.db.insert("leadTimeline" as any, {
     leadId: args.leadId,
     eventType: args.eventType,
     title: args.title,
@@ -253,7 +252,7 @@ export const skillBasedAssign = mutation({
       matchedUser = workload[0].userId;
     }
 
-    return recordAssignment(ctx, args.leadId, lead.ownerId || undefined, matchedUser, args.assignedBy, "skill_based");
+    return recordAssignment(ctx, args.leadId, lead.ownerId || undefined, matchedUser!, args.assignedBy, "skill_based");
   },
 });
 
@@ -543,7 +542,7 @@ export const calculateWorkload = mutation({
     ).collect();
 
     const period = new Date().toISOString().slice(0, 7);
-    const results = [];
+    const results: any[] = [];
 
     for (const user of activeUsers) {
       const userLeads = allLeads.filter((l) => l.ownerId === user._id);

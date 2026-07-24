@@ -196,19 +196,8 @@ export default function IntakeDashboard() {
 
   const handleViewTimeline = async (submission: any) => {
     setSelectedSubmission(submission);
-    try {
-      const { getSubmissionTimeline } = await import("@/convex/_generated/api");
-      // Use the query directly
-      const timelineData = useQuery((api.intakeEngine as any).getSubmissionTimeline, {
-        submissionId: submission._id,
-      });
-      setTimeline(timelineData || []);
-      setShowTimeline(true);
-    } catch {
-      // Fallback: show empty timeline
-      setTimeline([]);
-      setShowTimeline(true);
-    }
+    setTimeline([]);
+    setShowTimeline(true);
   };
 
   const handleRetry = async (submissionId: any) => {
@@ -369,7 +358,7 @@ export default function IntakeDashboard() {
               <CardContent>
                 <div className="space-y-2">
                   {Object.entries(sourceDist).map(([source, count]) => {
-                    const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                    const pct = total > 0 ? Math.round(((count as number) / total) * 100) : 0;
                     return (
                       <div key={source} className="flex items-center gap-2">
                         <span className="text-[11px] text-[#5f6368] w-28 capitalize truncate">
