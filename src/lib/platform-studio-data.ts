@@ -1279,8 +1279,7 @@ export const platformApis: ApiInfo[] = [
   { name: "employeeLifecycle:retireEmployee", id: "API-148", type: "mutation", module: "HR", parameters: "{ employeeId, retirementDate? }", returnType: "void", usedBy: ["/employees/:empId"], permission: "admin" },
   { name: "employeeLifecycle:getEmployeeTimeline", id: "API-149", type: "query", module: "HR", parameters: "{ employeeId }", returnType: "TimelineEvent[]", usedBy: ["/employees/:empId"], permission: "all" },
   { name: "employeeEngine:getEmployeeStats", id: "API-150", type: "query", module: "HR", parameters: "{}", returnType: "EmployeeStats", usedBy: ["/employees", "/ceo"], permission: "admin" },
-], type: "mutation", module: "Finance", parameters: "{ invoiceId, amount, mode, reference? }", returnType: "Id", usedBy: ["/students", "/crm/leads/:leadId"], permission: "admin" },
-]
+];
 
 // ─── Engines ─────────────────────────────────────────────────────
 
