@@ -3370,7 +3370,165 @@ const schema = defineSchema({
   })
     .index("code", ["code"])
     .index("category", ["category"])
-    .index("isActive", ["isActive"]),.index("isDefault", ["isDefault"]),}, {
+    .index("isActive", ["isActive"]),
+
+  // ============================
+  // GLOBAL PEOPLE REGISTRY
+  // ============================
+
+  personMaster: defineTable({
+    firstName: v.string(),
+    middleName: v.optional(v.string()),
+    lastName: v.string(),
+    displayName: v.optional(v.string()),
+    preferredName: v.optional(v.string()),
+    profilePhoto: v.optional(v.string()),
+    gender: v.optional(v.string()),
+    dateOfBirth: v.optional(v.number()),
+    nationality: v.optional(v.string()),
+    maritalStatus: v.optional(v.string()),
+    bloodGroup: v.optional(v.string()),
+    preferredLanguage: v.optional(v.string()),
+    timezone: v.optional(v.string()),
+    status: v.string(),
+    notes: v.optional(v.string()),
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("displayName", ["displayName"])
+    .index("status", ["status"]),
+
+  personProfiles: defineTable({
+    personId: v.id("personMaster"),
+    profileType: v.string(),
+    profileReferenceId: v.optional(v.string()),
+    active: v.boolean(),
+    primaryProfile: v.boolean(),
+    displayLabel: v.optional(v.string()),
+    description: v.optional(v.string()),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+    metadata: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("personId", ["personId"])
+    .index("profileType", ["profileType"])
+    .index("personId_profileType", ["personId", "profileType"]),
+
+  contactMethods: defineTable({
+    personId: v.id("personMaster"),
+    type: v.string(),
+    label: v.optional(v.string()),
+    value: v.string(),
+    countryCode: v.optional(v.string()),
+    preferred: v.boolean(),
+    verified: v.boolean(),
+    verifiedAt: v.optional(v.number()),
+    visibility: v.union(v.literal("public"), v.literal("organization"), v.literal("department"), v.literal("private"), v.literal("emergency_only")),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("personId", ["personId"])
+    .index("type", ["type"])
+    .index("value", ["value"])
+    .index("personId_type", ["personId", "type"])
+    .index("type_value", ["type", "value"]),
+
+  addresses: defineTable({
+    personId: v.id("personMaster"),
+    addressType: v.union(v.literal("home"), v.literal("office"), v.literal("billing"), v.literal("shipping"), v.literal("permanent"), v.literal("current"), v.literal("emergency")),
+    line1: v.optional(v.string()),
+    line2: v.optional(v.string()),
+    area: v.optional(v.string()),
+    city: v.optional(v.string()),
+    state: v.optional(v.string()),
+    country: v.optional(v.string()),
+    postalCode: v.optional(v.string()),
+    latitude: v.optional(v.number()),
+    longitude: v.optional(v.number()),
+    isPrimary: v.boolean(),
+    label: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("personId", ["personId"])
+    .index("addressType", ["addressType"]),
+
+  emergencyContacts: defineTable({
+    ownerPersonId: v.id("personMaster"),
+    contactPersonId: v.id("personMaster"),
+    relationship: v.string(),
+    priority: v.number(),
+    notes: v.optional(v.string()),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("ownerPersonId", ["ownerPersonId"])
+    .index("contactPersonId", ["contactPersonId"])
+    .index("ownerPersonId_priority", ["ownerPersonId", "priority"]),
+
+  relationships: defineTable({
+    personA: v.id("personMaster"),
+    personB: v.id("personMaster"),
+    relationshipType: v.string(),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+    active: v.boolean(),
+    metadata: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("personA", ["personA"])
+    .index("personB", ["personB"])
+    .index("relationshipType", ["relationshipType"])
+    .index("personA_relationshipType", ["personA", "relationshipType"]),
+
+  socialLinks: defineTable({
+    personId: v.id("personMaster"),
+    platform: v.string(),
+    url: v.string(),
+    username: v.optional(v.string()),
+    verified: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("personId", ["personId"])
+    .index("platform", ["platform"]),
+
+  personDocuments: defineTable({
+    personId: v.id("personMaster"),
+    documentType: v.string(),
+    documentName: v.optional(v.string()),
+    fileReference: v.optional(v.string()),
+    fileUrl: v.optional(v.string()),
+    expiryDate: v.optional(v.number()),
+    verified: v.boolean(),
+    verifiedBy: v.optional(v.id("users")),
+    verifiedAt: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("personId", ["personId"])
+    .index("documentType", ["documentType"]),
+
+  personQRCode: defineTable({
+    personId: v.id("personMaster"),
+    qrToken: v.string(),
+    deepLink: v.string(),
+    qrImage: v.optional(v.string()),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("personId", ["personId"])
+    .index("qrToken", ["qrToken"]),
+
+}, {
   schemaValidation: false,
 });
 
