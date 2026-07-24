@@ -874,3 +874,366 @@ export const seedCourses = mutation({
     return { seeded: true, message: "17 sample courses seeded" };
   },
 });
+
+export const seedRecruitment = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const existingRequisitions = await ctx.db.query("jobRequisitions").take(1);
+    if (existingRequisitions.length > 0) return { seeded: false, message: "Recruitment already seeded" };
+
+    const users = await ctx.db.query("users").collect();
+    const ceo = users.find((u) => u.username === "ceo")!;
+    const cto = users.find((u) => u.username === "cto")!;
+    const cfo = users.find((u) => u.username === "cfo")!;
+    const hrHead = users.find((u) => u.username === "hrhead")!;
+    const sneha = users.find((u) => u.username === "sneha")!;
+
+    const departments = await ctx.db.query("departments").collect();
+    const techDept = departments.find((d) => d.code === "TECH")!;
+    const financeDept = departments.find((d) => d.code === "FIN")!;
+    const marketingDept = departments.find((d) => d.code === "MKT")!;
+    const hrDept = departments.find((d) => d.code === "HR")!;
+
+    const branches = await ctx.db.query("branches").collect();
+    const npBranch = branches.find((b) => b.code === "NP")!;
+    const opBranch = branches.find((b) => b.code === "OP")!;
+    const klBranch = branches.find((b) => b.code === "KL")!;
+
+    const designations = await ctx.db.query("designations").collect();
+    const staffDesig = designations.find((d) => d.code === "STF")!;
+    const mgrDesig = designations.find((d) => d.code === "MGR")!;
+
+    const now = Date.now();
+    const day = 86400000;
+
+    // ─── JOB REQUISITIONS ───
+
+    const req1 = await ctx.db.insert("jobRequisitions", {
+      departmentId: techDept._id,
+      designationId: staffDesig._id,
+      companyId: undefined,
+      branchId: npBranch._id,
+      requestedBy: cto._id,
+      vacancies: 3,
+      employmentType: "permanent",
+      salaryRange: "₹8L - ₹15L",
+      description: "Hiring senior software engineers for the Engineering team to build and maintain our EdTech platform.",
+      status: "approved",
+      createdAt: now - 30 * day,
+      updatedAt: now - 25 * day,
+    });
+
+    const req2 = await ctx.db.insert("jobRequisitions", {
+      departmentId: financeDept._id,
+      designationId: staffDesig._id,
+      companyId: undefined,
+      branchId: npBranch._id,
+      requestedBy: cfo._id,
+      vacancies: 2,
+      employmentType: "permanent",
+      salaryRange: "₹5L - ₹9L",
+      description: "Hiring an Accountant and a Financial Analyst for the Finance Operations team.",
+      status: "approved",
+      createdAt: now - 20 * day,
+      updatedAt: now - 18 * day,
+    });
+
+    const req3 = await ctx.db.insert("jobRequisitions", {
+      departmentId: marketingDept._id,
+      designationId: mgrDesig._id,
+      companyId: undefined,
+      branchId: opBranch._id,
+      requestedBy: hrHead._id,
+      vacancies: 1,
+      employmentType: "permanent",
+      salaryRange: "₹10L - ₹16L",
+      description: "Hiring a Marketing Manager to lead brand strategy and digital marketing initiatives.",
+      status: "pending_approval",
+      createdAt: now - 5 * day,
+      updatedAt: now - 5 * day,
+    });
+
+    const req4 = await ctx.db.insert("jobRequisitions", {
+      departmentId: techDept._id,
+      designationId: staffDesig._id,
+      companyId: undefined,
+      branchId: npBranch._id,
+      requestedBy: cto._id,
+      vacancies: 2,
+      employmentType: "contract",
+      salaryRange: "₹4L - ₹7L",
+      description: "Hiring QA Engineers for a 6-month contract to test the upcoming product release.",
+      status: "draft",
+      createdAt: now - 2 * day,
+      updatedAt: now - 2 * day,
+    });
+
+    // ─── JOB POSTINGS ───
+
+    const posting1 = await ctx.db.insert("jobPostings", {
+      requisitionId: req1,
+      title: "Senior Software Engineer",
+      description: "We are looking for a Senior Software Engineer to join our Engineering team. You will work on building scalable EdTech solutions using React, TypeScript, and Node.js.",
+      skills: ["React", "TypeScript", "Node.js", "PostgreSQL", "AWS"],
+      locations: ["NP - North Province", "OP - Online"],
+      applicationDeadline: now + 15 * day,
+      status: "published",
+      createdAt: now - 25 * day,
+      updatedAt: now - 25 * day,
+    });
+
+    const posting2 = await ctx.db.insert("jobPostings", {
+      requisitionId: req1,
+      title: "Software Engineer (Frontend)",
+      description: "Join our frontend team to build beautiful, responsive user interfaces for our learning management system.",
+      skills: ["React", "TypeScript", "Tailwind CSS", "Next.js"],
+      locations: ["NP - North Province"],
+      applicationDeadline: now + 20 * day,
+      status: "published",
+      createdAt: now - 25 * day,
+      updatedAt: now - 25 * day,
+    });
+
+    const posting3 = await ctx.db.insert("jobPostings", {
+      requisitionId: req2,
+      title: "Accountant",
+      description: "Manage day-to-day accounting operations, GST returns, and financial reporting for the organization.",
+      skills: ["Tally", "GST", "MS Excel", "Financial Reporting"],
+      locations: ["NP - North Province"],
+      applicationDeadline: now + 25 * day,
+      status: "published",
+      createdAt: now - 18 * day,
+      updatedAt: now - 18 * day,
+    });
+
+    // ─── CANDIDATES ───
+
+    const candidateData = [
+      { f: "Ananya", l: "Verma", src: "LinkedIn", pos: "Senior Software Engineer", expSal: 1200000, curSal: 950000, notice: 45, exp: 5, status: "shortlisted" },
+      { f: "Rahul", l: "Sharma", src: "Naukri", pos: "Senior Software Engineer", expSal: 1400000, curSal: 1100000, notice: 60, exp: 6, status: "interview_scheduled" },
+      { f: "Priya", l: "Mehta", src: "Referral", pos: "Software Engineer (Frontend)", expSal: 900000, curSal: 700000, notice: 30, exp: 3, status: "applied" },
+      { f: "Vikram", l: "Singh", src: "LinkedIn", pos: "Software Engineer (Frontend)", expSal: 850000, curSal: 650000, notice: 30, exp: 2.5, status: "screening" },
+      { f: "Neha", l: "Gupta", src: "Company Website", pos: "Accountant", expSal: 600000, curSal: 480000, notice: 30, exp: 4, status: "offer_pending" },
+      { f: "Amit", l: "Joshi", src: "Referral", pos: "Accountant", expSal: 550000, curSal: 420000, notice: 15, exp: 3, status: "interview_completed" },
+      { f: "Deepika", l: "Nair", src: "LinkedIn", pos: "Senior Software Engineer", expSal: 1300000, curSal: 1000000, notice: 90, exp: 7, status: "assessment" },
+      { f: "Karan", l: "Patel", src: "Naukri", pos: "Software Engineer (Frontend)", expSal: 750000, curSal: 550000, notice: 30, exp: 1.5, status: "rejected" },
+    ];
+
+    const candidateIds: any[] = [];
+
+    for (const d of candidateData) {
+      const cId = await ctx.db.insert("candidates", {
+        personId: undefined,
+        jobPostingId: d.pos.includes("Senior") ? posting1 : d.pos.includes("Frontend") ? posting2 : posting3,
+        source: d.src,
+        appliedPosition: d.pos,
+        expectedSalary: d.expSal,
+        currentSalary: d.curSal,
+        noticePeriod: d.notice,
+        experience: d.exp,
+        resumeUrl: undefined,
+        status: d.status as any,
+        rejectionReason: d.status === "rejected" ? "Skills mismatch for current requirements" : undefined,
+        createdAt: now - (15 + Math.floor(Math.random() * 10)) * day,
+        updatedAt: now - 5 * day,
+      });
+      candidateIds.push(cId);
+
+      // Create timeline events
+      await ctx.db.insert("recruitmentTimeline", {
+        candidateId: cId,
+        eventType: "status_change",
+        previousStatus: "applied",
+        newStatus: d.status,
+        changedBy: hrHead._id,
+        note: `Candidate ${d.status === "rejected" ? "rejected after initial review" : "progressed to " + d.status.replace("_", " ")}`,
+        createdAt: now - 5 * day,
+      });
+    }
+
+    // ─── INTERVIEWS ───
+
+    // Interview for Rahul (Senior SE - shortlisted)
+    const int1 = await ctx.db.insert("interviewRounds", {
+      candidateId: candidateIds[1],
+      roundName: "Technical Round 1",
+      interviewerIds: [cto._id],
+      schedule: now + 3 * day,
+      mode: "video",
+      duration: 60,
+      result: "scheduled",
+      score: undefined,
+      remarks: undefined,
+      createdAt: now - 2 * day,
+      updatedAt: now - 2 * day,
+    });
+
+    // Completed interview for Amit (Accountant)
+    const int2 = await ctx.db.insert("interviewRounds", {
+      candidateId: candidateIds[5],
+      roundName: "Technical Assessment",
+      interviewerIds: [cfo._id],
+      schedule: now - 3 * day,
+      mode: "in_person",
+      duration: 45,
+      result: "completed",
+      score: 82,
+      remarks: "Good understanding of accounting principles. Recommended for next round.",
+      createdAt: now - 10 * day,
+      updatedAt: now - 3 * day,
+    });
+
+    const int3 = await ctx.db.insert("interviewRounds", {
+      candidateId: candidateIds[5],
+      roundName: "HR Round",
+      interviewerIds: [hrHead._id],
+      schedule: now - 1 * day,
+      mode: "video",
+      duration: 30,
+      result: "completed",
+      score: 90,
+      remarks: "Excellent communication. Salary expectations aligned.",
+      createdAt: now - 5 * day,
+      updatedAt: now - 1 * day,
+    });
+
+    // Interview for Ananya (Senior SE - shortlisted)
+    const int4 = await ctx.db.insert("interviewRounds", {
+      candidateId: candidateIds[0],
+      roundName: "Technical Round",
+      interviewerIds: [cto._id, sneha._id],
+      schedule: now - 7 * day,
+      mode: "video",
+      duration: 60,
+      result: "completed",
+      score: 88,
+      remarks: "Strong technical skills. Good system design knowledge.",
+      createdAt: now - 15 * day,
+      updatedAt: now - 7 * day,
+    });
+
+    const int5 = await ctx.db.insert("interviewRounds", {
+      candidateId: candidateIds[0],
+      roundName: "Manager Round",
+      interviewerIds: [cto._id],
+      schedule: now - 3 * day,
+      mode: "in_person",
+      duration: 45,
+      result: "completed",
+      score: 85,
+      remarks: "Cultural fit excellent. Ready for offer.",
+      createdAt: now - 8 * day,
+      updatedAt: now - 3 * day,
+    });
+
+    // ─── ASSESSMENTS ───
+
+    // Assessment for Deepika (Senior SE - assessment stage)
+    await ctx.db.insert("assessments", {
+      candidateId: candidateIds[6],
+      assessmentType: "coding_challenge",
+      score: 75,
+      maxScore: 100,
+      evaluator: cto._id,
+      result: "pending",
+      remarks: "Submitted on time. Code quality under review.",
+      createdAt: now - 3 * day,
+    });
+
+    // Assessment for Ananya
+    await ctx.db.insert("assessments", {
+      candidateId: candidateIds[0],
+      assessmentType: "technical_test",
+      score: 92,
+      maxScore: 100,
+      evaluator: cto._id,
+      result: "pass",
+      remarks: "Excellent problem-solving skills.",
+      createdAt: now - 12 * day,
+    });
+
+    // Assessment for Neha (Accountant - offer pending)
+    await ctx.db.insert("assessments", {
+      candidateId: candidateIds[4],
+      assessmentType: "practical_test",
+      score: 85,
+      maxScore: 100,
+      evaluator: cfo._id,
+      result: "pass",
+      remarks: "Good practical knowledge of Tally and GST filing.",
+      createdAt: now - 10 * day,
+    });
+
+    // ─── OFFERS ───
+
+    // Offer for Ananya
+    await ctx.db.insert("offers", {
+      candidateId: candidateIds[0],
+      offeredSalary: 1250000,
+      joiningDate: now + 30 * day,
+      offerLetter: undefined,
+      status: "accepted",
+      approvedBy: ceo._id,
+      notes: "Accepted verbally. Offer letter sent.",
+      createdAt: now - 2 * day,
+      updatedAt: now - 1 * day,
+    });
+
+    // Offer for Neha
+    await ctx.db.insert("offers", {
+      candidateId: candidateIds[4],
+      offeredSalary: 650000,
+      joiningDate: now + 20 * day,
+      offerLetter: undefined,
+      status: "pending_approval",
+      approvedBy: undefined,
+      notes: "Awaiting CFO approval on budget.",
+      createdAt: now - 1 * day,
+      updatedAt: now - 1 * day,
+    });
+
+    // ─── ONBOARDING TASKS ───
+
+    // Create a dummy employee ID reference for the hired candidate
+    const hiredCandId = candidateIds[0]; // Ananya - offer accepted
+
+    const onboardingItems = [
+      "Complete HR documentation and forms",
+      "Set up email and system access",
+      "IT equipment allocation (laptop, monitor)",
+      "Introduction to team members",
+      "Review onboarding handbook",
+      "Complete mandatory compliance training",
+      "Set up development environment",
+      "Schedule 30-60-90 day check-ins",
+    ];
+
+    for (let i = 0; i < onboardingItems.length; i++) {
+      await ctx.db.insert("onboardingTasks", {
+        employeeId: undefined,
+        candidateId: hiredCandId,
+        checklistItem: onboardingItems[i],
+        assignedTo: i < 3 ? hrHead._id : cto._id,
+        dueDate: now + (i < 3 ? 5 : 10) * day,
+        completed: i < 2,
+        completedAt: i < 2 ? now + (i + 1) * day : undefined,
+        notes: i === 0 ? "Documents submitted" : undefined,
+        createdAt: now,
+      });
+    }
+
+    return {
+      seeded: true,
+      message: "Recruitment data seeded successfully",
+      stats: {
+        requisitions: 4,
+        postings: 3,
+        candidates: candidateData.length,
+        interviews: 5,
+        assessments: 3,
+        offers: 2,
+        onboardingTasks: onboardingItems.length,
+      },
+    };
+  },
+});
