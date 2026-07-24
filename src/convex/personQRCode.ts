@@ -10,7 +10,7 @@ async function generateQRToken(personId: string): Promise<string> {
   const data = encoder.encode(raw);
   const hashBuffer = await crypto.subtle.digest("SHA-256", data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, 4)).join("").substring(0, 32);
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join("").substring(0, 32);
 }
 
 export const generateQRCode = mutation({
@@ -64,8 +64,43 @@ export const regenerateQRCode = mutation({
     baseUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Same as generate but regenerates
-    return await generateQRCode(ctx, { personId: args.personId, baseUrl: args.baseUrl });
+    const person = await ctx.db.get(args.personId);
+    if (!person || person.status === "archived") {
+      throw new Error("Person not found or archived");
+    }
+
+    // Deactivate any existing QR codes
+    const existingQR = await ctx.db
+      .query("personQRCode")
+      .withIndex("personId", (q) => q.eq("personId", args.personId))
+      .collect();
+
+    const now = Date.now();
+    for (const qr of existingQR) {
+      await ctx.db.patch(qr._id, { active: false, updatedAt: now });
+    }
+
+    // Generate new QR code
+    const baseUrl = args.baseUrl || "https://app.eeos.com";
+    const deepLink = `${baseUrl}/p/${args.personId}`;
+
+    const qrToken = await generateQRToken(args.personId);
+
+    const qrId = await ctx.db.insert("personQRCode", {
+      personId: args.personId,
+      qrToken,
+      deepLink,
+      active: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return {
+      qrId,
+      qrToken,
+      deepLink,
+      deepLinkFallback: `eeos://person/${args.personId}`,
+    };
   },
 });
 

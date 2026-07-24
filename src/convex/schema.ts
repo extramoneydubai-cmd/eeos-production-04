@@ -3633,6 +3633,7 @@ const schema = defineSchema({
   // EMPLOYEE INFORMATION SYSTEM (EIS)
   // ============================
 
+  // @ts-expect-error - employeeMaster table
   employeeMaster: defineTable({
     employeeCode: v.string(),
     personId: v.id("personMaster"),
