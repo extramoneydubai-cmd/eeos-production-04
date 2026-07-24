@@ -3518,7 +3518,115 @@ const schema = defineSchema({
     .index("personId", ["personId"])
     .index("qrToken", ["qrToken"]),
 
-}, {
+
+
+  // ============================
+  // DATA VISIBILITY & ACCESS ENGINE
+  // ============================
+
+  visibilityPolicies: defineTable({
+    policyName: v.string(),
+    policyCode: v.string(),
+    description: v.optional(v.string()),
+    securityLevel: v.union(
+      v.literal("public"), v.literal("internal"),
+      v.literal("confidential"), v.literal("highly_confidential"),
+      v.literal("executive"), v.literal("legal_hold"),
+    ),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("policyCode", ["policyCode"])
+    .index("securityLevel", ["securityLevel"])
+    .index("active", ["active"]),
+
+  categoryPermissions: defineTable({
+    designationId: v.id("designations"),
+    category: v.string(),
+    canDiscover: v.boolean(),
+    canOpen: v.boolean(),
+    canCreate: v.boolean(),
+    canEdit: v.boolean(),
+    canDelete: v.boolean(),
+    canExport: v.boolean(),
+    canPrint: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("designationId", ["designationId"])
+    .index("category", ["category"])
+    .index("designationId_category", ["designationId", "category"]),
+
+  fieldPermissions: defineTable({
+    designationId: v.id("designations"),
+    module: v.string(),
+    fieldName: v.string(),
+    visible: v.boolean(),
+    editable: v.boolean(),
+    masked: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("designationId", ["designationId"])
+    .index("module", ["module"])
+    .index("designationId_module", ["designationId", "module"]),
+
+  sectionPermissions: defineTable({
+    designationId: v.id("designations"),
+    module: v.string(),
+    sectionName: v.string(),
+    visible: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("designationId", ["designationId"])
+    .index("module", ["module"])
+    .index("designationId_module", ["designationId", "module"]),
+
+  actionPermissions: defineTable({
+    designationId: v.id("designations"),
+    module: v.string(),
+    action: v.string(),
+    allowed: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("designationId", ["designationId"])
+    .index("module", ["module"])
+    .index("designationId_module_action", ["designationId", "module", "action"]),
+
+  recordPolicies: defineTable({
+    module: v.string(),
+    recordId: v.string(),
+    policyId: v.optional(v.id("visibilityPolicies")),
+    ownerUserId: v.optional(v.id("users")),
+    departmentId: v.optional(v.id("departments")),
+    branchId: v.optional(v.id("branches")),
+    companyId: v.optional(v.id("companies")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("module", ["module"])
+    .index("recordId", ["recordId"])
+    .index("module_recordId", ["module", "recordId"])
+    .index("ownerUserId", ["ownerUserId"])
+    .index("departmentId", ["departmentId"]),
+
+  accessAuditLogs: defineTable({
+    userId: v.id("users"),
+    module: v.string(),
+    recordId: v.optional(v.string()),
+    action: v.string(),
+    result: v.union(v.literal("granted"), v.literal("denied")),
+    reason: v.optional(v.string()),
+    timestamp: v.number(),
+    createdAt: v.number(),
+  })
+    .index("userId", ["userId"])
+    .index("module", ["module"])
+    .index("timestamp", ["timestamp"])
+    .index("userId_timestamp", ["userId", "timestamp"]),}, {
   schemaValidation: false,
 });
 
