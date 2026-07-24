@@ -50,8 +50,8 @@ export const getConversionHistory = query({
     }
 
     return convertedEntries.map((entry) => {
-      const lead = leadMap.get(entry.leadId);
-      const user = userMap.get(entry.changedBy);
+      const lead: any = leadMap.get(entry.leadId);
+      const user: any = userMap.get(entry.changedBy);
 
       // Find the most recent verified payment that preceded the conversion
       const leadPayments = paymentsByLead.get(entry.leadId) || [];

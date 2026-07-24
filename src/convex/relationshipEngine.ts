@@ -234,7 +234,7 @@ export const getReportingHierarchy = query({
       }
     }
 
-    let profiles = null;
+    let profiles: any = null;
     if (args.includeProfiles) {
       profiles = await ctx.db
         .query("personProfiles")

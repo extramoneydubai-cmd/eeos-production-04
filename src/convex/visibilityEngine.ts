@@ -217,7 +217,7 @@ export const filterRecords = query({
 
     // Check category discover
     if (args.category) {
-      const canDisc = await canDiscover(ctx, { userId: args.userId, category: args.category });
+      const canDisc = await (canDiscover as any)(ctx, { userId: args.userId, category: args.category });
       if (!canDisc) return [];
     }
 
@@ -540,7 +540,7 @@ export const evaluateVisibility = query({
     const user = await ctx.db.get(args.userId);
     if (!user) return null;
 
-    const canAccess = await canOpen(ctx, {
+    const canAccess = await (canOpen as any)(ctx, {
       userId: args.userId,
       module: args.module,
       recordId: args.recordId,
@@ -564,14 +564,14 @@ export const evaluateVisibility = query({
       "medical", "salary", "finance", "notes",
     ];
 
-    const visibleSections = await filterSections(ctx, {
+    const visibleSections = await (filterSections as any)(ctx, {
       userId: args.userId,
       module: args.module,
       sectionNames: allSections,
     });
 
     // Get field visibility
-    const fieldPerms = await filterFields(ctx, {
+    const fieldPerms = await (filterFields as any)(ctx, {
       userId: args.userId,
       module: args.module,
     });
@@ -585,7 +585,7 @@ export const evaluateVisibility = query({
 
     const allowedActions: string[] = [];
     for (const action of actions) {
-      const allowed = await canPerformAction(ctx, {
+      const allowed = await (canPerformAction as any)(ctx, {
         userId: args.userId,
         module: args.module,
         action,

@@ -241,7 +241,7 @@ export const generateInstallments = mutation({
     const interval = frequencyMap[account.installmentFrequency] || 30 * 24 * 60 * 60 * 1000;
 
     for (let i = 0; i < account.installmentsCount; i++) {
-      const dueDate = startDate + i * interval;
+      const dueDate = args.startDate + i * interval;
       const id = await ctx.db.insert("feeInstallments", {
         studentId: account.studentId,
         feeAccountId: args.feeAccountId,
