@@ -28,14 +28,16 @@ export const getUserById = query({
 
 export const listUsers = query({
   args: {
-    paginationOpts: paginationOptsValidator,
+    paginationOpts: v.optional(paginationOptsValidator),
     search: v.optional(v.string()),
     departmentId: v.optional(v.id("departments")),
     teamId: v.optional(v.id("teams")),
     isDisabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args): Promise<PaginatedResponse<any>> => {
-    const result = await paginatedQuery<any>(ctx, "users", args, (q) =>
+    const paginationOpts = args.paginationOpts || { cursor: null as string | null, numItems: 10000 };
+    const queryArgs = { ...args, paginationOpts };
+    const result = await paginatedQuery<any>(ctx, "users", queryArgs, (q) =>
       q.withIndex("by_createdAt").order("desc"),
     );
     let filtered = result.items;
@@ -55,11 +57,13 @@ export const listUsers = query({
 
 export const listActiveUsers = query({
   args: {
-    paginationOpts: paginationOptsValidator,
+    paginationOpts: v.optional(paginationOptsValidator),
     search: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<PaginatedResponse<any>> => {
-    const result = await paginatedQuery<any>(ctx, "users", args, (q) =>
+    const paginationOpts = args.paginationOpts || { cursor: null as string | null, numItems: 10000 };
+    const queryArgs = { ...args, paginationOpts };
+    const result = await paginatedQuery<any>(ctx, "users", queryArgs, (q) =>
       q.withIndex("by_createdAt").order("desc"),
     );
     const filtered = result.items.filter((u: any) => !u.isDisabled);
