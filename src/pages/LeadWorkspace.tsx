@@ -16,7 +16,7 @@ import {
   MessageSquare, FileText, Activity, Plus, Send, Trash2, Loader2, AlertCircle,
   CheckCircle2, XCircle, Edit3, UserPlus, Paperclip, ChevronDown, Sparkles, BarChart3,
   ThumbsUp, ThumbsDown, MessageCircle, ExternalLink, Percent, Receipt, X,
-  History, Search, ArrowRight, Layers, BookOpen, RotateCcw, Info, Lock, TrendingUp,
+  History, Search, ArrowRight, Layers, BookOpen, RotateCcw, Info, Lock, TrendingUp, Ban,
 } from "lucide-react";
 import { useState } from "react";
 import { useParams } from "react-router";
@@ -66,6 +66,10 @@ const ACTIVITY_TEMPLATES: Record<string, string> = {
   whatsapp_sent: "sent a WhatsApp message",
   call_made: "made a call to",
   lead_updated: "updated lead details",
+  pdc_deposited: "deposited a PDC cheque:",
+  pdc_cleared: "PDC cheque cleared by bank:",
+  pdc_bounced: "PDC cheque bounced:",
+  pdc_cancelled: "cancelled a PDC cheque:",
 };
 
 const WHATSAPP_TEMPLATES = [
@@ -486,6 +490,7 @@ export default function LeadWorkspace() {
       discount_approved: CheckCircle2, discount_rejected: XCircle,
       approval_requested: ThumbsUp, approval_decided: CheckCircle2,
       whatsapp_sent: MessageCircle, call_made: Phone, lead_updated: Edit3,
+      pdc_deposited: Receipt, pdc_cleared: CheckCircle2, pdc_bounced: XCircle, pdc_cancelled: Ban,
     };
     const Icon = iconMap[a.action] || Activity;
 

@@ -370,8 +370,21 @@ export const updatePDCStatus = mutation({
     await ctx.db.patch(args.pdcId, patch);
 
     if (pdc) {
-      await logActivity(ctx, pdc.leadId, "pdc_updated",
-        `PDC ${args.status}: ${pdc.bank} #${pdc.chequeNumber}${pdc.linkedPaymentId ? " (payment already linked)" : ""}${args.bounceReason ? ` — ${args.bounceReason}` : ""}`,
+      const actionMap: Record<string, string> = {
+        deposited: "pdc_deposited",
+        cleared: "pdc_cleared",
+        bounced: "pdc_bounced",
+        cancelled: "pdc_cancelled",
+      };
+      const action = actionMap[args.status] || "pdc_updated";
+      const descMap: Record<string, string> = {
+        deposited: `Deposited cheque #${pdc.chequeNumber} — ${pdc.bank}`,
+        cleared: `Cheque cleared by bank — ${pdc.bank} #${pdc.chequeNumber} (₹${pdc.amount.toLocaleString()})`,
+        bounced: `Cheque bounced — ${pdc.bank} #${pdc.chequeNumber}${args.bounceReason ? ` — ${args.bounceReason}` : ""}`,
+        cancelled: `Cancelled PDC — ${pdc.bank} #${pdc.chequeNumber}`,
+      };
+      await logActivity(ctx, pdc.leadId, action,
+        descMap[args.status] || `PDC ${args.status}: ${pdc.bank} #${pdc.chequeNumber}`,
         args.userId);
     }
   },
