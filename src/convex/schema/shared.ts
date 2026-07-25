@@ -1122,20 +1122,5 @@ export const sharedTables = {
     .index("category", ["category"])
     .index("isActive", ["isActive"])
     .index("by_created", ["createdAt"])
-    .index("by_updated", ["updatedAt"]),
-
-  // ─── Notifications ────────────────────────────────────────
-  notifications: defineTable({
-    userId: v.id("users"),
-    type: v.string(),
-    title: v.string(),
-    message: v.string(),
-    referenceId: v.optional(v.string()),
-    referenceType: v.optional(v.string()),
-    isRead: v.boolean(),
-    createdAt: v.number(),
-  })
-    .index("userId", ["userId"])
-    .index("userId_isRead", ["userId", "isRead"])
-    .index("by_created", ["createdAt"]),
+    .index("by_updated", ["updatedAt"])
 };

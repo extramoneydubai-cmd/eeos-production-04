@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
-import { withEventPipeline, entityIdFromResult, entityIdFromArg } from "../platform/eventPipeline";
+import { withEventPipeline, entityIdFromResult, entityIdFromArg } from "@/platform/eventPipeline";
 
 // ═══════════════════════════════════════════════════════════════════
 // MARKS QUERIES

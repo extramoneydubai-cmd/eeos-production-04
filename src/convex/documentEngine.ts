@@ -335,7 +335,7 @@ export const setDocumentPermission = mutation({
 
 export const listDocuments = query({
   args: {
-    paginationOpts: v.optional(paginationOptsValidator),
+    paginationOpts: paginationOptsValidator,
     folderId: v.optional(v.id("documentFolders")),
     referenceType: v.optional(v.union(
       v.literal("person"), v.literal("student"), v.literal("employee"),
@@ -350,15 +350,20 @@ export const listDocuments = query({
     search: v.optional(v.string()),
     tagId: v.optional(v.id("documentTags")),
   },
-  handler: async (ctx, args) => {
-    // Collect all documents and apply filters (backward compatible plain array)
-    const all = await ctx.db.query("documents").collect();
+  handler: async (ctx, args): Promise<PaginatedResponse<any>> => {
+    // Use pagination with folder index if available, else default by createdAt
+    const result = await paginatedQuery<any>(
+      ctx,
+      "documents",
+      args,
+      (q) => args.folderId
+        ? q.withIndex("by_folder", (iq: any) => iq.eq("folderId", args.folderId!))
+        : q.withIndex("by_createdAt").order("desc"),
+    );
 
-    let filtered = [...all];
+    let filtered = result.items;
 
-    if (args.folderId) {
-      filtered = filtered.filter((d: any) => d.folderId === args.folderId);
-    }
+    // Apply in-memory filters on the already-paginated page
     if (!args.includeArchived) {
       filtered = filtered.filter((d: any) => !d.isArchived);
     }
@@ -374,7 +379,7 @@ export const listDocuments = query({
       filtered = filtered.filter((d: any) => d.tags && d.tags.includes(args.tagId));
     }
 
-    // In-memory search
+    // In-memory search on paginated page
     if (args.search) {
       const s = args.search.toLowerCase();
       filtered = filtered.filter((d: any) =>
@@ -383,10 +388,7 @@ export const listDocuments = query({
       );
     }
 
-    // Sort by newest first
-    filtered.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
-
-    // Batch enrich with uploader names
+    // Batch enrich with uploader names (fixes N+1 pattern)
     const uploaderIds = [...new Set(filtered.map((d: any) => d.uploadedBy))];
     const uploaders = await batchGet<any>(ctx, uploaderIds);
     const uploaderMap = new Map(uploaders.filter(Boolean).map((u: any) => [u._id, u.name || "Unknown"]));
@@ -402,7 +404,11 @@ export const listDocuments = query({
       };
     }));
 
-    return enriched;
+    return {
+      items: enriched,
+      nextCursor: result.nextCursor,
+      hasMore: result.hasMore,
+    };
   },
 });
 

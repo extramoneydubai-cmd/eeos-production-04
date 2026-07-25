@@ -15,7 +15,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
-import { withEventPipeline, entityIdFromResult, entityIdFromArg, userIdFromArg } from "../platform/eventPipeline";
+import { withEventPipeline, entityIdFromResult, entityIdFromArg, userIdFromArg } from "@/platform/eventPipeline";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
 // ═══════════════════════════════════════════════════════════════════

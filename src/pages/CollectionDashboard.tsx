@@ -30,8 +30,6 @@ import {
   Database,
   ChevronDown,
   ExternalLink,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import { ENABLE_COLLECTIONS_PAGE } from "@/featureFlags";
 
@@ -92,23 +90,11 @@ export default function CollectionDashboard() {
   const { navigate } = useAppNavigate();
   const [running, setRunning] = useState(false);
   const [selectedPDCStatus, setSelectedPDCStatus] = useState<string | null>(null);
-  const [pdcPage, setPdcPage] = useState(0);
-  const PDC_PAGE_SIZE = 10;
 
   const pdcDetails = useQuery(
     api.collectionEngine.getPDCByStatus,
     selectedPDCStatus ? { status: selectedPDCStatus as any } : "skip"
   );
-
-  // Reset page when switching status
-  const handleSelectPDCStatus = (status: string | null) => {
-    setSelectedPDCStatus(status === selectedPDCStatus ? null : status);
-    setPdcPage(0);
-  };
-
-  const totalPdcItems = pdcDetails?.length || 0;
-  const totalPdcPages = Math.max(1, Math.ceil(totalPdcItems / PDC_PAGE_SIZE));
-  const pdcPageItems = pdcDetails?.slice(pdcPage * PDC_PAGE_SIZE, (pdcPage + 1) * PDC_PAGE_SIZE) || [];
 
   // Safe mode — page disabled until Convex deployment
   if (!ENABLE_COLLECTIONS_PAGE) {
@@ -440,7 +426,7 @@ export default function CollectionDashboard() {
                   subtitle={total > 0 ? `₹${total.toLocaleString()}` : undefined}
                   icon={s.icon}
                   color={isActive ? s.color : s.color.replace("bg-", "bg-").replace(/\[.*?\]/, "[#dadce0]")}
-                  onClick={() => handleSelectPDCStatus(s.key)}
+                  onClick={() => setSelectedPDCStatus(selectedPDCStatus === s.key ? null : s.key)}
                 />
               );
             })}
@@ -477,108 +463,50 @@ export default function CollectionDashboard() {
                     <p className="text-[12px] text-[#9aa0a6]">No PDCs in this status.</p>
                   </div>
                 ) : (
-                  <>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left">
-                        <thead>
-                          <tr className="border-b border-[#f1f3f4]">
-                            <th className="text-[11px] font-medium text-[#5f6368] px-4 py-2.5">Lead Name</th>
-                            <th className="text-[11px] font-medium text-[#5f6368] px-4 py-2.5">Bank</th>
-                            <th className="text-[11px] font-medium text-[#5f6368] px-4 py-2.5">Cheque #</th>
-                            <th className="text-[11px] font-medium text-[#5f6368] px-4 py-2.5">Amount</th>
-                            <th className="text-[11px] font-medium text-[#5f6368] px-4 py-2.5">Cheque Date</th>
-                            <th className="text-[11px] font-medium text-[#5f6368] px-4 py-2.5">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {pdcPageItems.map((pdc) => (
-                            <tr key={pdc.pdcId} className="border-b border-[#f1f3f4] hover:bg-[#f8f9fa] transition-colors">
-                              <td className="px-4 py-2.5">
-                                <button
-                                  className="flex items-center gap-1 text-[12px] font-medium text-[#1a73e8] hover:text-[#1557b0] hover:underline transition-colors"
-                                  onClick={() => navigate(`/crm/leads/${pdc.leadId}`)}
-                                >
-                                  {pdc.leadName}
-                                  <ExternalLink className="h-3 w-3 shrink-0" />
-                                </button>
-                              </td>
-                              <td className="px-4 py-2.5 text-[12px] text-[#1a1a2e]">{pdc.bank}</td>
-                              <td className="px-4 py-2.5 text-[12px] text-[#1a1a2e] font-mono">#{pdc.chequeNumber}</td>
-                              <td className="px-4 py-2.5 text-[12px] text-[#1a1a2e] font-medium">₹{pdc.amount.toLocaleString("en-IN")}</td>
-                              <td className="px-4 py-2.5 text-[12px] text-[#5f6368]">{new Date(pdc.chequeDate).toLocaleDateString()}</td>
-                              <td className="px-4 py-2.5">
-                                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                                  pdc.status === "scheduled" ? "bg-[#e8f0fe] text-[#1a73e8]" :
-                                  pdc.status === "deposited" ? "bg-[#fef7e0] text-[#e8710a]" :
-                                  pdc.status === "cleared" ? "bg-[#e6f4ea] text-[#34a853]" :
-                                  pdc.status === "bounced" ? "bg-[#fce8e6] text-[#ea4335]" :
-                                  "bg-[#f1f3f4] text-[#5f6368]"
-                                }`}>
-                                  {pdc.status.charAt(0).toUpperCase() + pdc.status.slice(1)}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* Pagination controls */}
-                    {totalPdcPages > 1 && (
-                      <div className="flex items-center justify-between px-4 py-3 border-t border-[#f1f3f4]">
-                        <span className="text-[11px] text-[#5f6368]">
-                          {totalPdcItems} total — Page {pdcPage + 1} of {totalPdcPages}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0 text-[#5f6368] disabled:opacity-30"
-                            disabled={pdcPage === 0}
-                            onClick={() => setPdcPage(Math.max(0, pdcPage - 1))}
-                          >
-                            <ChevronLeft className="h-3.5 w-3.5" />
-                          </Button>
-                          {Array.from({ length: Math.min(totalPdcPages, 5) }, (_, i) => {
-                            let pageNum: number;
-                            if (totalPdcPages <= 5) {
-                              pageNum = i;
-                            } else if (pdcPage <= 2) {
-                              pageNum = i;
-                            } else if (pdcPage >= totalPdcPages - 3) {
-                              pageNum = totalPdcPages - 5 + i;
-                            } else {
-                              pageNum = pdcPage - 2 + i;
-                            }
-                            return (
-                              <Button
-                                key={pageNum}
-                                variant={pageNum === pdcPage ? "default" : "ghost"}
-                                size="sm"
-                                className={`h-7 min-w-[28px] p-0 text-[11px] ${
-                                  pageNum === pdcPage
-                                    ? "bg-[#1a73e8] text-white"
-                                    : "text-[#5f6368] hover:bg-[#f1f3f4]"
-                                }`}
-                                onClick={() => setPdcPage(pageNum)}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="border-b border-[#f1f3f4]">
+                          <th className="text-[11px] font-medium text-[#5f6368] px-4 py-2.5">Lead Name</th>
+                          <th className="text-[11px] font-medium text-[#5f6368] px-4 py-2.5">Bank</th>
+                          <th className="text-[11px] font-medium text-[#5f6368] px-4 py-2.5">Cheque #</th>
+                          <th className="text-[11px] font-medium text-[#5f6368] px-4 py-2.5">Amount</th>
+                          <th className="text-[11px] font-medium text-[#5f6368] px-4 py-2.5">Cheque Date</th>
+                          <th className="text-[11px] font-medium text-[#5f6368] px-4 py-2.5">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pdcDetails.map((pdc) => (
+                          <tr key={pdc.pdcId} className="border-b border-[#f1f3f4] hover:bg-[#f8f9fa] transition-colors">
+                            <td className="px-4 py-2.5">
+                              <button
+                                className="flex items-center gap-1 text-[12px] font-medium text-[#1a73e8] hover:text-[#1557b0] hover:underline transition-colors"
+                                onClick={() => navigate(`/crm/leads/${pdc.leadId}`)}
                               >
-                                {pageNum + 1}
-                              </Button>
-                            );
-                          })}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0 text-[#5f6368] disabled:opacity-30"
-                            disabled={pdcPage >= totalPdcPages - 1}
-                            onClick={() => setPdcPage(Math.min(totalPdcPages - 1, pdcPage + 1))}
-                          >
-                            <ChevronRight className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </>
+                                {pdc.leadName}
+                                <ExternalLink className="h-3 w-3 shrink-0" />
+                              </button>
+                            </td>
+                            <td className="px-4 py-2.5 text-[12px] text-[#1a1a2e]">{pdc.bank}</td>
+                            <td className="px-4 py-2.5 text-[12px] text-[#1a1a2e] font-mono">#{pdc.chequeNumber}</td>
+                            <td className="px-4 py-2.5 text-[12px] text-[#1a1a2e] font-medium">₹{pdc.amount.toLocaleString("en-IN")}</td>
+                            <td className="px-4 py-2.5 text-[12px] text-[#5f6368]">{new Date(pdc.chequeDate).toLocaleDateString()}</td>
+                            <td className="px-4 py-2.5">
+                              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                pdc.status === "scheduled" ? "bg-[#e8f0fe] text-[#1a73e8]" :
+                                pdc.status === "deposited" ? "bg-[#fef7e0] text-[#e8710a]" :
+                                pdc.status === "cleared" ? "bg-[#e6f4ea] text-[#34a853]" :
+                                pdc.status === "bounced" ? "bg-[#fce8e6] text-[#ea4335]" :
+                                "bg-[#f1f3f4] text-[#5f6368]"
+                              }`}>
+                                {pdc.status.charAt(0).toUpperCase() + pdc.status.slice(1)}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </CardContent>
             </Card>

@@ -55,8 +55,7 @@ export default function LeadDatabase() {
   const { navigate } = useAppNavigate();
 
   // Data
-  const leadsResult = useQuery(api.crm.listLeads, user ? {} : "skip");
-  const leads = (leadsResult as any)?.items;
+  const leads = useQuery(api.crm.listLeads, user ? {} : "skip");
   const users = useQuery(api.users.listUsers);
   const branches = useQuery(api.organization.listBranches);
   const verticals = useQuery(api.organization.listVerticals);
