@@ -12,6 +12,40 @@ async function createNotification(ctx: any, userId: string, type: string, title:
   });
 }
 
+/**
+ * Queue a communication (email or SMS) in the communicationQueue table
+ * for batch processing by the emailEngine / smsEngine.
+ */
+async function queueCommunication(
+  ctx: any,
+  channel: "email" | "sms",
+  recipientAddress: string,
+  subject: string,
+  body: string,
+  scheduledAt?: number,
+) {
+  const now = Date.now();
+  await ctx.db.insert("communicationQueue", {
+    channel,
+    recipientAddress,
+    subject,
+    body,
+    status: "queued",
+    scheduledAt: scheduledAt ?? now,
+    retryCount: 0,
+    maxRetries: 3,
+    createdAt: now,
+    updatedAt: now,
+  });
+}
+
+/**
+ * Format a currency amount (INR) for display in communications.
+ */
+function formatCurrency(amount: number): string {
+  return `₹${amount.toLocaleString("en-IN")}`;
+}
+
 // ============================
 // PAYMENT PLANS
 // ============================
@@ -58,7 +92,7 @@ export const createPaymentPlan = mutation({
         dueDate, status: st as any, createdAt: now, updatedAt: now,
       });
       await ctx.db.insert("leadTasks", {
-        leadId: args.leadId, title: `Installment #${i + 1} Due — ₹${amt.toLocaleString()}`,
+        leadId: args.leadId, title: `Installment #${i + 1} Due — ${formatCurrency(amt)}`,
         description: `Auto-generated from payment plan (${args.frequency})`,
         ownerId: args.createdBy, assignedTo: args.createdBy,
         dueDate: dueDate - args.graceDays * dayMs, status: "pending", priority: "medium",
@@ -67,7 +101,7 @@ export const createPaymentPlan = mutation({
     }
 
     await logActivity(ctx, args.leadId, "payment_plan_created",
-      `Payment plan created: ${args.installmentCount} installments of ₹${installmentAmount.toLocaleString()} (${args.frequency})`,
+      `Payment plan created: ${args.installmentCount} installments of ${formatCurrency(installmentAmount)} (${args.frequency})`,
       args.createdBy);
     return planId;
   },
@@ -107,7 +141,7 @@ export const markInstallmentPaid = mutation({
     const inst = await ctx.db.get(args.installmentId);
     if (inst) {
       await logActivity(ctx, inst.leadId, "installment_paid",
-        `Installment #${inst.installmentNumber} paid: ₹${inst.amount.toLocaleString()}`, args.userId);
+        `Installment #${inst.installmentNumber} paid: ${formatCurrency(inst.amount)}`, args.userId);
     }
   },
 });
@@ -140,11 +174,16 @@ export const createPDC = mutation({
 
     // Create deposit task for collection team
     await ctx.db.insert("leadTasks", {
-      leadId: args.leadId, title: `Deposit PDC — ${args.bank} #${args.chequeNumber} (₹${args.amount.toLocaleString()})`,
-      description: `PDC scheduled for deposit. Cheque date: ${new Date(args.chequeDate).toLocaleDateString()}. Bank: ${args.bank}. Amount: ₹${args.amount.toLocaleString()}`,
+      leadId: args.leadId, title: `Deposit PDC — ${args.bank} #${args.chequeNumber} (${formatCurrency(args.amount)})`,
+      description: `PDC scheduled for deposit. Cheque date: ${new Date(args.chequeDate).toLocaleDateString()}. Bank: ${args.bank}. Amount: ${formatCurrency(args.amount)}`,
       ownerId: args.createdBy, assignedTo: args.createdBy, dueDate: args.chequeDate,
       status: "pending", priority: "high", isApproved: false, createdAt: now, updatedAt: now,
     });
+
+    // Fetch lead contact info for communications
+    const lead = await ctx.db.get(args.leadId);
+    const leadPhone = lead?.phone || "";
+    const leadEmail = lead?.email || "";
 
     // Create scheduled reminder notifications at T-7, T-3, T-1, Today
     const milestones = [
@@ -157,21 +196,35 @@ export const createPDC = mutation({
       const reminderDate = args.chequeDate - ms.daysBefore * dayMs;
       // Only create if the reminder date is in the future (not already past)
       if (reminderDate > now) {
+        // In-app notification
         await ctx.db.insert("notifications", {
           userId: args.createdBy,
           type: "payment",
           title: ms.label,
-          message: `${args.bank} #${args.chequeNumber} — ₹${args.amount.toLocaleString()} — Cheque Date: ${new Date(args.chequeDate).toLocaleDateString()}`,
+          message: `${args.bank} #${args.chequeNumber} — ${formatCurrency(args.amount)} — Cheque Date: ${new Date(args.chequeDate).toLocaleDateString()}`,
           referenceId: pdcId,
           referenceType: "pdc",
           isRead: false,
           createdAt: now,
         });
+
+        // Email notification (if lead has email)
+        if (leadEmail) {
+          const emailSubject = `PDC Reminder: ${ms.label} — ${args.bank} #${args.chequeNumber}`;
+          const emailBody = `Dear ${lead?.firstName || "Customer"},\n\nThis is a reminder regarding your PDC (Post Dated Cheque):\n\n  Bank: ${args.bank}\n  Cheque Number: ${args.chequeNumber}\n  Amount: ${formatCurrency(args.amount)}\n  Cheque Date: ${new Date(args.chequeDate).toLocaleDateString()}\n  Reminder: ${ms.label}\n\nPlease ensure sufficient funds in your account.\n\nThank you,\nEEOS Collections Team`;
+          await queueCommunication(ctx, "email", leadEmail, emailSubject, emailBody, reminderDate);
+        }
+
+        // SMS notification (if lead has phone)
+        if (leadPhone) {
+          const smsBody = `PDC Reminder: ${ms.label}\n${args.bank} #${args.chequeNumber}\nAmount: ${formatCurrency(args.amount)}\nCheque Date: ${new Date(args.chequeDate).toLocaleDateString()}\n- EEOS Collections`;
+          await queueCommunication(ctx, "sms", leadPhone, "", smsBody, reminderDate);
+        }
       }
     }
 
     await logActivity(ctx, args.leadId, "pdc_created",
-      `PDC created: ${args.bank} #${args.chequeNumber} for ₹${args.amount.toLocaleString()} with auto-reminders`, args.createdBy);
+      `PDC created: ${args.bank} #${args.chequeNumber} for ${formatCurrency(args.amount)} with auto-reminders`, args.createdBy);
     return pdcId;
   },
 });
@@ -231,6 +284,7 @@ export const getUpcomingPDCReminders = query({
  * Send PDC reminder notifications — call this to generate notification records
  * for any PDCs with reminders due today (T-7, T-3, T-1, Today, Overdue).
  * Skips milestones that already have a notification sent.
+ * Also queues email/SMS communications via communicationQueue.
  */
 export const sendPDCReminders = mutation({
   args: { userId: v.optional(v.id("users")) },
@@ -245,7 +299,18 @@ export const sendPDCReminders = mutation({
     const allNotifs = await ctx.db.query("notifications").collect();
     const existingNotifications = allNotifs.filter((n) => n.referenceType === "pdc");
 
+    // Pre-fetch leads for contact info (batch lookup to avoid N+1)
+    const leadIds = [...new Set(activePdcs.map((p) => p.leadId))];
+    const leadDocs = (await Promise.all(leadIds.map((id) => ctx.db.get(id)))).filter((l): l is NonNullable<typeof l> => l != null);
+    const leadMap = new Map(leadDocs.map((l) => [l._id, l]));
+
+    // Fetch existing communication records to avoid duplicate email/SMS
+    const allComms = await ctx.db.query("communicationQueue").collect();
+    const existingComms = allComms.filter((c) => c.subject?.startsWith("PDC Reminder:"));
+
     let sent = 0;
+    let emailsQueued = 0;
+    let smsQueued = 0;
     for (const pdc of activePdcs) {
       const chequeDays = Math.floor(pdc.chequeDate / dayMs);
       const daysTo = chequeDays - nowDays;
@@ -264,20 +329,42 @@ export const sendPDCReminders = mutation({
         );
         if (alreadySent) continue;
 
+        // Create in-app notification
         await ctx.db.insert("notifications", {
           userId: args.userId || pdc.createdBy,
           type: "payment",
           title: milestone,
-          message: `${pdc.bank} #${pdc.chequeNumber} — ₹${pdc.amount.toLocaleString()} — Cheque Date: ${new Date(pdc.chequeDate).toLocaleDateString()}`,
+          message: `${pdc.bank} #${pdc.chequeNumber} — ${formatCurrency(pdc.amount)} — Cheque Date: ${new Date(pdc.chequeDate).toLocaleDateString()}`,
           referenceId: pdc._id,
           referenceType: "pdc",
           isRead: false,
           createdAt: now,
         });
         sent++;
+
+        // Queue email and SMS communications
+        const lead = leadMap.get(pdc.leadId);
+        if (lead) {
+          const dedupKey = `${pdc._id}-${milestone}`;
+
+          // Email
+          if (lead.email && !existingComms.some((c) => c.body?.includes(dedupKey) && c.channel === "email")) {
+            const emailSubject = `PDC Reminder: ${milestone} — ${pdc.bank} #${pdc.chequeNumber}`;
+            const emailBody = `Dear ${lead.firstName || "Customer"},\n\nPDC Reminder:\n\n  Bank: ${pdc.bank}\n  Cheque Number: ${pdc.chequeNumber}\n  Amount: ${formatCurrency(pdc.amount)}\n  Cheque Date: ${new Date(pdc.chequeDate).toLocaleDateString()}\n  Reminder: ${milestone}\n\nPlease ensure sufficient funds.\n\n- EEOS Collections Team\n\nRef: ${dedupKey}`;
+            await queueCommunication(ctx, "email", lead.email, emailSubject, emailBody, now);
+            emailsQueued++;
+          }
+
+          // SMS
+          if (lead.phone && !existingComms.some((c) => c.body?.includes(dedupKey) && c.channel === "sms")) {
+            const smsBody = `${milestone}\n${pdc.bank} #${pdc.chequeNumber}\n${formatCurrency(pdc.amount)}\nDue: ${new Date(pdc.chequeDate).toLocaleDateString()}\nRef: ${dedupKey}`;
+            await queueCommunication(ctx, "sms", lead.phone, "", smsBody, now);
+            smsQueued++;
+          }
+        }
       }
     }
-    return { sent };
+    return { sent, emailsQueued, smsQueued };
   },
 });
 
@@ -379,7 +466,7 @@ export const updatePDCStatus = mutation({
       const action = actionMap[args.status] || "pdc_updated";
       const descMap: Record<string, string> = {
         deposited: `Deposited cheque #${pdc.chequeNumber} — ${pdc.bank}`,
-        cleared: `Cheque cleared by bank — ${pdc.bank} #${pdc.chequeNumber} (₹${pdc.amount.toLocaleString()})`,
+        cleared: `Cheque cleared by bank — ${pdc.bank} #${pdc.chequeNumber} (${formatCurrency(pdc.amount)})`,
         bounced: `Cheque bounced — ${pdc.bank} #${pdc.chequeNumber}${args.bounceReason ? ` — ${args.bounceReason}` : ""}`,
         cancelled: `Cancelled PDC — ${pdc.bank} #${pdc.chequeNumber}`,
       };
@@ -415,13 +502,13 @@ export const createCommitment = mutation({
       status: "active", createdAt: now, updatedAt: now,
     });
     await ctx.db.insert("leadTasks", {
-      leadId: args.leadId, title: `Payment Commitment Followup — ₹${args.amount.toLocaleString()}`,
+      leadId: args.leadId, title: `Payment Commitment Followup — ${formatCurrency(args.amount)}`,
       description: args.reason || "Follow up on payment commitment",
       ownerId: args.ownerId, assignedTo: args.ownerId, dueDate: args.commitDate,
       status: "pending", priority: "medium", isApproved: false, createdAt: now, updatedAt: now,
     });
     await logActivity(ctx, args.leadId, "commitment_created",
-      `Payment commitment: ₹${args.amount.toLocaleString()} by ${new Date(args.commitDate).toLocaleDateString()} (${args.confidence} confidence)`,
+      `Payment commitment: ${formatCurrency(args.amount)} by ${new Date(args.commitDate).toLocaleDateString()} (${args.confidence} confidence)`,
       args.ownerId);
     return cmtId;
   },
@@ -441,7 +528,7 @@ export const updateCommitmentStatus = mutation({
     const cmt = await ctx.db.get(args.commitmentId);
     if (cmt) {
       await logActivity(ctx, cmt.leadId, "commitment_updated",
-        `Commitment ${args.status}: ₹${cmt.amount.toLocaleString()}`, args.userId);
+        `Commitment ${args.status}: ${formatCurrency(cmt.amount)}`, args.userId);
     }
   },
 });
@@ -490,7 +577,7 @@ export const processOverdueInstallments = mutation({
           userId: plan.createdBy,
           type: "payment",
           title: `Installment #${inst.installmentNumber} Overdue`,
-          message: `Installment of ₹${inst.amount.toLocaleString()} overdue by ${daysOverdue} day${daysOverdue === 1 ? "" : "s"} (due ${new Date(inst.dueDate).toLocaleDateString()})`,
+          message: `Installment of ${formatCurrency(inst.amount)} overdue by ${daysOverdue} day${daysOverdue === 1 ? "" : "s"} (due ${new Date(inst.dueDate).toLocaleDateString()})`,
           referenceId: inst._id,
           referenceType: "installment",
           isRead: false,
@@ -501,7 +588,7 @@ export const processOverdueInstallments = mutation({
         await ctx.db.insert("leadActivity", {
           leadId: inst.leadId,
           action: "installment_overdue",
-          description: `Installment #${inst.installmentNumber} (₹${inst.amount.toLocaleString()}) marked overdue — ${daysOverdue} day${daysOverdue === 1 ? "" : "s"} past due`,
+          description: `Installment #${inst.installmentNumber} (${formatCurrency(inst.amount)}) marked overdue — ${daysOverdue} day${daysOverdue === 1 ? "" : "s"} past due`,
           userId: plan.createdBy,
           createdAt: now,
         });
@@ -541,7 +628,7 @@ export const sendInstallmentReminder = mutation({
       userId: args.userId,
       type: "payment",
       title: `Reminder: Installment #${inst.installmentNumber} Overdue`,
-      message: `Installment of ₹${inst.amount.toLocaleString()} is overdue by ${daysOverdue} day${daysOverdue === 1 ? "" : "s"} (due ${new Date(inst.dueDate).toLocaleDateString()})`,
+      message: `Installment of ${formatCurrency(inst.amount)} is overdue by ${daysOverdue} day${daysOverdue === 1 ? "" : "s"} (due ${new Date(inst.dueDate).toLocaleDateString()})`,
       referenceId: inst._id,
       referenceType: "installment",
       isRead: false,
@@ -551,7 +638,7 @@ export const sendInstallmentReminder = mutation({
     await ctx.db.insert("leadActivity", {
       leadId: inst.leadId,
       action: "installment_reminder_sent",
-      description: `Reminder sent for Installment #${inst.installmentNumber} (₹${inst.amount.toLocaleString()}) — ${daysOverdue} day${daysOverdue === 1 ? "" : "s"} overdue`,
+      description: `Reminder sent for Installment #${inst.installmentNumber} (${formatCurrency(inst.amount)}) — ${daysOverdue} day${daysOverdue === 1 ? "" : "s"} overdue`,
       userId: args.userId,
       createdAt: now,
     });
@@ -602,7 +689,7 @@ export const quickMarkInstallmentPaid = mutation({
     await ctx.db.insert("leadActivity", {
       leadId: inst.leadId,
       action: "installment_paid",
-      description: `Installment #${inst.installmentNumber} paid: ₹${args.amount.toLocaleString()} (${args.mode})`,
+      description: `Installment #${inst.installmentNumber} paid: ${formatCurrency(args.amount)} (${args.mode})`,
       userId: args.userId,
       createdAt: now,
     });
