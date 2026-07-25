@@ -23,6 +23,7 @@ import { useParams } from "react-router";
 import { useAppNavigate } from "@/hooks/use-app-navigate";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import LeadConversionWizard from "@/components/crm/LeadConversionWizard";
+import WhatsAppChatButton from "@/components/crm/WhatsAppChatButton";
 import { Doc } from "@/convex/_generated/dataModel";
 
 const PIPELINE_STAGES = [
@@ -2036,6 +2037,14 @@ export default function LeadWorkspace() {
                                       <XCircle className="h-3 w-3" /> Bounced
                                     </button>
                                   </div>
+                                )}
+                                {/* WhatsApp chat button for this PDC */}
+                                {(pdc.status === "scheduled" || pdc.status === "deposited") && (
+                                  <WhatsAppChatButton
+                                    phone={lead.phone}
+                                    message={`Reminder: ${pdc.bank} #${pdc.chequeNumber} — ₹${(pdc.amount || 0).toLocaleString("en-IN")} — Due: ${new Date(pdc.chequeDate).toLocaleDateString()}`}
+                                    iconOnly
+                                  />
                                 )}
                               </td>
                             </tr>
