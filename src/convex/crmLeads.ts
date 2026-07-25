@@ -3,7 +3,7 @@ import { mutation, query } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
 import { LEAD_PIPELINE_STAGES, logActivity, createNotification } from "./crmHelpers";
 import { paginatedQuery, applyStandardFilters, type PaginatedResponse } from "./queryHelpers";
-import { withEventPipeline, entityIdFromResult, entityIdFromArg, userIdFromArg, orgScopeFromArg } from "@/platform/eventPipeline";
+import { withEventPipeline, entityIdFromResult, entityIdFromArg, userIdFromArg, orgScopeFromArg } from "../platform/eventPipeline";
 
 // ============================
 // LEAD CRUD
@@ -11,7 +11,7 @@ import { withEventPipeline, entityIdFromResult, entityIdFromArg, userIdFromArg, 
 
 export const listLeads = query({
   args: {
-    paginationOpts: paginationOptsValidator,
+    paginationOpts: v.optional(paginationOptsValidator),
     stage: v.optional(v.string()), ownerId: v.optional(v.id("users")), priority: v.optional(v.string()),
     source: v.optional(v.string()), branchInterestId: v.optional(v.id("branches")), verticalId: v.optional(v.id("verticals")),
     status: v.optional(v.string()), search: v.optional(v.string()), assignedToMe: v.optional(v.boolean()),
@@ -28,11 +28,15 @@ export const listLeads = query({
 
     const now = Date.now(), day = 86400000;
 
+    // Default paginationOpts when not provided (load all for client-side filtering)
+    const paginationOpts = args.paginationOpts || { cursor: null as string | null, numItems: 10000 };
+    const queryArgs = { ...args, paginationOpts };
+
     // Build index query based on the most selective filter
     const result = await paginatedQuery<any>(
       ctx,
       "leadMaster",
-      args,
+      queryArgs,
       (q) => {
         // Use most selective index based on primary filter
         if (args.stage) {
@@ -45,7 +49,7 @@ export const listLeads = query({
           return q.withIndex("by_status", (iq) => iq.eq("status", args.status!));
         }
         // Default: order by createdAt descending
-        return q.withIndex("by_createdAt").order("desc");
+        return q.withIndex("createdAt").order("desc");
       },
     );
 

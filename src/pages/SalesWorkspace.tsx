@@ -86,7 +86,7 @@ export default function SalesWorkspace() {
   const [waMessage, setWaMessage] = useState("");
   const [waTemplate, setWaTemplate] = useState("manual");
 
-  const leadsArray = (leads || []) as Doc<"leadMaster">[];
+  const leadsArray = ((leads as any)?.items || []) as Doc<"leadMaster">[];
   const myLeads = leadsArray.filter((l: any) => l.ownerId === user?._id && l.status === "active");
   const todayFollowups = leadsArray.filter((l: any) => {
     if (!l.nextActionDate || l.status !== "active") return false;

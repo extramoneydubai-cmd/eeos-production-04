@@ -1,4 +1,5 @@
-import { defineSchema } from "convex/server";
+import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
 import { authTables } from "@convex-dev/auth/server";
 
 import { sharedTables } from "./schema/shared";
@@ -32,6 +33,16 @@ import { tasksTables } from "./schema/tasks";
 import { workflowTables } from "./schema/workflow";
 import { analyticsTables } from "./schema/analytics";
 
+// Extended users table — accept any fields since our app adds dynamic
+// fields via patches across multiple modules
+const extendedUsersTable = defineTable(v.any())
+  .index("by_createdAt", ["createdAt"])
+  .index("by_email", ["email"])
+  .index("by_department", ["departmentId"]);
+
+// Extended sessions table — explicitly add token index for session validation
+const extendedSessionsTable = defineTable(v.any()).index("token", ["token"]);
+
 const schema = defineSchema({
     ...authTables,
     ...academicTables,
@@ -51,5 +62,8 @@ const schema = defineSchema({
     ...tasksTables,
     ...workflowTables,
     ...analyticsTables,
+    // Override authTables tables with our extended definitions
+    users: extendedUsersTable,
+    sessions: extendedSessionsTable,
 });
 export default schema;

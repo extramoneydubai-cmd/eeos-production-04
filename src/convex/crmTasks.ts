@@ -93,18 +93,21 @@ export const getSalesPendingTasks = query({
 export const getLeadTasks = query({
   args: {
     leadId: v.id("leadMaster"),
-    paginationOpts: paginationOptsValidator,
+    paginationOpts: v.optional(paginationOptsValidator),
     status: v.optional(v.string()),
     priority: v.optional(v.string()),
   },
-  handler: async (ctx, args): Promise<PaginatedResponse<any>> => {
-    const result = await paginatedQuery<any>(ctx, "leadTasks", args, (q) =>
-      q.withIndex("leadId", (iq) => iq.eq("leadId", args.leadId)),
-    );
-    let filtered = result.items;
+  handler: async (ctx, args) => {
+    // Return plain array for backward compatibility with frontend
+    const all = await ctx.db.query("leadTasks")
+      .withIndex("leadId", (iq) => iq.eq("leadId", args.leadId))
+      .collect();
+    let filtered = [...all];
     if (args.status) filtered = filtered.filter((t: any) => t.status === args.status);
     if (args.priority) filtered = filtered.filter((t: any) => t.priority === args.priority);
-    return { items: filtered, nextCursor: result.nextCursor, hasMore: result.hasMore };
+    // Sort by newest first
+    filtered.sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
+    return filtered;
   },
 });
 
