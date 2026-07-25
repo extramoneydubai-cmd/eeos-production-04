@@ -13,12 +13,12 @@ async function createNotification(ctx: any, userId: string, type: string, title:
 }
 
 /**
- * Queue a communication (email or SMS) in the communicationQueue table
- * for batch processing by the emailEngine / smsEngine.
+ * Queue a communication (email, SMS, or WhatsApp) in the communicationQueue table
+ * for batch processing by the emailEngine / smsEngine / whatsappEngine.
  */
 async function queueCommunication(
   ctx: any,
-  channel: "email" | "sms",
+  channel: "email" | "sms" | "whatsapp",
   recipientAddress: string,
   subject: string,
   body: string,
@@ -220,6 +220,12 @@ export const createPDC = mutation({
           const smsBody = `PDC Reminder: ${ms.label}\n${args.bank} #${args.chequeNumber}\nAmount: ${formatCurrency(args.amount)}\nCheque Date: ${new Date(args.chequeDate).toLocaleDateString()}\n- EEOS Collections`;
           await queueCommunication(ctx, "sms", leadPhone, "", smsBody, reminderDate);
         }
+
+        // WhatsApp notification (if lead has phone)
+        if (leadPhone) {
+          const waBody = `*PDC Reminder: ${ms.label}*\n\nBank: ${args.bank}\nCheque #: ${args.chequeNumber}\nAmount: ${formatCurrency(args.amount)}\nCheque Date: ${new Date(args.chequeDate).toLocaleDateString()}\n\nPlease ensure sufficient funds. - EEOS Collections`;
+          await queueCommunication(ctx, "whatsapp", leadPhone, "", waBody, reminderDate);
+        }
       }
     }
 
@@ -361,10 +367,16 @@ export const sendPDCReminders = mutation({
             await queueCommunication(ctx, "sms", lead.phone, "", smsBody, now);
             smsQueued++;
           }
+
+          // WhatsApp
+          if (lead.phone && !existingComms.some((c) => c.body?.includes(dedupKey) && c.channel === "whatsapp")) {
+            const waBody = `*${milestone}*\n\nBank: ${pdc.bank}\nCheque #: ${pdc.chequeNumber}\nAmount: ${formatCurrency(pdc.amount)}\nDue: ${new Date(pdc.chequeDate).toLocaleDateString()}\n\nRef: ${dedupKey}`;
+            await queueCommunication(ctx, "whatsapp", lead.phone, "", waBody, now);
+          }
         }
       }
     }
-    return { sent, emailsQueued, smsQueued };
+    return { sent, emailsQueued, smsQueued, whatsappQueued: 0 };
   },
 });
 
