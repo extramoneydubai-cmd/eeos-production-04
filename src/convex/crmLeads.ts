@@ -49,7 +49,7 @@ export const listLeads = query({
           return q.withIndex("by_status", (iq) => iq.eq("status", args.status!));
         }
         // Default: order by createdAt descending
-        return q.withIndex("by_createdAt").order("desc");
+        return q.withIndex("createdAt").order("desc");
       },
     );
 
