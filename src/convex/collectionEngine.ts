@@ -383,40 +383,6 @@ export const sendPDCReminders = mutation({
 /**
  * Get PDC Dashboard — collection overview of all PDCs across the org.
  */
-/**
- * Get all PDC records filtered by status, joined with lead name.
- */
-export const getPDCByStatus = query({
-  args: { status: v.union(v.literal("scheduled"), v.literal("deposited"), v.literal("cleared"), v.literal("bounced"), v.literal("cancelled")) },
-  handler: async (ctx, args) => {
-    const allPdcs = await ctx.db.query("payment_pdcs").collect();
-    const filtered = allPdcs.filter((p) => p.status === args.status);
-
-    // Batch-fetch all referenced leads
-    const leadIds = [...new Set(filtered.map((p) => p.leadId))];
-    const leadDocs = (await Promise.all(leadIds.map((id) => ctx.db.get(id)))).filter((l): l is NonNullable<typeof l> => l != null);
-    const leadMap = new Map(leadDocs.map((l) => [l._id, l]));
-
-    return filtered.map((pdc) => {
-      const lead = leadMap.get(pdc.leadId);
-      return {
-        pdcId: pdc._id,
-        leadId: pdc.leadId,
-        leadName: lead ? `${lead.firstName || ""} ${lead.lastName || ""}`.trim() || "Unknown" : "Unknown",
-        leadPhone: lead?.phone || "",
-        leadEmail: lead?.email || "",
-        chequeNumber: pdc.chequeNumber,
-        bank: pdc.bank,
-        chequeDate: pdc.chequeDate,
-        amount: pdc.amount,
-        status: pdc.status,
-        createdBy: pdc.createdBy,
-        createdAt: pdc.createdAt,
-      };
-    });
-  },
-});
-
 export const getPDCDashboard = query({
   args: {},
   handler: async (ctx) => {
