@@ -1,0 +1,32 @@
+import { defineSchema } from "convex/server";
+import { authTables } from "@convex-dev/auth/server";
+
+// ─── Re-export shared validators ───
+export {
+  ROLES,
+  roleValidator,
+  TASK_STATUS,
+  taskStatusValidator,
+  PRIORITY,
+  priorityValidator,
+  APPROVAL_STATUS,
+  approvalStatusValidator,
+  NOTIFICATION_TYPE,
+  notificationTypeValidator,
+  APPROVAL_MODE,
+  approvalModeValidator,
+  FORM_STATUS,
+  formStatusValidator,
+  FIELD_TYPES,
+  fieldTypeValidator,
+  SUBMISSION_STATUS,
+  submissionStatusValidator,
+} from "./schema/shared";
+
+
+const schema = defineSchema({
+    ...authTables,
+    ...sharedTables,
+});
+
+export default schema;
