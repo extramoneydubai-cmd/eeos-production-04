@@ -30,6 +30,7 @@ import { procurementTables } from "./schema/procurement";
 import { studentTables } from "./schema/student";
 import { tasksTables } from "./schema/tasks";
 import { workflowTables } from "./schema/workflow";
+import { analyticsTables } from "./schema/analytics";
 
 const schema = defineSchema({
     ...authTables,
@@ -49,5 +50,6 @@ const schema = defineSchema({
     ...studentTables,
     ...tasksTables,
     ...workflowTables,
+    ...analyticsTables,
 });
 export default schema;
