@@ -236,4 +236,39 @@ export const lmsTables = {
     .index("lessonId_orderIndex", ["lessonId", "orderIndex"])
     .index("by_created", ["createdAt"])
     .index("by_updated", ["updatedAt"]),
+  lmsQuestionBank: defineTable({
+    courseId: v.id("lmsCourses"),
+    question: v.string(),
+    questionType: v.union(
+      v.literal("multiple_choice"), v.literal("true_false"),
+      v.literal("short_answer"), v.literal("essay"),
+    ),
+    options: v.optional(v.array(v.string())),
+    correctAnswer: v.optional(v.string()),
+    points: v.number(),
+    difficulty: v.optional(v.union(v.literal("easy"), v.literal("medium"), v.literal("hard"))),
+    tags: v.optional(v.array(v.string())),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("courseId", ["courseId"])
+    .index("questionType", ["questionType"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
+  lmsContentUploads: defineTable({
+    courseId: v.id("lmsCourses"),
+    lessonId: v.optional(v.id("lmsLessons")),
+    fileName: v.string(),
+    fileType: v.string(),
+    fileSize: v.number(),
+    fileUrl: v.string(),
+    uploadedBy: v.id("users"),
+    description: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("courseId", ["courseId"])
+    .index("lessonId", ["lessonId"])
+    .index("uploadedBy", ["uploadedBy"])
+    .index("by_created", ["createdAt"]),
 };

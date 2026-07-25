@@ -236,15 +236,28 @@ const lmsProvider: DashboardProvider = {
     const kpis = await dashboardKPIs(ctx, [
       { label: "Courses", table: "lmsCourses", icon: "BookOpen", color: "blue" },
       { label: "Lessons", table: "lmsLessons", icon: "FileText", color: "green" },
-      { label: "Assignments Pending", table: "lmsAssignments", icon: "ListTodo", color: "orange" },
+      { label: "Enrollments", table: "lmsEnrollments", icon: "Users", color: "purple" },
+      { label: "Assignments Pending", table: "lmsSubmissions", icon: "ListTodo", color: "orange", filter: (q: any) => q.filter((f: any) => f.eq(f.field("status"), "submitted")) },
+      { label: "Certificates Issued", table: "lmsCertificates", icon: "Award", color: "yellow" },
     ]);
+
+    const charts = await dashboardCharts(ctx, [
+      { name: "Courses by Status", table: "lmsCourses", groupByField: "status", color: "#3b82f6" },
+      { name: "Courses by Difficulty", table: "lmsCourses", groupByField: "difficulty", color: "#10b981" },
+      { name: "Enrollments by Status", table: "lmsEnrollments", groupByField: "status", color: "#8b5cf6" },
+    ]);
+
+    const timeline = await dashboardTimeline(ctx, "timelineEvents", {
+      limit: 10,
+      filter: (q: any) => q.filter((f: any) => f.eq(f.field("module"), "lms")),
+    });
 
     const recentActivity = await dashboardRecent(ctx, "lmsCourses", 5);
 
     return {
       kpis,
-      charts: [],
-      timeline: [],
+      charts,
+      timeline,
       recentActivity,
       quickStats: { totalCourses: kpis[0]?.value || 0 },
     };
