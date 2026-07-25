@@ -783,13 +783,16 @@ export default function FormStudio() {
   const [newFormCategory, setNewFormCategory] = useState("");
 
   // Selected form — always call useQuery unconditionally (React hooks rule)
+  // Use "skip" when no form is selected to avoid sending invalid formId to Convex
   const selectedForm = forms.find((f: any) => f._id === selectedFormId) || null;
-  const fieldsResult = useQuery(api.formEngine.listFormFields, {
-    formId: (selectedFormId || "") as any,
-  });
-  const submissionsResult = useQuery(api.formEngine.listSubmissions, {
-    formId: (selectedFormId || "") as any,
-  });
+  const fieldsResult = useQuery(
+    api.formEngine.listFormFields,
+    selectedFormId ? { formId: selectedFormId as any } : "skip",
+  );
+  const submissionsResult = useQuery(
+    api.formEngine.listSubmissions,
+    selectedFormId ? { formId: selectedFormId as any } : "skip",
+  );
   const fields = (fieldsResult as any[]) || [];
   const submissions = (submissionsResult as any[]) || [];
 
