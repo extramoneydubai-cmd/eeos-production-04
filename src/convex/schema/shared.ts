@@ -161,8 +161,11 @@ export const sharedTables = {
     timestamp: v.number(),
     createdAt: v.number(),
   })
+    .index("userId", ["userId"])
+    .index("module", ["module"])
     .index("timestamp", ["timestamp"])
-    .index("userId_timestamp", ["userId", "timestamp"]),
+    .index("userId_timestamp", ["userId", "timestamp"])
+    .index("by_created", ["createdAt"]),
   actionPermissions: defineTable({
     designationId: v.id("designations"),
     module: v.string(),
@@ -171,7 +174,11 @@ export const sharedTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("designationId_module_action", ["designationId", "module", "action"]),
+    .index("designationId", ["designationId"])
+    .index("module", ["module"])
+    .index("designationId_module_action", ["designationId", "module", "action"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   addresses: defineTable({
     personId: v.id("personMaster"),
     addressType: v.union(v.literal("home"), v.literal("office"), v.literal("billing"), v.literal("shipping"), v.literal("permanent"), v.literal("current"), v.literal("emergency")),
@@ -189,7 +196,10 @@ export const sharedTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("addressType", ["addressType"]),
+    .index("personId", ["personId"])
+    .index("addressType", ["addressType"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   analyticsSnapshots: defineTable({
     snapshotType: v.string(),
     period: v.string(),
@@ -199,7 +209,70 @@ export const sharedTables = {
     createdBy: v.optional(v.id("users")),
     createdAt: v.number(),
   })
-    .index("snapshotType_period", ["snapshotType", "period"]),
+    .index("snapshotType_period", ["snapshotType", "period"])
+    .index("createdAt", ["createdAt"]),
+  assessments: defineTable({
+    candidateId: v.id("candidates"),
+    assessmentType: v.string(),
+    score: v.optional(v.number()),
+    maxScore: v.optional(v.number()),
+    evaluator: v.id("users"),
+    result: v.union(
+      v.literal("pending"), v.literal("pass"),
+      v.literal("fail"),
+    ),
+    remarks: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("candidateId", ["candidateId"])
+    .index("evaluator", ["evaluator"])
+    .index("by_created", ["createdAt"]),
+  branchMetrics: defineTable({
+    branchId: v.id("branches"),
+    period: v.string(),
+    periodStart: v.number(),
+    periodEnd: v.number(),
+    newLeads: v.number(),
+    activeLeads: v.number(),
+    demoRate: v.number(),
+    trialRate: v.number(),
+    admissionRate: v.number(),
+    revenue: v.number(),
+    pendingFollowups: v.number(),
+    slaCompliance: v.number(),
+    counselorCount: v.number(),
+    createdAt: v.number(),
+  })
+    .index("branchId", ["branchId"])
+    .index("period", ["period"])
+    .index("by_created", ["createdAt"]),
+  candidates: defineTable({
+    personId: v.id("personMaster"),
+    jobPostingId: v.optional(v.id("jobPostings")),
+    source: v.string(),
+    appliedPosition: v.string(),
+    expectedSalary: v.optional(v.number()),
+    currentSalary: v.optional(v.number()),
+    noticePeriod: v.optional(v.number()),
+    experience: v.optional(v.number()),
+    resumeUrl: v.optional(v.string()),
+    status: v.union(
+      v.literal("applied"), v.literal("screening"),
+      v.literal("shortlisted"), v.literal("interview_scheduled"),
+      v.literal("interview_completed"), v.literal("assessment"),
+      v.literal("offer_pending"), v.literal("offer_accepted"),
+      v.literal("hired"), v.literal("employee_created"),
+      v.literal("rejected"), v.literal("archived"),
+    ),
+    rejectionReason: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("personId", ["personId"])
+    .index("jobPostingId", ["jobPostingId"])
+    .index("status", ["status"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   categoryPermissions: defineTable({
     designationId: v.id("designations"),
     category: v.string(),
@@ -213,21 +286,98 @@ export const sharedTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("designationId_category", ["designationId", "category"]),
-  companies: defineTable({
-    name: v.string(),
-    code: v.string(),
-    companyType: v.optional(v.string()),
-    status: v.optional(v.string()),
-    parentType: v.optional(v.union(v.literal("group"))),
-    parentId: v.optional(v.string()),
-    departmentId: v.optional(v.id("departments")),
-    description: v.optional(v.string()),
-    color: v.optional(v.string()),
-    icon: v.optional(v.string()),
+    .index("designationId", ["designationId"])
+    .index("category", ["category"])
+    .index("designationId_category", ["designationId", "category"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
+  communicationLogs: defineTable({
+    queueId: v.id("communicationQueue"),
+    action: v.string(),
+    status: v.string(),
+    details: v.optional(v.string()),
+    metadata: v.optional(v.string()),
+    performedAt: v.number(),
+  })
+    .index("queueId", ["queueId"])
+    .index("queueId_performedAt", ["queueId", "performedAt"])
+    .index("by_status", ["status"]),
+  communicationPreferences: defineTable({
+    userId: v.optional(v.id("users")),
+    entityType: v.optional(v.string()),
+    entityId: v.optional(v.string()),
+    channel: v.union(v.literal("email"), v.literal("whatsapp"), v.literal("sms"), v.literal("push"), v.literal("in_app")),
+    category: v.string(),
+    enabled: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }),
+  })
+    .index("userId", ["userId"])
+    .index("userId_category", ["userId", "category"])
+    .index("entityType", ["entityType"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
+  communicationQueue: defineTable({
+    templateId: v.optional(v.id("communicationTemplates")),
+    channel: v.union(v.literal("email"), v.literal("whatsapp"), v.literal("sms"), v.literal("push"), v.literal("in_app")),
+    recipientId: v.optional(v.string()),
+    recipientType: v.optional(v.string()),
+    recipientAddress: v.string(),
+    recipientName: v.optional(v.string()),
+    subject: v.optional(v.string()),
+    body: v.string(),
+    variables: v.optional(v.string()),
+    status: v.union(
+      v.literal("queued"), v.literal("processing"),
+      v.literal("sent"), v.literal("delivered"),
+      v.literal("read"), v.literal("failed"),
+      v.literal("retrying"), v.literal("cancelled"),
+    ),
+    priority: v.union(v.literal("low"), v.literal("normal"), v.literal("high"), v.literal("urgent")),
+    scheduledAt: v.optional(v.number()),
+    sentAt: v.optional(v.number()),
+    deliveredAt: v.optional(v.number()),
+    readAt: v.optional(v.number()),
+    failedAt: v.optional(v.number()),
+    errorMessage: v.optional(v.string()),
+    retryCount: v.number(),
+    maxRetries: v.number(),
+    campaignId: v.optional(v.id("messageCampaigns")),
+    referenceType: v.optional(v.string()),
+    referenceId: v.optional(v.string()),
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("status", ["status"])
+    .index("channel", ["channel"])
+    .index("recipientId", ["recipientId"])
+    .index("scheduledAt", ["scheduledAt"])
+    .index("campaignId", ["campaignId"])
+    .index("referenceType", ["referenceType"])
+    .index("createdAt", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
+  communicationTemplates: defineTable({
+    name: v.string(),
+    code: v.string(),
+    description: v.optional(v.string()),
+    channel: v.union(v.literal("email"), v.literal("whatsapp"), v.literal("sms"), v.literal("push"), v.literal("in_app")),
+    subject: v.optional(v.string()),
+    body: v.string(),
+    variables: v.optional(v.array(v.string())),
+    category: v.optional(v.string()),
+    isActive: v.boolean(),
+    isSystem: v.boolean(),
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("code", ["code"])
+    .index("channel", ["channel"])
+    .index("category", ["category"])
+    .index("isActive", ["isActive"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   contactMethods: defineTable({
     personId: v.id("personMaster"),
     type: v.string(),
@@ -242,9 +392,14 @@ export const sharedTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   })
+    .index("personId", ["personId"])
+    .index("type", ["type"])
     .index("value", ["value"])
     .index("personId_type", ["personId", "type"])
-    .index("type_value", ["type", "value"]),
+    .index("type_value", ["type", "value"])
+    .index("by_active", ["isActive"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   conversionFunnels: defineTable({
     period: v.string(),
     periodStart: v.number(),
@@ -254,7 +409,9 @@ export const sharedTables = {
     dropOffRates: v.string(),
     conversionRate: v.number(),
     createdAt: v.number(),
-  }),
+  })
+    .index("period", ["period"])
+    .index("by_created", ["createdAt"]),
   counselorMetrics: defineTable({
     userId: v.id("users"),
     period: v.string(),
@@ -272,7 +429,10 @@ export const sharedTables = {
     score: v.number(),
     createdAt: v.number(),
   })
-    .index("score", ["score"]),
+    .index("userId", ["userId"])
+    .index("period", ["period"])
+    .index("score", ["score"])
+    .index("by_created", ["createdAt"]),
   dashboardLayouts: defineTable({
     name: v.string(),
     userId: v.optional(v.id("users")),
@@ -284,7 +444,12 @@ export const sharedTables = {
     isActive: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }),
+  })
+    .index("userId", ["userId"])
+    .index("role", ["role"])
+    .index("by_active", ["isActive"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   dashboardWidgets: defineTable({
     name: v.string(),
     code: v.string(),
@@ -301,7 +466,12 @@ export const sharedTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("widgetType", ["widgetType"]),
+    .index("code", ["code"])
+    .index("widgetType", ["widgetType"])
+    .index("category", ["category"])
+    .index("isActive", ["isActive"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   deliveryStatus: defineTable({
     queueId: v.id("communicationQueue"),
     provider: v.string(),
@@ -321,7 +491,8 @@ export const sharedTables = {
     userName: v.optional(v.string()),
     userRole: v.optional(v.string()),
     createdAt: v.number(),
-  }),
+  })
+    .index("by_created", ["createdAt"]),
   demoAdmissions: defineTable({
     studentName: v.string(),
     studentEmail: v.optional(v.string()),
@@ -336,7 +507,10 @@ export const sharedTables = {
     followUpDate: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }),
+  })
+    .index("by_status", ["status"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   demoAttachments: defineTable({
     name: v.string(),
     type: v.string(),
@@ -345,7 +519,9 @@ export const sharedTables = {
     entityType: v.string(),
     entityId: v.string(),
     createdAt: v.number(),
-  }),
+  })
+    .index("entityType", ["entityType"])
+    .index("by_created", ["createdAt"]),
   demoAuditRecords: defineTable({
     action: v.string(),
     entity: v.string(),
@@ -354,7 +530,9 @@ export const sharedTables = {
     userRole: v.optional(v.string()),
     createdAt: v.number(),
   })
-    .index("action", ["action"]),
+    .index("action", ["action"])
+    .index("by_user", ["userId"])
+    .index("by_created", ["createdAt"]),
   demoComments: defineTable({
     content: v.string(),
     entityType: v.string(),
@@ -362,7 +540,9 @@ export const sharedTables = {
     userName: v.optional(v.string()),
     userRole: v.optional(v.string()),
     createdAt: v.number(),
-  }),
+  })
+    .index("entityType", ["entityType"])
+    .index("by_created", ["createdAt"]),
   demoDepartments: defineTable({
     name: v.string(),
     code: v.string(),
@@ -372,7 +552,10 @@ export const sharedTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index("code", ["code"])
-    .index("by_org", ["organizationId"]),
+    .index("by_org", ["organizationId"])
+    .index("by_active", ["isActive"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   demoLeads: defineTable({
     name: v.string(),
     email: v.optional(v.string()),
@@ -386,7 +569,10 @@ export const sharedTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("by_assigned", ["assignedTo"]),
+    .index("by_assigned", ["assignedTo"])
+    .index("by_status", ["status"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   demoNotifications: defineTable({
     title: v.string(),
     message: v.string(),
@@ -395,7 +581,10 @@ export const sharedTables = {
     role: v.optional(v.string()),
     isRead: v.optional(v.boolean()),
     createdAt: v.number(),
-  }),
+  })
+    .index("by_role", ["role"])
+    .index("by_user", ["userId"])
+    .index("by_created", ["createdAt"]),
   demoOrganizations: defineTable({
     name: v.string(),
     code: v.string(),
@@ -406,7 +595,10 @@ export const sharedTables = {
     isActive: v.optional(v.boolean()),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("type", ["type"]),
+  }).index("type", ["type"])
+    .index("by_active", ["isActive"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   demoProfiles: defineTable({
     fullName: v.optional(v.string()),
     email: v.optional(v.string()),
@@ -425,7 +617,16 @@ export const sharedTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("by_order", ["displayOrder"]),
+    .index("by_user", ["userId"])
+    .index("by_role", ["demoRole"])
+    .index("by_order", ["displayOrder"])
+    .index("by_branch", ["branchId"])
+    .index("by_dept", ["departmentId"])
+    .index("by_employee", ["employeeId"])
+    .index("by_status", ["status"])
+    .index("by_active", ["isActive"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   demoStudents: defineTable({
     name: v.string(),
     email: v.optional(v.string()),
@@ -442,7 +643,10 @@ export const sharedTables = {
     performance: v.number(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }),
+  })
+    .index("by_status", ["status"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   demoTasks: defineTable({
     title: v.string(),
     description: v.optional(v.string()),
@@ -454,7 +658,11 @@ export const sharedTables = {
     dueDate: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }),
+  })
+    .index("by_role", ["assignedToRole"])
+    .index("by_status", ["status"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   demoTeams: defineTable({
     name: v.string(),
     code: v.string(),
@@ -463,7 +671,11 @@ export const sharedTables = {
     isActive: v.optional(v.boolean()),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("code", ["code"]),
+  }).index("code", ["code"])
+    .index("by_dept", ["departmentId"])
+    .index("by_active", ["isActive"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   demoTimelineEvents: defineTable({
     title: v.string(),
     description: v.optional(v.string()),
@@ -472,7 +684,9 @@ export const sharedTables = {
     entityId: v.string(),
     userName: v.string(),
     createdAt: v.number(),
-  }),
+  })
+    .index("entityType", ["entityType"])
+    .index("by_created", ["createdAt"]),
   emergencyContacts: defineTable({
     ownerPersonId: v.id("personMaster"),
     contactPersonId: v.id("personMaster"),
@@ -485,7 +699,195 @@ export const sharedTables = {
   })
     .index("ownerPersonId", ["ownerPersonId"])
     .index("contactPersonId", ["contactPersonId"])
-    .index("ownerPersonId_priority", ["ownerPersonId", "priority"]),
+    .index("ownerPersonId_priority", ["ownerPersonId", "priority"])
+    .index("by_active", ["isActive"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
+  employeeHistory: defineTable({
+    employeeId: v.id("employeeMaster"),
+    eventType: v.string(),
+    eventName: v.optional(v.string()),
+    oldValue: v.optional(v.string()),
+    newValue: v.optional(v.string()),
+    changedBy: v.id("employeeMaster"),
+    remarks: v.optional(v.string()),
+    metadata: v.optional(v.string()),
+    changedAt: v.number(),
+    createdAt: v.number(),
+  })
+    .index("employeeId", ["employeeId"])
+    .index("employeeId_changedAt", ["employeeId", "changedAt"])
+    .index("eventType", ["eventType"])
+    .index("by_created", ["createdAt"]),
+  employeeQualifications: defineTable({
+    employeeId: v.id("employeeMaster"),
+    qualification: v.string(),
+    institute: v.optional(v.string()),
+    year: v.optional(v.number()),
+    grade: v.optional(v.string()),
+    fieldOfStudy: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("employeeId", ["employeeId"])
+    .index("by_created", ["createdAt"]),
+  employeeSkills: defineTable({
+    employeeId: v.id("employeeMaster"),
+    skill: v.string(),
+    proficiency: v.union(
+      v.literal("beginner"), v.literal("intermediate"),
+      v.literal("advanced"), v.literal("expert"),
+    ),
+    certification: v.optional(v.string()),
+    experienceYears: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("employeeId", ["employeeId"])
+    .index("skill", ["skill"])
+    .index("by_created", ["createdAt"]),
+  examMarks: defineTable({
+    examSessionId: v.id("examSessions"),
+    examSubjectId: v.optional(v.id("examSubjects")),
+    studentId: v.id("personMaster"),
+    marksObtained: v.optional(v.number()),
+    totalMarks: v.number(),
+    percentage: v.optional(v.number()),
+    grade: v.optional(v.string()),
+    gradePoint: v.optional(v.number()),
+    attendance: v.union(
+      v.literal("present"), v.literal("absent"),
+      v.literal("medical"), v.literal("leave"),
+    ),
+    graceMarks: v.optional(v.number()),
+    remarks: v.optional(v.string()),
+    enteredBy: v.id("users"),
+    enteredAt: v.number(),
+    verifiedBy: v.optional(v.id("users")),
+    verifiedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("examSessionId", ["examSessionId"])
+    .index("examSubjectId", ["examSubjectId"])
+    .index("studentId", ["studentId"])
+    .index("enteredBy", ["enteredBy"])
+    .index("examSessionId_studentId", ["examSessionId", "studentId"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
+  examPublishLog: defineTable({
+    examSessionId: v.id("examSessions"),
+    action: v.union(
+      v.literal("draft"), v.literal("submitted_for_approval"),
+      v.literal("approved"), v.literal("rejected"),
+      v.literal("published"), v.literal("archived"),
+    ),
+    performedBy: v.id("users"),
+    remarks: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("examSessionId", ["examSessionId"])
+        .index("action", ["action"])
+    .index("by_created", ["createdAt"]),
+  examReportCards: defineTable({
+    examSessionId: v.id("examSessions"),
+    studentId: v.id("personMaster"),
+    resultId: v.id("examResults"),
+    reportData: v.string(),
+    pdfUrl: v.optional(v.string()),
+    generatedAt: v.number(),
+    downloadedAt: v.optional(v.number()),
+    downloadCount: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("examSessionId", ["examSessionId"])
+    .index("studentId", ["studentId"])
+    .index("resultId", ["resultId"])
+    .index("generatedAt", ["generatedAt"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
+  examResults: defineTable({
+    examSessionId: v.id("examSessions"),
+    studentId: v.id("personMaster"),
+    totalMarks: v.number(),
+    marksObtained: v.number(),
+    percentage: v.number(),
+    cgpa: v.optional(v.number()),
+    grade: v.optional(v.string()),
+    rank: v.optional(v.number()),
+    division: v.union(
+      v.literal("distinction"), v.literal("first"),
+      v.literal("second"), v.literal("third"),
+      v.literal("fail"),
+    ),
+    passFail: v.union(v.literal("pass"), v.literal("fail"), v.literal("supplementary")),
+    subjectResults: v.optional(v.string()),
+    calculatedAt: v.number(),
+    publishedAt: v.optional(v.number()),
+    publishedBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("examSessionId", ["examSessionId"])
+    .index("studentId", ["studentId"])
+    .index("passFail", ["passFail"])
+    .index("rank", ["rank"])
+    .index("examSessionId_studentId", ["examSessionId", "studentId"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
+  examSubjects: defineTable({
+    examSessionId: v.id("examSessions"),
+    subjectId: v.id("academicSubjects"),
+    maxMarks: v.number(),
+    passPercentage: v.optional(v.number()),
+    weightage: v.optional(v.number()),
+    examDate: v.optional(v.number()),
+    duration: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("examSessionId", ["examSessionId"])
+    .index("subjectId", ["subjectId"])
+    .index("examSessionId_subjectId", ["examSessionId", "subjectId"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
+  examTimeline: defineTable({
+    examSessionId: v.id("examSessions"),
+    eventType: v.union(
+      v.literal("exam_created"), v.literal("marks_submitted"),
+      v.literal("marks_verified"), v.literal("result_calculated"),
+      v.literal("result_published"), v.literal("report_downloaded"),
+      v.literal("timetable_updated"), v.literal("exam_completed"),
+    ),
+    description: v.string(),
+    userId: v.id("users"),
+    metadata: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("examSessionId", ["examSessionId"])
+    .index("eventType", ["eventType"])
+    .index("examSessionId_createdAt", ["examSessionId", "createdAt"])
+    .index("by_user", ["userId"]),
+  examTimetable: defineTable({
+    examSessionId: v.id("examSessions"),
+    subjectId: v.id("academicSubjects"),
+    facultyId: v.optional(v.id("users")),
+    roomId: v.optional(v.id("academicClassrooms")),
+    examDate: v.number(),
+    startTime: v.number(),
+    endTime: v.number(),
+    duration: v.optional(v.number()),
+    maxMarks: v.number(),
+    passPercentage: v.optional(v.number()),
+    instructions: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("examSessionId", ["examSessionId"])
+    .index("subjectId", ["subjectId"])
+    .index("examDate", ["examDate"])
+    .index("facultyId", ["facultyId"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   fieldPermissions: defineTable({
     designationId: v.id("designations"),
     module: v.string(),
@@ -495,7 +897,12 @@ export const sharedTables = {
     masked: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }),
+  })
+    .index("designationId", ["designationId"])
+    .index("module", ["module"])
+    .index("designationId_module", ["designationId", "module"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   forecastSnapshots: defineTable({
     forecastType: v.string(),
     period: v.string(),
@@ -511,7 +918,190 @@ export const sharedTables = {
     createdAt: v.number(),
   })
     .index("forecastType_period", ["forecastType", "period"])
-    .index("forecastDate", ["forecastDate"]),
+    .index("forecastDate", ["forecastDate"])
+    .index("by_created", ["createdAt"]),
+  intakeDuplicateRules: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    matchFields: v.array(v.string()),
+    matchType: v.union(v.literal("any"), v.literal("all"), v.literal("custom")),
+    action: v.union(v.literal("ignore"), v.literal("merge"), v.literal("keep_both"), v.literal("review")),
+    targetFormIds: v.optional(v.array(v.id("forms"))),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("isActive", ["isActive"])
+    .index("action", ["action"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
+  intakeEvents: defineTable({
+    submissionId: v.id("intakeSubmissions"),
+    eventType: v.string(),
+    status: v.string(),
+    payload: v.optional(v.string()),
+    processedAt: v.optional(v.number()),
+    error: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("submissionId", ["submissionId"])
+    .index("eventType", ["eventType"])
+    .index("status", ["status"])
+    .index("by_created", ["createdAt"]),
+  intakeRoutingRules: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    targetModule: v.string(),
+    conditionField: v.optional(v.string()),
+    conditionValue: v.optional(v.string()),
+    conditionOperator: v.optional(v.string()),
+    sourceFormIds: v.optional(v.array(v.id("forms"))),
+    defaultRoute: v.boolean(),
+    priority: v.number(),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("targetModule", ["targetModule"])
+    .index("isActive", ["isActive"])
+    .index("priority", ["priority"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
+  intakeSubmissions: defineTable({
+    submissionNumber: v.string(),
+    formId: v.optional(v.id("forms")),
+    formCode: v.optional(v.string()),
+    formVersion: v.optional(v.number()),
+    source: v.string(),
+    payload: v.string(),
+    createdBy: v.optional(v.id("users")),
+    submittedBy: v.optional(v.string()),
+    submissionDate: v.number(),
+    ipAddress: v.optional(v.string()),
+    browser: v.optional(v.string()),
+    device: v.optional(v.string()),
+    processingStatus: v.string(),
+    validationStatus: v.optional(v.string()),
+    verificationStatus: v.optional(v.string()),
+    duplicateStatus: v.optional(v.string()),
+    routingStatus: v.optional(v.string()),
+    targetModule: v.optional(v.string()),
+    targetEntityId: v.optional(v.string()),
+    retryCount: v.optional(v.number()),
+    processingTime: v.optional(v.number()),
+    validationReport: v.optional(v.string()),
+    duplicateReason: v.optional(v.string()),
+    systemNotes: v.optional(v.string()),
+    metadata: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("submissionNumber", ["submissionNumber"])
+    .index("source", ["source"])
+    .index("processingStatus", ["processingStatus"])
+    .index("targetModule", ["targetModule"])
+    .index("formId", ["formId"])
+    .index("createdAt", ["createdAt"])
+    .index("processingStatus_createdAt", ["processingStatus", "createdAt"])
+    .index("by_updated", ["updatedAt"]),
+  intakeTimeline: defineTable({
+    submissionId: v.id("intakeSubmissions"),
+    action: v.string(),
+    status: v.string(),
+    details: v.optional(v.string()),
+    performedBy: v.optional(v.id("users")),
+    metadata: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("submissionId", ["submissionId"])
+    .index("submissionId_createdAt", ["submissionId", "createdAt"])
+    .index("action", ["action"])
+    .index("by_status", ["status"]),
+  intakeTransformMappings: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    sourceField: v.string(),
+    targetField: v.string(),
+    targetModule: v.string(),
+    transformation: v.optional(v.string()),
+    defaultValue: v.optional(v.string()),
+    isRequired: v.boolean(),
+    sourceFormIds: v.optional(v.array(v.id("forms"))),
+    isActive: v.boolean(),
+    displayOrder: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("targetModule", ["targetModule"])
+    .index("isActive", ["isActive"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
+  interviewRounds: defineTable({
+    candidateId: v.id("candidates"),
+    roundName: v.string(),
+    interviewerIds: v.array(v.id("users")),
+    schedule: v.number(),
+    mode: v.union(
+      v.literal("online"), v.literal("offline"),
+      v.literal("phone"),
+    ),
+    duration: v.optional(v.number()),
+    result: v.optional(v.union(
+      v.literal("pending"), v.literal("passed"),
+      v.literal("failed"), v.literal("rescheduled"),
+    )),
+    score: v.optional(v.number()),
+    remarks: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("candidateId", ["candidateId"])
+    .index("schedule", ["schedule"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
+  jobPostings: defineTable({
+    requisitionId: v.id("jobRequisitions"),
+    title: v.string(),
+    description: v.optional(v.string()),
+    skills: v.array(v.string()),
+    locations: v.array(v.string()),
+    applicationDeadline: v.optional(v.number()),
+    status: v.union(
+      v.literal("draft"), v.literal("published"),
+      v.literal("closed"), v.literal("cancelled"),
+    ),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("requisitionId", ["requisitionId"])
+    .index("status", ["status"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
+  jobRequisitions: defineTable({
+    departmentId: v.id("organizationDepartments"),
+    designationId: v.optional(v.id("organizationDesignations")),
+    companyId: v.optional(v.id("organizationCompanies")),
+    branchId: v.optional(v.id("organizationBranches")),
+    requestedBy: v.id("users"),
+    vacancies: v.number(),
+    employmentType: v.string(),
+    salaryRange: v.optional(v.string()),
+    description: v.optional(v.string()),
+    status: v.union(
+      v.literal("draft"), v.literal("pending_approval"),
+      v.literal("approved"), v.literal("rejected"),
+      v.literal("filled"), v.literal("cancelled"),
+    ),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("departmentId", ["departmentId"])
+    .index("requestedBy", ["requestedBy"])
+    .index("status", ["status"])
+    .index("by_company", ["companyId"])
+    .index("by_branch", ["branchId"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   kpiDefinitions: defineTable({
     name: v.string(),
     code: v.string(),
@@ -527,177 +1117,10 @@ export const sharedTables = {
     isActive: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }),
-  notificationCenter: defineTable({
-    userId: v.id("users"),
-    title: v.string(),
-    message: v.string(),
-    category: v.string(),
-    priority: v.union(v.literal("low"), v.literal("normal"), v.literal("high"), v.literal("urgent")),
-    channel: v.union(v.literal("email"), v.literal("whatsapp"), v.literal("sms"), v.literal("push"), v.literal("in_app")),
-    referenceType: v.optional(v.string()),
-    referenceId: v.optional(v.string()),
-    actionUrl: v.optional(v.string()),
-    isRead: v.boolean(),
-    isPinned: v.boolean(),
-    isArchived: v.boolean(),
-    readAt: v.optional(v.number()),
-    createdAt: v.number(),
   })
-    .index("userId_isArchived", ["userId", "isArchived"])
-    .index("priority", ["priority"]),
-  notifications: defineTable({
-    userId: v.id("users"),
-    type: notificationTypeValidator,
-    title: v.string(),
-    message: v.string(),
-    referenceId: v.optional(v.string()),
-    referenceType: v.optional(v.string()),
-    isRead: v.boolean(),
-    isSoundPlayed: v.optional(v.boolean()),
-    createdAt: v.number(),
-  }),
-  opportunities: defineTable({
-    leadId: v.id("leadMaster"),
-    ownerId: v.id("users"),
-    title: v.string(),
-    stageId: v.id("salesOpportunityStages"),
-    probability: v.number(),
-    expectedRevenue: v.optional(v.number()),
-    actualRevenue: v.optional(v.number()),
-    currency: v.optional(v.string()),
-    expectedCloseDate: v.optional(v.number()),
-    actualCloseDate: v.optional(v.number()),
-    notes: v.optional(v.string()),
-    tags: v.optional(v.array(v.string())),
-    lostReasonId: v.optional(v.id("crmLostReasons")),
-    competitiveInfo: v.optional(v.string()),
-    isActive: v.boolean(),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("leadId", ["leadId"])
-    .index("ownerId", ["ownerId"])
-    .index("stageId", ["stageId"]),
-  recordPolicies: defineTable({
-    module: v.string(),
-    recordId: v.string(),
-    policyId: v.optional(v.id("visibilityPolicies")),
-    ownerUserId: v.optional(v.id("users")),
-    departmentId: v.optional(v.id("departments")),
-    branchId: v.optional(v.id("branches")),
-    companyId: v.optional(v.id("companies")),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("recordId", ["recordId"])
-    .index("module_recordId", ["module", "recordId"])
-    .index("ownerUserId", ["ownerUserId"]),
-  relationships: defineTable({
-    personA: v.id("personMaster"),
-    personB: v.id("personMaster"),
-    relationshipType: v.string(),
-    startDate: v.optional(v.number()),
-    endDate: v.optional(v.number()),
-    active: v.boolean(),
-    metadata: v.optional(v.string()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("personA", ["personA"])
-    .index("personB", ["personB"])
-    .index("relationshipType", ["relationshipType"])
-    .index("personA_relationshipType", ["personA", "relationshipType"]),
-  sectionPermissions: defineTable({
-    designationId: v.id("designations"),
-    module: v.string(),
-    sectionName: v.string(),
-    visible: v.boolean(),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  }),
-  sessions: defineTable({
-    userId: v.id("users"),
-    token: v.string(),
-    expiresAt: v.number(),
-    createdAt: v.number(),
-    lastActiveAt: v.number(),
-    ipAddress: v.optional(v.string()),
-    userAgent: v.optional(v.string()),
-  })
-    .index("token", ["token"]),
-  socialLinks: defineTable({
-    personId: v.id("personMaster"),
-    platform: v.string(),
-    url: v.string(),
-    username: v.optional(v.string()),
-    verified: v.boolean(),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("platform", ["platform"]),
-  userScopes: defineTable({
-    userId: v.id("users"),
-    companyIds: v.optional(v.array(v.id("companies"))),
-    departmentIds: v.optional(v.array(v.id("departments"))),
-    branchIds: v.optional(v.array(v.id("branches"))),
-    teamIds: v.optional(v.array(v.id("teams"))),
-    verticalIds: v.optional(v.array(v.id("verticals"))),
-    canAccessDashboard: v.optional(v.boolean()),
-    canAccessCrm: v.optional(v.boolean()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  }),
-  users: defineTable({
-    name: v.optional(v.string()),
-    image: v.optional(v.string()),
-    email: v.optional(v.string()),
-    emailVerificationTime: v.optional(v.number()),
-    isAnonymous: v.optional(v.boolean()),
-    role: v.optional(roleValidator),
-    username: v.optional(v.string()),
-    passwordHash: v.optional(v.string()),
-    isDisabled: v.optional(v.boolean()),
-    designationId: v.optional(v.id("designations")),
-    departmentId: v.optional(v.id("departments")),
-    companyId: v.optional(v.id("companies")),
-    branchId: v.optional(v.id("branches")),
-    verticalId: v.optional(v.id("verticals")),
-    teamIds: v.optional(v.array(v.id("teams"))),
-    phone: v.optional(v.string()),
-    employeeCode: v.optional(v.string()),
-    employeeId: v.optional(v.string()),
-    employmentType: v.optional(v.string()),
-    joiningDate: v.optional(v.number()),
-    probationEndDate: v.optional(v.number()),
-    reportingManagerId: v.optional(v.id("users")),
-    employeeCategoryId: v.optional(v.id("hrEmployeeCategories")),
-    workLocationId: v.optional(v.id("hrWorkLocations")),
-    skillIds: v.optional(v.array(v.id("hrSkills"))),
-    experienceLevelId: v.optional(v.id("hrExperienceLevels")),
-    employmentStatus: v.optional(v.string()),
-    profileCompletion: v.optional(v.number()),
-    lastLoginAt: v.optional(v.number()),
-  })
-    .index("email", ["email"])
-    .index("username", ["username"])
-    .index("employeeId", ["employeeId"])
-    .index("reportingManagerId", ["reportingManagerId"])
-    .index("employmentType", ["employmentType"]),
-  visibilityPolicies: defineTable({
-    policyName: v.string(),
-    policyCode: v.string(),
-    description: v.optional(v.string()),
-    securityLevel: v.union(
-      v.literal("public"), v.literal("internal"),
-      v.literal("confidential"), v.literal("highly_confidential"),
-      v.literal("executive"), v.literal("legal_hold"),
-    ),
-    active: v.boolean(),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("policyCode", ["policyCode"])
-    .index("securityLevel", ["securityLevel"])
-    .index("active", ["active"]),
+    .index("code", ["code"])
+    .index("category", ["category"])
+    .index("isActive", ["isActive"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"])
 };

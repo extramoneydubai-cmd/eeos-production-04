@@ -1,7 +1,6 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
-
-import { approvalStatusValidator, approvalModeValidator, roleValidator } from "./shared";
+import { approvalStatusValidator, approvalModeValidator } from "./shared";
 
 export const workflowTables = {
   approvalRequestApprovers: defineTable({
@@ -12,7 +11,10 @@ export const workflowTables = {
     comment: v.optional(v.string()),
     decidedAt: v.optional(v.number()),
     createdAt: v.number(),
-  }),
+  })
+    .index("requestId", ["requestId"])
+    .index("userId", ["userId"])
+    .index("by_created", ["createdAt"]),
   approvalRequests: defineTable({
     templateId: v.optional(v.id("approvalTemplates")),
     taskId: v.optional(v.id("tasks")),
@@ -27,7 +29,10 @@ export const workflowTables = {
     updatedAt: v.number(),
   })
     .index("requesterId", ["requesterId"])
-    .index("taskId", ["taskId"]),
+    .index("status", ["status"])
+    .index("taskId", ["taskId"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   approvalTemplates: defineTable({
     name: v.string(),
     description: v.optional(v.string()),
@@ -42,7 +47,9 @@ export const workflowTables = {
     isActive: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("isActive", ["isActive"]),
+  }).index("isActive", ["isActive"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   verification_decisions: defineTable({
     requestId: v.id("verification_requests"),
     userId: v.id("users"),
@@ -50,7 +57,11 @@ export const workflowTables = {
     comment: v.optional(v.string()),
     decidedAt: v.number(),
     createdAt: v.number(),
-  }),
+  })
+    .index("requestId", ["requestId"])
+    .index("userId", ["userId"])
+    .index("by_status", ["status"])
+    .index("by_created", ["createdAt"]),
   verification_requests: defineTable({
     entityType: v.string(),
     entityId: v.string(),
@@ -67,8 +78,11 @@ export const workflowTables = {
   })
     .index("entityType", ["entityType"])
     .index("entityId", ["entityId"])
+    .index("status", ["status"])
     .index("assignedUserIds", ["assignedUserIds"])
-    .index("entityType_status", ["entityType", "status"]),
+    .index("entityType_status", ["entityType", "status"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   verification_rules: defineTable({
     entity: v.string(),
     departmentId: v.optional(v.id("departments")),
@@ -81,8 +95,11 @@ export const workflowTables = {
     updatedAt: v.number(),
   })
     .index("entity", ["entity"])
+    .index("isActive", ["isActive"])
     .index("by_dept", ["departmentId"])
-    .index("by_team", ["teamId"]),
+    .index("by_team", ["teamId"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   workflowEdges: defineTable({
     workflowId: v.id("workflows"),
     sourceNodeId: v.id("workflowNodes"),
@@ -92,8 +109,10 @@ export const workflowTables = {
     displayOrder: v.number(),
     createdAt: v.number(),
   })
+    .index("workflowId", ["workflowId"])
     .index("sourceNodeId", ["sourceNodeId"])
-    .index("targetNodeId", ["targetNodeId"]),
+    .index("targetNodeId", ["targetNodeId"])
+    .index("by_created", ["createdAt"]),
   workflowInstances: defineTable({
     workflowId: v.id("workflows"),
     workflowVersion: v.number(),
@@ -112,8 +131,12 @@ export const workflowTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   })
+    .index("workflowId", ["workflowId"])
+    .index("status", ["status"])
     .index("currentStepId", ["currentStepId"])
-    .index("assignedTo", ["assignedTo"]),
+    .index("assignedTo", ["assignedTo"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   workflowLogs: defineTable({
     instanceId: v.id("workflowInstances"),
     workflowId: v.id("workflows"),
@@ -126,8 +149,10 @@ export const workflowTables = {
     createdAt: v.number(),
   })
     .index("instanceId", ["instanceId"])
+    .index("workflowId", ["workflowId"])
     .index("action", ["action"])
-    .index("createdAt", ["createdAt"]),
+    .index("createdAt", ["createdAt"])
+    .index("by_status", ["status"]),
   workflowNodes: defineTable({
     workflowId: v.id("workflows"),
     nodeType: v.string(),
@@ -140,7 +165,10 @@ export const workflowTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("nodeType", ["nodeType"]),
+    .index("workflowId", ["workflowId"])
+    .index("nodeType", ["nodeType"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   workflows: defineTable({
     name: v.string(),
     code: v.string(),
@@ -155,5 +183,9 @@ export const workflowTables = {
     updatedAt: v.number(),
   })
     .index("code", ["code"])
-    .index("module", ["module"]),
+    .index("module", ["module"])
+    .index("status", ["status"])
+    .index("isActive", ["isActive"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
 };

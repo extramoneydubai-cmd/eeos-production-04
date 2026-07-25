@@ -14,7 +14,28 @@ export const crmTables = {
     createFollowupTask: v.boolean(),
     userId: v.id("users"),
     createdAt: v.number(),
-  }),
+  })
+    .index("leadId", ["leadId"])
+    .index("by_user", ["userId"])
+    .index("by_created", ["createdAt"]),
+  courses: defineTable({
+    courseCode: v.string(),
+    courseName: v.string(),
+    verticalId: v.optional(v.id("verticals")),
+    subVerticalId: v.optional(v.id("subVerticals")),
+    boardId: v.optional(v.id("boards")),
+    baseFee: v.number(),
+    description: v.optional(v.string()),
+    status: v.union(v.literal("active"), v.literal("archived"), v.literal("draft")),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("courseCode", ["courseCode"])
+    .index("verticalId", ["verticalId"])
+    .index("status", ["status"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   crmCampaignChannels: defineTable({
     name: v.string(),
     code: v.string(),
@@ -27,7 +48,9 @@ export const crmTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   crmCampaignTypes: defineTable({
     name: v.string(),
     code: v.string(),
@@ -39,7 +62,9 @@ export const crmTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   crmCounsellingOutcomes: defineTable({
     name: v.string(),
     code: v.string(),
@@ -52,7 +77,9 @@ export const crmTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   crmCounsellingTypes: defineTable({
     name: v.string(),
     code: v.string(),
@@ -65,7 +92,9 @@ export const crmTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   crmEnquiryTypes: defineTable({
     name: v.string(),
     code: v.string(),
@@ -77,7 +106,9 @@ export const crmTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   crmFollowUpOutcomes: defineTable({
     name: v.string(),
     code: v.string(),
@@ -91,7 +122,9 @@ export const crmTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   crmFollowUpTypes: defineTable({
     name: v.string(),
     code: v.string(),
@@ -105,7 +138,9 @@ export const crmTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   crmIndustries: defineTable({
     name: v.string(),
     code: v.string(),
@@ -117,7 +152,9 @@ export const crmTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   crmLeadCategories: defineTable({
     name: v.string(),
     code: v.string(),
@@ -129,7 +166,9 @@ export const crmTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   crmLeadQualification: defineTable({
     name: v.string(),
     code: v.string(),
@@ -142,7 +181,9 @@ export const crmTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   crmLeadScoringRules: defineTable({
     name: v.string(),
     code: v.string(),
@@ -155,7 +196,9 @@ export const crmTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   crmLostReasons: defineTable({
     name: v.string(),
     code: v.string(),
@@ -166,7 +209,9 @@ export const crmTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   crmMarketingChannels: defineTable({
     name: v.string(),
     code: v.string(),
@@ -179,7 +224,9 @@ export const crmTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   crmPriorities: defineTable({
     name: v.string(),
     code: v.string(),
@@ -190,7 +237,9 @@ export const crmTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   crmReferralSources: defineTable({
     name: v.string(),
     code: v.string(),
@@ -203,7 +252,9 @@ export const crmTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   crmSources: defineTable({
     name: v.string(),
     code: v.string(),
@@ -214,7 +265,9 @@ export const crmTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   crmStages: defineTable({
     name: v.string(),
     color: v.string(),
@@ -225,7 +278,9 @@ export const crmTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   crmTags: defineTable({
     name: v.string(),
     code: v.string(),
@@ -236,7 +291,9 @@ export const crmTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   crmUtmCampaigns: defineTable({
     name: v.string(),
     code: v.string(),
@@ -251,7 +308,10 @@ export const crmTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("campaignTypeId", ["campaignTypeId"]),
+    .index("sequence", ["sequence"])
+    .index("campaignTypeId", ["campaignTypeId"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   crmUtmMediums: defineTable({
     name: v.string(),
     code: v.string(),
@@ -262,7 +322,9 @@ export const crmTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   crmUtmSources: defineTable({
     name: v.string(),
     code: v.string(),
@@ -273,7 +335,9 @@ export const crmTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   leadActivity: defineTable({
     leadId: v.id("leadMaster"),
     action: v.string(),
@@ -281,7 +345,10 @@ export const crmTables = {
     userId: v.id("users"),
     metadata: v.optional(v.string()),
     createdAt: v.number(),
-  }),
+  })
+    .index("leadId", ["leadId"])
+    .index("leadId_createdAt", ["leadId", "createdAt"])
+    .index("userId", ["userId"]),
   leadApprovalDecisions: defineTable({
     approvalId: v.id("leadApprovals"),
     userId: v.id("users"),
@@ -290,7 +357,10 @@ export const crmTables = {
     decidedAt: v.number(),
     createdAt: v.number(),
   })
-    .index("approvalId", ["approvalId"]),
+    .index("approvalId", ["approvalId"])
+    .index("userId", ["userId"])
+    .index("by_status", ["status"])
+    .index("by_created", ["createdAt"]),
   leadApprovals: defineTable({
     leadId: v.id("leadMaster"),
     title: v.string(),
@@ -309,7 +379,11 @@ export const crmTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("approverIds", ["approverIds"]),
+    .index("leadId", ["leadId"])
+    .index("status", ["status"])
+    .index("approverIds", ["approverIds"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   leadAssignments: defineTable({
     leadId: v.id("leadMaster"),
     fromUserId: v.optional(v.id("users")),
@@ -318,7 +392,9 @@ export const crmTables = {
     note: v.optional(v.string()),
     createdAt: v.number(),
   })
-    .index("toUserId", ["toUserId"]),
+    .index("leadId", ["leadId"])
+    .index("toUserId", ["toUserId"])
+    .index("by_created", ["createdAt"]),
   leadAttachments: defineTable({
     leadId: v.id("leadMaster"),
     fileName: v.string(),
@@ -326,7 +402,9 @@ export const crmTables = {
     fileSize: v.optional(v.number()),
     uploadedBy: v.id("users"),
     createdAt: v.number(),
-  }),
+  })
+    .index("leadId", ["leadId"])
+    .index("by_created", ["createdAt"]),
   leadCommunications: defineTable({
     leadId: v.id("leadMaster"),
     type: v.union(
@@ -342,7 +420,10 @@ export const crmTables = {
     createdBy: v.id("users"),
     createdAt: v.number(),
   })
-    .index("leadId_type", ["leadId", "type"]),
+    .index("leadId", ["leadId"])
+    .index("leadId_type", ["leadId", "type"])
+    .index("by_status", ["status"])
+    .index("by_created", ["createdAt"]),
   leadConversionPipeline: defineTable({
     leadId: v.id("leadMaster"),
     pipelineType: v.union(v.literal("trial"), v.literal("direct_conversion"), v.literal("installment")),
@@ -359,16 +440,21 @@ export const crmTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   })
+    .index("leadId", ["leadId"])
     .index("pipelineType", ["pipelineType"])
-    .index("trialPhase", ["trialPhase"]),
+    .index("trialPhase", ["trialPhase"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   leadCourses: defineTable({
     leadId: v.id("leadMaster"),
     courseId: v.id("courses"),
     addedBy: v.id("users"),
     createdAt: v.number(),
   })
+    .index("leadId", ["leadId"])
     .index("courseId", ["courseId"])
-    .index("leadId_courseId", ["leadId", "courseId"]),
+    .index("leadId_courseId", ["leadId", "courseId"])
+    .index("by_created", ["createdAt"]),
   leadDiscounts: defineTable({
     leadId: v.id("leadMaster"),
     category: v.union(v.literal("scholarship"), v.literal("discount"), v.literal("waiver"), v.literal("adjustment")),
@@ -386,7 +472,12 @@ export const crmTables = {
     remarks: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }),
+  })
+    .index("leadId", ["leadId"])
+    .index("status", ["status"])
+    .index("leadId_status", ["leadId", "status"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   leadDocuments: defineTable({
     leadId: v.id("leadMaster"),
     name: v.string(),
@@ -395,7 +486,9 @@ export const crmTables = {
     size: v.optional(v.number()),
     uploadedBy: v.id("users"),
     createdAt: v.number(),
-  }),
+  })
+    .index("leadId", ["leadId"])
+    .index("by_created", ["createdAt"]),
   leadFollowUpRules: defineTable({
     name: v.string(),
     description: v.optional(v.string()),
@@ -414,7 +507,9 @@ export const crmTables = {
     updatedAt: v.number(),
   })
     .index("isActive", ["isActive"])
-    .index("leadStage", ["leadStage"]),
+    .index("leadStage", ["leadStage"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   leadHealthScores: defineTable({
     leadId: v.id("leadMaster"),
     score: v.number(),
@@ -424,8 +519,10 @@ export const crmTables = {
     calculatedAt: v.number(),
     createdAt: v.number(),
   })
+    .index("leadId", ["leadId"])
     .index("tier", ["tier"])
-    .index("leadId_calculatedAt", ["leadId", "calculatedAt"]),
+    .index("leadId_calculatedAt", ["leadId", "calculatedAt"])
+    .index("by_created", ["createdAt"]),
   leadMaster: defineTable({
     firstName: v.string(),
     lastName: v.string(),
@@ -469,12 +566,15 @@ export const crmTables = {
     updatedAt: v.number(),
   })
     .index("stage", ["stage"])
+    .index("ownerId", ["ownerId"])
     .index("priority", ["priority"])
+    .index("status", ["status"])
     .index("verticalId", ["verticalId"])
     .index("branchInterestId", ["branchInterestId"])
     .index("ownerId_stage", ["ownerId", "stage"])
     .index("nextActionDate", ["nextActionDate"])
-    .index("createdAt", ["createdAt"]),
+    .index("createdAt", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   leadMeetings: defineTable({
     leadId: v.id("leadMaster"),
     meetingType: v.string(),
@@ -492,7 +592,11 @@ export const crmTables = {
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
   })
-    .index("leadId_meetingDate", ["leadId", "meetingDate"]),
+    .index("leadId", ["leadId"])
+    .index("leadId_meetingDate", ["leadId", "meetingDate"])
+    .index("status", ["status"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   leadNotes: defineTable({
     leadId: v.id("leadMaster"),
     content: v.string(),
@@ -500,7 +604,10 @@ export const crmTables = {
     type: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
-  }),
+  })
+    .index("leadId", ["leadId"])
+    .index("leadId_createdAt", ["leadId", "createdAt"])
+    .index("by_updated", ["updatedAt"]),
   leadPayments: defineTable({
     leadId: v.id("leadMaster"),
     amount: v.number(),
@@ -516,7 +623,12 @@ export const crmTables = {
     verificationRequestId: v.optional(v.id("verification_requests")),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }),
+  })
+    .index("leadId", ["leadId"])
+    .index("status", ["status"])
+    .index("leadId_status", ["leadId", "status"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   leadStageHistory: defineTable({
     leadId: v.id("leadMaster"),
     fromStage: v.optional(v.string()),
@@ -524,7 +636,9 @@ export const crmTables = {
     changedBy: v.id("users"),
     note: v.optional(v.string()),
     createdAt: v.number(),
-  }),
+  })
+    .index("leadId", ["leadId"])
+    .index("leadId_createdAt", ["leadId", "createdAt"]),
   leadStatusEngine: defineTable({
     fromStatus: v.string(),
     toStatus: v.string(),
@@ -536,7 +650,9 @@ export const crmTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("fromStatus_toStatus", ["fromStatus", "toStatus"]),
+    .index("fromStatus_toStatus", ["fromStatus", "toStatus"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   leadTasks: defineTable({
     leadId: v.id("leadMaster"),
     title: v.string(),
@@ -550,7 +666,12 @@ export const crmTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("assignedTo", ["assignedTo"]),
+    .index("leadId", ["leadId"])
+    .index("ownerId", ["ownerId"])
+    .index("assignedTo", ["assignedTo"])
+    .index("status", ["status"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   leadTimeline: defineTable({
     leadId: v.id("leadMaster"),
     organizationId: v.optional(v.id("organization")),
@@ -564,11 +685,13 @@ export const crmTables = {
     performedAt: v.number(),
     createdAt: v.number(),
   })
+    .index("leadId", ["leadId"])
     .index("leadId_performedAt", ["leadId", "performedAt"])
     .index("eventType", ["eventType"])
     .index("by_org", ["organizationId"])
     .index("by_company", ["companyId"])
-    .index("by_branch", ["branchId"]),
+    .index("by_branch", ["branchId"])
+    .index("by_created", ["createdAt"]),
   leadWhatsAppMessages: defineTable({
     leadId: v.id("leadMaster"),
     templateName: v.optional(v.string()),
@@ -581,7 +704,35 @@ export const crmTables = {
       v.literal("offer"), v.literal("approval"), v.literal("conversion"), v.literal("manual")
     )),
     createdAt: v.number(),
-  }),
+  })
+    .index("leadId", ["leadId"])
+    .index("leadId_createdAt", ["leadId", "createdAt"])
+    .index("by_status", ["status"]),
+  opportunities: defineTable({
+    leadId: v.id("leadMaster"),
+    ownerId: v.id("users"),
+    title: v.string(),
+    stageId: v.id("salesOpportunityStages"),
+    probability: v.number(),
+    expectedRevenue: v.optional(v.number()),
+    actualRevenue: v.optional(v.number()),
+    currency: v.optional(v.string()),
+    expectedCloseDate: v.optional(v.number()),
+    actualCloseDate: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
+    lostReasonId: v.optional(v.id("crmLostReasons")),
+    competitiveInfo: v.optional(v.string()),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("leadId", ["leadId"])
+    .index("ownerId", ["ownerId"])
+    .index("stageId", ["stageId"])
+    .index("by_active", ["isActive"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   opportunityStageHistory: defineTable({
     opportunityId: v.id("opportunities"),
     fromStageId: v.optional(v.id("salesOpportunityStages")),
@@ -590,6 +741,7 @@ export const crmTables = {
     note: v.optional(v.string()),
     createdAt: v.number(),
   })
+    .index("opportunityId", ["opportunityId"])
     .index("opportunityId_createdAt", ["opportunityId", "createdAt"]),
   quotationLineItems: defineTable({
     quotationId: v.id("quotations"),
@@ -603,7 +755,9 @@ export const crmTables = {
     total: v.number(),
     sortOrder: v.number(),
     createdAt: v.number(),
-  }),
+  })
+    .index("quotationId", ["quotationId"])
+    .index("by_created", ["createdAt"]),
   quotationVersions: defineTable({
     quotationId: v.id("quotations"),
     version: v.number(),
@@ -612,7 +766,9 @@ export const crmTables = {
     changeNotes: v.optional(v.string()),
     createdAt: v.number(),
   })
-    .index("quotationId_version", ["quotationId", "version"]),
+    .index("quotationId", ["quotationId"])
+    .index("quotationId_version", ["quotationId", "version"])
+    .index("by_created", ["createdAt"]),
   quotations: defineTable({
     opportunityId: v.id("opportunities"),
     leadId: v.id("leadMaster"),
@@ -637,7 +793,13 @@ export const crmTables = {
     version: v.number(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }),
+  })
+    .index("opportunityId", ["opportunityId"])
+    .index("leadId", ["leadId"])
+    .index("status", ["status"])
+    .index("by_active", ["isActive"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   salesInvoiceTypes: defineTable({
     name: v.string(),
     code: v.string(),
@@ -649,7 +811,9 @@ export const crmTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   salesOpportunityStages: defineTable({
     name: v.string(),
     code: v.string(),
@@ -663,7 +827,9 @@ export const crmTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   salesOpportunityTypes: defineTable({
     name: v.string(),
     code: v.string(),
@@ -675,7 +841,9 @@ export const crmTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   salesPaymentStatuses: defineTable({
     name: v.string(),
     code: v.string(),
@@ -687,7 +855,9 @@ export const crmTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   salesQuotationStatuses: defineTable({
     name: v.string(),
     code: v.string(),
@@ -699,7 +869,9 @@ export const crmTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   salesTaxSlabs: defineTable({
     name: v.string(),
     code: v.string(),
@@ -714,7 +886,9 @@ export const crmTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   salesTerritories: defineTable({
     name: v.string(),
     code: v.string(),
@@ -726,5 +900,7 @@ export const crmTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
 };

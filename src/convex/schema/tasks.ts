@@ -1,13 +1,6 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
-
-import {
-  approvalStatusValidator,
-  approvalModeValidator,
-  priorityValidator,
-  roleValidator,
-  taskStatusValidator,
-} from "./shared";
+import { approvalStatusValidator, taskStatusValidator, priorityValidator } from "./shared";
 
 export const tasksTables = {
   taskChecklistItems: defineTable({
@@ -19,7 +12,9 @@ export const tasksTables = {
     order: v.number(),
     createdAt: v.number(),
   })
-    .index("completed", ["completed"]),
+    .index("taskId", ["taskId"])
+    .index("completed", ["completed"])
+    .index("by_created", ["createdAt"]),
   taskComments: defineTable({
     taskId: v.id("tasks"),
     userId: v.id("users"),
@@ -27,13 +22,20 @@ export const tasksTables = {
     isInternal: v.optional(v.boolean()),
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
-  }),
+  })
+    .index("taskId", ["taskId"])
+    .index("userId", ["userId"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   taskParticipants: defineTable({
     taskId: v.id("tasks"),
     userId: v.id("users"),
     role: v.string(),
     createdAt: v.number(),
-  }),
+  })
+    .index("taskId", ["taskId"])
+    .index("userId", ["userId"])
+    .index("by_created", ["createdAt"]),
   tasks: defineTable({
     title: v.string(),
     description: v.optional(v.string()),
@@ -57,5 +59,7 @@ export const tasksTables = {
     .index("assignedTo", ["assignedTo"])
     .index("departmentId", ["departmentId"])
     .index("teamId", ["teamId"])
-    .index("approvalStatus", ["approvalStatus"]),
+    .index("approvalStatus", ["approvalStatus"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
 };

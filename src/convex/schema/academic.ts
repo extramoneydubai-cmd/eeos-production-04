@@ -14,7 +14,10 @@ export const academicTables = {
     isActive: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("displayOrder", ["displayOrder"]),
+  }).index("displayOrder", ["displayOrder"])
+    .index("by_active", ["isActive"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   academicBatches: defineTable({
     name: v.string(),
     code: v.string(),
@@ -34,8 +37,12 @@ export const academicTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   })
+    .index("sequence", ["sequence"])
     .index("programId", ["programId"])
-    .index("batchTypeId", ["batchTypeId"]),
+    .index("batchTypeId", ["batchTypeId"])
+    .index("academicSessionId", ["academicSessionId"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   academicBoards: defineTable({
     name: v.string(),
     code: v.string(),
@@ -50,7 +57,10 @@ export const academicTables = {
     isActive: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("displayOrder", ["displayOrder"]),
+  }).index("displayOrder", ["displayOrder"])
+    .index("by_active", ["isActive"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   academicClassrooms: defineTable({
     name: v.string(),
     code: v.string(),
@@ -67,7 +77,9 @@ export const academicTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   academicLanguages: defineTable({
     name: v.string(),
     code: v.string(),
@@ -81,7 +93,9 @@ export const academicTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   academicMediums: defineTable({
     name: v.string(),
     code: v.string(),
@@ -92,7 +106,9 @@ export const academicTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   academicPrograms: defineTable({
     subVerticalId: v.id("academicSubVerticals"),
     name: v.string(),
@@ -109,7 +125,11 @@ export const academicTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("subVerticalId", ["subVerticalId"]),
+    .index("displayOrder", ["displayOrder"])
+    .index("subVerticalId", ["subVerticalId"])
+    .index("by_active", ["isActive"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   academicSections: defineTable({
     name: v.string(),
     code: v.string(),
@@ -120,7 +140,9 @@ export const academicTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   academicSemesters: defineTable({
     name: v.string(),
     code: v.string(),
@@ -135,7 +157,11 @@ export const academicTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }),
+  })
+    .index("sequence", ["sequence"])
+    .index("academicSessionId", ["academicSessionId"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   academicSessions: defineTable({
     name: v.string(),
     code: v.string(),
@@ -152,7 +178,9 @@ export const academicTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   academicStreams: defineTable({
     name: v.string(),
     code: v.string(),
@@ -164,7 +192,9 @@ export const academicTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   academicSubVerticals: defineTable({
     verticalId: v.id("academicVerticals"),
     name: v.string(),
@@ -176,7 +206,12 @@ export const academicTables = {
     isActive: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }),
+  })
+    .index("displayOrder", ["displayOrder"])
+    .index("verticalId", ["verticalId"])
+    .index("by_active", ["isActive"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   academicSubjects: defineTable({
     name: v.string(),
     code: v.string(),
@@ -192,7 +227,11 @@ export const academicTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("category", ["category"]),
+    .index("displayOrder", ["displayOrder"])
+    .index("category", ["category"])
+    .index("by_active", ["isActive"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   academicTerms: defineTable({
     name: v.string(),
     code: v.string(),
@@ -207,7 +246,11 @@ export const academicTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }),
+  })
+    .index("sequence", ["sequence"])
+    .index("academicSessionId", ["academicSessionId"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   academicVerticals: defineTable({
     name: v.string(),
     code: v.string(),
@@ -221,20 +264,8 @@ export const academicTables = {
     isActive: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("displayOrder", ["displayOrder"]),
-  courses: defineTable({
-    courseCode: v.string(),
-    courseName: v.string(),
-    verticalId: v.optional(v.id("verticals")),
-    subVerticalId: v.optional(v.id("subVerticals")),
-    boardId: v.optional(v.id("boards")),
-    baseFee: v.number(),
-    description: v.optional(v.string()),
-    status: v.union(v.literal("active"), v.literal("archived"), v.literal("draft")),
-    createdBy: v.id("users"),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("courseCode", ["courseCode"])
-    .index("status", ["status"]),
+  }).index("displayOrder", ["displayOrder"])
+    .index("by_active", ["isActive"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
 };

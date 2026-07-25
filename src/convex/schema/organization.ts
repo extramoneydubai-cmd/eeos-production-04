@@ -12,25 +12,11 @@ export const organizationTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("subVerticalId", ["subVerticalId"]),
-  branchMetrics: defineTable({
-    branchId: v.id("branches"),
-    period: v.string(),
-    periodStart: v.number(),
-    periodEnd: v.number(),
-    newLeads: v.number(),
-    activeLeads: v.number(),
-    demoRate: v.number(),
-    trialRate: v.number(),
-    admissionRate: v.number(),
-    revenue: v.number(),
-    pendingFollowups: v.number(),
-    slaCompliance: v.number(),
-    counselorCount: v.number(),
-    createdAt: v.number(),
-  })
-    .index("branchId", ["branchId"])
-    .index("period", ["period"]),
+    .index("code", ["code"])
+    .index("subVerticalId", ["subVerticalId"])
+    .index("by_status", ["status"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   branches: defineTable({
     name: v.string(),
     code: v.string(),
@@ -47,7 +33,31 @@ export const organizationTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("by_org", ["organizationId"]),
+    .index("by_code", ["code"])
+    .index("by_organization", ["organizationId"])
+    .index("parentType_parentId", ["parentType", "parentId"])
+    .index("by_active", ["isActive"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
+  companies: defineTable({
+    name: v.string(),
+    code: v.string(),
+    companyType: v.optional(v.string()),
+    status: v.optional(v.string()),
+    parentType: v.optional(v.union(v.literal("group"))),
+    parentId: v.optional(v.string()),
+    departmentId: v.optional(v.id("departments")),
+    description: v.optional(v.string()),
+    color: v.optional(v.string()),
+    icon: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("code", ["code"])
+    .index("departmentId", ["departmentId"])
+    .index("by_status", ["status"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   departments: defineTable({
     name: v.string(),
     code: v.string(),
@@ -61,7 +71,13 @@ export const organizationTables = {
     icon: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }),
+  })
+    .index("by_code", ["code"])
+    .index("by_branch", ["branchId"])
+    .index("parentType_parentId", ["parentType", "parentId"])
+    .index("by_active", ["isActive"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   designations: defineTable({
     name: v.string(),
     code: v.string(),
@@ -72,7 +88,10 @@ export const organizationTables = {
     icon: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("code", ["code"]),
+  }).index("code", ["code"])
+    .index("by_status", ["status"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   orgBranches: defineTable({
     name: v.string(),
     code: v.string(),
@@ -89,7 +108,10 @@ export const organizationTables = {
     isActive: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("displayOrder", ["displayOrder"]),
+  }).index("displayOrder", ["displayOrder"])
+    .index("by_active", ["isActive"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   orgCompanies: defineTable({
     name: v.string(),
     code: v.string(),
@@ -111,7 +133,10 @@ export const organizationTables = {
     isActive: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("displayOrder", ["displayOrder"]),
+  }).index("displayOrder", ["displayOrder"])
+    .index("by_active", ["isActive"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   orgDepartments: defineTable({
     name: v.string(),
     code: v.string(),
@@ -122,7 +147,9 @@ export const organizationTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   orgDesignations: defineTable({
     name: v.string(),
     code: v.string(),
@@ -133,7 +160,9 @@ export const organizationTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   orgTeams: defineTable({
     name: v.string(),
     code: v.string(),
@@ -144,7 +173,9 @@ export const organizationTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   organizations: defineTable({
     name: v.string(),
     code: v.string(),
@@ -158,7 +189,11 @@ export const organizationTables = {
     icon: v.optional(v.string()),
     createdAt: v.optional(v.number()),
     updatedAt: v.optional(v.number()),
-  }),
+  })
+    .index("by_code", ["code"])
+    .index("by_active", ["isActive"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   subVerticals: defineTable({
     name: v.string(),
     code: v.string(),
@@ -168,7 +203,11 @@ export const organizationTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("verticalId", ["verticalId"]),
+    .index("code", ["code"])
+    .index("verticalId", ["verticalId"])
+    .index("by_status", ["status"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   teams: defineTable({
     name: v.string(),
     code: v.string(),
@@ -182,13 +221,19 @@ export const organizationTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("by_dept", ["departmentId"])
-    .index("by_lead", ["leadId"]),
+    .index("by_code", ["code"])
+    .index("by_department", ["departmentId"])
+    .index("by_lead", ["leadId"])
+    .index("by_active", ["isActive"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   verticals: defineTable({
     name: v.string(),
     code: v.string(),
     description: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("code", ["code"]),
+  }).index("code", ["code"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
 };

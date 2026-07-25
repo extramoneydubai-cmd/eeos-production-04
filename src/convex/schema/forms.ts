@@ -1,10 +1,6 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
-import {
-  fieldTypeValidator,
-  formStatusValidator,
-  submissionStatusValidator,
-} from "./shared";
+import { formStatusValidator, fieldTypeValidator, submissionStatusValidator } from "./shared";
 
 export const formsTables = {
   formFields: defineTable({
@@ -35,7 +31,11 @@ export const formsTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("formId_fieldCode", ["formId", "fieldCode"]),
+    .index("formId", ["formId"])
+    .index("formId_fieldCode", ["formId", "fieldCode"])
+    .index("formId_version", ["formId", "version"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   formSubmissions: defineTable({
     formId: v.id("forms"),
     formVersion: v.number(),
@@ -54,8 +54,12 @@ export const formsTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   })
+    .index("formId", ["formId"])
+    .index("status", ["status"])
     .index("formId_status", ["formId", "status"])
-    .index("submittedBy", ["submittedBy"]),
+    .index("submittedBy", ["submittedBy"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   formVersions: defineTable({
     formId: v.id("forms"),
     version: v.number(),
@@ -65,7 +69,11 @@ export const formsTables = {
     publishedBy: v.optional(v.id("users")),
     changeNotes: v.optional(v.string()),
     createdAt: v.number(),
-  }),
+  })
+    .index("formId", ["formId"])
+    .index("formId_version", ["formId", "version"])
+    .index("by_status", ["status"])
+    .index("by_created", ["createdAt"]),
   forms: defineTable({
     name: v.string(),
     code: v.string(),
@@ -91,6 +99,9 @@ export const formsTables = {
     updatedAt: v.number(),
   })
     .index("code", ["code"])
+    .index("status", ["status"])
     .index("ownerId", ["ownerId"])
-    .index("category", ["category"]),
+    .index("category", ["category"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
 };

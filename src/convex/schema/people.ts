@@ -16,7 +16,10 @@ export const peopleTables = {
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("documentType", ["documentType"]),
+    .index("personId", ["personId"])
+    .index("documentType", ["documentType"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   personMaster: defineTable({
     firstName: v.string(),
     middleName: v.optional(v.string()),
@@ -38,31 +41,7 @@ export const peopleTables = {
     updatedAt: v.number(),
   })
     .index("displayName", ["displayName"])
-    .index("status", ["status"]),
-  personProfiles: defineTable({
-    personId: v.id("personMaster"),
-    profileType: v.string(),
-    profileReferenceId: v.optional(v.string()),
-    active: v.boolean(),
-    primaryProfile: v.boolean(),
-    displayLabel: v.optional(v.string()),
-    description: v.optional(v.string()),
-    startDate: v.optional(v.number()),
-    endDate: v.optional(v.number()),
-    metadata: v.optional(v.string()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("profileType", ["profileType"])
-    .index("personId_profileType", ["personId", "profileType"]),
-  personQRCode: defineTable({
-    personId: v.id("personMaster"),
-    qrToken: v.string(),
-    deepLink: v.string(),
-    qrImage: v.optional(v.string()),
-    active: v.boolean(),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("qrToken", ["qrToken"]),
+    .index("status", ["status"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
 };

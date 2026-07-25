@@ -7,7 +7,9 @@ export const communicationTables = {
     userId: v.id("users"),
     joinedAt: v.number(),
     lastReadAt: v.optional(v.number()),
-  }),
+  })
+    .index("channelId", ["channelId"])
+    .index("userId", ["userId"]),
   channels: defineTable({
     name: v.string(),
     description: v.optional(v.string()),
@@ -18,7 +20,9 @@ export const communicationTables = {
     updatedAt: v.number(),
   })
     .index("type", ["type"])
-    .index("createdBy", ["createdBy"]),
+    .index("createdBy", ["createdBy"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   commEmailTemplates: defineTable({
     name: v.string(),
     code: v.string(),
@@ -32,7 +36,9 @@ export const communicationTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   commNotificationTypes: defineTable({
     name: v.string(),
     code: v.string(),
@@ -44,7 +50,9 @@ export const communicationTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   commSmsTemplates: defineTable({
     name: v.string(),
     code: v.string(),
@@ -57,7 +65,9 @@ export const communicationTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   commWhatsAppTemplates: defineTable({
     name: v.string(),
     code: v.string(),
@@ -70,82 +80,9 @@ export const communicationTables = {
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("sequence", ["sequence"]),
-  communicationLogs: defineTable({
-    queueId: v.id("communicationQueue"),
-    action: v.string(),
-    status: v.string(),
-    details: v.optional(v.string()),
-    metadata: v.optional(v.string()),
-    performedAt: v.number(),
-  })
-    .index("queueId", ["queueId"])
-    .index("queueId_performedAt", ["queueId", "performedAt"]),
-  communicationPreferences: defineTable({
-    userId: v.optional(v.id("users")),
-    entityType: v.optional(v.string()),
-    entityId: v.optional(v.string()),
-    channel: v.union(v.literal("email"), v.literal("whatsapp"), v.literal("sms"), v.literal("push"), v.literal("in_app")),
-    category: v.string(),
-    enabled: v.boolean(),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("userId_category", ["userId", "category"])
-    .index("entityType", ["entityType"]),
-  communicationQueue: defineTable({
-    templateId: v.optional(v.id("communicationTemplates")),
-    channel: v.union(v.literal("email"), v.literal("whatsapp"), v.literal("sms"), v.literal("push"), v.literal("in_app")),
-    recipientId: v.optional(v.string()),
-    recipientType: v.optional(v.string()),
-    recipientAddress: v.string(),
-    recipientName: v.optional(v.string()),
-    subject: v.optional(v.string()),
-    body: v.string(),
-    variables: v.optional(v.string()),
-    status: v.union(
-      v.literal("queued"), v.literal("processing"),
-      v.literal("sent"), v.literal("delivered"),
-      v.literal("read"), v.literal("failed"),
-      v.literal("retrying"), v.literal("cancelled"),
-    ),
-    priority: v.union(v.literal("low"), v.literal("normal"), v.literal("high"), v.literal("urgent")),
-    scheduledAt: v.optional(v.number()),
-    sentAt: v.optional(v.number()),
-    deliveredAt: v.optional(v.number()),
-    readAt: v.optional(v.number()),
-    failedAt: v.optional(v.number()),
-    errorMessage: v.optional(v.string()),
-    retryCount: v.number(),
-    maxRetries: v.number(),
-    campaignId: v.optional(v.id("messageCampaigns")),
-    referenceType: v.optional(v.string()),
-    referenceId: v.optional(v.string()),
-    createdBy: v.optional(v.id("users")),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("recipientId", ["recipientId"])
-    .index("campaignId", ["campaignId"])
-    .index("referenceType", ["referenceType"]),
-  communicationTemplates: defineTable({
-    name: v.string(),
-    code: v.string(),
-    description: v.optional(v.string()),
-    channel: v.union(v.literal("email"), v.literal("whatsapp"), v.literal("sms"), v.literal("push"), v.literal("in_app")),
-    subject: v.optional(v.string()),
-    body: v.string(),
-    variables: v.optional(v.array(v.string())),
-    category: v.optional(v.string()),
-    isActive: v.boolean(),
-    isSystem: v.boolean(),
-    createdBy: v.optional(v.id("users")),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("code", ["code"])
-    .index("category", ["category"])
-    .index("isActive", ["isActive"]),
+  }).index("sequence", ["sequence"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
   directMessages: defineTable({
     senderId: v.id("users"),
     receiverId: v.id("users"),
@@ -153,28 +90,10 @@ export const communicationTables = {
     isRead: v.boolean(),
     createdAt: v.number(),
   })
+    .index("senderId", ["senderId"])
     .index("receiverId", ["receiverId"])
-    .index("participants", ["senderId", "receiverId"]),
-  messageCampaigns: defineTable({
-    name: v.string(),
-    description: v.optional(v.string()),
-    channel: v.union(v.literal("email"), v.literal("whatsapp"), v.literal("sms"), v.literal("push")),
-    templateId: v.optional(v.id("communicationTemplates")),
-    targetType: v.string(),
-    targetFilter: v.optional(v.string()),
-    totalRecipients: v.number(),
-    sentCount: v.number(),
-    deliveredCount: v.number(),
-    readCount: v.number(),
-    failedCount: v.number(),
-    status: v.union(v.literal("draft"), v.literal("scheduled"), v.literal("running"), v.literal("completed"), v.literal("paused"), v.literal("cancelled"), v.literal("failed")),
-    scheduledAt: v.optional(v.number()),
-    startedAt: v.optional(v.number()),
-    completedAt: v.optional(v.number()),
-    createdBy: v.optional(v.id("users")),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  }),
+    .index("participants", ["senderId", "receiverId"])
+    .index("by_created", ["createdAt"]),
   messages: defineTable({
     channelId: v.id("channels"),
     senderId: v.id("users"),
@@ -185,5 +104,8 @@ export const communicationTables = {
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
   })
-    .index("channelId_createdAt", ["channelId", "createdAt"]),
+    .index("channelId", ["channelId"])
+    .index("senderId", ["senderId"])
+    .index("channelId_createdAt", ["channelId", "createdAt"])
+    .index("by_updated", ["updatedAt"]),
 };
