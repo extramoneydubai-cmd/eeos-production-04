@@ -3,7 +3,7 @@ import { mutation, query } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
 import { LEAD_PIPELINE_STAGES, logActivity, createNotification } from "./crmHelpers";
 import { paginatedQuery, applyStandardFilters, type PaginatedResponse } from "./queryHelpers";
-import { withEventPipeline, entityIdFromResult, entityIdFromArg, userIdFromArg, orgScopeFromArg } from "@/platform/eventPipeline";
+import { withEventPipeline, entityIdFromResult, entityIdFromArg, userIdFromArg, orgScopeFromArg } from "../platform/eventPipeline";
 
 // ============================
 // LEAD CRUD
