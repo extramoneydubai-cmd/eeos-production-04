@@ -903,4 +903,82 @@ export const crmTables = {
   }).index("sequence", ["sequence"])
     .index("by_created", ["createdAt"])
     .index("by_updated", ["updatedAt"]),
+  // ─── Collection Engine Tables (PATCH-EEOS Collection) ────────────
+
+  payment_plans: defineTable({
+    leadId: v.id("leadMaster"),
+    totalAmount: v.number(),
+    installmentCount: v.number(),
+    installmentAmount: v.number(),
+    frequency: v.union(v.literal("weekly"), v.literal("monthly"), v.literal("quarterly"), v.literal("custom")),
+    startDate: v.number(),
+    graceDays: v.number(),
+    status: v.union(v.literal("active"), v.literal("cancelled")),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("leadId", ["leadId"])
+    .index("status", ["status"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
+
+  payment_installments: defineTable({
+    planId: v.id("payment_plans"),
+    leadId: v.id("leadMaster"),
+    installmentNumber: v.number(),
+    amount: v.number(),
+    dueDate: v.number(),
+    status: v.union(v.literal("planned"), v.literal("due"), v.literal("paid"), v.literal("overdue"), v.literal("cancelled")),
+    paidAt: v.optional(v.number()),
+    paymentId: v.optional(v.id("leadPayments")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("leadId", ["leadId"])
+    .index("planId", ["planId"])
+    .index("dueDate", ["dueDate"])
+    .index("status", ["status"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
+
+  payment_pdcs: defineTable({
+    leadId: v.id("leadMaster"),
+    chequeNumber: v.string(),
+    bank: v.string(),
+    chequeDate: v.number(),
+    amount: v.number(),
+    attachment: v.optional(v.string()),
+    status: v.union(v.literal("scheduled"), v.literal("deposited"), v.literal("cleared"), v.literal("bounced"), v.literal("cancelled")),
+    depositDate: v.optional(v.number()),
+    depositedBy: v.optional(v.id("users")),
+    bouncedAt: v.optional(v.number()),
+    bounceReason: v.optional(v.string()),
+    linkedPaymentId: v.optional(v.id("leadPayments")),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("leadId", ["leadId"])
+    .index("status", ["status"])
+    .index("chequeDate", ["chequeDate"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
+
+  payment_commitments: defineTable({
+    leadId: v.id("leadMaster"),
+    amount: v.number(),
+    commitDate: v.number(),
+    reason: v.optional(v.string()),
+    confidence: v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
+    ownerId: v.id("users"),
+    status: v.union(v.literal("active"), v.literal("completed"), v.literal("expired"), v.literal("cancelled")),
+    paymentId: v.optional(v.id("leadPayments")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("leadId", ["leadId"])
+    .index("status", ["status"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
 };
