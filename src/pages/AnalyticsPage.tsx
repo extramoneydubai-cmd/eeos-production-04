@@ -16,7 +16,7 @@ import {
   Minus,
   LayoutDashboard,
   FileText,
-  PieChart,
+  PieChart as PieChartIcon,
   Calendar,
   Clock,
   Download,
@@ -24,16 +24,12 @@ import {
   RefreshCw,
   Filter,
   Save,
-  Share2,
-  Table2,
-  LineChart,
   Target,
   AlertCircle,
   CheckCircle2,
   Database,
   Layers,
   Activity,
-  Settings,
   Users,
   DollarSign,
   GraduationCap,
@@ -48,27 +44,35 @@ import {
   AlertTriangle,
   ShoppingCart,
   CreditCard,
-  TrendingUpIcon,
   ArrowUp,
   ArrowDown,
-  Search,
   X,
-  ChevronDown,
-  MoreHorizontal,
-  Eye,
   Trash2,
   Edit,
   Play,
   Printer,
   Mail,
-  ExternalLink,
-  ListChecks,
-  BarChartHorizontal,
-  Sparkles,
-  LayoutGrid,
-  PanelRightOpen,
   GripVertical,
 } from "lucide-react";
+
+// ─── Recharts Imports ───────────────────────────────────────────
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  LineChart,
+  Line,
+  Area,
+  AreaChart,
+} from "recharts";
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -209,12 +213,116 @@ function ModuleSection({ moduleId, title, icon: Icon, data, isLoading }: {
   );
 }
 
+// ─── Recharts Chart Components ─────────────────────────────────
+
+/** Bar chart using Recharts — vertical bars for comparison */
+function RechartsBarChartCard({ title, data, color, isLoading }: {
+  title: string; data: { label: string; value: number }[]; color: string; isLoading: boolean;
+}) {
+  if (isLoading) return <Skeleton className="h-48 rounded-lg" />;
+  if (!data || data.length === 0) return null;
+  const chartData = data.map(d => ({ name: d.label, value: d.value }));
+
+  return (
+    <div className="border border-[#e8eaed] rounded-lg p-3 bg-white">
+      <p className="text-[11px] font-medium text-[#5f6368] mb-3">{title}</p>
+      <ResponsiveContainer width="100%" height={160}>
+        <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f1f3f4" vertical={false} />
+          <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#9aa0a6' }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 10, fill: '#9aa0a6' }} axisLine={false} tickLine={false} />
+          <Tooltip
+            contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #e8eaed', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}
+            labelStyle={{ fontWeight: 600, marginBottom: 2 }}
+          />
+          <Bar dataKey="value" radius={[4, 4, 0, 0]} fill={color} maxBarSize={32} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+/** Pie chart using Recharts — distribution / proportions */
+function RechartsPieChartCard({ title, data, color, isLoading }: {
+  title: string; data: { label: string; value: number }[]; color: string; isLoading: boolean;
+}) {
+  if (isLoading) return <Skeleton className="h-48 rounded-lg" />;
+  if (!data || data.length === 0) return null;
+
+  const chartData = data.map(d => ({ name: d.label, value: d.value }));
+  const PIE_COLORS = ['#4285f4', '#34a853', '#fbbc04', '#ea4335', '#a855f7', '#ec407a', '#e8710a', '#1a73e8', '#5f6368', '#14b8a6'];
+
+  return (
+    <div className="border border-[#e8eaed] rounded-lg p-3 bg-white">
+      <p className="text-[11px] font-medium text-[#5f6368] mb-1">{title}</p>
+      <ResponsiveContainer width="100%" height={180}>
+        <PieChart>
+          <Pie
+            data={chartData}
+            cx="50%"
+            cy="50%"
+            innerRadius={40}
+            outerRadius={70}
+            paddingAngle={2}
+            dataKey="value"
+          >
+            {chartData.map((_, idx) => (
+              <Cell key={`cell-${idx}`} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
+            ))}
+          </Pie>
+          <Tooltip
+            contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #e8eaed', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}
+          />
+          <Legend
+            wrapperStyle={{ fontSize: 10, color: '#5f6368' }}
+            iconType="circle"
+            iconSize={6}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+/** Line/Area chart using Recharts — trends over time */
+function RechartsLineChartCard({ title, data, color, isLoading }: {
+  title: string; data: { label: string; value: number }[]; color: string; isLoading: boolean;
+}) {
+  if (isLoading) return <Skeleton className="h-48 rounded-lg" />;
+  if (!data || data.length === 0) return null;
+
+  const chartData = data.map(d => ({ name: d.label, value: d.value }));
+
+  return (
+    <div className="border border-[#e8eaed] rounded-lg p-3 bg-white">
+      <p className="text-[11px] font-medium text-[#5f6368] mb-3">{title}</p>
+      <ResponsiveContainer width="100%" height={160}>
+        <AreaChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+          <defs>
+            <linearGradient id={`grad-${title.replace(/\s+/g, '-')}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={color} stopOpacity={0.25} />
+              <stop offset="95%" stopColor={color} stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f1f3f4" vertical={false} />
+          <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#9aa0a6' }} axisLine={false} tickLine={false} />
+          <YAxis tick={{ fontSize: 10, fill: '#9aa0a6' }} axisLine={false} tickLine={false} />
+          <Tooltip
+            contentStyle={{ fontSize: 11, borderRadius: 8, border: '1px solid #e8eaed', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}
+          />
+          <Area type="monotone" dataKey="value" stroke={color} fill={`url(#grad-${title.replace(/\s+/g, '-')})`} strokeWidth={2} />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+/** Legacy simple bar kept for inline use in ModuleSection */
 function SimpleBarChart({ title, data, color, isLoading }: {
   title: string; data: { label: string; value: number }[]; color: string; isLoading: boolean;
 }) {
   if (isLoading) return <Skeleton className="h-24 rounded-lg" />;
   if (!data || data.length === 0) return null;
-
   const maxVal = Math.max(...data.map(d => d.value), 1);
 
   return (
@@ -225,10 +333,7 @@ function SimpleBarChart({ title, data, color, isLoading }: {
           <div key={i} className="flex items-center gap-2">
             <span className="text-[9px] text-[#5f6368] w-20 truncate text-right shrink-0">{item.label}</span>
             <div className="flex-1 h-4 bg-[#f1f3f4] rounded-sm overflow-hidden">
-              <div
-                className="h-full rounded-sm transition-all duration-500"
-                style={{ width: `${(item.value / maxVal) * 100}%`, backgroundColor: color }}
-              />
+              <div className="h-full rounded-sm transition-all duration-500" style={{ width: `${(item.value / maxVal) * 100}%`, backgroundColor: color }} />
             </div>
             <span className="text-[9px] font-medium text-[#5f6368] w-10 text-right shrink-0">{item.value}</span>
           </div>
@@ -456,6 +561,9 @@ export default function AnalyticsPage() {
           <TabsTrigger value="overview" className="text-[12px] data-[state=active]:bg-white">
             <LayoutDashboard className="h-3.5 w-3.5 mr-1.5" /> Overview
           </TabsTrigger>
+          <TabsTrigger value="charts" className="text-[12px] data-[state=active]:bg-white">
+            <BarChart3 className="h-3.5 w-3.5 mr-1.5" /> Charts
+          </TabsTrigger>
           <TabsTrigger value="reports" className="text-[12px] data-[state=active]:bg-white">
             <FileText className="h-3.5 w-3.5 mr-1.5" /> Reports
             {reportDefs && reportDefs.length > 0 && (
@@ -509,6 +617,95 @@ export default function AnalyticsPage() {
               />
             ))}
           </div>
+        </TabsContent>
+
+        {/* ════════════════════════════════════════════════════════
+            CHARTS TAB — Cross-module visual analytics
+            ════════════════════════════════════════════════════════ */}
+        <TabsContent value="charts" className="space-y-5 mt-4">
+          {/* Module chart selector */}
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h2 className="text-[13px] font-semibold text-[#1a1a2e]">Cross-Module Chart Analytics</h2>
+              <p className="text-[11px] text-[#5f6368]">Rich Recharts visualizations — distribution, comparison, and trend charts for every module</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                className="h-8 text-[11px] rounded-md border border-[#e8eaed] bg-white px-2 text-[#1a1a2e] outline-none focus:border-[#1a73e8]"
+                value={selectedModule}
+                onChange={(e) => setSelectedModule(e.target.value)}
+              >
+                <option value="all">All Modules</option>
+                {Object.entries(MODULE_LABELS).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Chart grid — each module's chart data rendered with Recharts */}
+          {visibleSections.map(({ id, label, icon: ModIcon, data }) => {
+            const colors = MODULE_COLORS[id] || MODULE_COLORS.procurement;
+            const chartColor = colors.bg.replace('bg-[', '').replace(']', '');
+            const charts = data?.charts || [];
+
+            if (!charts || charts.filter((c: any) => c?.data?.length > 0).length === 0) return null;
+
+            return (
+              <div key={id}>
+                <h3 className="text-[12px] font-semibold text-[#1a1a2e] mb-3 flex items-center gap-1.5">
+                  <ModIcon className={`h-3.5 w-3.5 ${colors.text}`} /> {label}
+                  <span className="text-[10px] font-normal text-[#9aa0a6]">{charts.filter((c: any) => c?.data?.length > 0).length} charts</span>
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {charts.map((chart: any, idx: number) => {
+                    if (!chart?.data || chart.data.length === 0) return null;
+                    // Alternate chart types for visual variety
+                    if (idx % 3 === 0) {
+                      return (
+                        <RechartsBarChartCard
+                          key={idx}
+                          title={chart.name}
+                          data={chart.data}
+                          color={'#' + chartColor.replace('#', '')}
+                          isLoading={false}
+                        />
+                      );
+                    } else if (idx % 3 === 1) {
+                      return (
+                        <RechartsPieChartCard
+                          key={idx}
+                          title={chart.name}
+                          data={chart.data}
+                          color={'#' + chartColor.replace('#', '')}
+                          isLoading={false}
+                        />
+                      );
+                    } else {
+                      return (
+                        <RechartsLineChartCard
+                          key={idx}
+                          title={chart.name}
+                          data={chart.data}
+                          color={'#' + chartColor.replace('#', '')}
+                          isLoading={false}
+                        />
+                      );
+                    }
+                  })}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* If no chart data available */}
+          {visibleSections.every(([id, data]) => !data?.charts?.filter((c: any) => c?.data?.length > 0).length) && (
+            <div className="text-center py-12">
+              <PieChartIcon className="h-12 w-12 text-[#dadce0] mx-auto mb-3" />
+              <h3 className="text-sm font-semibold text-[#1a1a2e]">Chart data loading</h3>
+              <p className="text-[12px] text-[#9aa0a6] mt-1">Module dashboard providers will populate charts as data becomes available</p>
+            </div>
+          )}
         </TabsContent>
 
         {/* ════════════════════════════════════════════════════════
