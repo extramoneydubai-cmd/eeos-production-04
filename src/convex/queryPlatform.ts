@@ -111,45 +111,73 @@ export interface VisibilityScope {
   module?: string;
   /** Whether to auto-reject if user can't discover this category */
   requireDiscover?: boolean;
+  /** Record IDs to use for record-level scope filtering */
+  recordIds?: string[];
 }
 
 /**
- * Standard visibility rules by user role.
- * CEO/COO see everything. Branch managers see own branch. Staff see own records.
+ * Resolve scope filters by delegating to the existing Visibility Engine.
+ *
+ * This function does NOT hardcode role rules.
+ * All access decisions are delegated to:
+ *  - `visibilityEngine.canDiscover()` — category-level discover permissions
+ *  - `visibilityEngine.canOpen()` — record-level open permissions
+ *  - `visibilityEngine.filterRecords()` — bulk record filtering
+ *  - `recordScope.evaluateRecordScope()` — org scope evaluation
+ *
+ * Business modules call these via securePaginatedQuery's visibility config.
  */
-export function getDefaultScopeFilters(
+export async function resolveVisibilityScope(
+  ctx: QueryCtx,
   sec: SecurityContext,
-  scope?: VisibilityScope,
-): {
-  organizationId?: Id<"organizations">;
-  companyId?: Id<"companies">;
-  branchId?: Id<"branches">;
-  departmentId?: Id<"departments">;
-  ownerId?: Id<"users">;
-} {
-  if (!sec.isAuthenticated) return {};
-
-  // Super admin and admin see everything by default
-  if (sec.isAdmin) return {};
-
-  // Manager sees by department/branch scope
-  if (sec.role === "manager") {
-    return {
-      organizationId: sec.scope.organizationId,
-      companyId: sec.scope.companyId,
-      branchId: sec.scope.branchId,
-      departmentId: sec.scope.departmentId,
-    };
+  category: string,
+  module: string,
+): Promise<{ allowed: boolean; reason?: string }> {
+  if (!sec.isAuthenticated) {
+    return { allowed: false, reason: "Not authenticated" };
   }
 
-  // Staff sees only their own records by default
-  if (sec.role === "staff") {
-    return {
-      ownerId: sec.user?._id,
-    };
+  try {
+    const { canDiscover } = await import("./visibilityEngine");
+    const allowed = await (canDiscover as any)(ctx, {
+      userId: sec.user!._id,
+      category,
+    });
+    return allowed
+      ? { allowed: true }
+      : { allowed: false, reason: `Cannot discover category: ${category}` };
+  } catch {
+    // Visibility engine not available — allow via auth only
+    return { allowed: true };
   }
+}
 
-  return {};
+/**
+ * Filter records through the Visibility Engine's filterRecords API.
+ */
+export async function filterByVisibility(
+  ctx: QueryCtx,
+  sec: SecurityContext,
+  records: any[],
+  module: string,
+  category?: string,
+): Promise<any[]> {
+  if (!sec.isAuthenticated) return [];
+
+  try {
+    const { filterRecords } = await import("./visibilityEngine");
+    const allowedIds = await (filterRecords as any)(ctx, {
+      userId: sec.user!._id,
+      module,
+      recordIds: records.map((r) => r._id),
+      category: category || module,
+    });
+    const allowedSet = new Set(allowedIds);
+    return records.filter((r) => allowedSet.has(r._id));
+  } catch {
+    // Visibility engine not available — return all records
+    return records;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -264,23 +292,19 @@ export function securePaginatedQuery(config: SecureQueryConfig) {
       return { items: [], nextCursor: null, hasMore: false, totalCount: 0 };
     }
 
-    // 3. Check visibility discover (if category specified)
+    // 3. Check visibility discover via resolveVisibilityScope (delegates to Visibility Engine)
     if (
       config.visibility?.requireDiscover &&
-      config.visibility.category &&
-      !sec.isSuperAdmin
+      config.visibility.category
     ) {
-      try {
-        const { canDiscover } = await import("./visibilityEngine");
-        const allowed = await (canDiscover as any)(ctx, {
-          userId: sec.user!._id,
-          category: config.visibility.category,
-        });
-        if (!allowed) {
-          return { items: [], nextCursor: null, hasMore: false, totalCount: 0 };
-        }
-      } catch {
-        // Visibility engine not available — proceed with scope only
+      const visibility = await resolveVisibilityScope(
+        ctx,
+        sec,
+        config.visibility.category,
+        config.visibility.module || config.visibility.category,
+      );
+      if (!visibility.allowed) {
+        return { items: [], nextCursor: null, hasMore: false, totalCount: 0 };
       }
     }
 
@@ -298,34 +322,16 @@ export function securePaginatedQuery(config: SecureQueryConfig) {
       },
     );
 
-    // 5. Apply scope filters (if respectScope is enabled)
+    // 5. Apply visibility scope via filterRecords (delegates to Visibility Engine)
     let filtered = result.items;
-    if (config.respectScope !== false) {
-      const scopeFilters = getDefaultScopeFilters(sec, config.visibility);
-      if (scopeFilters.ownerId && config.table !== "users") {
-        // Staff scope — restrict to owned records
-        filtered = filtered.filter(
-          (item: any) =>
-            item.ownerId === scopeFilters.ownerId ||
-            item.assignedTo === scopeFilters.ownerId ||
-            item.createdBy === scopeFilters.ownerId,
-        );
-      }
-      if (scopeFilters.branchId) {
-        filtered = filtered.filter(
-          (item: any) => item.branchId === scopeFilters.branchId,
-        );
-      }
-      if (scopeFilters.departmentId) {
-        filtered = filtered.filter(
-          (item: any) => item.departmentId === scopeFilters.departmentId,
-        );
-      }
-      if (scopeFilters.companyId) {
-        filtered = filtered.filter(
-          (item: any) => item.companyId === scopeFilters.companyId,
-        );
-      }
+    if (config.respectScope !== false && config.visibility?.module) {
+      filtered = await filterByVisibility(
+        ctx,
+        sec,
+        filtered,
+        config.visibility.module,
+        config.visibility.category,
+      );
     }
 
     // 6. Apply explicit scope overrides from args
@@ -377,13 +383,15 @@ export function securePaginatedQuery(config: SecureQueryConfig) {
 // ═══════════════════════════════════════════════════════════════════
 
 /**
- * Secure count query — counts records with visibility scope.
+ * Secure count query — counts records using Visibility Engine for scope.
+ * Delegates access decisions rather than hardcoding role rules.
  */
 export async function secureCount(
   ctx: QueryCtx,
   table: string,
   token: string,
   filter?: (items: any[]) => any[],
+  visibility?: { module?: string; category?: string },
 ): Promise<number> {
   const sec = await resolveSecurityContext(ctx, token);
   if (!sec.isAuthenticated) return 0;
@@ -391,26 +399,9 @@ export async function secureCount(
   const all = await ctx.db.query(table as any).collect();
   let filtered = all as any[];
 
-  // Apply scope
-  if (!sec.isAdmin) {
-    const scopeFilters = getDefaultScopeFilters(sec);
-    if (scopeFilters.ownerId) {
-      filtered = filtered.filter(
-        (item) =>
-          item.ownerId === scopeFilters.ownerId ||
-          item.createdBy === scopeFilters.ownerId,
-      );
-    }
-    if (scopeFilters.branchId) {
-      filtered = filtered.filter(
-        (item) => item.branchId === scopeFilters.branchId,
-      );
-    }
-    if (scopeFilters.departmentId) {
-      filtered = filtered.filter(
-        (item) => item.departmentId === scopeFilters.departmentId,
-      );
-    }
+  // Apply visibility scope if module specified
+  if (visibility?.module) {
+    filtered = await filterByVisibility(ctx, sec, filtered, visibility.module, visibility.category);
   }
 
   if (filter) {

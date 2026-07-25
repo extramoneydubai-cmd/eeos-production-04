@@ -666,6 +666,124 @@ export async function batchInventoryItems(
 }
 
 /**
+ * Generic batch collection fetcher — for any entity type.
+ */
+export async function batchCollection(
+  ctx: QueryCtx,
+  ids: Id<any>[],
+): Promise<Map<Id<any>, any>> {
+  const items = await batchGet<any>(ctx, ids);
+  const map = new Map<Id<any>, any>();
+  for (const item of items.filter(Boolean)) {
+    map.set(item._id, item);
+  }
+  return map;
+}
+
+/**
+ * Batch fetch parents by IDs (personMaster level).
+ */
+export async function batchParents(
+  ctx: QueryCtx,
+  ids: Id<any>[],
+): Promise<Map<Id<any>, any>> {
+  return batchCollection(ctx, ids);
+}
+
+/**
+ * Batch fetch faculty by IDs (employeeMaster with faculty role).
+ */
+export async function batchFaculty(
+  ctx: QueryCtx,
+  ids: Id<any>[],
+): Promise<Map<Id<any>, any>> {
+  return batchCollection(ctx, ids);
+}
+
+/**
+ * Batch fetch leads by IDs.
+ */
+export async function batchLeads(
+  ctx: QueryCtx,
+  ids: Id<any>[],
+): Promise<Map<Id<any>, any>> {
+  const items = await batchGet<any>(ctx, ids);
+  const map = new Map<Id<any>, any>();
+  for (const item of items.filter(Boolean)) {
+    map.set(item._id, item);
+  }
+  return map;
+}
+
+/**
+ * Batch fetch teams by IDs.
+ */
+export async function batchTeams(
+  ctx: QueryCtx,
+  ids: Id<any>[],
+): Promise<Map<Id<any>, any>> {
+  return batchCollection(ctx, ids);
+}
+
+/**
+ * Batch fetch assets by IDs.
+ */
+export async function batchAssets(
+  ctx: QueryCtx,
+  ids: Id<any>[],
+): Promise<Map<Id<any>, any>> {
+  return batchCollection(ctx, ids);
+}
+
+/**
+ * Batch fetch tasks by IDs.
+ */
+export async function batchTasks(
+  ctx: QueryCtx,
+  ids: Id<any>[],
+): Promise<Map<Id<any>, any>> {
+  return batchCollection(ctx, ids);
+}
+
+/**
+ * Batch fetch meetings by IDs.
+ */
+export async function batchMeetings(
+  ctx: QueryCtx,
+  ids: Id<any>[],
+): Promise<Map<Id<any>, any>> {
+  return batchCollection(ctx, ids);
+}
+
+/**
+ * Batch fetch batches by IDs.
+ */
+export async function batchBatches(
+  ctx: QueryCtx,
+  ids: Id<any>[],
+): Promise<Map<Id<any>, any>> {
+  return batchCollection(ctx, ids);
+}
+
+/**
+ * Batch fetch users by IDs with name mapping.
+ */
+export async function batchUsers(
+  ctx: QueryCtx,
+  ids: Id<any>[],
+): Promise<Map<Id<any>, { _id: Id<any>; name: string }>> {
+  const items = await batchGet<any>(ctx, ids);
+  const map = new Map<Id<any>, { _id: Id<any>; name: string }>();
+  for (const item of items.filter(Boolean)) {
+    map.set(item._id, {
+      _id: item._id,
+      name: item.name || item.username || "Unknown",
+    });
+  }
+  return map;
+}
+
+/**
  * Batch enrich items with their associated person names.
  */
 export async function enrichWithPeople(

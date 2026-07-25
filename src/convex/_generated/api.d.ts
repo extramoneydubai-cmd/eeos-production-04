@@ -79,6 +79,7 @@ import type * as crmUtmSources from "../crmUtmSources.js";
 import type * as crmWhatsApp from "../crmWhatsApp.js";
 import type * as dashboard from "../dashboard.js";
 import type * as dashboardEngine from "../dashboardEngine.js";
+import type * as dashboardProviders from "../dashboardProviders.js";
 import type * as demo_auth from "../demo/auth.js";
 import type * as demo_data from "../demo/data.js";
 import type * as demo_queries from "../demo/queries.js";
@@ -294,6 +295,7 @@ declare const fullApi: ApiFromModules<{
   crmWhatsApp: typeof crmWhatsApp;
   dashboard: typeof dashboard;
   dashboardEngine: typeof dashboardEngine;
+  dashboardProviders: typeof dashboardProviders;
   "demo/auth": typeof demo_auth;
   "demo/data": typeof demo_data;
   "demo/queries": typeof demo_queries;
