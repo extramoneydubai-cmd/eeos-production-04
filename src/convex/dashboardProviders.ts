@@ -252,7 +252,7 @@ const lmsProvider: DashboardProvider = {
 };
 
 /**
- * Inventory Dashboard Provider
+ * Procurement & Inventory Dashboard Provider
  */
 const inventoryProvider: DashboardProvider = {
   id: "inventory",
@@ -261,16 +261,63 @@ const inventoryProvider: DashboardProvider = {
   getData: async (ctx) => {
     const kpis = await dashboardKPIs(ctx, [
       { label: "Inventory Items", table: "inventoryItems", icon: "Package", color: "blue" },
-      { label: "Low Stock Items", table: "inventoryItems", icon: "AlertTriangle", color: "red", filter: (q: any) => q.filter((f: any) => f.lte(f.field("quantity"), f.field("reorderLevel"))) },
-      { label: "Pending Orders", table: "purchaseOrders", icon: "ShoppingCart", color: "orange", filter: (q: any) => q.filter((f: any) => f.eq(f.field("status"), "pending")) },
+      { label: "Low Stock Items", table: "inventoryItems", icon: "AlertTriangle", color: "red", filter: (q: any) => q.filter((f: any) => f.lte(f.field("currentStock"), f.field("reorderLevel"))) },
+      { label: "Active Vendors", table: "vendorMaster", icon: "Building", color: "green", filter: (q: any) => q.filter((f: any) => f.eq(f.field("status"), "active")) },
+      { label: "Pending Orders", table: "purchaseOrders", icon: "ShoppingCart", color: "orange", filter: (q: any) => q.filter((f: any) => f.neq(f.field("status"), "received")) },
+      { label: "Pending Approvals", table: "purchaseOrders", icon: "Clock", color: "yellow", filter: (q: any) => q.filter((f: any) => f.eq(f.field("status"), "pending_approval")) },
     ]);
+
+    const charts = await dashboardCharts(ctx, [
+      { name: "POs by Status", table: "purchaseOrders", groupByField: "status", color: "#3b82f6" },
+      { name: "Items by Category", table: "inventoryItems", groupByField: "categoryId", color: "#10b981" },
+    ]);
+
+    const timeline = await dashboardTimeline(ctx, "timelineEvents", {
+      limit: 10,
+      filter: (q: any) => q.filter((f: any) => f.eq(f.field("module"), "procurement")),
+    });
+
+    const recentActivity = await dashboardRecent(ctx, "purchaseOrders", 5);
 
     return {
       kpis,
-      charts: [],
-      timeline: [],
-      recentActivity: [],
+      charts,
+      timeline,
+      recentActivity,
       quickStats: { totalItems: kpis[0]?.value || 0 },
+    };
+  },
+};
+
+/**
+ * Procurement Dashboard Provider (operations-focused)
+ */
+const procurementProvider: DashboardProvider = {
+  id: "procurement",
+  label: "Procurement",
+  icon: "Truck",
+  getData: async (ctx) => {
+    const kpis = await dashboardKPIs(ctx, [
+      { label: "Purchase Orders", table: "purchaseOrders", icon: "FileText", color: "blue" },
+      { label: "Requisitions", table: "purchaseRequisitions", icon: "ListChecks", color: "purple" },
+      { label: "Goods Receipts", table: "goodsReceipts", icon: "PackageCheck", color: "green" },
+      { label: "Payment Requests", table: "paymentRequests", icon: "CreditCard", color: "orange", filter: (q: any) => q.filter((f: any) => f.eq(f.field("status"), "pending_approval")) },
+      { label: "Pending Approvals", table: "purchaseOrders", icon: "Clock", color: "red", filter: (q: any) => q.filter((f: any) => f.eq(f.field("status"), "pending_approval")) },
+    ]);
+
+    const charts = await dashboardCharts(ctx, [
+      { name: "Requisitions by Priority", table: "purchaseRequisitions", groupByField: "priority", color: "#f59e0b" },
+      { name: "Vendors by Status", table: "vendorMaster", groupByField: "status", color: "#3b82f6" },
+    ]);
+
+    const recentActivity = await dashboardRecent(ctx, "purchaseRequisitions", 5);
+
+    return {
+      kpis,
+      charts,
+      timeline: [],
+      recentActivity,
+      quickStats: { totalPOs: kpis[0]?.value || 0 },
     };
   },
 };
@@ -291,6 +338,7 @@ export const moduleProviders: DashboardProvider[] = [
   examProvider,
   lmsProvider,
   inventoryProvider,
+  procurementProvider,
 ];
 
 // ═══════════════════════════════════════════════════════════════════

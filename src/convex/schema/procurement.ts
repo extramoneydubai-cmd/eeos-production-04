@@ -296,4 +296,37 @@ export const procurementTables = {
     .index("by_active", ["isActive"])
     .index("by_created", ["createdAt"])
     .index("by_updated", ["updatedAt"]),
+  paymentRequests: defineTable({
+    requestNumber: v.string(),
+    poId: v.optional(v.id("purchaseOrders")),
+    vendorBillId: v.optional(v.id("vendorBills")),
+    vendorId: v.id("vendorMaster"),
+    amount: v.number(),
+    description: v.string(),
+    departmentId: v.optional(v.id("departments")),
+    branchId: v.optional(v.id("branches")),
+    requestedBy: v.id("users"),
+    approvedBy: v.optional(v.id("users")),
+    approvedAt: v.optional(v.number()),
+    paymentMode: v.optional(v.union(
+      v.literal("cash"), v.literal("bank_transfer"),
+      v.literal("cheque"), v.literal("upi"),
+      v.literal("card"), v.literal("online"),
+    )),
+    status: v.union(
+      v.literal("draft"), v.literal("pending_approval"),
+      v.literal("approved"), v.literal("paid"),
+      v.literal("rejected"), v.literal("cancelled"),
+    ),
+    paidAt: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("requestNumber", ["requestNumber"])
+    .index("vendorId", ["vendorId"])
+    .index("status", ["status"])
+    .index("by_branch", ["branchId"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
 };
