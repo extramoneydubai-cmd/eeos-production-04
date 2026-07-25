@@ -774,9 +774,6 @@ export default function FormStudio() {
   const updateField = useMutation(api.formEngine.updateFormField);
   const deleteField = useMutation(api.formEngine.deleteFormField);
   const reorderFields = useMutation(api.formEngine.reorderFormFields);
-  const listFields = useQuery;
-  const listSubmissionsQ = useQuery;
-
   // State
   const [view, setView] = useState<"dashboard" | "edit">("dashboard");
   const [selectedFormId, setSelectedFormId] = useState<string | null>(null);
@@ -785,18 +782,16 @@ export default function FormStudio() {
   const [newFormName, setNewFormName] = useState("");
   const [newFormCategory, setNewFormCategory] = useState("");
 
-  // Selected form
+  // Selected form — always call useQuery unconditionally (React hooks rule)
   const selectedForm = forms.find((f: any) => f._id === selectedFormId) || null;
-  const fields = selectedFormId
-    ? (useQuery(api.formEngine.listFormFields, {
-        formId: selectedFormId as any,
-      }) as any[]) || []
-    : [];
-  const submissions = selectedFormId
-    ? (useQuery(api.formEngine.listSubmissions, {
-        formId: selectedFormId as any,
-      }) as any[]) || []
-    : [];
+  const fieldsResult = useQuery(api.formEngine.listFormFields, {
+    formId: (selectedFormId || "") as any,
+  });
+  const submissionsResult = useQuery(api.formEngine.listSubmissions, {
+    formId: (selectedFormId || "") as any,
+  });
+  const fields = (fieldsResult as any[]) || [];
+  const submissions = (submissionsResult as any[]) || [];
 
   // ─── Handlers ──────────────────────────────────────────────
 
