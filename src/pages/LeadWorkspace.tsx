@@ -1998,21 +1998,39 @@ export default function LeadWorkspace() {
                               <td className="px-2 py-2">
                                 {pdc.status === "scheduled" && (
                                   <div className="flex items-center gap-1">
-                                    <Button variant="ghost" size="icon-sm" className="h-6 w-6 text-[#4285f4]"
-                                      onClick={() => updatePDCStatus({ pdcId: pdc._id, status: "deposited", userId: user!._id })}>
-                                      <CheckCircle2 className="h-3 w-3" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon-sm" className="h-6 w-6 text-[#ea4335]"
-                                      onClick={() => { const r = prompt("Bounce reason:"); if (r) updatePDCStatus({ pdcId: pdc._id, status: "bounced", userId: user!._id, bounceReason: r }); }}>
-                                      <XCircle className="h-3 w-3" />
-                                    </Button>
+                                    <button
+                                      onClick={() => updatePDCStatus({ pdcId: pdc._id, status: "deposited", userId: user!._id })}
+                                      className="h-6 w-6 rounded flex items-center justify-center text-[#4285f4] hover:bg-[#e8f0fe]"
+                                      title="Deposit cheque in bank"
+                                    >
+                                      <CheckCircle2 className="h-3.5 w-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => { if (confirm("Cancel this PDC cheque?")) updatePDCStatus({ pdcId: pdc._id, status: "cancelled", userId: user!._id }); }}
+                                      className="h-6 w-6 rounded flex items-center justify-center text-[#9aa0a6] hover:text-[#ea4335] hover:bg-[#f1f3f4]"
+                                      title="Cancel PDC"
+                                    >
+                                      <XCircle className="h-3.5 w-3.5" />
+                                    </button>
                                   </div>
                                 )}
                                 {pdc.status === "deposited" && (
-                                  <Button variant="ghost" size="sm" className="h-6 text-[9px] text-[#34a853] px-1"
-                                    onClick={() => updatePDCStatus({ pdcId: pdc._id, status: "cleared", userId: user!._id })}>
-                                    Mark Cleared
-                                  </Button>
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      onClick={() => updatePDCStatus({ pdcId: pdc._id, status: "cleared", userId: user!._id })}
+                                      className="h-6 px-2 rounded text-[9px] font-medium text-[#34a853] hover:bg-[#e6f4ea] flex items-center gap-1"
+                                      title="Cheque cleared by bank"
+                                    >
+                                      <CheckCircle2 className="h-3 w-3" /> Cleared
+                                    </button>
+                                    <button
+                                      onClick={() => { const r = prompt("Enter bounce reason:"); if (r) updatePDCStatus({ pdcId: pdc._id, status: "bounced", userId: user!._id, bounceReason: r }); }}
+                                      className="h-6 px-2 rounded text-[9px] font-medium text-[#ea4335] hover:bg-[#fce8e6] flex items-center gap-1"
+                                      title="Cheque bounced"
+                                    >
+                                      <XCircle className="h-3 w-3" /> Bounced
+                                    </button>
+                                  </div>
                                 )}
                               </td>
                             </tr>
