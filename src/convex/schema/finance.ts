@@ -510,4 +510,300 @@ export const financeTables = {
     .index("dueDate", ["dueDate"])
     .index("by_created", ["createdAt"])
     .index("by_updated", ["updatedAt"]),
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ENTERPRISE TABLES (PATCH-EEOS-014A)
+  // ═══════════════════════════════════════════════════════════════════
+
+  // ─── Chart of Accounts (Part 1) ──────────────────────────────────
+  accountGroups: defineTable({
+    name: v.string(),
+    code: v.string(),
+    category: v.union(v.literal("assets"), v.literal("liabilities"), v.literal("income"), v.literal("expenses"), v.literal("equity")),
+    parentId: v.optional(v.id("accountGroups")),
+    description: v.optional(v.string()),
+    normalBalance: v.union(v.literal("debit"), v.literal("credit")),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("code", ["code"])
+    .index("category", ["category"])
+    .index("by_active", ["isActive"]),
+
+  chartOfAccounts: defineTable({
+    name: v.string(),
+    code: v.string(),
+    groupId: v.id("accountGroups"),
+    description: v.optional(v.string()),
+    openingBalance: v.optional(v.number()),
+    currentBalance: v.number(),
+    currency: v.optional(v.string()),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("code", ["code"])
+    .index("groupId", ["groupId"])
+    .index("by_active", ["isActive"]),
+
+  // ─── Financial Transactions (Part 2) ──────────────────────────────
+  financialTransactions: defineTable({
+    voucherNumber: v.string(),
+    transactionDate: v.number(),
+    description: v.string(),
+    voucherType: v.union(
+      v.literal("journal"), v.literal("payment"), v.literal("receipt"),
+      v.literal("invoice"), v.literal("expense"), v.literal("refund"),
+      v.literal("transfer"), v.literal("adjustment"), v.literal("closing"),
+      v.literal("opening"), v.literal("custom"),
+    ),
+    referenceModule: v.optional(v.string()),
+    referenceEntity: v.optional(v.string()),
+    referenceId: v.optional(v.string()),
+    lines: v.string(),
+    totalDebit: v.number(),
+    totalCredit: v.number(),
+    companyId: v.optional(v.id("orgCompanies")),
+    branchId: v.optional(v.id("orgBranches")),
+    departmentId: v.optional(v.id("departments")),
+    costCenterId: v.optional(v.id("costCenters")),
+    currency: v.string(),
+    status: v.union(v.literal("draft"), v.literal("posted"), v.literal("reversed")),
+    createdBy: v.id("users"),
+    postedAt: v.optional(v.number()),
+    reversedAt: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("voucherNumber", ["voucherNumber"])
+    .index("voucherType", ["voucherType"])
+    .index("referenceModule", ["referenceModule", "referenceEntity", "referenceId"])
+    .index("status", ["status"])
+    .index("transactionDate", ["transactionDate"])
+    .index("by_created", ["createdAt"]),
+
+  // ─── Cost Centers (Part 4) ───────────────────────────────────────
+  costCenters: defineTable({
+    name: v.string(),
+    code: v.string(),
+    scopeType: v.union(
+      v.literal("company"), v.literal("branch"), v.literal("department"),
+      v.literal("vertical"), v.literal("course"), v.literal("batch"),
+      v.literal("campaign"), v.literal("project"), v.literal("center"),
+      v.literal("custom"),
+    ),
+    scopeId: v.optional(v.string()),
+    parentId: v.optional(v.id("costCenters")),
+    description: v.optional(v.string()),
+    budgetAmount: v.optional(v.number()),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("code", ["code"])
+    .index("scopeType", ["scopeType"])
+    .index("by_active", ["isActive"]),
+
+  // ─── Budgets (Part 9) ────────────────────────────────────────────
+  budgets: defineTable({
+    name: v.string(),
+    code: v.string(),
+    fiscalYear: v.string(),
+    scopeType: v.union(
+      v.literal("department"), v.literal("branch"),
+      v.literal("project"), v.literal("campaign"),
+      v.literal("company"), v.literal("custom"),
+    ),
+    scopeId: v.optional(v.string()),
+    totalAmount: v.number(),
+    consumedAmount: v.number(),
+    remainingAmount: v.number(),
+    startDate: v.number(),
+    endDate: v.number(),
+    description: v.optional(v.string()),
+    status: v.union(v.literal("draft"), v.literal("pending_approval"), v.literal("approved"), v.literal("rejected"), v.literal("revised")),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("code", ["code"])
+    .index("fiscalYear", ["fiscalYear"])
+    .index("scopeType", ["scopeType"])
+    .index("status", ["status"])
+    .index("by_created", ["createdAt"]),
+
+  budgetRevisions: defineTable({
+    budgetId: v.id("budgets"),
+    previousAmount: v.number(),
+    newAmount: v.number(),
+    reason: v.string(),
+    revisedAt: v.number(),
+  })
+    .index("budgetId", ["budgetId"]),
+
+  budgetConsumptions: defineTable({
+    budgetId: v.id("budgets"),
+    amount: v.number(),
+    description: v.string(),
+    referenceType: v.string(),
+    referenceId: v.optional(v.string()),
+    consumedAt: v.number(),
+  })
+    .index("budgetId", ["budgetId"])
+    .index("referenceType", ["referenceType"]),
+
+  // ─── Tax Groups (Part 10) ────────────────────────────────────────
+  taxGroups: defineTable({
+    name: v.string(),
+    code: v.string(),
+    taxType: v.union(v.literal("gst"), v.literal("vat"), v.literal("service_tax"), v.literal("sales_tax"), v.literal("withholding"), v.literal("custom")),
+    rate: v.number(),
+    isCompound: v.boolean(),
+    description: v.optional(v.string()),
+    applicableToVerticals: v.optional(v.array(v.string())),
+    applicableToCourses: v.optional(v.array(v.id("courses"))),
+    effectiveFrom: v.optional(v.number()),
+    effectiveTo: v.optional(v.number()),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("code", ["code"])
+    .index("taxType", ["taxType"])
+    .index("by_active", ["isActive"]),
+
+  // ─── Financial Closings (Part 11) ────────────────────────────────
+  financialClosings: defineTable({
+    periodType: v.union(v.literal("month"), v.literal("quarter"), v.literal("year")),
+    periodLabel: v.string(),
+    periodStart: v.number(),
+    periodEnd: v.number(),
+    financialYearId: v.optional(v.id("financeFinancialYears")),
+    status: v.union(v.literal("in_progress"), v.literal("closed"), v.literal("reopened")),
+    checklistItems: v.optional(v.string()),
+    closedBy: v.optional(v.id("users")),
+    closedAt: v.optional(v.number()),
+    remarks: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("periodType", ["periodType"])
+    .index("status", ["status"])
+    .index("by_created", ["createdAt"]),
+
+  // ─── Fixed Asset Categories (Part 12) ────────────────────────────
+  assetCategories: defineTable({
+    name: v.string(),
+    code: v.string(),
+    depreciationMethod: v.union(v.literal("straight_line"), v.literal("declining"), v.literal("sum_of_years"), v.literal("units_of_production"), v.literal("none")),
+    usefulLifeYears: v.number(),
+    depreciationRate: v.optional(v.number()),
+    description: v.optional(v.string()),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("code", ["code"])
+    .index("by_active", ["isActive"]),
+
+  fixedAssets: defineTable({
+    name: v.string(),
+    assetCode: v.string(),
+    categoryId: v.id("assetCategories"),
+    purchaseDate: v.number(),
+    purchaseCost: v.number(),
+    currentValue: v.number(),
+    salvageValue: v.number(),
+    accumulatedDepreciation: v.number(),
+    usefulLifeYears: v.number(),
+    branchId: v.optional(v.id("orgBranches")),
+    departmentId: v.optional(v.id("departments")),
+    location: v.optional(v.string()),
+    description: v.optional(v.string()),
+    serialNumber: v.optional(v.string()),
+    vendorName: v.optional(v.string()),
+    assignedTo: v.optional(v.id("users")),
+    status: v.union(v.literal("active"), v.literal("transferred"), v.literal("written_off"), v.literal("disposed")),
+    writeOffDate: v.optional(v.number()),
+    writeOffReason: v.optional(v.string()),
+    disposalDate: v.optional(v.number()),
+    disposalType: v.optional(v.union(v.literal("sold"), v.literal("scrapped"), v.literal("donated"), v.literal("lost"))),
+    saleAmount: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("assetCode", ["assetCode"])
+    .index("categoryId", ["categoryId"])
+    .index("status", ["status"])
+    .index("branchId", ["branchId"])
+    .index("by_created", ["createdAt"]),
+
+  assetDepreciationEntries: defineTable({
+    assetId: v.id("fixedAssets"),
+    depreciationDate: v.number(),
+    amount: v.number(),
+    bookValueBefore: v.number(),
+    bookValueAfter: v.number(),
+    method: v.string(),
+    createdAt: v.number(),
+  })
+    .index("assetId", ["assetId"])
+    .index("depreciationDate", ["depreciationDate"]),
+
+  // ─── Bank Transactions (Part 5) ──────────────────────────────────
+  bankTransactions: defineTable({
+    bankAccountId: v.id("financeBankAccounts"),
+    toBankAccountId: v.optional(v.id("financeBankAccounts")),
+    transactionType: v.union(v.literal("deposit"), v.literal("withdrawal"), v.literal("transfer")),
+    amount: v.number(),
+    description: v.string(),
+    referenceNumber: v.optional(v.string()),
+    transactionDate: v.number(),
+    status: v.union(v.literal("pending"), v.literal("completed"), v.literal("failed"), v.literal("reversed")),
+    branchId: v.optional(v.id("orgBranches")),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("bankAccountId", ["bankAccountId"])
+    .index("transactionType", ["transactionType"])
+    .index("status", ["status"])
+    .index("transactionDate", ["transactionDate"])
+    .index("by_created", ["createdAt"]),
+
+  // ─── HR Finance (Part 8) ─────────────────────────────────────────
+  hrSalaryComponents: defineTable({
+    name: v.string(),
+    code: v.string(),
+    componentType: v.union(v.literal("earning"), v.literal("deduction"), v.literal("employer_contribution")),
+    calculationType: v.union(v.literal("fixed"), v.literal("percentage"), v.literal("formula")),
+    value: v.optional(v.number()),
+    isTaxable: v.boolean(),
+    description: v.optional(v.string()),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("code", ["code"])
+    .index("componentType", ["componentType"])
+    .index("by_active", ["isActive"]),
+
+  employeeAdvances: defineTable({
+    employeeId: v.id("users"),
+    amount: v.number(),
+    repaidAmount: v.number(),
+    balanceDue: v.number(),
+    reason: v.string(),
+    repaymentType: v.union(v.literal("one_time"), v.literal("installment")),
+    installmentCount: v.optional(v.number()),
+    installmentAmount: v.optional(v.number()),
+    status: v.union(v.literal("approved"), v.literal("repaid"), v.literal("cancelled")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("employeeId", ["employeeId"])
+    .index("status", ["status"])
+    .index("by_created", ["createdAt"]),
 };
