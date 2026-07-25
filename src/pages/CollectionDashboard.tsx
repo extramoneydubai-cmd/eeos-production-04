@@ -28,6 +28,8 @@ import {
   Receipt,
   Target,
   Database,
+  ChevronDown,
+  ExternalLink,
 } from "lucide-react";
 import { ENABLE_COLLECTIONS_PAGE } from "@/featureFlags";
 
@@ -75,10 +77,24 @@ function StatCard({
   );
 }
 
+const PDC_STATUSES = [
+  { key: "scheduled" as const, label: "Scheduled", icon: Clock, color: "bg-[#4285f4]", iconColor: "text-white" },
+  { key: "deposited" as const, label: "Deposited", icon: Landmark, color: "bg-[#fbbc04]", iconColor: "text-white" },
+  { key: "cleared" as const, label: "Cleared", icon: CheckCircle2, color: "bg-[#34a853]", iconColor: "text-white" },
+  { key: "bounced" as const, label: "Bounced", icon: XCircle, color: "bg-[#ea4335]", iconColor: "text-white" },
+  { key: "cancelled" as const, label: "Cancelled", icon: Ban, color: "bg-[#9aa0a6]", iconColor: "text-white" },
+];
+
 export default function CollectionDashboard() {
   const { user } = useAuth();
   const { navigate } = useAppNavigate();
   const [running, setRunning] = useState(false);
+  const [selectedPDCStatus, setSelectedPDCStatus] = useState<string | null>(null);
+
+  const pdcDetails = useQuery(
+    api.collectionEngine.getPDCByStatus,
+    selectedPDCStatus ? { status: selectedPDCStatus as any } : "skip"
+  );
 
   // Safe mode — page disabled until Convex deployment
   if (!ENABLE_COLLECTIONS_PAGE) {
@@ -386,14 +402,115 @@ export default function CollectionDashboard() {
            PDC MANAGEMENT TAB
            ════════════════════════════════════════ */}
         <TabsContent value="pdc" className="space-y-4 mt-4">
-          {/* PDC Status Cards */}
+          {/* PDC Status Cards — clickable */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-            <StatCard title="Scheduled" value={dashboard.pdcScheduled} subtitle={`₹${dashboard.pdcScheduledTotal.toLocaleString()}`} icon={Clock} color="bg-[#4285f4]" />
-            <StatCard title="Deposited" value={dashboard.pdcDeposited} subtitle={`₹${dashboard.pdcDepositedTotal.toLocaleString()}`} icon={Landmark} color="bg-[#fbbc04]" />
-            <StatCard title="Cleared" value={dashboard.pdcCleared} subtitle={`₹${dashboard.pdcClearedTotal.toLocaleString()}`} icon={CheckCircle2} color="bg-[#34a853]" />
-            <StatCard title="Bounced" value={dashboard.pdcBounced} subtitle={`₹${dashboard.pdcBouncedTotal.toLocaleString()}`} icon={XCircle} color="bg-[#ea4335]" />
-            <StatCard title="Cancelled" value={dashboard.pdcCancelled} icon={Ban} color="bg-[#9aa0a6]" />
+            {PDC_STATUSES.map((s) => {
+              const count =
+                s.key === "scheduled" ? dashboard.pdcScheduled :
+                s.key === "deposited" ? dashboard.pdcDeposited :
+                s.key === "cleared" ? dashboard.pdcCleared :
+                s.key === "bounced" ? dashboard.pdcBounced :
+                dashboard.pdcCancelled;
+              const total =
+                s.key === "scheduled" ? dashboard.pdcScheduledTotal :
+                s.key === "deposited" ? dashboard.pdcDepositedTotal :
+                s.key === "cleared" ? dashboard.pdcClearedTotal :
+                s.key === "bounced" ? dashboard.pdcBouncedTotal :
+                0;
+              const isActive = selectedPDCStatus === s.key;
+              return (
+                <StatCard
+                  key={s.key}
+                  title={s.label}
+                  value={count}
+                  subtitle={total > 0 ? `₹${total.toLocaleString()}` : undefined}
+                  icon={s.icon}
+                  color={isActive ? s.color : s.color.replace("bg-", "bg-").replace(/\[.*?\]/, "[#dadce0]")}
+                  onClick={() => setSelectedPDCStatus(selectedPDCStatus === s.key ? null : s.key)}
+                />
+              );
+            })}
           </div>
+
+          {/* PDC Details Table */}
+          {selectedPDCStatus && (
+            <Card className="border-[#e8eaed] shadow-sm bg-white">
+              <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-sm font-semibold text-[#1a1a2e]">
+                    {PDC_STATUSES.find((s) => s.key === selectedPDCStatus)?.label || selectedPDCStatus} PDC Details
+                  </CardTitle>
+                  <CardDescription className="text-[10px] text-[#9aa0a6]">
+                    {pdcDetails?.length || 0} record{pdcDetails?.length !== 1 ? "s" : ""}
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-[10px] text-[#5f6368]"
+                  onClick={() => setSelectedPDCStatus(null)}
+                >
+                  <ChevronDown className="h-3 w-3 mr-1" /> Close
+                </Button>
+              </CardHeader>
+              <CardContent className="p-0">
+                {!pdcDetails ? (
+                  <div className="p-6 text-center">
+                    <Loader2 className="h-5 w-5 animate-spin text-[#9aa0a6] mx-auto" />
+                  </div>
+                ) : pdcDetails.length === 0 ? (
+                  <div className="p-6 text-center">
+                    <p className="text-[12px] text-[#9aa0a6]">No PDCs in this status.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="border-b border-[#f1f3f4]">
+                          <th className="text-[11px] font-medium text-[#5f6368] px-4 py-2.5">Lead Name</th>
+                          <th className="text-[11px] font-medium text-[#5f6368] px-4 py-2.5">Bank</th>
+                          <th className="text-[11px] font-medium text-[#5f6368] px-4 py-2.5">Cheque #</th>
+                          <th className="text-[11px] font-medium text-[#5f6368] px-4 py-2.5">Amount</th>
+                          <th className="text-[11px] font-medium text-[#5f6368] px-4 py-2.5">Cheque Date</th>
+                          <th className="text-[11px] font-medium text-[#5f6368] px-4 py-2.5">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pdcDetails.map((pdc) => (
+                          <tr key={pdc.pdcId} className="border-b border-[#f1f3f4] hover:bg-[#f8f9fa] transition-colors">
+                            <td className="px-4 py-2.5">
+                              <button
+                                className="flex items-center gap-1 text-[12px] font-medium text-[#1a73e8] hover:text-[#1557b0] hover:underline transition-colors"
+                                onClick={() => navigate(`/crm/leads/${pdc.leadId}`)}
+                              >
+                                {pdc.leadName}
+                                <ExternalLink className="h-3 w-3 shrink-0" />
+                              </button>
+                            </td>
+                            <td className="px-4 py-2.5 text-[12px] text-[#1a1a2e]">{pdc.bank}</td>
+                            <td className="px-4 py-2.5 text-[12px] text-[#1a1a2e] font-mono">#{pdc.chequeNumber}</td>
+                            <td className="px-4 py-2.5 text-[12px] text-[#1a1a2e] font-medium">₹{pdc.amount.toLocaleString("en-IN")}</td>
+                            <td className="px-4 py-2.5 text-[12px] text-[#5f6368]">{new Date(pdc.chequeDate).toLocaleDateString()}</td>
+                            <td className="px-4 py-2.5">
+                              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                pdc.status === "scheduled" ? "bg-[#e8f0fe] text-[#1a73e8]" :
+                                pdc.status === "deposited" ? "bg-[#fef7e0] text-[#e8710a]" :
+                                pdc.status === "cleared" ? "bg-[#e6f4ea] text-[#34a853]" :
+                                pdc.status === "bounced" ? "bg-[#fce8e6] text-[#ea4335]" :
+                                "bg-[#f1f3f4] text-[#5f6368]"
+                              }`}>
+                                {pdc.status.charAt(0).toUpperCase() + pdc.status.slice(1)}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* PDC Urgency */}
           <Card className="border-[#e8eaed] shadow-sm bg-white">
