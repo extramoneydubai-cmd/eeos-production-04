@@ -310,26 +310,26 @@
 #### 12. Finance
 | Metric | Status | Notes |
 |--------|:------:|-------|
-| **Completion %** | 50% | |
-| **Schema** | ✅ | 28 tables: fees, invoices, payments, expenses, journals, tax, etc. |
-| **Queries** | 🟡 | ~50 queries; few paginated |
-| **Mutations** | ✅ | Full CRUD for fees, invoices, payments, expenses, receipts |
-| **Services** | 🟡 | FinanceDashboard.tsx exists |
-| **Workflow** | ❌ | No approval workflow for invoices/payments |
-| **Events** | ❌ | |
-| **Timeline** | ❌ | |
-| **Audit** | ❌ | |
-| **Notifications** | ❌ | |
+| **Completion %** | 65% | +15% from PATCH-EEOS-014 platform alignment |
+| **Schema** | ✅ | 21 tables: fees, invoices, payments, expenses, journals, tax, etc. |
+| **Queries** | ✅ | 6 paginated queries in financePlatform.ts; legacy queries still available |
+| **Mutations** | ✅ | Full CRUD + 8 platform-aligned wrappers with SDK integration |
+| **Services** | ✅ | financePlatform.ts, 5 documentation files |
+| **Workflow** | ✅ | `approveExpenseWithWorkflow`, `approveRefundWithWorkflow` with audit+timeline |
+| **Events** | ✅ | 8 platform mutations wrapped with `withEventPipeline()` |
+| **Timeline** | ✅ | All platform mutations auto-record through event pipeline |
+| **Audit** | ✅ | All platform mutations auto-record through event pipeline |
+| **Notifications** | 🟡 | Ready via `withEventPipeline` notification config |
 | **Visibility** | 🟡 | Finance category in visibility engine |
-| **Permissions** | 🟡 | |
-| **Dashboard** | 🟡 | DashboardProvider exists |
-| **Reports** | 🟡 | financeReports.ts exists |
+| **Permissions** | 🟡 | `permissionSdk.canPerformAction()` available |
+| **Dashboard** | ✅ | financeProvider registered with 15+ KPIs |
+| **Reports** | ✅ | 5 report queries in financePlatform.ts (revenue, collection, expense, outstanding) |
 | **Demo Data** | 🟡 | Partial |
 | **UI Complete** | 🟡 | FinanceDashboard.tsx exists |
-| **Mobile Ready** | ❌ | |
-| **API Ready** | 🟡 | |
-| **Release Ready** | ❌ | Needs pagination, workflow, audit |
-| **Files** | 19+ convex files | Extensive financial engine files |
+| **Mobile Ready** | 🟡 | Paginated APIs mobile-ready |
+| **API Ready** | ✅ | 50+ APIs across 8 files |
+| **Release Ready** | 🟡 | Core platform integration complete; UI needs attention |
+| **Files** | 20+ convex files + 5 documentation files | financePlatform.ts added; 5 FINANCE_*.md docs |
 
 #### 13. Procurement
 | Metric | Status | Notes |
