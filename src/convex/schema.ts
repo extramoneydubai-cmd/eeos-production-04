@@ -40,6 +40,9 @@ const extendedUsersTable = defineTable(v.any())
   .index("by_email", ["email"])
   .index("by_department", ["departmentId"]);
 
+// Extended sessions table — explicitly add token index for session validation
+const extendedSessionsTable = defineTable(v.any()).index("token", ["token"]);
+
 const schema = defineSchema({
     ...authTables,
     ...academicTables,
@@ -59,7 +62,8 @@ const schema = defineSchema({
     ...tasksTables,
     ...workflowTables,
     ...analyticsTables,
-    // Override authTables.users with extended definition
+    // Override authTables tables with our extended definitions
     users: extendedUsersTable,
+    sessions: extendedSessionsTable,
 });
 export default schema;
