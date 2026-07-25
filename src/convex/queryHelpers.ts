@@ -260,3 +260,479 @@ export async function dashboardCounts(
   );
   return results;
 }
+
+// ═══════════════════════════════════════════════════════════════════
+//  DASHBOARD KPI PLATFORM
+// ═══════════════════════════════════════════════════════════════════
+
+export interface DashboardKPI {
+  /** KPI label (e.g., "Total Students") */
+  label: string;
+  /** Current value */
+  value: number;
+  /** Previous period value for comparison */
+  previousValue?: number;
+  /** Percentage change vs previous period */
+  change?: number;
+  /** Trend direction */
+  trend?: "up" | "down" | "stable";
+  /** Format type for display */
+  format?: "number" | "currency" | "percentage" | "duration";
+  /** Icon key for UI rendering */
+  icon?: string;
+  /** Color key for UI rendering */
+  color?: string;
+  /** Status */
+  status?: "good" | "warning" | "critical";
+}
+
+/**
+ * Build dashboard KPI cards by running parallel count queries.
+ *
+ * Usage:
+ * ```ts
+ * const kpis = await dashboardKPIs(ctx, [
+ *   { label: "Total Leads", table: "leadMaster", icon: "Users", color: "blue" },
+ *   { label: "Active Students", table: "studentMaster", color: "green" },
+ * ]);
+ * ```
+ */
+export async function dashboardKPIs(
+  ctx: QueryCtx,
+  kpiDefs: {
+    label: string;
+    table: string;
+    icon?: string;
+    color?: string;
+    format?: DashboardKPI["format"];
+    index?: string;
+    filter?: (q: any) => any;
+  }[],
+): Promise<DashboardKPI[]> {
+  const counts = await dashboardCounts(
+    ctx,
+    kpiDefs.map((k) => ({ table: k.table, index: k.index, filter: k.filter })),
+  );
+
+  return kpiDefs.map((k, i) => ({
+    label: k.label,
+    value: counts[i],
+    icon: k.icon,
+    color: k.color,
+    format: k.format || "number",
+    status: counts[i] > 0 ? "good" : "warning",
+  }));
+}
+
+/**
+ * Dashboard chart data query — runs parallel aggregation queries.
+ */
+export interface DashboardChartSeries {
+  name: string;
+  data: { label: string; value: number }[];
+  color?: string;
+}
+
+/**
+ * Build dashboard chart data.
+ */
+export async function dashboardCharts(
+  ctx: QueryCtx,
+  chartDefs: {
+    name: string;
+    table: string;
+    groupByField: string;
+    color?: string;
+    filter?: (q: any) => any;
+  }[],
+): Promise<DashboardChartSeries[]> {
+  const results = await Promise.all(
+    chartDefs.map(async (cd) => {
+      let q = ctx.db.query(cd.table as any);
+      if (cd.filter) {
+        q = cd.filter(q);
+      }
+      const docs = await q.collect();
+
+      // Group by the specified field
+      const groups: Record<string, number> = {};
+      for (const doc of docs as any[]) {
+        const key = doc[cd.groupByField] || "unknown";
+        groups[key] = (groups[key] || 0) + 1;
+      }
+
+      return {
+        name: cd.name,
+        color: cd.color,
+        data: Object.entries(groups)
+          .map(([label, value]) => ({ label, value }))
+          .sort((a, b) => b.value - a.value),
+      };
+    }),
+  );
+
+  return results;
+}
+
+/**
+ * Dashboard timeline — fetches recent activity from a timeline table.
+ */
+export async function dashboardTimeline(
+  ctx: QueryCtx,
+  table: string,
+  options?: {
+    limit?: number;
+    index?: string;
+    filter?: (q: any) => any;
+  },
+): Promise<any[]> {
+  let q = ctx.db.query(table as any);
+
+  if (options?.index) {
+    q = q.withIndex(options.index as any);
+  }
+
+  if (options?.filter) {
+    q = options.filter(q);
+  }
+
+  const items = await q.order("desc").collect();
+  return items.slice(0, options?.limit || 10);
+}
+
+/**
+ * Dashboard recent items — fetch most recently created records.
+ */
+export async function dashboardRecent<T extends Record<string, any>>(
+  ctx: QueryCtx,
+  table: string,
+  limit: number = 10,
+  filter?: (q: any) => any,
+): Promise<T[]> {
+  let q = ctx.db.query(table as any);
+  if (filter) {
+    q = filter(q);
+  }
+  const items = await q.withIndex("by_createdAt").order("desc").collect();
+  return items.slice(0, limit) as T[];
+}
+
+/**
+ * Dashboard tasks — fetch tasks grouped by status.
+ */
+export async function dashboardTasks(
+  ctx: QueryCtx,
+  table: string,
+  options?: {
+    userId?: Id<"users">;
+    limit?: number;
+    statusFilter?: string[];
+  },
+): Promise<{
+  pending: any[];
+  inProgress: any[];
+  completed: any[];
+  overdue: any[];
+  total: number;
+}> {
+  let q = ctx.db.query(table as any);
+  if (options?.userId) {
+    q = q.withIndex("by_owner", (iq: any) => iq.eq("ownerId", options.userId!));
+  }
+
+  const all = await q.collect();
+  const now = Date.now();
+
+  const pending = all.filter(
+    (t: any) =>
+      t.status === "pending" &&
+      (!options?.statusFilter || options.statusFilter.includes(t.status)),
+  );
+  const inProgress = all.filter(
+    (t: any) =>
+      t.status === "in_progress" &&
+      (!options?.statusFilter || options.statusFilter.includes(t.status)),
+  );
+  const completed = all.filter(
+    (t: any) =>
+      t.status === "completed" &&
+      (!options?.statusFilter || options.statusFilter.includes(t.status)),
+  );
+  const overdue = pending.filter(
+    (t: any) => t.dueDate && t.dueDate < now,
+  );
+
+  return {
+    pending: pending.slice(0, options?.limit || 10),
+    inProgress: inProgress.slice(0, options?.limit || 10),
+    completed: completed.slice(0, options?.limit || 10),
+    overdue: overdue.slice(0, options?.limit || 10),
+    total: all.length,
+  };
+}
+
+/**
+ * Dashboard notifications — fetch unread notifications.
+ */
+export async function dashboardNotifications(
+  ctx: QueryCtx,
+  userId: Id<"users">,
+  limit: number = 10,
+): Promise<{
+  items: any[];
+  unreadCount: number;
+}> {
+  const all = await ctx.db
+    .query("notifications")
+    .withIndex("userId", (iq: any) => iq.eq("userId", userId))
+    .order("desc")
+    .collect();
+
+  const unread = all.filter((n: any) => !n.read);
+
+  return {
+    items: all.slice(0, limit),
+    unreadCount: unread.length,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  EXTENDED BATCH PLATFORM
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Batch fetch people by IDs.
+ */
+export async function batchPeople(
+  ctx: QueryCtx,
+  ids: Id<"personMaster">[],
+): Promise<Map<Id<"personMaster">, any>> {
+  const items = await batchGet<any>(ctx, ids);
+  const map = new Map<Id<"personMaster">, any>();
+  for (const item of items.filter(Boolean)) {
+    map.set(item._id, item);
+  }
+  return map;
+}
+
+/**
+ * Batch fetch students by IDs.
+ */
+export async function batchStudents(
+  ctx: QueryCtx,
+  ids: Id<any>[],
+): Promise<Map<Id<any>, any>> {
+  const items = await batchGet<any>(ctx, ids);
+  const map = new Map<Id<any>, any>();
+  for (const item of items.filter(Boolean)) {
+    map.set(item._id, item);
+  }
+  return map;
+}
+
+/**
+ * Batch fetch employees by IDs.
+ */
+export async function batchEmployees(
+  ctx: QueryCtx,
+  ids: Id<any>[],
+): Promise<Map<Id<any>, any>> {
+  const items = await batchGet<any>(ctx, ids);
+  const map = new Map<Id<any>, any>();
+  for (const item of items.filter(Boolean)) {
+    map.set(item._id, item);
+  }
+  return map;
+}
+
+/**
+ * Batch fetch companies by IDs.
+ */
+export async function batchCompanies(
+  ctx: QueryCtx,
+  ids: Id<any>[],
+): Promise<Map<Id<any>, any>> {
+  const items = await batchGet<any>(ctx, ids);
+  const map = new Map<Id<any>, any>();
+  for (const item of items.filter(Boolean)) {
+    map.set(item._id, item);
+  }
+  return map;
+}
+
+/**
+ * Batch fetch branches by IDs.
+ */
+export async function batchBranches(
+  ctx: QueryCtx,
+  ids: Id<any>[],
+): Promise<Map<Id<any>, any>> {
+  const items = await batchGet<any>(ctx, ids);
+  const map = new Map<Id<any>, any>();
+  for (const item of items.filter(Boolean)) {
+    map.set(item._id, item);
+  }
+  return map;
+}
+
+/**
+ * Batch fetch departments by IDs.
+ */
+export async function batchDepartments(
+  ctx: QueryCtx,
+  ids: Id<any>[],
+): Promise<Map<Id<any>, any>> {
+  const items = await batchGet<any>(ctx, ids);
+  const map = new Map<Id<any>, any>();
+  for (const item of items.filter(Boolean)) {
+    map.set(item._id, item);
+  }
+  return map;
+}
+
+/**
+ * Batch fetch courses by IDs.
+ */
+export async function batchCourses(
+  ctx: QueryCtx,
+  ids: Id<any>[],
+): Promise<Map<Id<any>, any>> {
+  const items = await batchGet<any>(ctx, ids);
+  const map = new Map<Id<any>, any>();
+  for (const item of items.filter(Boolean)) {
+    map.set(item._id, item);
+  }
+  return map;
+}
+
+/**
+ * Batch fetch subjects by IDs.
+ */
+export async function batchSubjects(
+  ctx: QueryCtx,
+  ids: Id<any>[],
+): Promise<Map<Id<any>, any>> {
+  const items = await batchGet<any>(ctx, ids);
+  const map = new Map<Id<any>, any>();
+  for (const item of items.filter(Boolean)) {
+    map.set(item._id, item);
+  }
+  return map;
+}
+
+/**
+ * Batch fetch documents by IDs.
+ */
+export async function batchDocuments(
+  ctx: QueryCtx,
+  ids: Id<any>[],
+): Promise<Map<Id<any>, any>> {
+  const items = await batchGet<any>(ctx, ids);
+  const map = new Map<Id<any>, any>();
+  for (const item of items.filter(Boolean)) {
+    map.set(item._id, item);
+  }
+  return map;
+}
+
+/**
+ * Batch fetch vendors by IDs.
+ */
+export async function batchVendors(
+  ctx: QueryCtx,
+  ids: Id<any>[],
+): Promise<Map<Id<any>, any>> {
+  const items = await batchGet<any>(ctx, ids);
+  const map = new Map<Id<any>, any>();
+  for (const item of items.filter(Boolean)) {
+    map.set(item._id, item);
+  }
+  return map;
+}
+
+/**
+ * Batch fetch inventory items by IDs.
+ */
+export async function batchInventoryItems(
+  ctx: QueryCtx,
+  ids: Id<any>[],
+): Promise<Map<Id<any>, any>> {
+  const items = await batchGet<any>(ctx, ids);
+  const map = new Map<Id<any>, any>();
+  for (const item of items.filter(Boolean)) {
+    map.set(item._id, item);
+  }
+  return map;
+}
+
+/**
+ * Batch enrich items with their associated person names.
+ */
+export async function enrichWithPeople(
+  ctx: QueryCtx,
+  items: any[],
+  personIdField: string = "personId",
+): Promise<any[]> {
+  const personIds = [
+    ...new Set(items.map((i) => i[personIdField]).filter(Boolean)),
+  ];
+  const persons = await batchPeople(ctx, personIds as any);
+
+  return items.map((item) => ({
+    ...item,
+    person: item[personIdField] ? persons.get(item[personIdField]) || null : null,
+    personName: item[personIdField]
+      ? persons.get(item[personIdField])?.displayName ||
+        persons.get(item[personIdField])?.firstName ||
+        "Unknown"
+      : null,
+  }));
+}
+
+/**
+ * Batch enrich items with their associated branch names.
+ */
+export async function enrichWithBranches(
+  ctx: QueryCtx,
+  items: any[],
+  branchIdField: string = "branchId",
+): Promise<any[]> {
+  const branchIds = [
+    ...new Set(items.map((i) => i[branchIdField]).filter(Boolean)),
+  ];
+  const branches = await batchBranches(ctx, branchIds);
+
+  return items.map((item) => ({
+    ...item,
+    branch: item[branchIdField] ? branches.get(item[branchIdField]) || null : null,
+    branchName: item[branchIdField]
+      ? branches.get(item[branchIdField])?.name || "Unknown"
+      : null,
+  }));
+}
+
+/**
+ * Batch enrich items with their associated user/owner names.
+ */
+export async function enrichWithUsers(
+  ctx: QueryCtx,
+  items: any[],
+  userIdField: string = "ownerId",
+): Promise<any[]> {
+  const userIds = [
+    ...new Set(items.map((i) => i[userIdField]).filter(Boolean)),
+  ];
+  const users = await batchGet<any>(ctx, userIds);
+  const userMap = new Map(
+    users
+      .filter(Boolean)
+      .map((u: any) => [u._id, u.name || u.username || "Unknown"]),
+  );
+
+  return items.map((item) => ({
+    ...item,
+    [`${userIdField}Name`]: item[userIdField]
+      ? userMap.get(item[userIdField]) || "Unknown"
+      : null,
+  }));
+}
