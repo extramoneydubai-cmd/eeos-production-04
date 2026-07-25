@@ -1,6 +1,8 @@
 import { v } from "convex/values";
+import { paginationOptsValidator } from "convex/server";
 import { mutation, query } from "./_generated/server";
 import { logActivity } from "./crmHelpers";
+import { paginatedQuery, applyStandardFilters, type PaginatedResponse } from "./queryHelpers";
 
 // ============================
 // SALES PENDING TASKS (Task Workspace)
@@ -89,8 +91,21 @@ export const getSalesPendingTasks = query({
 // ============================
 
 export const getLeadTasks = query({
-  args: { leadId: v.id("leadMaster") },
-  handler: async (ctx, args) => await ctx.db.query("leadTasks").withIndex("leadId", (q) => q.eq("leadId", args.leadId)).collect(),
+  args: {
+    leadId: v.id("leadMaster"),
+    paginationOpts: paginationOptsValidator,
+    status: v.optional(v.string()),
+    priority: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<PaginatedResponse<any>> => {
+    const result = await paginatedQuery<any>(ctx, "leadTasks", args, (q) =>
+      q.withIndex("leadId", (iq) => iq.eq("leadId", args.leadId)),
+    );
+    let filtered = result.items;
+    if (args.status) filtered = filtered.filter((t: any) => t.status === args.status);
+    if (args.priority) filtered = filtered.filter((t: any) => t.priority === args.priority);
+    return { items: filtered, nextCursor: result.nextCursor, hasMore: result.hasMore };
+  },
 });
 
 export const createLeadTask = mutation({

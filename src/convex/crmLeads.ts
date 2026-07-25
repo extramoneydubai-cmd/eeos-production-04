@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { paginationOptsValidator } from "convex/server";
 import { LEAD_PIPELINE_STAGES, logActivity, createNotification } from "./crmHelpers";
+import { paginatedQuery, applyStandardFilters, type PaginatedResponse } from "./queryHelpers";
 
 // ============================
 // LEAD CRUD
@@ -8,6 +10,7 @@ import { LEAD_PIPELINE_STAGES, logActivity, createNotification } from "./crmHelp
 
 export const listLeads = query({
   args: {
+    paginationOpts: paginationOptsValidator,
     stage: v.optional(v.string()), ownerId: v.optional(v.id("users")), priority: v.optional(v.string()),
     source: v.optional(v.string()), branchInterestId: v.optional(v.id("branches")), verticalId: v.optional(v.id("verticals")),
     status: v.optional(v.string()), search: v.optional(v.string()), assignedToMe: v.optional(v.boolean()),
@@ -15,33 +18,57 @@ export const listLeads = query({
     overdue: v.optional(v.boolean()), followupToday: v.optional(v.boolean()), followupTomorrow: v.optional(v.boolean()),
     followupUpcoming: v.optional(v.boolean()), leadIds: v.optional(v.array(v.id("leadMaster"))),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<PaginatedResponse<any>> => {
     if (args.leadIds && args.leadIds.length > 0) {
       const leads = await Promise.all(args.leadIds.map((id) => ctx.db.get(id)));
-      return leads.filter(Boolean).sort((a, b) => b!.createdAt - a!.createdAt);
+      const items = leads.filter(Boolean).sort((a, b) => b!.createdAt - a!.createdAt);
+      return { items, nextCursor: null, hasMore: false };
     }
-    let leads = await ctx.db.query("leadMaster").collect();
-    let filtered = leads.filter((l) => l.status !== "archived");
-    if (args.stage) filtered = filtered.filter((l) => l.stage === args.stage);
-    if (args.ownerId) filtered = filtered.filter((l) => l.ownerId === args.ownerId);
-    if (args.priority) filtered = filtered.filter((l) => l.priority === args.priority);
-    if (args.source) filtered = filtered.filter((l) => l.source === args.source);
-    if (args.branchInterestId) filtered = filtered.filter((l) => l.branchInterestId === args.branchInterestId);
-    if (args.verticalId) filtered = filtered.filter((l) => l.verticalId === args.verticalId);
-    if (args.status === "converted") filtered = filtered.filter((l) => l.status === "converted");
-    else if (args.status === "lost") filtered = filtered.filter((l) => l.status === "lost");
-    else if (args.status === "active") filtered = filtered.filter((l) => l.status === "active");
-    if (args.assignedToMe && args.ownerId) filtered = filtered.filter((l) => l.ownerId === args.ownerId);
-    if (args.dateFrom) filtered = filtered.filter((l) => l.createdAt >= args.dateFrom!);
-    if (args.dateTo) filtered = filtered.filter((l) => l.createdAt <= args.dateTo!);
+
     const now = Date.now(), day = 86400000;
-    if (args.followupToday) filtered = filtered.filter((l) => l.nextActionDate && l.nextActionDate >= now && l.nextActionDate <= now + day && l.status === "active");
-    if (args.followupTomorrow) filtered = filtered.filter((l) => l.nextActionDate && l.nextActionDate >= now + day && l.nextActionDate <= now + 2 * day && l.status === "active");
-    if (args.followupUpcoming) filtered = filtered.filter((l) => l.nextActionDate && l.nextActionDate > now + 2 * day && l.status === "active");
-    if (args.myFollowups && args.ownerId) filtered = filtered.filter((l) => l.ownerId === args.ownerId && l.nextActionDate && l.nextActionDate <= now + 3 * day && l.status === "active");
-    if (args.overdue && args.ownerId) filtered = filtered.filter((l) => l.ownerId === args.ownerId && l.nextActionDate && l.nextActionDate < now && l.status === "active");
-    if (args.search) { const q = args.search.toLowerCase(); filtered = filtered.filter((l) => l.firstName.toLowerCase().includes(q) || l.lastName.toLowerCase().includes(q) || l.phone.includes(q) || (l.email && l.email.toLowerCase().includes(q)) || (l.location && l.location.toLowerCase().includes(q)) || (l.whatsappUsername && l.whatsappUsername.toLowerCase().includes(q))); }
-    return filtered.sort((a, b) => b.createdAt - a.createdAt);
+
+    // Build index query based on the most selective filter
+    const result = await paginatedQuery<any>(
+      ctx,
+      "leadMaster",
+      args,
+      (q) => {
+        // Use most selective index based on primary filter
+        if (args.stage) {
+          return q.withIndex("by_stage", (iq) => iq.eq("stage", args.stage!));
+        }
+        if (args.ownerId) {
+          return q.withIndex("by_owner", (iq) => iq.eq("ownerId", args.ownerId!));
+        }
+        if (args.status && args.status !== "archived") {
+          return q.withIndex("by_status", (iq) => iq.eq("status", args.status!));
+        }
+        // Default: order by createdAt descending
+        return q.withIndex("by_createdAt").order("desc");
+      },
+    );
+
+    // Apply remaining in-memory filters on the already-paginated page
+    let filtered = applyStandardFilters(result.items, args, ["firstName", "lastName", "phone", "email", "location", "whatsappUsername"]);
+
+    // Lead-specific in-memory filters
+    filtered = filtered.filter((l: any) => l.status !== "archived");
+    if (args.priority) filtered = filtered.filter((l: any) => l.priority === args.priority);
+    if (args.source) filtered = filtered.filter((l: any) => l.source === args.source);
+    if (args.branchInterestId) filtered = filtered.filter((l: any) => l.branchInterestId === args.branchInterestId);
+    if (args.verticalId) filtered = filtered.filter((l: any) => l.verticalId === args.verticalId);
+    if (args.assignedToMe && args.ownerId) filtered = filtered.filter((l: any) => l.ownerId === args.ownerId);
+    if (args.followupToday) filtered = filtered.filter((l: any) => l.nextActionDate && l.nextActionDate >= now && l.nextActionDate <= now + day && l.status === "active");
+    if (args.followupTomorrow) filtered = filtered.filter((l: any) => l.nextActionDate && l.nextActionDate >= now + day && l.nextActionDate <= now + 2 * day && l.status === "active");
+    if (args.followupUpcoming) filtered = filtered.filter((l: any) => l.nextActionDate && l.nextActionDate > now + 2 * day && l.status === "active");
+    if (args.myFollowups && args.ownerId) filtered = filtered.filter((l: any) => l.ownerId === args.ownerId && l.nextActionDate && l.nextActionDate <= now + 3 * day && l.status === "active");
+    if (args.overdue && args.ownerId) filtered = filtered.filter((l: any) => l.ownerId === args.ownerId && l.nextActionDate && l.nextActionDate < now && l.status === "active");
+
+    return {
+      items: filtered.sort((a: any, b: any) => b.createdAt - a.createdAt),
+      nextCursor: result.nextCursor,
+      hasMore: result.hasMore,
+    };
   },
 });
 

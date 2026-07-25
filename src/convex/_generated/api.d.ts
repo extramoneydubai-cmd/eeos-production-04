@@ -163,6 +163,7 @@ import type * as personSearch from "../personSearch.js";
 import type * as procurementEngine from "../procurementEngine.js";
 import type * as profileEngine from "../profileEngine.js";
 import type * as pushEngine from "../pushEngine.js";
+import type * as queryHelpers from "../queryHelpers.js";
 import type * as quotations from "../quotations.js";
 import type * as receiptEngine from "../receiptEngine.js";
 import type * as recordScope from "../recordScope.js";
@@ -375,6 +376,7 @@ declare const fullApi: ApiFromModules<{
   procurementEngine: typeof procurementEngine;
   profileEngine: typeof profileEngine;
   pushEngine: typeof pushEngine;
+  queryHelpers: typeof queryHelpers;
   quotations: typeof quotations;
   receiptEngine: typeof receiptEngine;
   recordScope: typeof recordScope;

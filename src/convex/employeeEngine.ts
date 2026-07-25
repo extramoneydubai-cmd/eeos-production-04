@@ -1,6 +1,8 @@
 import { v } from "convex/values";
+import { paginationOptsValidator } from "convex/server";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { paginatedQuery, batchGet, type PaginatedResponse } from "./queryHelpers";
 
 // ─── Helpers ─────────────────────────────────────────────────────
 
@@ -311,6 +313,8 @@ export const restoreEmployee = mutation({
 
 export const listEmployees = query({
   args: {
+    paginationOpts: paginationOptsValidator,
+    search: v.optional(v.string()),
     status: v.optional(v.union(
       v.literal("active"), v.literal("onboarding"),
       v.literal("probation"), v.literal("suspended"),
@@ -328,33 +332,69 @@ export const listEmployees = query({
     )),
     reportingManagerId: v.optional(v.id("employeeMaster")),
   },
-  handler: async (ctx, args) => {
-    let employees = await ctx.db.query("employeeMaster").collect();
-
-    if (args.status) employees = employees.filter((e) => e.status === args.status);
-    if (args.departmentId) employees = employees.filter((e) => e.departmentId === args.departmentId);
-    if (args.branchId) employees = employees.filter((e) => e.branchId === args.branchId);
-    if (args.companyId) employees = employees.filter((e) => e.companyId === args.companyId);
-    if (args.designationId) employees = employees.filter((e) => e.designationId === args.designationId);
-    if (args.employmentType) employees = employees.filter((e) => e.employmentType === args.employmentType);
-    if (args.reportingManagerId) employees = employees.filter((e) => e.reportingManagerId === args.reportingManagerId);
-
-    // Enrich with person names
-    const enriched = await Promise.all(
-      employees.map(async (emp) => {
-        const person = emp.personId ? await ctx.db.get(emp.personId) : null;
-        const dept = emp.departmentId ? await ctx.db.get(emp.departmentId) : null;
-        const desig = emp.designationId ? await ctx.db.get(emp.designationId) : null;
-        return {
-          ...emp,
-          personName: person?.displayName || `${person?.firstName || ""} ${person?.lastName || ""}`.trim() || "Unknown",
-          departmentName: dept?.name || null,
-          designationName: desig?.name || null,
-        };
-      })
+  handler: async (ctx, args): Promise<PaginatedResponse<any>> => {
+    // Use index based on most selective filter
+    const result = await paginatedQuery<any>(
+      ctx,
+      "employeeMaster",
+      args,
+      (q) => {
+        if (args.status) return q.withIndex("by_status", (iq: any) => iq.eq("status", args.status!));
+        if (args.departmentId) return q.withIndex("by_department", (iq: any) => iq.eq("departmentId", args.departmentId!));
+        if (args.branchId) return q.withIndex("by_branch", (iq: any) => iq.eq("branchId", args.branchId!));
+        if (args.companyId) return q.withIndex("by_company", (iq: any) => iq.eq("companyId", args.companyId!));
+        return q.withIndex("by_createdAt").order("desc");
+      },
     );
 
-    return enriched;
+    let employees = result.items;
+
+    // In-memory filters on paginated page
+    if (args.employmentType) employees = employees.filter((e: any) => e.employmentType === args.employmentType);
+    if (args.designationId) employees = employees.filter((e: any) => e.designationId === args.designationId);
+    if (args.reportingManagerId) employees = employees.filter((e: any) => e.reportingManagerId === args.reportingManagerId);
+
+    // Batch enrich — fixes N+1 pattern
+    const personIds = [...new Set(employees.map((e: any) => e.personId).filter(Boolean))];
+    const deptIds = [...new Set(employees.map((e: any) => e.departmentId).filter(Boolean))];
+    const desigIds = [...new Set(employees.map((e: any) => e.designationId).filter(Boolean))];
+
+    const [persons, departments, designations] = await Promise.all([
+      batchGet<any>(ctx, personIds),
+      batchGet<any>(ctx, deptIds),
+      batchGet<any>(ctx, desigIds),
+    ]);
+
+    const personMap = new Map(persons.filter(Boolean).map((p: any) => [p._id, p]));
+    const deptMap = new Map(departments.filter(Boolean).map((d: any) => [d._id, d]));
+    const desigMap = new Map(designations.filter(Boolean).map((d: any) => [d._id, d]));
+
+    const enriched = employees.map((emp: any) => {
+      const person = personMap.get(emp.personId);
+      const dept = deptMap.get(emp.departmentId);
+      const desig = desigMap.get(emp.designationId);
+      return {
+        ...emp,
+        personName: person?.displayName || `${person?.firstName || ""} ${person?.lastName || ""}`.trim() || "Unknown",
+        departmentName: dept?.name || null,
+        designationName: desig?.name || null,
+      };
+    });
+
+    // In-memory search on paginated page
+    if (args.search) {
+      const q = args.search.toLowerCase();
+      enriched.filter((e: any) =>
+        (e.personName && e.personName.toLowerCase().includes(q)) ||
+        (e.employeeCode && e.employeeCode.toLowerCase().includes(q)),
+      );
+    }
+
+    return {
+      items: enriched,
+      nextCursor: result.nextCursor,
+      hasMore: result.hasMore,
+    };
   },
 });
 

@@ -1,6 +1,8 @@
 import { v } from "convex/values";
+import { paginationOptsValidator } from "convex/server";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { paginatedQuery, applyStandardFilters, batchGet, type PaginatedResponse } from "./queryHelpers";
 
 // ─── FOLDERS ─────────────────────────────────────────
 
@@ -27,15 +29,20 @@ export const createFolder = mutation({
 });
 
 export const listFolders = query({
-  args: { parentId: v.optional(v.id("documentFolders")) },
+  args: {
+    paginationOpts: v.optional(paginationOptsValidator),
+    parentId: v.optional(v.id("documentFolders")),
+  },
   handler: async (ctx, args) => {
-    let query: any = ctx.db.query("documentFolders").filter((q: any) => q.eq(q.field("isActive"), true));
+    // Folders are typically small, so not strictly paginated here
+    const all = await ctx.db.query("documentFolders").filter((q: any) => q.eq(q.field("isActive"), true)).collect();
+    let filtered = all.filter((f: any) => f.isActive);
     if (args.parentId) {
-      query = query.filter((q: any) => q.eq(q.field("parentId"), args.parentId));
+      filtered = filtered.filter((f: any) => f.parentId === args.parentId);
     } else {
-      query = query.filter((q: any) => q.eq(q.field("parentId"), undefined));
+      filtered = filtered.filter((f: any) => !f.parentId);
     }
-    return query.collect();
+    return filtered;
   },
 });
 
@@ -49,6 +56,9 @@ export const createTag = mutation({
 });
 
 export const listTags = query({
+  args: {
+    paginationOpts: v.optional(paginationOptsValidator),
+  },
   handler: async (ctx) => {
     return ctx.db.query("documentTags").filter((q: any) => q.eq(q.field("isActive"), true)).collect();
   },
@@ -325,6 +335,7 @@ export const setDocumentPermission = mutation({
 
 export const listDocuments = query({
   args: {
+    paginationOpts: paginationOptsValidator,
     folderId: v.optional(v.id("documentFolders")),
     referenceType: v.optional(v.union(
       v.literal("person"), v.literal("student"), v.literal("employee"),
@@ -339,59 +350,65 @@ export const listDocuments = query({
     search: v.optional(v.string()),
     tagId: v.optional(v.id("documentTags")),
   },
-  handler: async (ctx, args) => {
-    let query: any = ctx.db.query("documents");
+  handler: async (ctx, args): Promise<PaginatedResponse<any>> => {
+    // Use pagination with folder index if available, else default by createdAt
+    const result = await paginatedQuery<any>(
+      ctx,
+      "documents",
+      args,
+      (q) => args.folderId
+        ? q.withIndex("by_folder", (iq: any) => iq.eq("folderId", args.folderId!))
+        : q.withIndex("by_createdAt").order("desc"),
+    );
 
-    if (args.folderId) {
-      query = query.filter((q: any) => q.eq(q.field("folderId"), args.folderId));
-    }
+    let filtered = result.items;
+
+    // Apply in-memory filters on the already-paginated page
     if (!args.includeArchived) {
-      query = query.filter((q: any) => q.eq(q.field("isArchived"), false));
+      filtered = filtered.filter((d: any) => !d.isArchived);
     }
     if (args.fileType) {
-      query = query.filter((q: any) => q.eq(q.field("fileType"), args.fileType));
+      filtered = filtered.filter((d: any) => d.fileType === args.fileType);
     }
-
-    let results = await query.order("desc").collect();
-
-    // Filter by polymorphic reference
     if (args.referenceType && args.referenceId) {
-      results = results.filter((d: any) =>
-        d.referenceType === args.referenceType && d.referenceId === args.referenceId
+      filtered = filtered.filter((d: any) =>
+        d.referenceType === args.referenceType && d.referenceId === args.referenceId,
       );
     }
-
-    // Filter by tag
     if (args.tagId) {
-      results = results.filter((d: any) => d.tags && d.tags.includes(args.tagId));
+      filtered = filtered.filter((d: any) => d.tags && d.tags.includes(args.tagId));
     }
 
-    // Text search
+    // In-memory search on paginated page
     if (args.search) {
       const s = args.search.toLowerCase();
-      results = results.filter((d: any) =>
+      filtered = filtered.filter((d: any) =>
         d.name.toLowerCase().includes(s) ||
-        (d.description && d.description.toLowerCase().includes(s))
+        (d.description && d.description.toLowerCase().includes(s)),
       );
     }
 
-    // Enrich with uploader name
-    const enriched = await Promise.all(results.map(async (doc: any) => {
-      const uploader = await ctx.db.get(doc.uploadedBy);
-      let versionCount = 0;
+    // Batch enrich with uploader names (fixes N+1 pattern)
+    const uploaderIds = [...new Set(filtered.map((d: any) => d.uploadedBy))];
+    const uploaders = await batchGet<any>(ctx, uploaderIds);
+    const uploaderMap = new Map(uploaders.filter(Boolean).map((u: any) => [u._id, u.name || "Unknown"]));
+
+    const enriched = await Promise.all(filtered.map(async (doc: any) => {
       const versions = await ctx.db.query("documentVersions")
         .withIndex("documentId", (q: any) => q.eq("documentId", doc._id))
         .collect();
-      versionCount = versions.length;
-
       return {
         ...doc,
-        uploaderName: uploader ? (uploader as any).name || "Unknown" : "Unknown",
-        versionCount,
+        uploaderName: uploaderMap.get(doc.uploadedBy) || "Unknown",
+        versionCount: versions.length,
       };
     }));
 
-    return enriched;
+    return {
+      items: enriched,
+      nextCursor: result.nextCursor,
+      hasMore: result.hasMore,
+    };
   },
 });
 
