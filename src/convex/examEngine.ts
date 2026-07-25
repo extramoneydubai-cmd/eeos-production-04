@@ -449,7 +449,7 @@ export const deleteGradeRules = mutation({
 });
 
 // ═══════════════════════════════════════════════════════════════════
-// INVIGILATORS
+// INVIGILATORS (Parts 6-7 Expanded)
 // ═══════════════════════════════════════════════════════════════════
 
 export const listInvigilators = query({
@@ -462,6 +462,52 @@ export const listInvigilators = query({
   },
 });
 
+export const listInvigilatorsBySession = query({
+  args: { examSessionId: v.id("examSessions") },
+  handler: async (ctx, args) => {
+    const timetable = await ctx.db
+      .query("examTimetable")
+      .filter((q) => q.eq(q.field("examSessionId"), args.examSessionId))
+      .collect();
+
+    const allInvigilators: Array<{
+      timetableId: Id<"examTimetable">;
+      invigilatorId: Id<"users">;
+      invigilatorName: string;
+      role: string;
+      examDate: number;
+      startTime: number;
+      endTime: number;
+    }> = [];
+
+    for (const entry of timetable) {
+      const invs = await ctx.db
+        .query("examInvigilators")
+        .filter((q) => q.eq(q.field("timetableId"), entry._id))
+        .collect();
+
+      for (const inv of invs) {
+        let name = "Unknown";
+        try {
+          const user = await ctx.db.get(inv.invigilatorId);
+          if (user) name = (user as any).name || user._id;
+        } catch { /* ignore */ }
+        allInvigilators.push({
+          timetableId: entry._id,
+          invigilatorId: inv.invigilatorId,
+          invigilatorName: name,
+          role: inv.role,
+          examDate: entry.examDate,
+          startTime: entry.startTime,
+          endTime: entry.endTime,
+        });
+      }
+    }
+
+    return allInvigilators;
+  },
+});
+
 export const assignInvigilator = mutation({
   args: {
     timetableId: v.id("examTimetable"), invigilatorId: v.id("users"),
@@ -470,7 +516,53 @@ export const assignInvigilator = mutation({
   },
   handler: async (ctx, args) => {
     const now = Date.now();
-    return await ctx.db.insert("examInvigilators", { ...args, assignedAt: now, createdAt: now });
+    const id = await ctx.db.insert("examInvigilators", { ...args, assignedAt: now, createdAt: now });
+
+    // Get timetable to find examSessionId
+    const timetable = await ctx.db.get(args.timetableId);
+    if (timetable) {
+      await ctx.db.insert("examTimeline", {
+        examSessionId: timetable.examSessionId,
+        eventType: "invigilator_assigned",
+        description: `Invigilator assigned as ${args.role}`,
+        userId: args.invigilatorId,
+        createdAt: now,
+      });
+    }
+
+    return id;
+  },
+});
+
+export const replaceInvigilator = mutation({
+  args: {
+    id: v.id("examInvigilators"),
+    newInvigilatorId: v.id("users"),
+    role: v.optional(v.union(v.literal("chief"), v.literal("assistant"), v.literal("alternate"))),
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db.get(args.id);
+    if (!existing) throw new Error("Invigilator assignment not found");
+
+    const now = Date.now();
+    await ctx.db.patch(args.id, {
+      invigilatorId: args.newInvigilatorId,
+      notes: args.notes || "Replacement assigned",
+      assignedAt: now,
+    });
+
+    const timetable = await ctx.db.get(existing.timetableId);
+    if (timetable) {
+      await ctx.db.insert("examTimeline", {
+        examSessionId: timetable.examSessionId,
+        eventType: "invigilator_replaced",
+        description: "Invigilator replaced",
+        createdAt: now,
+      });
+    }
+
+    return args.id;
   },
 });
 
@@ -479,6 +571,24 @@ export const removeInvigilator = mutation({
   handler: async (ctx, args) => {
     await ctx.db.delete(args.id);
     return { success: true };
+  },
+});
+
+export const recordInvigilatorAttendance = mutation({
+  args: {
+    id: v.id("examInvigilators"),
+    attended: v.boolean(),
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db.get(args.id);
+    if (!existing) throw new Error("Invigilator assignment not found");
+
+    await ctx.db.patch(args.id, {
+      notes: args.notes || (args.attended ? "Present" : "Absent"),
+    });
+
+    return args.id;
   },
 });
 

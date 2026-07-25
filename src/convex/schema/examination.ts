@@ -14,7 +14,7 @@ export const examinationTables = {
       v.literal("custom"),
     ),
     description: v.optional(v.string()),
-    duration: v.optional(v.number()),          // minutes
+    duration: v.optional(v.number()),
     maxMarks: v.number(),
     passPercentage: v.number(),
     weightage: v.optional(v.number()),
@@ -65,7 +65,7 @@ export const examinationTables = {
     .index("by_created", ["createdAt"])
     .index("by_updated", ["updatedAt"]),
 
-  // ─── Exam Subjects (subjects within a session) ────────────────────
+  // ─── Exam Subjects ─────────────────────────────────────────────────
   examSubjects: defineTable({
     examSessionId: v.id("examSessions"),
     subjectId: v.id("academicSubjects"),
@@ -115,6 +115,9 @@ export const examinationTables = {
     studentId: v.id("personMaster"),
     seatNumber: v.optional(v.string()),
     benchNumber: v.optional(v.string()),
+    building: v.optional(v.string()),
+    floor: v.optional(v.number()),
+    block: v.optional(v.string()),
     column: v.optional(v.number()),
     row: v.optional(v.number()),
     additionalInfo: v.optional(v.string()),
@@ -162,7 +165,6 @@ export const examinationTables = {
       v.literal("medical"), v.literal("leave"),
     ),
     graceMarks: v.optional(v.number()),
-    // Moderation fields
     moderatedMarks: v.optional(v.number()),
     moderatedBy: v.optional(v.id("users")),
     moderatedAt: v.optional(v.number()),
@@ -189,10 +191,9 @@ export const examinationTables = {
     code: v.string(),
     description: v.optional(v.string()),
     isActive: v.boolean(),
-    // Rules stored as JSON array of { minPct, maxPct, grade, gradePoint, division }
     rules: v.string(),
     defaultPassPercentage: v.number(),
-    applicableTo: v.optional(v.array(v.string())), // template IDs or "all"
+    applicableTo: v.optional(v.array(v.string())),
     createdBy: v.optional(v.id("users")),
     createdAt: v.number(),
     updatedAt: v.number(),
@@ -220,7 +221,7 @@ export const examinationTables = {
       v.literal("supplementary"),
     ),
     rank: v.optional(v.number()),
-    subjectResults: v.optional(v.string()), // JSON string of per-subject results
+    subjectResults: v.optional(v.string()),
     calculatedAt: v.number(),
     publishedAt: v.optional(v.number()),
     publishedBy: v.optional(v.id("users")),
@@ -239,7 +240,7 @@ export const examinationTables = {
     examSessionId: v.id("examSessions"),
     studentId: v.id("personMaster"),
     resultId: v.id("examResults"),
-    reportData: v.string(),          // Full JSON report data
+    reportData: v.string(),
     generatedAt: v.number(),
     downloadedAt: v.optional(v.number()),
     downloadCount: v.optional(v.number()),
@@ -294,4 +295,249 @@ export const examinationTables = {
     .index("timetableId", ["timetableId"])
     .index("invigilatorId", ["invigilatorId"])
     .index("by_created", ["createdAt"]),
+
+  // ═══════════════════════════════════════════════════════════════════
+  // ENTERPRISE TABLES (PATCH-EEOS-013A)
+  // ═══════════════════════════════════════════════════════════════════
+
+  // ─── Configurable Assessment Types (Part 1) ───────────────────────
+  assessmentTypes: defineTable({
+    name: v.string(),
+    code: v.string(),
+    category: v.union(
+      v.literal("unit_test"), v.literal("weekly_test"),
+      v.literal("monthly_test"), v.literal("quarterly"),
+      v.literal("half_yearly"), v.literal("annual"),
+      v.literal("mock_test"), v.literal("assignment"),
+      v.literal("practical"), v.literal("lab"),
+      v.literal("project"), v.literal("viva"),
+      v.literal("internal_assessment"), v.literal("external_assessment"),
+      v.literal("skill_assessment"), v.literal("olympiad"),
+      v.literal("entrance_test"), v.literal("custom"),
+    ),
+    description: v.optional(v.string()),
+    maxMarks: v.number(),
+    passingMarks: v.optional(v.number()),
+    weightage: v.optional(v.number()),
+    gradingScheme: v.optional(v.string()),
+    evaluationModel: v.union(
+      v.literal("marks"), v.literal("grades"),
+      v.literal("percentage"), v.literal("gpa"),
+      v.literal("cgpa"), v.literal("pass_fail"),
+      v.literal("rubric"), v.literal("competency"),
+      v.literal("narrative"), v.literal("custom_formula"),
+    ),
+    attendanceRequired: v.optional(v.boolean()),
+    isActive: v.boolean(),
+    metadata: v.optional(v.string()),
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("code", ["code"])
+    .index("category", ["category"])
+    .index("by_active", ["isActive"])
+    .index("by_created", ["createdAt"]),
+
+  // ─── Board/University Rule Profiles (Part 3) ──────────────────────
+  boardRules: defineTable({
+    name: v.string(),
+    code: v.string(),
+    description: v.optional(v.string()),
+    boardType: v.union(
+      v.literal("cbse"), v.literal("icse"),
+      v.literal("state_board"), v.literal("ib"),
+      v.literal("cambridge"), v.literal("university"),
+      v.literal("coaching"), v.literal("corporate"),
+      v.literal("custom"),
+    ),
+    passingPercentage: v.number(),
+    graceRules: v.optional(v.string()),       // JSON
+    moderationRules: v.optional(v.string()),   // JSON
+    internalWeightage: v.optional(v.number()),
+    externalWeightage: v.optional(v.number()),
+    attendanceEligibility: v.optional(v.number()),
+    promotionRules: v.optional(v.string()),     // JSON
+    rankingRules: v.optional(v.string()),       // JSON
+    supplementaryRules: v.optional(v.string()),  // JSON
+    isActive: v.boolean(),
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("code", ["code"])
+    .index("boardType", ["boardType"])
+    .index("by_active", ["isActive"])
+    .index("by_created", ["createdAt"]),
+
+  // ─── Question Paper Management (Part 9) ───────────────────────────
+  examQuestionPapers: defineTable({
+    examSessionId: v.id("examSessions"),
+    examSubjectId: v.id("examSubjects"),
+    title: v.string(),
+    version: v.number(),
+    status: v.union(
+      v.literal("draft"), v.literal("review"),
+      v.literal("approved"), v.literal("locked"),
+      v.literal("released"), v.literal("archived"),
+    ),
+    blueprint: v.optional(v.string()),        // JSON
+    fileUrl: v.optional(v.string()),
+    totalMarks: v.number(),
+    duration: v.optional(v.number()),
+    instructions: v.optional(v.string()),
+    sections: v.optional(v.string()),          // JSON
+    reviewedBy: v.optional(v.id("users")),
+    reviewedAt: v.optional(v.number()),
+    approvedBy: v.optional(v.id("users")),
+    approvedAt: v.optional(v.number()),
+    releasedAt: v.optional(v.number()),
+    releasedBy: v.optional(v.id("users")),
+    printCount: v.optional(v.number()),
+    lastPrintedAt: v.optional(v.number()),
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("examSessionId", ["examSessionId"])
+    .index("examSubjectId", ["examSubjectId"])
+    .index("status", ["status"])
+    .index("by_created", ["createdAt"]),
+
+  // ─── Examination Incidents (Part 8) ───────────────────────────────
+  examIncidents: defineTable({
+    examSessionId: v.id("examSessions"),
+    timetableId: v.optional(v.id("examTimetable")),
+    incidentType: v.union(
+      v.literal("cheating"), v.literal("malpractice"),
+      v.literal("mobile_usage"), v.literal("misconduct"),
+      v.literal("late_arrival"), v.literal("medical_emergency"),
+      v.literal("paper_leak"), v.literal("technical_issue"),
+      v.literal("room_issue"), v.literal("other"),
+    ),
+    severity: v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("critical")),
+    description: v.string(),
+    reportedBy: v.id("users"),
+    reportedAt: v.number(),
+    studentIds: v.optional(v.array(v.id("personMaster"))),
+    invigilatorId: v.optional(v.id("users")),
+    status: v.union(
+      v.literal("reported"), v.literal("under_review"),
+      v.literal("committee_review"), v.literal("resolved"),
+      v.literal("appealed"), v.literal("closed"),
+    ),
+    committeeMembers: v.optional(v.array(v.id("users"))),
+    actionTaken: v.optional(v.string()),
+    penalty: v.optional(v.string()),
+    resolution: v.optional(v.string()),
+    resolvedBy: v.optional(v.id("users")),
+    resolvedAt: v.optional(v.number()),
+    appealDetails: v.optional(v.string()),
+    appealStatus: v.optional(v.union(v.literal("pending"), v.literal("accepted"), v.literal("rejected"))),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("examSessionId", ["examSessionId"])
+    .index("incidentType", ["incidentType"])
+    .index("severity", ["severity"])
+    .index("status", ["status"])
+    .index("reportedBy", ["reportedBy"])
+    .index("by_created", ["createdAt"]),
+
+  // ─── Revaluation & Supplementary (Part 4) ─────────────────────────
+  examRevaluation: defineTable({
+    examSessionId: v.id("examSessions"),
+    studentId: v.id("personMaster"),
+    examSubjectId: v.id("examSubjects"),
+    revaluationType: v.union(
+      v.literal("rechecking"), v.literal("revaluation"),
+      v.literal("grace_marks"), v.literal("improvement"),
+      v.literal("supplementary"), v.literal("backlog"),
+      v.literal("carry_forward"),
+    ),
+    originalMarks: v.number(),
+    requestedMarks: v.optional(v.number()),
+    revisedMarks: v.optional(v.number()),
+    fee: v.optional(v.number()),
+    status: v.union(
+      v.literal("requested"), v.literal("under_review"),
+      v.literal("approved"), v.literal("rejected"),
+      v.literal("completed"),
+    ),
+    remarks: v.optional(v.string()),
+    reviewedBy: v.optional(v.id("users")),
+    reviewedAt: v.optional(v.number()),
+    resultAfterReval: v.optional(v.string()),    // JSON
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("examSessionId", ["examSessionId"])
+    .index("studentId", ["studentId"])
+    .index("examSubjectId", ["examSubjectId"])
+    .index("status", ["status"])
+    .index("revaluationType", ["revaluationType"])
+    .index("by_created", ["createdAt"]),
+
+  // ─── Academic Promotions (Part 10) ────────────────────────────────
+  examPromotions: defineTable({
+    studentId: v.id("personMaster"),
+    fromCourseId: v.optional(v.id("courses")),
+    fromBatchId: v.optional(v.id("academicBatches")),
+    fromSemesterId: v.optional(v.id("academicSemesters")),
+    fromAcademicSessionId: v.optional(v.id("academicSessions")),
+    toCourseId: v.optional(v.id("courses")),
+    toBatchId: v.optional(v.id("academicBatches")),
+    toSemesterId: v.optional(v.id("academicSemesters")),
+    toAcademicSessionId: v.optional(v.id("academicSessions")),
+    promotionType: v.union(
+      v.literal("promote"), v.literal("detain"),
+      v.literal("conditional"), v.literal("supplementary_required"),
+      v.literal("improvement_required"), v.literal("repeat_semester"),
+      v.literal("repeat_course"), v.literal("transfer"),
+      v.literal("withdraw"),
+    ),
+    examSessionId: v.optional(v.id("examSessions")),
+    percentage: v.optional(v.number()),
+    grade: v.optional(v.string()),
+    decision: v.string(),
+    approvedBy: v.id("users"),
+    approvedAt: v.number(),
+    remarks: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("studentId", ["studentId"])
+    .index("examSessionId", ["examSessionId"])
+    .index("promotionType", ["promotionType"])
+    .index("by_created", ["createdAt"]),
+
+  // ─── Certificates (Part 11) ───────────────────────────────────────
+  examCertificates: defineTable({
+    studentId: v.id("personMaster"),
+    examSessionId: v.id("examSessions"),
+    certificateType: v.union(
+      v.literal("marksheet"), v.literal("passing_certificate"),
+      v.literal("merit_certificate"), v.literal("rank_certificate"),
+      v.literal("participation"), v.literal("custom"),
+    ),
+    certificateNumber: v.string(),
+    title: v.string(),
+    description: v.optional(v.string()),
+    fileUrl: v.optional(v.string()),
+    digitalVerificationId: v.optional(v.string()),
+    qrCodeUrl: v.optional(v.string()),
+    issuedDate: v.number(),
+    issuedBy: v.id("users"),
+    metadata: v.optional(v.string()),
+    expiryDate: v.optional(v.number()),
+    isVerified: v.optional(v.boolean()),
+    downloadCount: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("studentId", ["studentId"])
+    .index("examSessionId", ["examSessionId"])
+    .index("certificateType", ["certificateType"])
+    .index("certificateNumber", ["certificateNumber"])
+    .index("by_issued", ["issuedDate"]),
 };
