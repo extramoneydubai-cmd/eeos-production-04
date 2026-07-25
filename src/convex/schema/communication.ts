@@ -108,4 +108,33 @@ export const communicationTables = {
     .index("senderId", ["senderId"])
     .index("channelId_createdAt", ["channelId", "createdAt"])
     .index("by_updated", ["updatedAt"]),
+
+  // ─── Comment Engine (universal entity-scoped discussion) ────────
+
+  comments: defineTable({
+    body: v.string(),
+    bodyHtml: v.optional(v.string()),
+    entityType: v.string(),
+    entityId: v.string(),
+    userId: v.id("users"),
+    organizationId: v.optional(v.id("organizations")),
+    parentId: v.optional(v.id("comments")),
+    rootId: v.optional(v.id("comments")),
+    mentions: v.optional(v.array(v.id("users"))),
+    reactions: v.array(v.object({ emoji: v.string(), userId: v.id("users") })),
+    attachmentIds: v.optional(v.array(v.id("attachments"))),
+    isEdited: v.boolean(),
+    editedAt: v.optional(v.number()),
+    isResolved: v.boolean(),
+    resolvedAt: v.optional(v.number()),
+    resolvedBy: v.optional(v.id("users")),
+    isPinned: v.boolean(),
+    visibility: v.union(v.literal("public"), v.literal("internal"), v.literal("private")),
+    createdAt: v.number(),
+  })
+    .index("by_entity_date", ["entityType", "entityId"])
+    .index("by_pinned", ["entityType", "entityId", "isPinned"])
+    .index("by_root", ["rootId"])
+    .index("by_user", ["userId"])
+    .index("by_created", ["createdAt"]),
 };

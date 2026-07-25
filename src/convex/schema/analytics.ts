@@ -158,4 +158,66 @@ export const analyticsTables = {
     .index("period", ["period"])
     .index("kpiId_period", ["kpiId", "period"])
     .index("by_created", ["createdAt"]),
+
+  // ─── Audit Engine Tables (immutable audit trail) ────────────────
+
+  audit_logs: defineTable({
+    entityType: v.string(),
+    entityId: v.string(),
+    module: v.string(),
+    action: v.string(),
+    changedFields: v.array(v.string()),
+    beforeSnapshot: v.optional(v.any()),
+    afterSnapshot: v.optional(v.any()),
+    userId: v.id("users"),
+    userName: v.optional(v.string()),
+    userEmail: v.optional(v.string()),
+    userRole: v.optional(v.string()),
+    organizationId: v.optional(v.id("organizations")),
+    branchId: v.optional(v.id("branches")),
+    departmentId: v.optional(v.id("departments")),
+    teamId: v.optional(v.id("teams")),
+    ipAddress: v.optional(v.string()),
+    userAgent: v.optional(v.string()),
+    device: v.optional(v.string()),
+    sessionId: v.optional(v.id("audit_sessions")),
+    reason: v.optional(v.string()),
+    approvalReference: v.optional(v.string()),
+    transactionId: v.optional(v.string()),
+    previousHash: v.optional(v.string()),
+    severity: v.union(v.literal("info"), v.literal("warning"), v.literal("error"), v.literal("critical")),
+    source: v.union(v.literal("api"), v.literal("ui"), v.literal("system"), v.literal("integration")),
+    hash: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_entity_date", ["entityType", "entityId"])
+    .index("by_user_date", ["userId"])
+    .index("by_organization_date", ["organizationId"])
+    .index("by_module_date", ["module"])
+    .index("by_severity", ["severity"])
+    .index("by_hash", ["hash"])
+    .index("by_created", ["createdAt"]),
+
+  audit_entities: defineTable({
+    entityType: v.string(),
+    entityId: v.string(),
+    latestAuditId: v.id("audit_logs"),
+    totalChanges: v.number(),
+    firstChangeAt: v.number(),
+    lastChangeAt: v.number(),
+  })
+    .index("by_entity", ["entityType", "entityId"]),
+
+  audit_sessions: defineTable({
+    userId: v.id("users"),
+    startedAt: v.number(),
+    endedAt: v.optional(v.number()),
+    ipAddress: v.optional(v.string()),
+    userAgent: v.optional(v.string()),
+    device: v.optional(v.string()),
+    isActive: v.boolean(),
+    actions: v.number(),
+  })
+    .index("userId", ["userId"])
+    .index("by_active", ["isActive"]),
 };

@@ -375,7 +375,7 @@ export const search = query({
     if (args.entityType && args.entityId) {
       results = await ctx.db
         .query("attachments")
-        .withIndex("by_entity", (q) =>
+        .withIndex("by_entity_date", (q) =>
           q.eq("entityType", args.entityType).eq("entityId", args.entityId),
         )
         .collect();

@@ -108,4 +108,58 @@ export const documentsTables = {
     .index("createdAt", ["createdAt"])
     .index("isArchived", ["isArchived"])
     .index("by_updated", ["updatedAt"]),
+
+  // ─── Attachment Engine (entity-scoped, provider-agnostic storage) ───
+
+  attachments: defineTable({
+    fileName: v.string(),
+    originalName: v.string(),
+    size: v.number(),
+    extension: v.string(),
+    mimeType: v.string(),
+    storageId: v.string(),
+    storageProvider: v.union(v.literal("local"), v.literal("s3"), v.literal("azure"), v.literal("gcs")),
+    category: v.union(
+      v.literal("identity"), v.literal("academic"), v.literal("finance"),
+      v.literal("hr"), v.literal("medical"), v.literal("legal"),
+      v.literal("communication"), v.literal("marketing"), v.literal("general"), v.literal("custom"),
+    ),
+    entityType: v.string(),
+    entityId: v.string(),
+    organizationId: v.optional(v.id("organizations")),
+    branchId: v.optional(v.id("branches")),
+    departmentId: v.optional(v.id("departments")),
+    teamId: v.optional(v.id("teams")),
+    tags: v.optional(v.array(v.string())),
+    description: v.optional(v.string()),
+    thumbnailId: v.optional(v.string()),
+    hash: v.optional(v.string()),
+    currentVersion: v.number(),
+    status: v.union(v.literal("active"), v.literal("archived"), v.literal("deleted")),
+    uploadedBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_entity_date", ["entityType", "entityId"])
+    .index("by_organization", ["organizationId"])
+    .index("by_status", ["status"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
+
+  attachment_versions: defineTable({
+    attachmentId: v.id("attachments"),
+    versionNumber: v.number(),
+    fileName: v.string(),
+    originalName: v.string(),
+    size: v.number(),
+    extension: v.string(),
+    mimeType: v.string(),
+    storageId: v.string(),
+    hash: v.optional(v.string()),
+    uploadedBy: v.id("users"),
+    changeNote: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_attachment_version", ["attachmentId"])
+    .index("by_created", ["createdAt"]),
 };

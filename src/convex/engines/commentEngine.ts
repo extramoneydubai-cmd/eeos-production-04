@@ -378,9 +378,8 @@ export const getEntityStats = query({
     if (!userId) throw new Error("Not authenticated");
 
     const all = await ctx.db
-      .query("comments")
-      .withIndex("by_entity", (q) =>
-        q.eq("entityType", args.entityType).eq("entityId", args.entityId),
+      .query("comments").withIndex("by_entity_date", (q) =>
+          q.eq("entityType", args.entityType).eq("entityId", args.entityId),
       )
       .collect();
 
