@@ -53,6 +53,7 @@ import {
   Printer,
   Mail,
   GripVertical,
+  Table2,
 } from "lucide-react";
 
 // ─── Recharts Imports ───────────────────────────────────────────
@@ -404,10 +405,20 @@ export default function AnalyticsPage() {
   const schedules = useQuery(api.reportScheduleEngine.listSchedules);
 
   // Mutations
+  // Mutations
   const executeReport = useMutation(api.reportEngine.executeReport);
-  const exportReport = useMutation(api.reportExportEngine.exportReport);
+  const exportReportMutation = useMutation(api.reportExportEngine.exportReport);
   const toggleFavoriteReport = useMutation(api.reportEngine.toggleFavoriteReport);
   const deleteSavedReport = useMutation(api.reportEngine.deleteSavedReport);
+
+  // Export history
+  const exportHistory = useQuery(api.reportExportEngine.getExportHistory);
+
+  // Export state
+  const [exportingReportId, setExportingReportId] = useState<string | null>(null);
+  const [exportFormat, setExportFormat] = useState<string>("csv");
+  const [showExportDropdown, setShowExportDropdown] = useState<string | null>(null);
+  const [exportStatus, setExportStatus] = useState<{ id: string; success: boolean; message: string } | null>(null);
 
   const isLoading = !crmData;
 
@@ -435,12 +446,34 @@ export default function AnalyticsPage() {
   };
 
   const handleExportReport = async (reportDefId: string, format: string) => {
+    setExportingReportId(reportDefId);
+    setShowExportDropdown(null);
     try {
-      await exportReport({ reportDefinitionId: reportDefId as any, format: format as any });
-    } catch (err) {
-      console.error("Failed to export report:", err);
+      const result = await exportReportMutation({ reportId: reportDefId as any, format: format as any });
+      if (result && 'error' in result && result.error) {
+        setExportStatus({ id: reportDefId, success: false, message: result.error });
+      } else {
+        setExportStatus({
+          id: reportDefId,
+          success: true,
+          message: `Exported to ${format.toUpperCase()} — ${(result as any)?.recordCount || 0} records`,
+        });
+      }
+    } catch (err: any) {
+      setExportStatus({ id: reportDefId, success: false, message: err.message || "Export failed" });
+    } finally {
+      setExportingReportId(null);
+      // Clear status after 4 seconds
+      setTimeout(() => setExportStatus(null), 4000);
     }
   };
+
+  const EXPORT_FORMATS = [
+    { value: "csv", label: "CSV", icon: Download, desc: "Comma-separated values" },
+    { value: "excel", label: "Excel", icon: Table2, desc: "XLSX spreadsheet" },
+    { value: "pdf", label: "PDF", icon: FileText, desc: "Formatted document" },
+    { value: "json", label: "JSON", icon: Database, desc: "Raw data export" },
+  ];
 
   // Module sections config for Overview tab
   const moduleSections = [
@@ -749,13 +782,55 @@ export default function AnalyticsPage() {
                                 {MODULE_LABELS[def.module] || def.module} · {def.reportType}
                               </p>
                             </div>
-                            <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity relative">
                               <Button variant="ghost" size="sm" className="h-6 w-6 p-0" title="Execute" onClick={() => handleExecuteReport(def._id)}>
                                 <Play className="h-3 w-3 text-[#34a853]" />
                               </Button>
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" title="Export CSV" onClick={() => handleExportReport(def._id, "csv")}>
-                                <Download className="h-3 w-3 text-[#1a73e8]" />
-                              </Button>
+                              <div className="relative">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  title="Export"
+                                  onClick={() => setShowExportDropdown(showExportDropdown === def._id ? null : def._id)}
+                                  disabled={exportingReportId === def._id}
+                                >
+                                  {exportingReportId === def._id ? (
+                                    <RefreshCw className="h-3 w-3 text-[#1a73e8] animate-spin" />
+                                  ) : (
+                                    <Download className="h-3 w-3 text-[#1a73e8]" />
+                                  )}
+                                </Button>
+                                {/* Export format dropdown */}
+                                {showExportDropdown === def._id && (
+                                  <div className="absolute right-0 top-7 z-50 w-40 bg-white rounded-lg border border-[#e8eaed] shadow-lg overflow-hidden">
+                                    <div className="p-1.5">
+                                      <p className="text-[9px] font-medium text-[#5f6368] px-2 py-1 uppercase tracking-wider">Export as</p>
+                                      {EXPORT_FORMATS.map((fmt) => (
+                                        <button
+                                          key={fmt.value}
+                                          className="flex items-center gap-2 w-full px-2 py-1.5 text-[11px] text-[#1a1a2e] hover:bg-[#f1f3f4] rounded transition-colors"
+                                          onClick={() => handleExportReport(def._id, fmt.value)}
+                                        >
+                                          <fmt.icon className="h-3 w-3 text-[#5f6368]" />
+                                          <div className="text-left">
+                                            <span className="font-medium">{fmt.label}</span>
+                                            <span className="text-[9px] text-[#9aa0a6] ml-1">· {fmt.desc}</span>
+                                          </div>
+                                        </button>
+                                      ))}
+                                    </div>
+                                    <div className="border-t border-[#f1f3f4] px-2 py-1">
+                                      <button
+                                        className="text-[9px] text-[#5f6368] hover:text-[#1a1a2e] w-full text-left"
+                                        onClick={() => setShowExportDropdown(null)}
+                                      >
+                                        Cancel
+                                      </button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                               <Button variant="ghost" size="sm" className="h-6 w-6 p-0" title="Schedule">
                                 <Calendar className="h-3 w-3 text-[#f9a825]" />
                               </Button>
@@ -787,6 +862,78 @@ export default function AnalyticsPage() {
               description="Create report definitions to start building your analytics library. Reports aggregate data from all business modules into reusable, exportable insights."
               action={{ label: "Create First Report", onClick: () => {} }}
             />
+          )}
+
+          {/* Export status banner */}
+          {exportStatus && (
+            <div className={`p-2.5 rounded-lg text-[11px] flex items-center gap-2 ${
+              exportStatus.success ? 'bg-[#e6f4ea] text-[#34a853] border border-[#ceead6]' : 'bg-[#fce8e6] text-[#ea4335] border border-[#f5c6c2]'
+            }`}>
+              {exportStatus.success ? (
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+              ) : (
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+              )}
+              <span>{exportStatus.message}</span>
+              <Button variant="ghost" size="sm" className="h-5 w-5 p-0 ml-auto" onClick={() => setExportStatus(null)}>
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
+
+          {/* Export History */}
+          {exportHistory && exportHistory.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-[12px] font-semibold text-[#5f6368] mb-2">Recent Exports ({exportHistory.length})</h3>
+              <div className="border border-[#e8eaed] rounded-lg overflow-hidden bg-white">
+                <table className="w-full text-[11px]">
+                  <thead>
+                    <tr className="bg-[#f8f9fa] border-b border-[#e8eaed]">
+                      <th className="text-left px-3 py-2 font-medium text-[#5f6368]">Format</th>
+                      <th className="text-left px-3 py-2 font-medium text-[#5f6368]">Status</th>
+                      <th className="text-left px-3 py-2 font-medium text-[#5f6368]">Records</th>
+                      <th className="text-left px-3 py-2 font-medium text-[#5f6368]">Date</th>
+                      <th className="text-left px-3 py-2 font-medium text-[#5f6368]">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {exportHistory.slice(0, 10).map((exp: any) => (
+                      <tr key={exp._id} className="border-b border-[#f1f3f4] hover:bg-[#f8f9fa]">
+                        <td className="px-3 py-2">
+                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 uppercase bg-[#f1f3f4] border-0">
+                            {exp.format || "csv"}
+                          </Badge>
+                        </td>
+                        <td className="px-3 py-2">
+                          <Badge variant="outline" className={`text-[9px] px-1.5 py-0 h-4 border-0 ${
+                            exp.status === "completed" ? 'bg-[#e6f4ea] text-[#34a853]' :
+                            exp.status === "failed" ? 'bg-[#fce8e6] text-[#ea4335]' :
+                            'bg-[#fef7e0] text-[#f9a825]'
+                          }`}>
+                            {exp.status || "pending"}
+                          </Badge>
+                        </td>
+                        <td className="px-3 py-2 text-[#5f6368]">{exp.recordCount ?? "—"}</td>
+                        <td className="px-3 py-2 text-[#9aa0a6]">
+                          {exp.createdAt ? new Date(exp.createdAt).toLocaleDateString() : "—"}
+                        </td>
+                        <td className="px-3 py-2">
+                          {exp.fileUrl ? (
+                            <a href={exp.fileUrl} target="_blank" rel="noopener noreferrer">
+                              <Button variant="ghost" size="sm" className="h-6 text-[9px] text-[#1a73e8] hover:text-[#1557b0]">
+                                <Download className="h-3 w-3 mr-1" /> Download
+                              </Button>
+                            </a>
+                          ) : (
+                            <span className="text-[#9aa0a6] text-[9px]">No file</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
 
           {/* Data Sources */}
