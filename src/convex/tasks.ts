@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withEventPipeline, entityIdFromResult, entityIdFromArg, userIdFromArg } from "@/platform/eventPipeline";
 
 // ============================
 // TASKS
@@ -58,48 +59,55 @@ export const createTask = mutation({
     dueDate: v.optional(v.number()),
     approvalRequired: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const now = Date.now();
-    // Get the highest order for the status
-    const existingTasks = await ctx.db.query("tasks").withIndex("status", (q) => q.eq("status", args.status as any)).collect();
-    const maxOrder = existingTasks.reduce((max, t) => Math.max(max, t.order), -1);
+  handler: withEventPipeline(
+    {
+      module: "tasks",
+      entity: "task",
+      action: "create",
+      getEntityId: entityIdFromResult(),
+      getUserId: userIdFromArg("ownerId"),
+      title: "Task created",
+    },
+    async (ctx, args) => {
+      const now = Date.now();
+      const existingTasks = await ctx.db.query("tasks").withIndex("status", (q) => q.eq("status", args.status as any)).collect();
+      const maxOrder = existingTasks.reduce((max, t) => Math.max(max, t.order), -1);
 
-    const taskId = await ctx.db.insert("tasks", {
-      title: args.title,
-      description: args.description,
-      status: args.status as any,
-      priority: args.priority as any,
-      ownerId: args.ownerId,
-      assignedTo: args.assignedTo,
-      departmentId: args.departmentId,
-      teamId: args.teamId,
-      dueDate: args.dueDate,
-      approvalRequired: args.approvalRequired,
-      order: maxOrder + 1,
-      createdAt: now,
-      updatedAt: now,
-    });
+      const taskId = await ctx.db.insert("tasks", {
+        title: args.title,
+        description: args.description,
+        status: args.status as any,
+        priority: args.priority as any,
+        ownerId: args.ownerId,
+        assignedTo: args.assignedTo,
+        departmentId: args.departmentId,
+        teamId: args.teamId,
+        dueDate: args.dueDate,
+        approvalRequired: args.approvalRequired,
+        order: maxOrder + 1,
+        createdAt: now,
+        updatedAt: now,
+      });
 
-    // Add owner as participant
-    await ctx.db.insert("taskParticipants", {
-      taskId,
-      userId: args.ownerId,
-      role: "owner",
-      createdAt: now,
-    });
-
-    // Add assignee as participant
-    if (args.assignedTo && args.assignedTo !== args.ownerId) {
       await ctx.db.insert("taskParticipants", {
         taskId,
-        userId: args.assignedTo,
-        role: "assignee",
+        userId: args.ownerId,
+        role: "owner",
         createdAt: now,
       });
-    }
 
-    return taskId;
-  },
+      if (args.assignedTo && args.assignedTo !== args.ownerId) {
+        await ctx.db.insert("taskParticipants", {
+          taskId,
+          userId: args.assignedTo,
+          role: "assignee",
+          createdAt: now,
+        });
+      }
+
+      return taskId;
+    },
+  ),
 });
 
 export const updateTask = mutation({
@@ -144,19 +152,27 @@ export const updateTaskStatus = mutation({
 
 export const deleteTask = mutation({
   args: { taskId: v.id("tasks") },
-  handler: async (ctx, args) => {
-    // Clean up related data
-    const participants = await ctx.db.query("taskParticipants").withIndex("taskId", (q) => q.eq("taskId", args.taskId)).collect();
-    for (const p of participants) await ctx.db.delete(p._id);
+  handler: withEventPipeline(
+    {
+      module: "tasks",
+      entity: "task",
+      action: "delete",
+      getEntityId: entityIdFromArg("taskId"),
+      title: "Task deleted",
+    },
+    async (ctx, args) => {
+      const participants = await ctx.db.query("taskParticipants").withIndex("taskId", (q) => q.eq("taskId", args.taskId)).collect();
+      for (const p of participants) await ctx.db.delete(p._id);
 
-    const checklistItems = await ctx.db.query("taskChecklistItems").withIndex("taskId", (q) => q.eq("taskId", args.taskId)).collect();
-    for (const c of checklistItems) await ctx.db.delete(c._id);
+      const checklistItems = await ctx.db.query("taskChecklistItems").withIndex("taskId", (q) => q.eq("taskId", args.taskId)).collect();
+      for (const c of checklistItems) await ctx.db.delete(c._id);
 
-    const comments = await ctx.db.query("taskComments").withIndex("taskId", (q) => q.eq("taskId", args.taskId)).collect();
-    for (const c of comments) await ctx.db.delete(c._id);
+      const comments = await ctx.db.query("taskComments").withIndex("taskId", (q) => q.eq("taskId", args.taskId)).collect();
+      for (const c of comments) await ctx.db.delete(c._id);
 
-    await ctx.db.delete(args.taskId);
-  },
+      await ctx.db.delete(args.taskId);
+    },
+  ),
 });
 
 // ============================

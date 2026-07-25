@@ -3,6 +3,7 @@ import { mutation, query } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
 import { LEAD_PIPELINE_STAGES, logActivity, createNotification } from "./crmHelpers";
 import { paginatedQuery, applyStandardFilters, type PaginatedResponse } from "./queryHelpers";
+import { withEventPipeline, entityIdFromResult, entityIdFromArg, userIdFromArg, orgScopeFromArg } from "@/platform/eventPipeline";
 
 // ============================
 // LEAD CRUD
@@ -85,66 +86,84 @@ export const getLeadById = query({
 
 export const createLead = mutation({
   args: { firstName: v.string(), lastName: v.string(), phone: v.string(), email: v.optional(v.string()), dob: v.optional(v.number()), gender: v.optional(v.string()), location: v.optional(v.string()), verticalId: v.optional(v.id("verticals")), subVerticalId: v.optional(v.id("subVerticals")), boardId: v.optional(v.id("boards")), courseInterest: v.optional(v.string()), branchInterestId: v.optional(v.id("branches")), academicDetails: v.optional(v.string()), stage: v.optional(v.string()), ownerId: v.optional(v.id("users")), priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("critical"))), probability: v.optional(v.number()), expectedRevenue: v.optional(v.number()), expectedJoining: v.optional(v.number()), nextAction: v.optional(v.string()), nextActionDate: v.optional(v.number()), source: v.optional(v.string()), campaign: v.optional(v.string()), utm: v.optional(v.string()), channel: v.optional(v.string()), referralId: v.optional(v.id("users")), tags: v.optional(v.array(v.string())), whatsappUsername: v.optional(v.string()), whatsappPin: v.optional(v.string()), createdBy: v.id("users") },
-  handler: async (ctx, args) => {
-    const now = Date.now();
-    const leadId = await ctx.db.insert("leadMaster", {
-      firstName: args.firstName, lastName: args.lastName, phone: args.phone, email: args.email,
-      dob: args.dob, gender: args.gender, location: args.location, verticalId: args.verticalId,
-      subVerticalId: args.subVerticalId, boardId: args.boardId, courseInterest: args.courseInterest,
-      branchInterestId: args.branchInterestId, academicDetails: args.academicDetails, stage: args.stage || "new",
-      ownerId: args.ownerId, priority: args.priority || "medium", probability: args.probability,
-      expectedRevenue: args.expectedRevenue, expectedJoining: args.expectedJoining,
-      nextAction: args.nextAction, nextActionDate: args.nextActionDate, source: args.source,
-      campaign: args.campaign, utm: args.utm, channel: args.channel, referralId: args.referralId,
-      tags: args.tags, whatsappUsername: args.whatsappUsername, whatsappPin: args.whatsappPin, status: "active", createdBy: args.createdBy, createdAt: now, updatedAt: now,
-    });
-    await ctx.db.insert("leadStageHistory", { leadId, toStage: args.stage || "new", changedBy: args.createdBy, createdAt: now });
-    await logActivity(ctx, leadId, "lead_created", `${args.firstName} ${args.lastName} created`, args.createdBy);
+  handler: withEventPipeline(
+    {
+      module: "crm",
+      entity: "lead",
+      action: "create",
+      getEntityId: entityIdFromResult(),
+      getUserId: userIdFromArg("createdBy"),
+      title: "Lead created",
+    },
+    async (ctx, args) => {
+      const now = Date.now();
+      const leadId = await ctx.db.insert("leadMaster", {
+        firstName: args.firstName, lastName: args.lastName, phone: args.phone, email: args.email,
+        dob: args.dob, gender: args.gender, location: args.location, verticalId: args.verticalId,
+        subVerticalId: args.subVerticalId, boardId: args.boardId, courseInterest: args.courseInterest,
+        branchInterestId: args.branchInterestId, academicDetails: args.academicDetails, stage: args.stage || "new",
+        ownerId: args.ownerId, priority: args.priority || "medium", probability: args.probability,
+        expectedRevenue: args.expectedRevenue, expectedJoining: args.expectedJoining,
+        nextAction: args.nextAction, nextActionDate: args.nextActionDate, source: args.source,
+        campaign: args.campaign, utm: args.utm, channel: args.channel, referralId: args.referralId,
+        tags: args.tags, whatsappUsername: args.whatsappUsername, whatsappPin: args.whatsappPin, status: "active", createdBy: args.createdBy, createdAt: now, updatedAt: now,
+      });
+      await ctx.db.insert("leadStageHistory", { leadId, toStage: args.stage || "new", changedBy: args.createdBy, createdAt: now });
 
-    // Calculate initial health score
-    try {
-      const lead = await ctx.db.get(leadId);
-      if (lead) {
-        let score = 0;
-        let profileScore = 0;
-        if (lead.firstName && lead.lastName) profileScore += 8;
-        if (lead.phone) profileScore += 8;
-        if (lead.email) profileScore += 7;
-        if (lead.location) profileScore += 7;
-        score += profileScore;
-        const stageScores: Record<string, number> = {
-          new: 5, contacted: 10, qualified: 15, demo: 18, negotiation: 22, converted: 25,
-        };
-        score += stageScores[lead.stage] || 5;
-        score += 10; // base engagement
-        const tier = score >= 80 ? "hot" : score >= 60 ? "warm" : score >= 35 ? "cool" : "cold";
-        await ctx.db.insert("leadHealthScores", {
-          leadId, score, maxScore: 100,
-          dimensions: JSON.stringify({
-            profile: { score: profileScore, max: 30, label: "Profile Completeness" },
-            engagement: { score: 10, max: 25, label: "Engagement" },
-            pipeline: { score: stageScores[lead.stage] || 5, max: 25, label: "Pipeline Position" },
-          }),
-          tier, calculatedAt: now, createdAt: now,
-        });
+      // Calculate initial health score
+      try {
+        const lead = await ctx.db.get(leadId);
+        if (lead) {
+          let score = 0;
+          let profileScore = 0;
+          if (lead.firstName && lead.lastName) profileScore += 8;
+          if (lead.phone) profileScore += 8;
+          if (lead.email) profileScore += 7;
+          if (lead.location) profileScore += 7;
+          score += profileScore;
+          const stageScores: Record<string, number> = {
+            new: 5, contacted: 10, qualified: 15, demo: 18, negotiation: 22, converted: 25,
+          };
+          score += stageScores[lead.stage] || 5;
+          score += 10; // base engagement
+          const tier = score >= 80 ? "hot" : score >= 60 ? "warm" : score >= 35 ? "cool" : "cold";
+          await ctx.db.insert("leadHealthScores", {
+            leadId, score, maxScore: 100,
+            dimensions: JSON.stringify({
+              profile: { score: profileScore, max: 30, label: "Profile Completeness" },
+              engagement: { score: 10, max: 25, label: "Engagement" },
+              pipeline: { score: stageScores[lead.stage] || 5, max: 25, label: "Pipeline Position" },
+            }),
+            tier, calculatedAt: now, createdAt: now,
+          });
+        }
+      } catch {
+        // Health score calculation is non-critical
       }
-    } catch {
-      // Health score calculation is non-critical
-    }
 
-    return leadId;
-  },
+      return leadId;
+    },
+  ),
 });
 
 export const updateLead = mutation({
   args: { leadId: v.id("leadMaster"), firstName: v.optional(v.string()), lastName: v.optional(v.string()), phone: v.optional(v.string()), email: v.optional(v.string()), whatsappUsername: v.optional(v.string()), whatsappPin: v.optional(v.string()), dob: v.optional(v.number()), gender: v.optional(v.string()), location: v.optional(v.string()), verticalId: v.optional(v.id("verticals")), subVerticalId: v.optional(v.id("subVerticals")), boardId: v.optional(v.id("boards")), courseInterest: v.optional(v.string()), branchInterestId: v.optional(v.id("branches")), academicDetails: v.optional(v.string()), priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("critical"))), probability: v.optional(v.number()), expectedRevenue: v.optional(v.number()), expectedJoining: v.optional(v.number()), nextAction: v.optional(v.string()), nextActionDate: v.optional(v.number()), standardAmount: v.optional(v.number()), discountAmount: v.optional(v.number()), waiverAmount: v.optional(v.number()), finalPayable: v.optional(v.number()), status: v.optional(v.union(v.literal("active"), v.literal("converted"), v.literal("lost"), v.literal("archived"))), tags: v.optional(v.array(v.string())), userId: v.id("users") },
-  handler: async (ctx, args) => {
-    const { leadId, userId, ...fields } = args;
-    const updates: Record<string, any> = { updatedAt: Date.now() };
-    for (const [key, value] of Object.entries(fields)) { if (value !== undefined) updates[key] = value; }
-    await ctx.db.patch(leadId, updates);
-    await logActivity(ctx, leadId, "lead_updated", "Lead details updated", userId);
-  },
+  handler: withEventPipeline(
+    {
+      module: "crm",
+      entity: "lead",
+      action: "update",
+      getEntityId: entityIdFromArg("leadId"),
+      getUserId: userIdFromArg("userId"),
+      title: "Lead updated",
+    },
+    async (ctx, args) => {
+      const { leadId, userId, ...fields } = args;
+      const updates: Record<string, any> = { updatedAt: Date.now() };
+      for (const [key, value] of Object.entries(fields)) { if (value !== undefined) updates[key] = value; }
+      await ctx.db.patch(leadId, updates);
+    },
+  ),
 });
 
 export const updateLeadStage = mutation({
