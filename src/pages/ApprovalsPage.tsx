@@ -61,7 +61,8 @@ export default function ApprovalsPage() {
   const templates = useQuery(api.approvals.listApprovalTemplates);
   const requests = useQuery(api.approvals.listApprovalRequests, {});
   const users = useQuery(api.users.listUsers);
-  const leads = useQuery(api.crm.listLeads, {});
+  const leadsResult = useQuery(api.crm.listLeads, {});
+  const leads = (leadsResult as any)?.items;
   const crmApprovalsAll = useQuery(api.crm.getAllCrmApprovals, user ? { userId: user._id } : "skip");
   const verificationRequests = useQuery(api.verification.getVerificationRequests, user ? { userId: user._id } : "skip");
   const verificationCounts = useQuery(api.verification.getVerificationCounts, user ? { userId: user._id } : "skip");
