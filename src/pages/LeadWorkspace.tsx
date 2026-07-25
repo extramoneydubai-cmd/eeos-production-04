@@ -590,11 +590,8 @@ export default function LeadWorkspace() {
       {/* Tabs */}
       <div className="mt-4">
         <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="space-y-4">
-          <TabsList className="bg-[#f1f3f4] p-0.5 sticky top-[108px] z-10">
-            <TabsTrigger value="overview" className="text-[11px] data-[state=active]:bg-white px-2.5">Overview</TabsTrigger>
-            <TabsTrigger value="timeline" className="text-[11px] data-[state=active]:bg-white px-2.5">Timeline</TabsTrigger>
-            <TabsTrigger value="overview" className="text-[11px] data-[state=active]:bg-white px-2.5">Overview</TabsTrigger>
-            <TabsTrigger value="timeline" className="text-[11px] data-[state=active]:bg-white px-2.5">Timeline</TabsTrigger>
+          <TabsList className="bg-[#f1f3f4] p-0.5 sticky top-[108px] z-10">                    <TabsTrigger value="overview" className="text-[11px] data-[state=active]:bg-white px-2.5">Overview</TabsTrigger>
+                    <TabsTrigger value="timeline" className="text-[11px] data-[state=active]:bg-white px-2.5">Timeline</TabsTrigger>
             <TabsTrigger value="notes" className="text-[11px] data-[state=active]:bg-white px-2.5">Notes</TabsTrigger>
             <TabsTrigger value="tasks" className="text-[11px] data-[state=active]:bg-white px-2.5">Tasks</TabsTrigger>
             <TabsTrigger value="meetings" className="text-[11px] data-[state=active]:bg-white px-2.5">Meetings</TabsTrigger>
