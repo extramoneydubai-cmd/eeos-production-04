@@ -116,6 +116,9 @@ const PlatformStudio = lazy(() => import("./pages/PlatformStudio.tsx"));
 const RecruitingPage = lazy(() => import("./pages/RecruitingPage.tsx"));
 const ExamDashboard = lazy(() => import("./pages/ExamDashboard.tsx"));
 const FinanceDashboard = lazy(() => import("./pages/FinanceDashboard.tsx"));
+const FinanceReports = lazy(() => import("./pages/FinanceReports.tsx"));
+const InvoiceWorkspace = lazy(() => import("./pages/InvoiceWorkspace.tsx"));
+const ExpenseWorkspace = lazy(() => import("./pages/ExpenseWorkspace.tsx"));
 const ProcurementDashboard = lazy(() => import("./pages/ProcurementDashboard.tsx"));
 const LMSDashboard = lazy(() => import("./pages/LMSDashboard.tsx"));
 const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage.tsx"));
@@ -304,7 +307,10 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/studios/forms" element={<ProtectedRoute><FormStudio /></ProtectedRoute>} />
               <Route path="/recruiting" element={<ProtectedRoute><RecruitingPage /></ProtectedRoute>} />
               <Route path="/examinations" element={<ProtectedRoute><ExamDashboard /></ProtectedRoute>} />
-              <Route path="/studio/finance" element={<ProtectedRoute><FinanceDashboard /></ProtectedRoute>} />
+              <Route path="/finance" element={<ProtectedRoute><FinanceDashboard /></ProtectedRoute>} />
+              <Route path="/finance/reports" element={<ProtectedRoute><FinanceReports /></ProtectedRoute>} />
+              <Route path="/finance/invoices/:id" element={<ProtectedRoute><InvoiceWorkspace /></ProtectedRoute>} />
+              <Route path="/finance/expenses/:id" element={<ProtectedRoute><ExpenseWorkspace /></ProtectedRoute>} />
               <Route path="/studio/procurement" element={<ProtectedRoute><ProcurementDashboard /></ProtectedRoute>} />
               <Route path="/studio/lms" element={<ProtectedRoute><LMSDashboard /></ProtectedRoute>} />
               <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />

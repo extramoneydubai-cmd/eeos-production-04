@@ -156,7 +156,7 @@ export const routes: RouteEntry[] = [
   },
   {
     label: "Finance",
-    href: "/studio/finance",
+    href: "/finance",
     icon: PiggyBank,
     group: "Business Modules",
     visible,
