@@ -184,11 +184,10 @@ export const routes: RouteEntry[] = [
   },
   {
     label: "Administration",
-    href: "/studio/administration",
+    href: "/administration",
     icon: Building,
     group: "Business Modules",
     visible,
-    isPlaceholder: placeholder,
   },
   {
     label: "Procurement",
