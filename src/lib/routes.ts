@@ -140,12 +140,11 @@ export const routes: RouteEntry[] = [
     isPlaceholder: placeholder,
   },
   {
-    label: "Student",
-    href: "/studio/student",
+    label: "Students",
+    href: "/students",
     icon: GraduationCap,
     group: "Business Modules",
     visible,
-    isPlaceholder: placeholder,
   },
   {
     label: "Academic",
