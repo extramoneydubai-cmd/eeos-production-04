@@ -14,7 +14,8 @@ async function sha256(message: string): Promise<string> {
 export const login = mutation({
   args: { username: v.string(), password: v.string() },
   handler: async (ctx, args) => {
-    const user = await ctx.db.query("users").withIndex("username", (q) => q.eq("username", args.username)).first();
+    const allUsers = await ctx.db.query("users").collect();
+    const user = allUsers.find((u) => u.username === args.username);
     if (!user) return { success: false, error: "Invalid username or password" };
     if (user.isDisabled) return { success: false, error: "Account is disabled" };
 
@@ -60,7 +61,8 @@ export const login = mutation({
 export const validateSession = query({
   args: { token: v.string() },
   handler: async (ctx, args) => {
-    const session = await ctx.db.query("sessions").withIndex("token", (q) => q.eq("token", args.token)).first();
+    const allSessions = await ctx.db.query("sessions").collect();
+    const session = allSessions.find((s) => s.token === args.token);
     if (!session || session.expiresAt < Date.now()) return null;
 
     const user = await ctx.db.get(session.userId);
@@ -88,7 +90,8 @@ export const validateSession = query({
 export const logout = mutation({
   args: { token: v.string() },
   handler: async (ctx, args) => {
-    const session = await ctx.db.query("sessions").withIndex("token", (q) => q.eq("token", args.token)).first();
+    const allSessions = await ctx.db.query("sessions").collect();
+    const session = allSessions.find((s) => s.token === args.token);
     if (session) {
       await ctx.db.delete(session._id);
     }
@@ -109,7 +112,8 @@ export const seedUserPasswords = mutation({
   args: {},
   handler: async (ctx) => {
     // Check if passwords already seeded
-    const ceo = await ctx.db.query("users").withIndex("username", (q) => q.eq("username", "ceo")).first();
+    const allUsers = await ctx.db.query("users").collect();
+    const ceo = allUsers.find((u) => u.username === "ceo");
     if (ceo?.passwordHash) return { seeded: false, message: "Passwords already set" };
 
     const users = await ctx.db.query("users").collect();
@@ -147,9 +151,10 @@ export const isSeeded = query({
 
 // Get the current user from session token helper (for use in other queries)
 export const getUserFromToken = async (ctx: QueryCtx, token: string) => {
-  const session = await ctx.db.query("sessions").withIndex("token", (q) => q.eq("token", token)).first();
-  if (!session || session.expiresAt < Date.now()) return null;
-  const user = await ctx.db.get(session.userId);
-  if (!user || user.isDisabled) return null;
-  return user;
+    const allSessionsForToken = await ctx.db.query("sessions").collect();
+    const session = allSessionsForToken.find((s) => s.token === token);
+    if (!session || session.expiresAt < Date.now()) return null;
+    const user = await ctx.db.get(session.userId);
+    if (!user || user.isDisabled) return null;
+    return user;
 };
