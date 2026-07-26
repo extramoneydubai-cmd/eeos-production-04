@@ -147,6 +147,8 @@ const AcademicDatabase = lazy(() => import("./pages/AcademicDatabase.tsx"));
 const AcademicWorkspace = lazy(() => import("./pages/AcademicWorkspace.tsx"));
 const AdministrationDashboard = lazy(() => import("./pages/AdministrationDashboard.tsx"));
 const CommunicationMarketingDashboard = lazy(() => import("./pages/CommunicationMarketingDashboard.tsx"));
+const CEOExecutiveDashboard = lazy(() => import("./pages/executive/CEOExecutiveDashboard.tsx"));
+const RoleDashboard = lazy(() => import("./pages/executive/RoleDashboard.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 import { RouteErrorBoundary } from "@/components/ui/route-error-boundary";
 import { InstrumentationProvider } from "@/instrumentation";
@@ -224,7 +226,15 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/approvals" element={<ProtectedRoute><ApprovalsPage /></ProtectedRoute>} />
               <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
               <Route path="/messenger" element={<ProtectedRoute><MessengerPage /></ProtectedRoute>} />
-              <Route path="/control" element={<ProtectedRoute><ControlCenter /></ProtectedRoute>} />
+              <Route path="/control" element={<ProtectedRoute><CEOExecutiveDashboard /></ProtectedRoute>} />
+              <Route path="/executive/ceo" element={<ProtectedRoute><CEOExecutiveDashboard /></ProtectedRoute>} />
+              <Route path="/executive/coo" element={<ProtectedRoute><RoleDashboard roleId="coo" /></ProtectedRoute>} />
+              <Route path="/executive/cfo" element={<ProtectedRoute><RoleDashboard roleId="cfo" /></ProtectedRoute>} />
+              <Route path="/executive/cto" element={<ProtectedRoute><RoleDashboard roleId="cto" /></ProtectedRoute>} />
+              <Route path="/executive/cmo" element={<ProtectedRoute><RoleDashboard roleId="cmo" /></ProtectedRoute>} />
+              <Route path="/executive/chro" element={<ProtectedRoute><RoleDashboard roleId="chro" /></ProtectedRoute>} />
+              <Route path="/executive/cko" element={<ProtectedRoute><RoleDashboard roleId="cko" /></ProtectedRoute>} />
+              <Route path="/executive/cpo" element={<ProtectedRoute><RoleDashboard roleId="cpo" /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
               <Route path="/crm" element={<ProtectedRoute><CrmDashboard /></ProtectedRoute>} />
               <Route path="/crm/leads" element={<ProtectedRoute><LeadDatabase /></ProtectedRoute>} />

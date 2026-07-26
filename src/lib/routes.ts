@@ -24,6 +24,13 @@ import {
   ShoppingCart,
   CircleUser,
   Calendar,
+  Crown,
+  Activity,
+  DollarSign,
+  Monitor as MonitorIcon,
+  Megaphone as MegaphoneIcon,
+  Users as UsersIcon,
+  ShoppingCart as ShoppingCartIcon,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -250,6 +257,14 @@ export const routes: RouteEntry[] = [
     href: "/analytics",
     icon: BarChart3,
     group: "System",
+    visible,
+  },
+  // ── Executive Dashboards ─────────────────────────────────────
+  {
+    label: "Executive",
+    href: "/control",
+    icon: Crown,
+    group: "Business Modules",
     visible,
   },
   {
