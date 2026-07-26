@@ -44,6 +44,7 @@ export default defineConfig({
       'react-router',
       'convex',
       '@convex-dev/auth/react',
+      '@radix-ui/react-tooltip',
       'next-themes',
       'sonner',
     ],
