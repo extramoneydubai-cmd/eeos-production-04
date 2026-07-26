@@ -154,12 +154,18 @@ import { RouteErrorBoundary } from "@/components/ui/route-error-boundary";
 import { InstrumentationProvider } from "@/instrumentation";
 import { DebugPanel } from "@/components/debug/DebugPanel";
 import { DeveloperModeProvider } from "@/contexts/DeveloperModeContext";
+import { PageLoadingFallback } from "@/components/system/PageLoadingFallback";
+import { FullPageLoading } from "@/components/system/FullPageLoading";
+import { HealthMonitor } from "@/components/system/HealthMonitor";
+import { useOnlineStatus } from "@/platform/core/offlineDetector";
 
-// Simple loading fallback
-function RouteLoading() {
+// Offline banner component
+function OfflineBanner() {
+  const online = useOnlineStatus();
+  if (online) return null;
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-pulse text-muted-foreground text-sm">Loading...</div>
+    <div className="fixed top-0 left-0 right-0 z-[99999] bg-yellow-500 text-white text-[11px] font-medium text-center py-1.5">
+      You are offline. Some features may be unavailable.
     </div>
   );
 }
@@ -195,19 +201,19 @@ const AppLayout = lazy(() => import("./components/AppLayout.tsx").then(m => ({ d
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   return (
-    <Suspense fallback={<RouteLoading />}>
+    <Suspense fallback={<PageLoadingFallback moduleName="App Layout" />}>
       {/* 
         Outer error boundary catches AppLayout/sidebar crashes.
         Keyed by pathname so navigating to a new route remounts it.
       */}
-      <RouteErrorBoundary key={location.pathname}>
+      <RouteErrorBoundary key={location.pathname} moduleName="AppLayout" showFullCrash>
         <AppLayout>
           {/* 
             Inner error boundary catches only the page content.
             Keyed by pathname+search so navigation/filter changes remount it.
             This isolates page crashes so sidebar+layout remain functional.
           */}
-          <RouteErrorBoundary key={location.pathname + location.search}>
+          <RouteErrorBoundary key={location.pathname + location.search} moduleName="Page">
             {children}
           </RouteErrorBoundary>
         </AppLayout>
@@ -223,7 +229,7 @@ createRoot(document.getElementById("root")!).render(
         <BrowserRouter>
           <DeveloperModeProvider>
             <RouteSyncer />
-            <Suspense fallback={<RouteLoading />}>
+            <Suspense fallback={<PageLoadingFallback moduleName="EEOS" />}>
               <Routes>
                 <Route path="/" element={<LoginPage />} />
               <Route path="/login" element={<LoginPage />} />
@@ -376,6 +382,8 @@ createRoot(document.getElementById("root")!).render(
           </Suspense>
           <Toaster />
           <DebugPanel />
+          <HealthMonitor />
+          <OfflineBanner />
           </DeveloperModeProvider>
         </BrowserRouter>
       </ConvexAuthProvider>
