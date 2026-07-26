@@ -134,6 +134,8 @@ const StudentDatabase = lazy(() => import("./pages/StudentDatabase.tsx"));
 const StudentWorkspace = lazy(() => import("./pages/StudentWorkspace.tsx"));
 const EmployeeDatabase = lazy(() => import("./pages/EmployeeDatabase.tsx"));
 const EmployeeWorkspace = lazy(() => import("./pages/EmployeeWorkspace.tsx"));
+const AcademicDatabase = lazy(() => import("./pages/AcademicDatabase.tsx"));
+const AcademicWorkspace = lazy(() => import("./pages/AcademicWorkspace.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 import { RouteErrorBoundary } from "@/components/ui/route-error-boundary";
 import { InstrumentationProvider } from "@/instrumentation";
@@ -324,6 +326,8 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/employees/:employeeId" element={<ProtectedRoute><EmployeeWorkspace /></ProtectedRoute>} />
               <Route path="/people" element={<ProtectedRoute><PeopleDatabase /></ProtectedRoute>} />
               <Route path="/people/:personId" element={<ProtectedRoute><PersonWorkspace /></ProtectedRoute>} />
+              <Route path="/academic" element={<ProtectedRoute><AcademicDatabase /></ProtectedRoute>} />
+              <Route path="/academic/:entityId" element={<ProtectedRoute><AcademicWorkspace /></ProtectedRoute>} />
               <Route path="/studios/workflows" element={<ProtectedRoute><WorkflowStudio /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>

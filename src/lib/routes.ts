@@ -148,11 +148,10 @@ export const routes: RouteEntry[] = [
   },
   {
     label: "Academic",
-    href: "/studio/academic",
+    href: "/academic",
     icon: BookOpen,
     group: "Business Modules",
     visible,
-    isPlaceholder: placeholder,
   },
   {
     label: "Finance",
