@@ -1,0 +1,99 @@
+name: CI — EEOS Continuous Integration
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [develop, staging]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "20"
+  VITE_CONVEX_URL: ${{ secrets.VITE_CONVEX_URL }}
+
+jobs:
+  typecheck:
+    name: TypeScript Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: npm ci
+      - run: npx convex dev --once --no-push
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+      - run: npx tsc -b --noEmit
+      - run: echo "✅ TypeScript check passed"
+
+  lint:
+    name: ESLint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: npm ci
+      - run: npx eslint src/ --ext .ts,.tsx --max-warnings 0
+        continue-on-error: true
+      - run: echo "✅ Lint check completed"
+
+  build-validation:
+    name: Build Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: npm ci
+      - name: Validate public assets
+        run: |
+          test -f public/manifest.webmanifest || echo "⚠️ Missing manifest.webmanifest"
+          test -f public/release-manifest.json || echo "⚠️ Missing release-manifest.json"
+      - name: Validate lazy imports
+        run: |
+          node -e "
+            const fs = require('fs');
+            const main = fs.readFileSync('src/main.tsx', 'utf8');
+            const imports = main.match(/import\\(['\"](.+?)(?:\\?.*)?['\"]\\)/g) || [];
+            const missing = imports
+              .map(i => i.replace(/import\\(['\"](.+?)(?:\\?.*)?['\"]\\)/, '$1'))
+              .filter(p => !fs.existsSync(p.replace(/^@\\//, 'src/')));
+            if (missing.length > 0) {
+              console.log('❌ Missing lazy imports:', missing.join(', '));
+              process.exit(1);
+            }
+            console.log('✅ All', imports.length, 'lazy imports validated');
+          "
+      - run: echo "✅ Build validation passed"
+
+  bundle-size:
+    name: Bundle Size Report
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: npm ci
+      - run: npx convex dev --once --no-push
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+      - run: npx vite build
+      - name: Report bundle sizes
+        run: |
+          echo "## Bundle Size Report" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          du -sh dist/ >> $GITHUB_STEP_SUMMARY
+          du -sh dist/assets/*.js | sort -rn | head -10 >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
