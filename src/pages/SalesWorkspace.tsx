@@ -55,16 +55,17 @@ const WHATSAPP_TEMPLATES = [
 ];
 
 export default function SalesWorkspace() {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const { navigate } = useAppNavigate();
   const [viewMode, setViewMode] = useState<"table" | "pipeline" | "calendar">("table");
   const [activeTab, setActiveTab] = useState("queue");
   const [drawerLeadId, setDrawerLeadId] = useState<string | null>(null);
+  const skipDb = !user || isDemoMode;
 
   const leads = useQuery(api.crm.listLeads, user ? {} : "skip");
   const users = useQuery(api.users.listUsers);
-  const dashboard = useQuery(api.crm.getCrmDashboardData, user ? { userId: user._id } : "skip");
-  const pendingApprovals = useQuery(api.crm.getAllPendingApprovals, user ? { userId: user._id } : "skip");
+  const dashboard = useQuery(api.crm.getCrmDashboardData, skipDb ? "skip" : { userId: user._id });
+  const pendingApprovals = useQuery(api.crm.getAllPendingApprovals, skipDb ? "skip" : { userId: user._id });
 
   const updateStage = useMutation(api.crm.updateLeadStage);
   const assignLead = useMutation(api.crm.assignLead);

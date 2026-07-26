@@ -59,14 +59,15 @@ type DateFilter = "all" | "today" | "weekly" | "monthly" | "yearly";
 type FilterMode = "createdDate" | "activityDate";
 
 export default function CrmDashboard() {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const { navigate } = useAppNavigate();
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [filterMode, setFilterMode] = useState<FilterMode>("activityDate");
   const [showPendingDetails, setShowPendingDetails] = useState(false);
+  const skipDb = !user || isDemoMode;
   const dashboard = useQuery(api.crm.getCrmDashboardData,
-    user ? { userId: user._id, dateFilter, filterMode } : "skip");
-  const pendingApprovals = useQuery(api.crm.getAllPendingApprovals, user ? { userId: user._id } : "skip");
+    skipDb ? "skip" : { userId: user._id, dateFilter, filterMode });
+  const pendingApprovals = useQuery(api.crm.getAllPendingApprovals, skipDb ? "skip" : { userId: user._id });
   const conversionHistory = useQuery(api.crm.getConversionHistory, user ? {} : "skip");
   const leadPaymentData = useQuery(api.crm.getAllLeadsPayments, {});
   const users = useQuery(api.users.listUsers);

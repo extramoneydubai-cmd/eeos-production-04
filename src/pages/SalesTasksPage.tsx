@@ -55,10 +55,11 @@ function getOverdueBadge(count: number): { label: string; color: string; bg: str
 }
 
 export default function SalesTasksPage() {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const { navigate } = useAppNavigate();
+  const skipDb = !user || isDemoMode;
 
-  const data = useQuery(api.crm.getSalesPendingTasks, user ? { userId: user._id } : "skip");
+  const data = useQuery(api.crm.getSalesPendingTasks, skipDb ? "skip" : { userId: user._id });
   const updateTaskStatus = useMutation(api.crm.updateLeadTaskStatus);
   const updateTask = useMutation(api.crm.updateLeadTask);
   const createLeadTask = useMutation(api.crm.createLeadTask);

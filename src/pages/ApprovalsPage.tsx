@@ -56,16 +56,17 @@ const statusConfig: Record<string, { label: string; color: string }> = {
 };
 
 export default function ApprovalsPage() {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
 
   const templates = useQuery(api.approvals.listApprovalTemplates);
   const requests = useQuery(api.approvals.listApprovalRequests, {});
   const users = useQuery(api.users.listUsers);
   const leadsResult = useQuery(api.crm.listLeads, {});
   const leads = (leadsResult as any)?.items;
-  const crmApprovalsAll = useQuery(api.crm.getAllCrmApprovals, user ? { userId: user._id } : "skip");
-  const verificationRequests = useQuery(api.verification.getVerificationRequests, user ? { userId: user._id } : "skip");
-  const verificationCounts = useQuery(api.verification.getVerificationCounts, user ? { userId: user._id } : "skip");
+  const skipDb = !user || isDemoMode;
+  const crmApprovalsAll = useQuery(api.crm.getAllCrmApprovals, skipDb ? "skip" : { userId: user._id });
+  const verificationRequests = useQuery(api.verification.getVerificationRequests, skipDb ? "skip" : { userId: user._id });
+  const verificationCounts = useQuery(api.verification.getVerificationCounts, skipDb ? "skip" : { userId: user._id });
 
   const createTemplate = useMutation(api.approvals.createApprovalTemplate);
   const createRequest = useMutation(api.approvals.createApprovalRequest);

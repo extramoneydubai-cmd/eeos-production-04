@@ -264,16 +264,17 @@ function MessengerDM({
 }
 
 export default function MessengerPage() {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const [activeChannel, setActiveChannel] = useState<string | null>(null);
   const [activeDM, setActiveDM] = useState<string | null>(null);
   const [showNewChannelDialog, setShowNewChannelDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const channels = useQuery(api.messenger.listChannels, user ? { userId: user._id } : "skip");
+  const skipDb = !user || isDemoMode;
+  const channels = useQuery(api.messenger.listChannels, skipDb ? "skip" : { userId: user._id });
   const allUsers = useQuery(api.users.listUsers);
-  const unreadCounts = useQuery(api.messenger.getUnreadChannelCounts, user ? { userId: user._id } : "skip");
-  const dmMessages = useQuery(api.messenger.getUnreadDirectMessageCount, user ? { userId: user._id } : "skip");
+  const unreadCounts = useQuery(api.messenger.getUnreadChannelCounts, skipDb ? "skip" : { userId: user._id });
+  const dmMessages = useQuery(api.messenger.getUnreadDirectMessageCount, skipDb ? "skip" : { userId: user._id });
 
   const createChannel = useMutation(api.messenger.createChannel);
 

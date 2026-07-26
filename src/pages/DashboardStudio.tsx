@@ -138,7 +138,7 @@ function WidgetCard({ widget, onRemove, onResize }: {
 }
 
 export default function DashboardStudio() {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const { navigate } = useAppNavigate();
 
   const [dashboards, setDashboards] = useState<Dashboard[]>([]);
@@ -146,9 +146,10 @@ export default function DashboardStudio() {
   const [showWidgetPalette, setShowWidgetPalette] = useState(true);
   const [editingName, setEditingName] = useState(false);
   const [dashboardName, setDashboardName] = useState("My Dashboard");
+  const skipDb = !user || isDemoMode;
 
   // Load existing layout
-  const myLayout = useQuery(api.dashboardEngine.getMyLayout, user ? { userId: user._id } : "skip");
+  const myLayout = useQuery(api.dashboardEngine.getMyLayout, skipDb ? "skip" : { userId: user._id });
   const availableWidgets = useQuery(api.dashboardEngine.listWidgets, { isActive: true });
 
   useEffect(() => {

@@ -72,9 +72,10 @@ function StatCard({
 }
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const { navigate } = useAppNavigate();
-  const dashboardData = useQuery(api.dashboard.getDashboardData, user ? { userId: user._id } : "skip");
+  const skipDb = !user || isDemoMode;
+  const dashboardData = useQuery(api.dashboard.getDashboardData, skipDb ? "skip" : { userId: user._id });
 
   if (!dashboardData) {
     return (
