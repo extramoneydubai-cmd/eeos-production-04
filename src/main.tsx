@@ -134,6 +134,11 @@ const StudentDatabase = lazy(() => import("./pages/StudentDatabase.tsx"));
 const StudentWorkspace = lazy(() => import("./pages/StudentWorkspace.tsx"));
 const EmployeeDatabase = lazy(() => import("./pages/EmployeeDatabase.tsx"));
 const EmployeeWorkspace = lazy(() => import("./pages/EmployeeWorkspace.tsx"));
+const VendorDatabase = lazy(() => import("./pages/VendorDatabase.tsx"));
+const VendorWorkspace = lazy(() => import("./pages/VendorWorkspace.tsx"));
+const InventoryDatabase = lazy(() => import("./pages/InventoryDatabase.tsx"));
+const InventoryWorkspace = lazy(() => import("./pages/InventoryWorkspace.tsx"));
+const AssetWorkspace = lazy(() => import("./pages/AssetWorkspace.tsx"));
 const AcademicDatabase = lazy(() => import("./pages/AcademicDatabase.tsx"));
 const AcademicWorkspace = lazy(() => import("./pages/AcademicWorkspace.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
@@ -313,7 +318,12 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/finance/reports" element={<ProtectedRoute><FinanceReports /></ProtectedRoute>} />
               <Route path="/finance/invoices/:id" element={<ProtectedRoute><InvoiceWorkspace /></ProtectedRoute>} />
               <Route path="/finance/expenses/:id" element={<ProtectedRoute><ExpenseWorkspace /></ProtectedRoute>} />
-              <Route path="/studio/procurement" element={<ProtectedRoute><ProcurementDashboard /></ProtectedRoute>} />
+              <Route path="/procurement" element={<ProtectedRoute><ProcurementDashboard /></ProtectedRoute>} />
+              <Route path="/procurement/vendors" element={<ProtectedRoute><VendorDatabase /></ProtectedRoute>} />
+              <Route path="/procurement/vendors/:vendorId" element={<ProtectedRoute><VendorWorkspace /></ProtectedRoute>} />
+              <Route path="/procurement/inventory" element={<ProtectedRoute><InventoryDatabase /></ProtectedRoute>} />
+              <Route path="/procurement/inventory/:itemId" element={<ProtectedRoute><InventoryWorkspace /></ProtectedRoute>} />
+              <Route path="/procurement/assets" element={<ProtectedRoute><AssetWorkspace /></ProtectedRoute>} />
               <Route path="/studio/lms" element={<ProtectedRoute><LMSDashboard /></ProtectedRoute>} />
               <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
               <Route path="/studio/dashboards" element={<ProtectedRoute><DashboardStudio /></ProtectedRoute>} />

@@ -1,425 +1,334 @@
-import { useAuth } from "@/hooks/use-auth";
+import { useState } from "react";
+import { useNavigate } from "react-router";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAppNavigate } from "@/hooks/use-app-navigate";
+import { Badge } from "@/components/ui/badge";
 import {
-  Package,
-  ShoppingCart,
-  Users,
-  Warehouse,
-  TrendingUp,
-  TrendingDown,
-  AlertCircle,
-  CheckCircle2,
-  Clock,
-  DollarSign,
-  BarChart3,
-  PlusCircle,
-  RefreshCw,
-  FileText,
-  ClipboardList,
-  Boxes,
-  Tags,
-  Truck,
-  ArrowRight,
-  Database,
+  ShoppingCart, Package, Users, Building2, Warehouse,
+  FileText, DollarSign, TrendingUp, AlertTriangle, Plus,
+  ClipboardList, ArrowRight, Truck, CreditCard, BarChart3,
+  Boxes, Wrench, Download
 } from "lucide-react";
 
-function StatCard({
-  title,
-  value,
-  subtitle,
-  icon: Icon,
-  color,
-  trend,
-  onClick,
-}: {
-  title: string;
-  value: string | number;
-  subtitle?: string;
-  icon: React.ElementType;
-  color: string;
-  trend?: { label: string; positive: boolean };
-  onClick?: () => void;
-}) {
-  return (
-    <Card
-      className="border-[#e8eaed] shadow-sm bg-white cursor-pointer hover:shadow-md hover:border-[#dadce0] transition-all duration-200"
-      onClick={onClick}
-    >
-      <CardContent className="p-3.5">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <p className="text-[11px] font-medium text-[#5f6368]">{title}</p>
-            <p className="text-xl font-semibold text-[#1a1a2e] tracking-tight">{value}</p>
-            {subtitle && <p className="text-[10px] text-[#9aa0a6]">{subtitle}</p>}
-            {trend && (
-              <p className={`text-[10px] flex items-center gap-0.5 ${trend.positive ? "text-[#34a853]" : "text-[#ea4335]"}`}>
-                {trend.positive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                {trend.label}
-              </p>
-            )}
-          </div>
-          <div className={`p-2 rounded-lg ${color}`}>
-            <Icon className="h-4 w-4 text-white" />
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
 export default function ProcurementDashboard() {
-  const { navigate } = useAppNavigate();
+  const navigate = useNavigate();
 
-  const procurementDashboard = useQuery(api.procurementEngine.getProcurementDashboard);
-  const inventoryDashboard = useQuery(api.inventoryEngine.getInventoryDashboard);
+  const dashboard = useQuery(api.procurementPlatform.getProcurementDashboard);
+  const inventory = useQuery(api.inventoryEngine.getInventoryDashboard);
   const lowStockAlerts = useQuery(api.inventoryEngine.getLowStockAlerts);
-  const assetDashboard = useQuery(api.assetEngine.getAssetDashboard);
-
-  const isLoading = !procurementDashboard || !inventoryDashboard;
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-6 w-48 mb-1" />
-        <Skeleton className="h-4 w-64" />
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 rounded-lg" />
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const pos = useQuery(api.procurementEngine.listPurchaseOrders, {});
+  const receipts = useQuery(api.procurementEngine.listGoodsReceipts, {});
+  const vendors = useQuery(api.procurementEngine.listVendors, {});
 
   return (
-    <div className="space-y-6">
+    <div className="flex-1 space-y-6 p-6 pt-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-[#1a1a2e]">Procurement & Inventory</h1>
-          <p className="text-[13px] text-[#5f6368] mt-0.5">
-            Organization-wide procurement, inventory & asset management
+          <h1 className="text-2xl font-bold tracking-tight">Procurement & Inventory</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage vendors, purchases, inventory, assets and warehouses
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 text-[11px] border-[#e8eaed]"
-          >
-            <PlusCircle className="h-3.5 w-3.5 mr-1" /> New Purchase Order
-          </Button>
-          <Button
-            size="sm"
-            className="h-8 text-[11px] bg-[#1a1a2e] hover:bg-[#2d2d4a]"
-            onClick={() => window.location.reload()}
-          >
-            <RefreshCw className="h-3.5 w-3.5 mr-1" /> Refresh
+          <Button variant="outline" size="sm" onClick={() => navigate("/procurement/reports")}>
+            <BarChart3 className="h-4 w-4 mr-2" /> Reports
           </Button>
         </div>
       </div>
 
-      <Tabs defaultValue="procurement">
-        <TabsList className="bg-[#f1f3f4] p-0.5">
-          <TabsTrigger value="procurement" className="text-[12px] data-[state=active]:bg-white">Procurement</TabsTrigger>
-          <TabsTrigger value="inventory" className="text-[12px] data-[state=active]:bg-white">Inventory</TabsTrigger>
-          <TabsTrigger value="assets" className="text-[12px] data-[state=active]:bg-white">Assets</TabsTrigger>
-          <TabsTrigger value="alerts" className="text-[12px] data-[state=active]:bg-white">Alerts</TabsTrigger>
+      {/* Executive KPIs — Procurement */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="border-l-4 border-l-blue-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground">Total POs</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <span className="text-3xl font-bold">{dashboard?.totalPOs ?? "—"}</span>
+              <ClipboardList className="h-8 w-8 text-blue-500/30" />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              ${(dashboard?.totalPOValue ?? 0).toLocaleString()} total value
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-amber-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground">Pending POs</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <span className="text-3xl font-bold">{dashboard?.pendingPOs ?? "—"}</span>
+              <Clock className="h-8 w-8 text-amber-500/30" />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {dashboard?.receivedPOs ?? 0} received
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-emerald-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground">Active Vendors</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <span className="text-3xl font-bold">{dashboard?.activeVendors ?? "—"}</span>
+              <Users className="h-8 w-8 text-emerald-500/30" />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {dashboard?.totalVendors ?? 0} total registered
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-purple-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground">Pending Approvals</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <span className="text-3xl font-bold">{dashboard?.pendingApprovalReqs ?? "—"}</span>
+              <AlertTriangle className="h-8 w-8 text-purple-500/30" />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {dashboard?.approvedReqs ?? 0} approved requisitions
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Inventory KPIs */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="border-l-4 border-l-sky-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground">Inventory Items</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <span className="text-3xl font-bold">{inventory?.totalItems ?? "—"}</span>
+              <Package className="h-8 w-8 text-sky-500/30" />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {inventory?.totalStock ?? 0} total units in stock
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-emerald-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground">Inventory Value</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <span className="text-3xl font-bold">${(inventory?.totalValue ?? 0).toLocaleString()}</span>
+              <DollarSign className="h-8 w-8 text-emerald-500/30" />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Across {inventory?.categoryCount ?? 0} categories
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-red-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground">Low Stock</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <span className="text-3xl font-bold text-red-500">{inventory?.lowStockCount ?? "—"}</span>
+              <AlertTriangle className="h-8 w-8 text-red-500/30" />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {inventory?.outOfStockCount ?? 0} out of stock
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-indigo-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground">Warehouses</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <span className="text-3xl font-bold">{inventory?.warehouseCount ?? "—"}</span>
+              <Warehouse className="h-8 w-8 text-indigo-500/30" />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Storage facilities
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Main Content Tabs */}
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="overview" className="gap-2"><BarChart3 className="h-4 w-4" /> Overview</TabsTrigger>
+          <TabsTrigger value="lowstock" className="gap-2"><AlertTriangle className="h-4 w-4" /> Low Stock Alerts</TabsTrigger>
+          <TabsTrigger value="recent" className="gap-2"><Clock className="h-4 w-4" /> Recent Activity</TabsTrigger>
         </TabsList>
 
-        {/* ════════════════════════════════════════
-           PROCUREMENT TAB
-           ════════════════════════════════════════ */}
-        <TabsContent value="procurement" className="space-y-4 mt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-            <StatCard
-              title="Total PO Value"
-              value={`₹${procurementDashboard.totalPOValue.toLocaleString()}`}
-              subtitle={`${procurementDashboard.totalPOs} purchase orders`}
-              icon={ShoppingCart}
-              color="bg-[#1a73e8]"
-            />
-            <StatCard
-              title="Pending POs"
-              value={procurementDashboard.pendingPOs}
-              subtitle="Awaiting fulfillment"
-              icon={Clock}
-              color="bg-[#fbbc04]"
-            />
-            <StatCard
-              title="Received POs"
-              value={procurementDashboard.receivedPOs}
-              subtitle="Completed deliveries"
-              icon={CheckCircle2}
-              color="bg-[#34a853]"
-            />
-            <StatCard
-              title="Active Vendors"
-              value={procurementDashboard.activeVendors}
-              subtitle={`${procurementDashboard.totalVendors} total vendors`}
-              icon={Users}
-              color="bg-[#a855f7]"
-            />
-          </div>
-
-          {/* Procurement quick actions */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <Button variant="outline" className="h-auto py-3 flex-col items-start gap-1 text-left border-[#e8eaed] hover:bg-[#f8f9fa]">
-              <ClipboardList className="h-4 w-4 text-[#1a73e8]" />
-              <span className="text-[11px] font-medium text-[#1a1a2e]">New Requisition</span>
-              <span className="text-[9px] text-[#9aa0a6]">Create purchase request</span>
+        <TabsContent value="overview" className="space-y-4">
+          {/* Quick Action Tiles */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Button variant="outline" className="h-24 flex-col gap-2" onClick={() => navigate("/procurement/vendors")}>
+              <Users className="h-6 w-6" /> <span className="text-xs">Vendors</span>
             </Button>
-            <Button variant="outline" className="h-auto py-3 flex-col items-start gap-1 text-left border-[#e8eaed] hover:bg-[#f8f9fa]">
-              <ShoppingCart className="h-4 w-4 text-[#34a853]" />
-              <span className="text-[11px] font-medium text-[#1a1a2e]">Create PO</span>
-              <span className="text-[9px] text-[#9aa0a6]">Convert requisition to PO</span>
+            <Button variant="outline" className="h-24 flex-col gap-2" onClick={() => navigate("/procurement/inventory")}>
+              <Package className="h-6 w-6" /> <span className="text-xs">Inventory</span>
             </Button>
-            <Button variant="outline" className="h-auto py-3 flex-col items-start gap-1 text-left border-[#e8eaed] hover:bg-[#f8f9fa]">
-              <Truck className="h-4 w-4 text-[#fbbc04]" />
-              <span className="text-[11px] font-medium text-[#1a1a2e]">Goods Receipt</span>
-              <span className="text-[9px] text-[#9aa0a6]">Record received items</span>
+            <Button variant="outline" className="h-24 flex-col gap-2" onClick={() => navigate("/procurement/pos")}>
+              <ClipboardList className="h-6 w-6" /> <span className="text-xs">Purchase Orders</span>
             </Button>
-            <Button variant="outline" className="h-auto py-3 flex-col items-start gap-1 text-left border-[#e8eaed] hover:bg-[#f8f9fa]">
-              <Users className="h-4 w-4 text-[#a855f7]" />
-              <span className="text-[11px] font-medium text-[#1a1a2e]">Vendors</span>
-              <span className="text-[9px] text-[#9aa0a6]">Manage vendor directory</span>
+            <Button variant="outline" className="h-24 flex-col gap-2" onClick={() => navigate("/procurement/assets")}>
+              <Wrench className="h-6 w-6" /> <span className="text-xs">Assets</span>
+            </Button>
+            <Button variant="outline" className="h-24 flex-col gap-2" onClick={() => navigate("/procurement/receipts")}>
+              <Truck className="h-6 w-6" /> <span className="text-xs">Goods Receipts</span>
+            </Button>
+            <Button variant="outline" className="h-24 flex-col gap-2" onClick={() => navigate("/procurement/payments")}>
+              <CreditCard className="h-6 w-6" /> <span className="text-xs">Payments</span>
+            </Button>
+            <Button variant="outline" className="h-24 flex-col gap-2" onClick={() => navigate("/procurement/warehouses")}>
+              <Warehouse className="h-6 w-6" /> <span className="text-xs">Warehouses</span>
+            </Button>
+            <Button variant="outline" className="h-24 flex-col gap-2" onClick={() => navigate("/procurement/reports")}>
+              <BarChart3 className="h-6 w-6" /> <span className="text-xs">Reports</span>
             </Button>
           </div>
 
-          {/* Requisition summary */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <StatCard
-              title="Pending Approval Requisitions"
-              value={procurementDashboard.pendingApprovalReqs}
-              subtitle={`${procurementDashboard.approvedReqs} approved`}
-              icon={FileText}
-              color="bg-[#e8710a]"
-            />
-            <StatCard
-              title="Approved Requisitions"
-              value={procurementDashboard.approvedReqs}
-              subtitle={`${procurementDashboard.totalReqs} total`}
-              icon={CheckCircle2}
-              color="bg-[#34a853]"
-            />
-            <StatCard
-              title="Total Requisitions"
-              value={procurementDashboard.totalReqs}
-              icon={ClipboardList}
-              color="bg-[#4285f4]"
-            />
-          </div>
-        </TabsContent>
-
-        {/* ════════════════════════════════════════
-           INVENTORY TAB
-           ════════════════════════════════════════ */}
-        <TabsContent value="inventory" className="space-y-4 mt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-            <StatCard
-              title="Inventory Value"
-              value={`₹${inventoryDashboard.totalValue.toLocaleString()}`}
-              subtitle={`${inventoryDashboard.totalItems} active items`}
-              icon={DollarSign}
-              color="bg-[#34a853]"
-            />
-            <StatCard
-              title="Total Stock"
-              value={inventoryDashboard.totalStock}
-              subtitle="Units in stock"
-              icon={Package}
-              color="bg-[#1a73e8]"
-            />
-            <StatCard
-              title="Warehouses"
-              value={inventoryDashboard.warehouseCount}
-              subtitle="Active locations"
-              icon={Warehouse}
-              color="bg-[#a855f7]"
-            />
-            <StatCard
-              title="Categories"
-              value={inventoryDashboard.categoryCount}
-              icon={Tags}
-              color="bg-[#4285f4]"
-            />
-          </div>
-
-          {/* Stock status */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <StatCard
-              title="Low Stock Items"
-              value={inventoryDashboard.lowStockCount}
-              subtitle={`${lowStockAlerts ? lowStockAlerts.length : 0} need reorder`}
-              icon={AlertCircle}
-              color="bg-[#ea4335]"
-              trend={{ label: "Requires immediate attention", positive: false }}
-            />
-            <StatCard
-              title="Out of Stock"
-              value={inventoryDashboard.outOfStockCount}
-              icon={AlertCircle}
-              color="bg-[#ea4335]"
-              trend={{ label: "Items unavailable", positive: false }}
-            />
-            <StatCard
-              title="Stock Health"
-              value={
-                inventoryDashboard.totalItems > 0
-                  ? `${Math.round(((inventoryDashboard.totalItems - inventoryDashboard.lowStockCount - inventoryDashboard.outOfStockCount) / inventoryDashboard.totalItems) * 100)}%`
-                  : "—"
-              }
-              subtitle="Items above reorder level"
-              icon={BarChart3}
-              color="bg-[#34a853]"
-            />
-          </div>
-
-          {/* Quick actions */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <Button variant="outline" className="h-auto py-3 flex-col items-start gap-1 text-left border-[#e8eaed] hover:bg-[#f8f9fa]">
-              <Package className="h-4 w-4 text-[#1a73e8]" />
-              <span className="text-[11px] font-medium text-[#1a1a2e]">Add Item</span>
-              <span className="text-[9px] text-[#9aa0a6]">New inventory item</span>
-            </Button>
-            <Button variant="outline" className="h-auto py-3 flex-col items-start gap-1 text-left border-[#e8eaed] hover:bg-[#f8f9fa]">
-              <Warehouse className="h-4 w-4 text-[#34a853]" />
-              <span className="text-[11px] font-medium text-[#1a1a2e]">Manage Stock</span>
-              <span className="text-[9px] text-[#9aa0a6]">Adjust quantities</span>
-            </Button>
-            <Button variant="outline" className="h-auto py-3 flex-col items-start gap-1 text-left border-[#e8eaed] hover:bg-[#f8f9fa]">
-              <Boxes className="h-4 w-4 text-[#a855f7]" />
-              <span className="text-[11px] font-medium text-[#1a1a2e]">Stock Movement</span>
-              <span className="text-[9px] text-[#9aa0a6]">View history</span>
-            </Button>
-            <Button variant="outline" className="h-auto py-3 flex-col items-start gap-1 text-left border-[#e8eaed] hover:bg-[#f8f9fa]">
-              <ClipboardList className="h-4 w-4 text-[#fbbc04]" />
-              <span className="text-[11px] font-medium text-[#1a1a2e]">Low Stock Report</span>
-              <span className="text-[9px] text-[#9aa0a6]">{lowStockAlerts ? lowStockAlerts.length : 0} items to reorder</span>
-            </Button>
-          </div>
-        </TabsContent>
-
-        {/* ════════════════════════════════════════
-           ASSETS TAB
-           ════════════════════════════════════════ */}
-        <TabsContent value="assets" className="space-y-4 mt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-            <StatCard
-              title="Allocated Assets"
-              value={assetDashboard?.totalAllocated || 0}
-              subtitle="Currently in use"
-              icon={CheckCircle2}
-              color="bg-[#34a853]"
-            />
-            <StatCard
-              title="Returned"
-              value={assetDashboard?.totalReturned || 0}
-              icon={RefreshCw}
-              color="bg-[#4285f4]"
-            />
-            <StatCard
-              title="Issued Items"
-              value={assetDashboard?.totalIssued || 0}
-              subtitle="Pending return"
-              icon={Package}
-              color="bg-[#fbbc04]"
-            />
-            <StatCard
-              title="Lost/Damaged"
-              value={assetDashboard?.totalLost || 0}
-              icon={AlertCircle}
-              color="bg-[#ea4335]"
-            />
-          </div>
-
-          <Card className="border-[#e8eaed] shadow-sm bg-white">
-            <CardContent className="p-6 text-center">
-              <Boxes className="h-10 w-10 text-[#dadce0] mx-auto mb-3" />
-              <h3 className="text-sm font-semibold text-[#1a1a2e]">Asset Management</h3>
-              <p className="text-[12px] text-[#9aa0a6] mt-1 mb-4">
-                Track asset allocations, item issuance, and returns across departments
-              </p>
-              <div className="flex items-center justify-center gap-2">
-                <Button variant="outline" size="sm" className="h-8 text-[11px] border-[#e8eaed]">
-                  <PlusCircle className="h-3.5 w-3.5 mr-1" /> Allocate Asset
-                </Button>
-                <Button variant="outline" size="sm" className="h-8 text-[11px] border-[#e8eaed]">
-                  <ClipboardList className="h-3.5 w-3.5 mr-1" /> Issue Item
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ════════════════════════════════════════
-           ALERTS TAB
-           ════════════════════════════════════════ */}
-        <TabsContent value="alerts" className="space-y-4 mt-4">
-          <Card className="border-[#e8eaed] shadow-sm bg-white">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-sm font-semibold text-[#1a1a2e]">Low Stock Alerts</CardTitle>
-                  <CardDescription className="text-[10px] text-[#9aa0a6]">
-                    Items at or below reorder level — {lowStockAlerts ? lowStockAlerts.length : 0} items
-                  </CardDescription>
+          {/* Charts row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Procurement Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">Purchase Orders</span>
+                    <span className="font-bold">{dashboard?.totalPOs ?? 0}</span>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-2">
+                    <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${Math.min(100, ((dashboard?.receivedPOs ?? 0) / Math.max((dashboard?.totalPOs ?? 1), 1)) * 100)}%` }} />
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{dashboard?.receivedPOs ?? 0} received</span>
+                    <span>{dashboard?.pendingPOs ?? 0} pending</span>
+                  </div>
                 </div>
-              </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Vendor Overview</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm">Vendors</span>
+                    <span className="font-bold">{dashboard?.totalVendors ?? 0}</span>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-2">
+                    <div className="bg-emerald-500 h-2 rounded-full" style={{ width: `${Math.min(100, ((dashboard?.activeVendors ?? 0) / Math.max((dashboard?.totalVendors ?? 1), 1)) * 100)}%` }} />
+                  </div>
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{dashboard?.activeVendors ?? 0} active</span>
+                    <span>{(dashboard?.totalVendors ?? 0) - (dashboard?.activeVendors ?? 0)} inactive</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="lowstock">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Low Stock Alerts</CardTitle>
+              <CardDescription>Items that need reordering</CardDescription>
             </CardHeader>
             <CardContent>
-              {lowStockAlerts && lowStockAlerts.length > 0 ? (
+              {!lowStockAlerts || lowStockAlerts.length === 0 ? (
+                <div className="text-center py-8 text-sm text-muted-foreground">
+                  <Package className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                  No low stock alerts
+                </div>
+              ) : (
                 <div className="space-y-2">
-                  <div className="grid grid-cols-12 gap-2 text-[10px] font-medium text-[#9aa0a6] pb-2 border-b border-[#e8eaed]">
-                    <div className="col-span-4">Item</div>
-                    <div className="col-span-2">SKU</div>
-                    <div className="col-span-2">In Stock</div>
-                    <div className="col-span-2">Reorder At</div>
-                    <div className="col-span-2">Status</div>
-                  </div>
-                  {lowStockAlerts.slice(0, 20).map((item: any) => (
-                    <div key={item.id} className="grid grid-cols-12 gap-2 text-[11px] py-1.5 border-b border-[#f1f3f4] items-center">
-                      <div className="col-span-4 font-medium text-[#1a1a2e] truncate">{item.name}</div>
-                      <div className="col-span-2 text-[#5f6368]">{item.sku}</div>
-                      <div className="col-span-2">
-                        <span className={`font-semibold ${item.currentStock <= 0 ? "text-[#ea4335]" : "text-[#e8710a]"}`}>
-                          {item.currentStock}
-                        </span>
+                  {lowStockAlerts.slice(0, 10).map((item: any) => (
+                    <div key={item.id} className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{item.name}</p>
+                        <p className="text-xs text-muted-foreground">SKU: {item.sku}</p>
                       </div>
-                      <div className="col-span-2 text-[#5f6368]">{item.reorderLevel}</div>
-                      <div className="col-span-2">
-                        <Badge
-                          variant="outline"
-                          className={`text-[10px] ${
-                            item.currentStock <= 0
-                              ? "bg-[#fce8e6] text-[#ea4335] border-[#f5c6c2]"
-                              : "bg-[#fef7e0] text-[#e8710a] border-[#fdecc8]"
-                          }`}
-                        >
-                          {item.currentStock <= 0 ? "Out of Stock" : "Low Stock"}
-                        </Badge>
+                      <div className="text-right">
+                        <p className={`text-sm font-bold ${item.currentStock <= 0 ? "text-red-500" : "text-amber-500"}`}>
+                          {item.currentStock} {item.unit}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Reorder at {item.reorderLevel}</p>
                       </div>
                     </div>
                   ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <CheckCircle2 className="h-8 w-8 text-[#34a853] mx-auto mb-2" />
-                  <p className="text-[13px] font-medium text-[#1a1a2e]">All Stock Levels Healthy</p>
-                  <p className="text-[11px] text-[#9aa0a6] mt-1">No items below reorder level</p>
                 </div>
               )}
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="recent">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Recent Purchase Orders</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {pos && pos.length > 0 ? pos.slice(0, 5).map((po: any) => (
+                  <div key={po._id} className="flex items-center justify-between py-2 border-b last:border-0">
+                    <div>
+                      <p className="text-sm font-medium">{po.poNumber}</p>
+                      <p className="text-xs text-muted-foreground">${po.totalAmount?.toFixed(2)}</p>
+                    </div>
+                    <Badge variant={po.status === "approved" ? "default" : po.status === "draft" ? "secondary" : "outline"} className="text-[10px]">
+                      {po.status}
+                    </Badge>
+                  </div>
+                )) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">No purchase orders</p>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Recent Goods Receipts</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {receipts && receipts.length > 0 ? receipts.slice(0, 5).map((r: any) => (
+                  <div key={r._id} className="flex items-center justify-between py-2 border-b last:border-0">
+                    <div>
+                      <p className="text-sm font-medium">{r.receiptNumber}</p>
+                      <p className="text-xs text-muted-foreground">{new Date(r.receiptDate).toLocaleDateString()}</p>
+                    </div>
+                    <Badge variant={r.status === "complete" ? "default" : "outline"} className="text-[10px]">{r.status}</Badge>
+                  </div>
+                )) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">No goods receipts</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+// Helper: Clock icon (used above but imported inline)
+function Clock(props: any) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+    </svg>
   );
 }

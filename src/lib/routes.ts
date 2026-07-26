@@ -192,7 +192,7 @@ export const routes: RouteEntry[] = [
   },
   {
     label: "Procurement",
-    href: "/studio/procurement",
+    href: "/procurement",
     icon: ShoppingCart,
     group: "Business Modules",
     visible,
