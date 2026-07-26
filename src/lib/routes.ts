@@ -169,12 +169,11 @@ export const routes: RouteEntry[] = [
     visible,
   },
   {
-    label: "HR",
-    href: "/studio/hr",
+    label: "Employees",
+    href: "/employees",
     icon: UsersRound,
     group: "Business Modules",
     visible,
-    isPlaceholder: placeholder,
   },
   {
     label: "Marketing",

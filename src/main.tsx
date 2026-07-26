@@ -129,6 +129,8 @@ const PersonWorkspace = lazy(() => import("./pages/PersonWorkspace.tsx"));
 const CalendarPage = lazy(() => import("./pages/CalendarPage.tsx"));
 const StudentDatabase = lazy(() => import("./pages/StudentDatabase.tsx"));
 const StudentWorkspace = lazy(() => import("./pages/StudentWorkspace.tsx"));
+const EmployeeDatabase = lazy(() => import("./pages/EmployeeDatabase.tsx"));
+const EmployeeWorkspace = lazy(() => import("./pages/EmployeeWorkspace.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 import { RouteErrorBoundary } from "@/components/ui/route-error-boundary";
 import { InstrumentationProvider } from "@/instrumentation";
@@ -312,6 +314,8 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
               <Route path="/students" element={<ProtectedRoute><StudentDatabase /></ProtectedRoute>} />
               <Route path="/students/:studentId" element={<ProtectedRoute><StudentWorkspace /></ProtectedRoute>} />
+              <Route path="/employees" element={<ProtectedRoute><EmployeeDatabase /></ProtectedRoute>} />
+              <Route path="/employees/:employeeId" element={<ProtectedRoute><EmployeeWorkspace /></ProtectedRoute>} />
               <Route path="/people" element={<ProtectedRoute><PeopleDatabase /></ProtectedRoute>} />
               <Route path="/people/:personId" element={<ProtectedRoute><PersonWorkspace /></ProtectedRoute>} />
               <Route path="/studios/workflows" element={<ProtectedRoute><WorkflowStudio /></ProtectedRoute>} />
