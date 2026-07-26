@@ -22,6 +22,7 @@ import {
   ContactRound,
   FileCheck,
   ShoppingCart,
+  CircleUser,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -150,6 +151,13 @@ export const routes: RouteEntry[] = [
     label: "Finance",
     href: "/studio/finance",
     icon: PiggyBank,
+    group: "Business Modules",
+    visible,
+  },
+  {
+    label: "People",
+    href: "/people",
+    icon: CircleUser,
     group: "Business Modules",
     visible,
   },

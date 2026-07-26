@@ -124,6 +124,8 @@ const DocumentManagement = lazy(() => import("./pages/DocumentManagement.tsx"));
 const IntakeDashboard = lazy(() => import("./pages/IntakeDashboard.tsx"));
 const FormStudio = lazy(() => import("./pages/FormStudio.tsx"));
 const WorkflowStudio = lazy(() => import("./pages/WorkflowStudio.tsx"));
+const PeopleDatabase = lazy(() => import("./pages/PeopleDatabase.tsx"));
+const PersonWorkspace = lazy(() => import("./pages/PersonWorkspace.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 import { RouteErrorBoundary } from "@/components/ui/route-error-boundary";
 import { InstrumentationProvider } from "@/instrumentation";
@@ -304,6 +306,8 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/studio/dashboards" element={<ProtectedRoute><DashboardStudio /></ProtectedRoute>} />
               <Route path="/documents" element={<ProtectedRoute><DocumentManagement /></ProtectedRoute>} />
               <Route path="/studios/intake" element={<ProtectedRoute><IntakeDashboard /></ProtectedRoute>} />
+              <Route path="/people" element={<ProtectedRoute><PeopleDatabase /></ProtectedRoute>} />
+              <Route path="/people/:personId" element={<ProtectedRoute><PersonWorkspace /></ProtectedRoute>} />
               <Route path="/studios/workflows" element={<ProtectedRoute><WorkflowStudio /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
