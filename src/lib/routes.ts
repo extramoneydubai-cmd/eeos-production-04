@@ -199,7 +199,7 @@ export const routes: RouteEntry[] = [
   },
   {
     label: "LMS",
-    href: "/studio/lms",
+    href: "/lms",
     icon: BookOpen,
     group: "Business Modules",
     visible,

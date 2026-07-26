@@ -115,6 +115,10 @@ const MasterDataSystem = lazy(() => import("./pages/studios/MasterDataSystem.tsx
 const PlatformStudio = lazy(() => import("./pages/PlatformStudio.tsx"));
 const RecruitingPage = lazy(() => import("./pages/RecruitingPage.tsx"));
 const ExamDashboard = lazy(() => import("./pages/ExamDashboard.tsx"));
+const ExamSessionWorkspace = lazy(() => import("./pages/ExamSessionWorkspace.tsx"));
+const CourseLibrary = lazy(() => import("./pages/CourseLibrary.tsx"));
+const CourseWorkspace = lazy(() => import("./pages/CourseWorkspace.tsx"));
+const LessonWorkspace = lazy(() => import("./pages/LessonWorkspace.tsx"));
 const FinanceDashboard = lazy(() => import("./pages/FinanceDashboard.tsx"));
 const FinanceReports = lazy(() => import("./pages/FinanceReports.tsx"));
 const InvoiceWorkspace = lazy(() => import("./pages/InvoiceWorkspace.tsx"));
@@ -314,6 +318,11 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/studios/forms" element={<ProtectedRoute><FormStudio /></ProtectedRoute>} />
               <Route path="/recruiting" element={<ProtectedRoute><RecruitingPage /></ProtectedRoute>} />
               <Route path="/examinations" element={<ProtectedRoute><ExamDashboard /></ProtectedRoute>} />
+              <Route path="/examinations/:sessionId" element={<ProtectedRoute><ExamSessionWorkspace /></ProtectedRoute>} />
+              <Route path="/lms" element={<ProtectedRoute><LMSDashboard /></ProtectedRoute>} />
+              <Route path="/lms/courses" element={<ProtectedRoute><CourseLibrary /></ProtectedRoute>} />
+              <Route path="/lms/courses/:courseId" element={<ProtectedRoute><CourseWorkspace /></ProtectedRoute>} />
+              <Route path="/lms/lessons/:lessonId" element={<ProtectedRoute><LessonWorkspace /></ProtectedRoute>} />
               <Route path="/finance" element={<ProtectedRoute><FinanceDashboard /></ProtectedRoute>} />
               <Route path="/finance/reports" element={<ProtectedRoute><FinanceReports /></ProtectedRoute>} />
               <Route path="/finance/invoices/:id" element={<ProtectedRoute><InvoiceWorkspace /></ProtectedRoute>} />
@@ -324,7 +333,6 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/procurement/inventory" element={<ProtectedRoute><InventoryDatabase /></ProtectedRoute>} />
               <Route path="/procurement/inventory/:itemId" element={<ProtectedRoute><InventoryWorkspace /></ProtectedRoute>} />
               <Route path="/procurement/assets" element={<ProtectedRoute><AssetWorkspace /></ProtectedRoute>} />
-              <Route path="/studio/lms" element={<ProtectedRoute><LMSDashboard /></ProtectedRoute>} />
               <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
               <Route path="/studio/dashboards" element={<ProtectedRoute><DashboardStudio /></ProtectedRoute>} />
               <Route path="/documents" element={<ProtectedRoute><DocumentManagement /></ProtectedRoute>} />
