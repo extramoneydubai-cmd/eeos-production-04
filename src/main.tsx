@@ -309,6 +309,7 @@ function RouteSyncer() {
 // Lazy-load AppLayout so it doesn't block the initial render
 const AppLayout = lazy(() => import("./components/AppLayout.tsx").then(m => ({ default: m.AppLayout })));
 const ReleaseHealthDashboard = lazy(() => import("./pages/ReleaseHealthDashboard.tsx"));
+const OperationsCenter = lazy(() => import("./pages/OperationsCenter.tsx"));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -491,6 +492,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/academic/:entityId" element={<ProtectedRoute><AcademicWorkspace /></ProtectedRoute>} />
               <Route path="/studios/workflows" element={<ProtectedRoute><WorkflowStudio /></ProtectedRoute>} />
               <Route path="/release-health" element={<ProtectedRoute><ReleaseHealthDashboard /></ProtectedRoute>} />
+              <Route path="/operations" element={<ProtectedRoute><OperationsCenter /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
