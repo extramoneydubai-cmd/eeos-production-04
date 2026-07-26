@@ -16,109 +16,36 @@ export default defineConfig({
     dedupe: ['react', 'react-dom'],
   },
   build: {
-    // Enable source maps for better debugging (disable in production if needed)
+    // Disable source maps to reduce memory
     sourcemap: false,
-    // Optimize chunk splitting
     rollupOptions: {
       output: {
-        // Manual chunk splitting for better caching and lazy loading
+        // Minimal manual chunks — only split major vendors to reduce memory
         manualChunks: {
-          // Vendor chunks for large libraries
-          'react-vendor': ['react', 'react-dom', 'react-router'],
-          'convex-vendor': ['convex'],
-          // Large UI library chunks
-          'radix-ui': [
-            '@radix-ui/react-accordion',
-            '@radix-ui/react-alert-dialog',
-            '@radix-ui/react-avatar',
-            '@radix-ui/react-checkbox',
-            '@radix-ui/react-collapsible',
-            '@radix-ui/react-context-menu',
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-dropdown-menu',
-            '@radix-ui/react-hover-card',
-            '@radix-ui/react-label',
-            '@radix-ui/react-menubar',
-            '@radix-ui/react-navigation-menu',
-            '@radix-ui/react-popover',
-            '@radix-ui/react-progress',
-            '@radix-ui/react-radio-group',
-            '@radix-ui/react-scroll-area',
-            '@radix-ui/react-select',
-            '@radix-ui/react-separator',
-            '@radix-ui/react-slider',
-            '@radix-ui/react-switch',
-            '@radix-ui/react-tabs',
-            '@radix-ui/react-toggle',
-            '@radix-ui/react-toggle-group',
-            '@radix-ui/react-tooltip',
-          ],
-          // Heavy optional libraries - separate chunks for better lazy loading
-          'framer-motion': ['framer-motion'],
-          'charts': ['recharts'],
-          'forms': ['react-hook-form', '@hookform/resolvers', 'zod'],
+          'vendor': ['react', 'react-dom', 'react-router', 'convex'],
         },
-        // Optimize chunk size
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
       },
+      // Reduce parallel file ops to lower memory pressure during build
+      maxParallelFileOps: 3,
     },
-    // Increase chunk size warning limit for better chunking
-    chunkSizeWarningLimit: 1000,
-    // Target modern browsers for better optimization
+    chunkSizeWarningLimit: 500,
     target: 'esnext',
-    // Minify options - using esbuild (faster than terser)
     minify: 'esbuild',
   },
-  // Optimize dependencies
+  // Dev-only: eagerly pre-bundle critical packages to prevent duplicate React
+  // (This does NOT affect production builds)
   optimizeDeps: {
     include: [
       'react',
       'react-dom',
       'react-router',
       'convex',
-      '@convex-dev/auth',
       '@convex-dev/auth/react',
-      '@vly-ai/integrations',
-      '@radix-ui/react-tooltip',
-      '@radix-ui/react-dialog',
-      '@radix-ui/react-popover',
-      '@radix-ui/react-select',
-      '@radix-ui/react-dropdown-menu',
-      '@radix-ui/react-avatar',
-      '@radix-ui/react-tabs',
-      '@radix-ui/react-collapsible',
-      '@radix-ui/react-accordion',
-      '@radix-ui/react-alert-dialog',
-      '@radix-ui/react-context-menu',
-      '@radix-ui/react-hover-card',
-      '@radix-ui/react-menubar',
-      '@radix-ui/react-navigation-menu',
-      '@radix-ui/react-progress',
-      '@radix-ui/react-radio-group',
-      '@radix-ui/react-scroll-area',
-      '@radix-ui/react-separator',
-      '@radix-ui/react-slider',
-      '@radix-ui/react-switch',
-      '@radix-ui/react-toggle',
-      '@radix-ui/react-toggle-group',
-      'framer-motion',
-      'recharts',
-      'react-hook-form',
-      '@hookform/resolvers',
-      'zod',
-      'cmdk',
       'next-themes',
       'sonner',
-      'vaul',
-      'input-otp',
-      'react-day-picker',
-      'embla-carousel-react',
-      'lucide-react',
-      'class-variance-authority',
-      'clsx',
-      'tailwind-merge',
     ],
   },
   // Performance hints
