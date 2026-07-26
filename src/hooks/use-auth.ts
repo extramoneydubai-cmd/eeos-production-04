@@ -35,6 +35,7 @@ export function useAuth() {
       const result = await loginMutation({ username, password });
       if (result.success && result.token) {
         setToken(result.token);
+        return { success: true };
       }
       return { success: false, error: result.error || "Login failed" };
     },

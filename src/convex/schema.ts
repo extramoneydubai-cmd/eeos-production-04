@@ -39,7 +39,8 @@ import { calendarTables } from "./schema/calendar";
 const extendedUsersTable = defineTable(v.any())
   .index("by_createdAt", ["createdAt"])
   .index("by_email", ["email"])
-  .index("by_department", ["departmentId"]);
+  .index("by_department", ["departmentId"])
+  .index("username", ["username"]);
 
 // Extended sessions table — explicitly add token index for session validation
 const extendedSessionsTable = defineTable(v.any()).index("token", ["token"]);
