@@ -132,7 +132,7 @@ export function useAuth() {
     login,
     logout,
     signOut: logout,
-    isDemoMode: true,
+    isDemoMode: localUser !== null,
   };
 }
 

@@ -83,21 +83,23 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [crmSettingsOpen, setCrmSettingsOpen] = useState(true);
   const location = useLocation();
   const { navigate } = useAppNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, isDemoMode } = useAuth();
+
+  const skipDb = !user || isDemoMode;
 
   const unreadNotifCount = useQuery(
     api.notifications.getUnreadCount,
-    user ? { userId: user._id } : "skip"
+    skipDb ? "skip" : { userId: user._id }
   );
 
   const unreadDmCount = useQuery(
     api.messenger.getUnreadDirectMessageCount,
-    user ? { userId: user._id } : "skip"
+    skipDb ? "skip" : { userId: user._id }
   );
 
   const approvalCounts = useQuery(
     api.approvals.getGlobalApprovalCounts,
-    user ? { userId: user._id } : "skip"
+    skipDb ? "skip" : { userId: user._id }
   );
 
   const pendingApprovalCount = approvalCounts?.total ?? 0;

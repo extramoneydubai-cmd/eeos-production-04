@@ -268,13 +268,15 @@ const marketingModules = [
 ];
 
 export default function CommunicationMarketingDashboard() {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("communication");
 
-  const channels = useQuery(api.messenger.listChannels, user ? { userId: user._id } : "skip");
-  const notifications = useQuery(api.notifications.listNotifications, user ? { userId: user._id } : "skip");
-  const unreadCount = useQuery(api.notifications.getUnreadCount, user ? { userId: user._id } : "skip");
+  const skipDb = !user || isDemoMode;
+
+  const channels = useQuery(api.messenger.listChannels, skipDb ? "skip" : { userId: user._id });
+  const notifications = useQuery(api.notifications.listNotifications, skipDb ? "skip" : { userId: user._id });
+  const unreadCount = useQuery(api.notifications.getUnreadCount, skipDb ? "skip" : { userId: user._id });
   const smsStats = useQuery(api.smsEngine.getSmsStats);
   const whatsappStats = useQuery(api.whatsappEngine.getWhatsAppStats);
   const pushStats = useQuery(api.pushEngine.getPushStats);
