@@ -196,11 +196,22 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   return (
     <Suspense fallback={<RouteLoading />}>
-      <AppLayout>
-        <RouteErrorBoundary key={location.pathname + location.search}>
-          {children}
-        </RouteErrorBoundary>
-      </AppLayout>
+      {/* 
+        Outer error boundary catches AppLayout/sidebar crashes.
+        Keyed by pathname so navigating to a new route remounts it.
+      */}
+      <RouteErrorBoundary key={location.pathname}>
+        <AppLayout>
+          {/* 
+            Inner error boundary catches only the page content.
+            Keyed by pathname+search so navigation/filter changes remount it.
+            This isolates page crashes so sidebar+layout remain functional.
+          */}
+          <RouteErrorBoundary key={location.pathname + location.search}>
+            {children}
+          </RouteErrorBoundary>
+        </AppLayout>
+      </RouteErrorBoundary>
     </Suspense>
   );
 }
