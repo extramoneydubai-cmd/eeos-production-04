@@ -312,6 +312,7 @@ const ReleaseHealthDashboard = lazy(() => import("./pages/ReleaseHealthDashboard
 const OperationsCenter = lazy(() => import("./pages/OperationsCenter.tsx"));
 const SecurityCenter = lazy(() => import("./pages/SecurityCenter.tsx"));
 const AuditCenter = lazy(() => import("./pages/AuditCenter.tsx"));
+const DeploymentCenter = lazy(() => import("./pages/DeploymentCenter.tsx"));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -497,6 +498,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/security" element={<ProtectedRoute><SecurityCenter /></ProtectedRoute>} />
               <Route path="/audit" element={<ProtectedRoute><AuditCenter /></ProtectedRoute>} />
               <Route path="/operations" element={<ProtectedRoute><OperationsCenter /></ProtectedRoute>} />
+              <Route path="/deployment" element={<ProtectedRoute><DeploymentCenter /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

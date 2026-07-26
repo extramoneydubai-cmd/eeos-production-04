@@ -1,0 +1,662 @@
+/**
+ * DeploymentCenter — Enterprise Deployment & Release Management Dashboard.
+ *
+ * Tabs:
+ *  - Deployments — View deployment history and current status
+ *  - Releases — Release management and channel tracking
+ *  - Backups — Manual/scheduled backup management
+ *  - Environments — Environment configuration overview
+ *  - Health — Deployment health check results
+ *  - Rollback — Rollback management
+ *  - Build History — Build verification history
+ *  - Provisioning — Customer provisioning
+ *  - CI/CD — CI/CD pipeline status
+ */
+
+import { useState, useEffect, useCallback } from "react";
+import {
+  Activity, Server, Shield, Globe, Clock, HardDrive,
+  RefreshCw, Download, Upload, CheckCircle, XCircle,
+  AlertTriangle, Settings, Box, Layers, Zap, Terminal,
+  FileText, UserPlus, GitBranch, ArrowLeft, ArrowRight,
+  RotateCcw,
+} from "lucide-react";
+import { deploymentHealth, type DeploymentHealthStatus } from "@/platform/deployment/DeploymentHealth";
+import { backupManager } from "@/platform/backup/BackupManager";
+import { recoveryManager } from "@/platform/recovery/RecoveryManager";
+import { releaseManager } from "@/platform/release/ReleaseManager";
+import { buildVerifier } from "@/platform/release/BuildVerifier";
+import { provisioningManager } from "@/platform/customer/ProvisioningManager";
+import { buildVersionManager } from "@/platform/release/BuildVersionManager";
+import { runtimeSelfTest } from "@/platform/runtime/RuntimeSelfTest";
+
+type Tab = "deployments" | "releases" | "backups" | "environments" | "health" | "rollback" | "build-history" | "provisioning" | "cicd";
+
+export default function DeploymentCenter() {
+  const [activeTab, setActiveTab] = useState<Tab>("deployments");
+  const [healthStatus, setHealthStatus] = useState<DeploymentHealthStatus | null>(null);
+  const [runningChecks, setRunningChecks] = useState(false);
+
+  const buildInfo = buildVersionManager.getBuildInfo();
+
+  const runHealthCheck = useCallback(async () => {
+    setRunningChecks(true);
+    const status = await deploymentHealth.runAll();
+    setHealthStatus(status);
+    setRunningChecks(false);
+  }, []);
+
+  useEffect(() => {
+    runHealthCheck();
+  }, [runHealthCheck]);
+
+  const tabs = [
+    { id: "deployments" as Tab, label: "Deployments", icon: Globe },
+    { id: "releases" as Tab, label: "Releases", icon: GitBranch },
+    { id: "backups" as Tab, label: "Backups", icon: HardDrive },
+    { id: "environments" as Tab, label: "Environments", icon: Settings },
+    { id: "health" as Tab, label: "Health", icon: Activity },
+    { id: "rollback" as Tab, label: "Rollback", icon: RotateCcw },
+    { id: "build-history" as Tab, label: "Build History", icon: Clock },
+    { id: "provisioning" as Tab, label: "Provisioning", icon: UserPlus },
+    { id: "cicd" as Tab, label: "CI/CD", icon: Terminal },
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#f8f9fa]">
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Globe className="h-5 w-5 text-[#1a73e8]" />
+              <h1 className="text-lg font-semibold text-[#1a1a2e]">Deployment Center</h1>
+            </div>
+            <p className="text-[12px] text-[#5f6368]">
+              v{buildInfo.version} build {buildInfo.buildNumber} · {buildInfo.environment}
+            </p>
+          </div>
+          {healthStatus && (
+            <div className={`px-3 py-1.5 rounded-full border text-[12px] font-medium ${
+              healthStatus.overall === "healthy" ? "bg-green-50 border-green-200 text-green-600" :
+              healthStatus.overall === "degraded" ? "bg-yellow-50 border-yellow-200 text-yellow-600" :
+              "bg-red-50 border-red-200 text-red-600"
+            }`}>
+              {healthStatus.overall.toUpperCase()}
+            </div>
+          )}
+        </div>
+
+        {/* Quick Stats */}
+        <div className="grid grid-cols-4 gap-3 mb-6">
+          <div className="bg-white rounded-lg border border-[#e8eaed] p-3">
+            <p className="text-[10px] text-[#9aa0a6] font-medium">Version</p>
+            <p className="text-[14px] font-semibold text-[#1a1a2e]">v{buildInfo.version}</p>
+          </div>
+          <div className="bg-white rounded-lg border border-[#e8eaed] p-3">
+            <p className="text-[10px] text-[#9aa0a6] font-medium">Build</p>
+            <p className="text-[14px] font-semibold text-[#1a1a2e]">#{buildInfo.buildNumber}</p>
+          </div>
+          <div className="bg-white rounded-lg border border-[#e8eaed] p-3">
+            <p className="text-[10px] text-[#9aa0a6] font-medium">Environment</p>
+            <p className="text-[14px] font-semibold text-[#1a1a2e] capitalize">{buildInfo.environment}</p>
+          </div>
+          <div className="bg-white rounded-lg border border-[#e8eaed] p-3">
+            <p className="text-[10px] text-[#9aa0a6] font-medium">Channel</p>
+            <p className="text-[14px] font-semibold text-[#1a1a2e] capitalize">{buildInfo.releaseChannel}</p>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex items-center gap-1 mb-6 border-b border-[#e8eaed] overflow-x-auto">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-[12px] font-medium border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === tab.id
+                  ? "border-[#1a73e8] text-[#1a73e8]"
+                  : "border-transparent text-[#5f6368] hover:text-[#1a1a2e]"
+              }`}
+            >
+              <tab.icon className="h-3.5 w-3.5" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === "deployments" && <DeploymentsTab />}
+        {activeTab === "releases" && <ReleasesTab />}
+        {activeTab === "backups" && <BackupsTab />}
+        {activeTab === "environments" && <EnvironmentsTab />}
+        {activeTab === "health" && (
+          <HealthTab status={healthStatus} running={runningChecks} onRecheck={runHealthCheck} />
+        )}
+        {activeTab === "rollback" && <RollbackTab />}
+        {activeTab === "build-history" && <BuildHistoryTab />}
+        {activeTab === "provisioning" && <ProvisioningTab />}
+        {activeTab === "cicd" && <CicdTab />}
+      </div>
+    </div>
+  );
+}
+
+// ─── Deployments Tab ─────────────────────────────────────────
+
+function DeploymentsTab() {
+  const buildInfo = buildVersionManager.getBuildInfo();
+  const releases = releaseManager.getHistory().slice(0, 10);
+
+  return (
+    <div className="space-y-4">
+      {/* Current Deployment */}
+      <div className="bg-white rounded-lg border border-[#e8eaed] p-4">
+        <h3 className="text-[13px] font-semibold text-[#1a1a2e] mb-3">Current Deployment</h3>
+        <div className="space-y-2 text-[12px]">
+          <DeployRow label="Version" value={`v${buildInfo.version}`} />
+          <DeployRow label="Build Number" value={buildInfo.buildNumber} />
+          <DeployRow label="Environment" value={buildInfo.environment} />
+          <DeployRow label="Release Channel" value={buildInfo.releaseChannel} />
+          <DeployRow label="Git Commit" value={buildInfo.gitCommit.slice(0, 12)} />
+          <DeployRow label="Build Time" value={buildInfo.buildTimestamp} />
+          <DeployRow label="Convex URL" value={buildInfo.convexUrl.slice(0, 40) + "..."} />
+        </div>
+      </div>
+
+      {/* Deployment History */}
+      <div className="bg-white rounded-lg border border-[#e8eaed] overflow-hidden">
+        <div className="px-4 py-2.5 bg-[#fafafa] border-b border-[#e8eaed]">
+          <span className="text-[12px] font-semibold text-[#1a1a2e]">Deployment History</span>
+        </div>
+        {releases.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12px]">
+              <thead>
+                <tr className="bg-[#fafafa] border-b border-[#e8eaed]">
+                  <th className="text-left px-4 py-2 text-[11px] text-[#9aa0a6] font-medium">Version</th>
+                  <th className="text-left px-4 py-2 text-[11px] text-[#9aa0a6] font-medium">Channel</th>
+                  <th className="text-left px-4 py-2 text-[11px] text-[#9aa0a6] font-medium">Type</th>
+                  <th className="text-left px-4 py-2 text-[11px] text-[#9aa0a6] font-medium">Status</th>
+                  <th className="text-left px-4 py-2 text-[11px] text-[#9aa0a6] font-medium">Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {releases.map((r) => (
+                  <tr key={r.id} className="border-b border-[#f1f3f4] hover:bg-[#fafafa]">
+                    <td className="px-4 py-2 font-medium text-[#1a1a2e]">v{r.version}</td>
+                    <td className="px-4 py-2 text-[#5f6368] capitalize">{r.channel}</td>
+                    <td className="px-4 py-2">
+                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                        r.type === "release" ? "bg-blue-50 text-blue-600" :
+                        r.type === "hotfix" ? "bg-red-50 text-red-600" :
+                        "bg-yellow-50 text-yellow-600"
+                      }`}>
+                        {r.type}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2">
+                      <span className={`inline-flex items-center gap-1 ${
+                        r.status === "active" ? "text-green-600" :
+                        r.status === "rolled_back" ? "text-yellow-600" : "text-red-600"
+                      }`}>
+                        {r.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-[#9aa0a6]">
+                      {new Date(r.timestamp).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="p-6 text-center text-[12px] text-[#9aa0a6]">No deployment history yet</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Releases Tab ────────────────────────────────────────────
+
+function ReleasesTab() {
+  const releases = releaseManager.getHistory();
+  const latestRelease = releaseManager.getLatestRelease();
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-white rounded-lg border border-[#e8eaed] p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-[13px] font-semibold text-[#1a1a2e]">Release History</h3>
+          <button
+            onClick={() => releaseManager.registerRelease({ notes: "Manual release", author: "Admin" })}
+            className="flex items-center gap-1 px-3 py-1.5 bg-[#1a73e8] text-white text-[12px] font-medium rounded-lg hover:bg-[#1557b0] transition-colors"
+          >
+            <Upload className="h-3.5 w-3.5" /> Register Release
+          </button>
+        </div>
+
+        {releases.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12px]">
+              <thead>
+                <tr className="bg-[#fafafa] border-b border-[#e8eaed]">
+                  <th className="text-left px-4 py-2 text-[11px] text-[#9aa0a6] font-medium">Version</th>
+                  <th className="text-left px-4 py-2 text-[11px] text-[#9aa0a6] font-medium">Build</th>
+                  <th className="text-left px-4 py-2 text-[11px] text-[#9aa0a6] font-medium">Channel</th>
+                  <th className="text-left px-4 py-2 text-[11px] text-[#9aa0a6] font-medium">Type</th>
+                  <th className="text-left px-4 py-2 text-[11px] text-[#9aa0a6] font-medium">Status</th>
+                  <th className="text-left px-4 py-2 text-[11px] text-[#9aa0a6] font-medium">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {releases.map((r) => (
+                  <tr key={r.id} className="border-b border-[#f1f3f4] hover:bg-[#fafafa]">
+                    <td className="px-4 py-2 font-medium text-[#1a1a2e]">v{r.version}</td>
+                    <td className="px-4 py-2 text-[#5f6368]">#{r.buildNumber}</td>
+                    <td className="px-4 py-2 text-[#5f6368] capitalize">{r.channel}</td>
+                    <td className="px-4 py-2">
+                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                        r.type === "release" ? "bg-blue-50 text-blue-600" :
+                        r.type === "hotfix" ? "bg-red-50 text-red-600" : "bg-yellow-50 text-yellow-600"
+                      }`}>{r.type}</span>
+                    </td>
+                    <td className="px-4 py-2">
+                      <span className={`font-medium ${
+                        r.status === "active" ? "text-green-600" :
+                        r.status === "rolled_back" ? "text-yellow-600" : "text-red-600"
+                      }`}>{r.status}</span>
+                    </td>
+                    <td className="px-4 py-2 text-[#9aa0a6]">
+                      {new Date(r.timestamp).toLocaleString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="p-6 text-center text-[12px] text-[#9aa0a6]">No releases registered. Click "Register Release" to create one.</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Backups Tab ─────────────────────────────────────────────
+
+function BackupsTab() {
+  const [backups, setBackups] = useState(backupManager.getBackups());
+  const [running, setRunning] = useState(false);
+
+  const handleBackupAll = async () => {
+    setRunning(true);
+    await backupManager.backupAll();
+    setBackups(backupManager.getBackups());
+    setRunning(false);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-white rounded-lg border border-[#e8eaed] p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-[13px] font-semibold text-[#1a1a2e]">Backup Manager</h3>
+          <button
+            onClick={handleBackupAll}
+            disabled={running}
+            className="flex items-center gap-1 px-3 py-1.5 bg-[#1a73e8] text-white text-[12px] font-medium rounded-lg hover:bg-[#1557b0] transition-colors disabled:opacity-50"
+          >
+            <Download className="h-3.5 w-3.5" /> {running ? "Backing up..." : "Backup Now"}
+          </button>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="bg-[#fafafa] rounded-lg p-3 text-center">
+            <p className="text-[20px] font-bold text-[#1a1a2e]">{backups.length}</p>
+            <p className="text-[10px] text-[#9aa0a6]">Total Backups</p>
+          </div>
+          <div className="bg-[#fafafa] rounded-lg p-3 text-center">
+            <p className="text-[20px] font-bold text-green-600">
+              {backups.filter((b) => b.validated).length}
+            </p>
+            <p className="text-[10px] text-[#9aa0a6]">Validated</p>
+          </div>
+          <div className="bg-[#fafafa] rounded-lg p-3 text-center">
+            <p className="text-[20px] font-bold text-[#1a1a2e]">
+              {Math.round(backups.reduce((sum, b) => sum + b.size, 0) / 1024)}KB
+            </p>
+            <p className="text-[10px] text-[#9aa0a6]">Total Size</p>
+          </div>
+        </div>
+
+        {backups.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12px]">
+              <thead>
+                <tr className="bg-[#fafafa] border-b border-[#e8eaed]">
+                  <th className="text-left px-4 py-2 text-[11px] text-[#9aa0a6] font-medium">Type</th>
+                  <th className="text-left px-4 py-2 text-[11px] text-[#9aa0a6] font-medium">Label</th>
+                  <th className="text-right px-4 py-2 text-[11px] text-[#9aa0a6] font-medium">Size</th>
+                  <th className="text-center px-4 py-2 text-[11px] text-[#9aa0a6] font-medium">Validated</th>
+                  <th className="text-right px-4 py-2 text-[11px] text-[#9aa0a6] font-medium">Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {backups.map((b) => (
+                  <tr key={b.id} className="border-b border-[#f1f3f4] hover:bg-[#fafafa]">
+                    <td className="px-4 py-2">
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-600 capitalize">{b.type}</span>
+                    </td>
+                    <td className="px-4 py-2 text-[#1a1a2e]">{b.label}</td>
+                    <td className="px-4 py-2 text-right text-[#5f6368]">{b.size} B</td>
+                    <td className="px-4 py-2 text-center">
+                      {b.validated ? <CheckCircle className="h-3.5 w-3.5 text-green-500 inline" /> : <XCircle className="h-3.5 w-3.5 text-yellow-500 inline" />}
+                    </td>
+                    <td className="px-4 py-2 text-right text-[#9aa0a6]">{new Date(b.timestamp).toLocaleTimeString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="p-6 text-center text-[12px] text-[#9aa0a6]">No backups yet. Click "Backup Now" to create one.</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Environments Tab ────────────────────────────────────────
+
+function EnvironmentsTab() {
+  const buildInfo = buildVersionManager.getBuildInfo();
+  const convexUrl = import.meta.env.VITE_CONVEX_URL as string || "Not set";
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="bg-white rounded-lg border border-[#e8eaed] p-4">
+        <h3 className="text-[13px] font-semibold text-[#1a1a2e] mb-3">Environment Variables</h3>
+        <div className="space-y-2 text-[12px]">
+          <EnvVarRow label="VITE_CONVEX_URL" value={convexUrl} present={!!convexUrl && convexUrl !== "Not set"} />
+          <EnvVarRow label="MODE" value={import.meta.env.MODE as string || "unknown"} present={true} />
+          <EnvVarRow label="CONVEX_DEPLOY_KEY" value="••••••••" present={false} isSecret />
+          <EnvVarRow label="SENTRY_DSN" value="Not configured" present={false} />
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg border border-[#e8eaed] p-4">
+        <h3 className="text-[13px] font-semibold text-[#1a1a2e] mb-3">Runtime</h3>
+        <div className="space-y-2 text-[12px]">
+          <EnvVarRow label="React" value="19.2" present={true} />
+          <EnvVarRow label="Vite" value="7.2" present={true} />
+          <EnvVarRow label="Convex" value="1.42" present={true} />
+          <EnvVarRow label="Node (target)" value="esnext" present={true} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Health Tab ──────────────────────────────────────────────
+
+function HealthTab({ status, running, onRecheck }: {
+  status: DeploymentHealthStatus | null;
+  running: boolean;
+  onRecheck: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="bg-white rounded-lg border border-[#e8eaed] p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-[13px] font-semibold text-[#1a1a2e]">Deployment Health Checks</h3>
+          <button
+            onClick={onRecheck}
+            disabled={running}
+            className="flex items-center gap-1 px-3 py-1.5 bg-[#f1f3f4] text-[#5f6368] text-[12px] font-medium rounded-lg hover:bg-[#e8eaed] transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${running ? "animate-spin" : ""}`} />
+            {running ? "Running..." : "Re-check"}
+          </button>
+        </div>
+
+        {status ? (
+          <div className="space-y-2">
+            {status.checks.map((check) => (
+              <div key={check.name} className="flex items-center justify-between py-2 px-3 bg-[#fafafa] rounded-lg">
+                <div className="flex items-center gap-2">
+                  {check.status === "pass" ? <CheckCircle className="h-4 w-4 text-green-500" /> :
+                   check.status === "warn" ? <AlertTriangle className="h-4 w-4 text-yellow-500" /> :
+                   <XCircle className="h-4 w-4 text-red-500" />}
+                  <span className="text-[12px] text-[#1a1a2e] font-medium">{check.name}</span>
+                </div>
+                <span className="text-[11px] text-[#5f6368]">{check.message}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-6 text-center text-[12px] text-[#9aa0a6]">
+            {running ? "Running health checks..." : "No health data available"}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Rollback Tab ────────────────────────────────────────────
+
+function RollbackTab() {
+  const releases = releaseManager.getHistory().filter((r) => r.status === "rolled_back" || r.type === "release");
+  const [message, setMessage] = useState("");
+
+  const handleRollback = (id: string) => {
+    releaseManager.rollback(id);
+    setMessage("Rollback registered successfully");
+    setTimeout(() => setMessage(""), 3000);
+  };
+
+  return (
+    <div className="space-y-4">
+      {message && (
+        <div className="bg-green-50 border border-green-200 text-green-700 text-[12px] px-4 py-2 rounded-lg">
+          {message}
+        </div>
+      )}
+
+      <div className="bg-white rounded-lg border border-[#e8eaed] overflow-hidden">
+        <div className="px-4 py-2.5 bg-[#fafafa] border-b border-[#e8eaed]">
+          <span className="text-[12px] font-semibold text-[#1a1a2e]">Rollback Targets</span>
+        </div>
+        {releases.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12px]">
+              <thead>
+                <tr className="bg-[#fafafa] border-b border-[#e8eaed]">
+                  <th className="text-left px-4 py-2 text-[11px] text-[#9aa0a6] font-medium">Version</th>
+                  <th className="text-left px-4 py-2 text-[11px] text-[#9aa0a6] font-medium">Channel</th>
+                  <th className="text-right px-4 py-2 text-[11px] text-[#9aa0a6] font-medium">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {releases.slice(0, 5).map((r) => (
+                  <tr key={r.id} className="border-b border-[#f1f3f4] hover:bg-[#fafafa]">
+                    <td className="px-4 py-2 font-medium text-[#1a1a2e]">v{r.version}</td>
+                    <td className="px-4 py-2 text-[#5f6368] capitalize">{r.channel}</td>
+                    <td className="px-4 py-2 text-right">
+                      <button
+                        onClick={() => handleRollback(r.id)}
+                        className="px-3 py-1 bg-yellow-50 text-yellow-700 text-[11px] font-medium rounded-lg hover:bg-yellow-100 transition-colors"
+                      >
+                        Rollback
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="p-6 text-center text-[12px] text-[#9aa0a6]">No rollback targets available</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Build History Tab ───────────────────────────────────────
+
+function BuildHistoryTab() {
+  const [verification, setVerification] = useState<{ passed: number; failed: number; warnings: number } | null>(null);
+
+  useEffect(() => {
+    buildVerifier.verify().then((r) => setVerification({ passed: r.passed, failed: r.failed, warnings: r.warnings }));
+  }, []);
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-white rounded-lg border border-[#e8eaed] p-4 text-center">
+          <p className="text-[24px] font-bold text-green-600">{verification?.passed || 0}</p>
+          <p className="text-[11px] text-[#9aa0a6]">Passed</p>
+        </div>
+        <div className="bg-white rounded-lg border border-[#e8eaed] p-4 text-center">
+          <p className="text-[24px] font-bold text-yellow-600">{verification?.warnings || 0}</p>
+          <p className="text-[11px] text-[#9aa0a6]">Warnings</p>
+        </div>
+        <div className="bg-white rounded-lg border border-[#e8eaed] p-4 text-center">
+          <p className="text-[24px] font-bold text-red-600">{verification?.failed || 0}</p>
+          <p className="text-[11px] text-[#9aa0a6]">Failed</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Provisioning Tab ────────────────────────────────────────
+
+function ProvisioningTab() {
+  const [result, setResult] = useState("");
+  const [running, setRunning] = useState(false);
+
+  const handleProvision = async () => {
+    setRunning(true);
+    const template = provisioningManager.getDefaultTemplate();
+    const res = await provisioningManager.provision(template);
+    setResult(res.success
+      ? `✅ Provisioned "${template.organizationName}" in ${res.duration}ms (${res.steps.length} steps)`
+      : `❌ Provisioning failed: ${res.error}`);
+    setRunning(false);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-white rounded-lg border border-[#e8eaed] p-4">
+        <h3 className="text-[13px] font-semibold text-[#1a1a2e] mb-3">Customer Provisioning</h3>
+        <p className="text-[12px] text-[#5f6368] mb-4">
+          One-click organization setup. Creates organization, CEO user, branch, academic year, roles, permissions, and feature flags.
+        </p>
+        <button
+          onClick={handleProvision}
+          disabled={running}
+          className="flex items-center gap-1 px-4 py-2 bg-[#1a73e8] text-white text-[12px] font-medium rounded-lg hover:bg-[#1557b0] transition-colors disabled:opacity-50"
+        >
+          <UserPlus className="h-4 w-4" /> {running ? "Provisioning..." : "Provision Demo Organization"}
+        </button>
+        {result && (
+          <div className="mt-3 p-3 bg-[#fafafa] rounded-lg text-[12px] text-[#5f6368]">{result}</div>
+        )}
+      </div>
+
+      <div className="bg-white rounded-lg border border-[#e8eaed] p-4">
+        <h3 className="text-[13px] font-semibold text-[#1a1a2e] mb-3">Provisioning Template</h3>
+        <div className="space-y-2 text-[12px]">
+          <DeployRow label="Organization" value="New Academy" />
+          <DeployRow label="Code" value="ACADEMY" />
+          <DeployRow label="CEO" value="John Doe (ceo@academy.edu)" />
+          <DeployRow label="Branch" value="Main Campus" />
+          <DeployRow label="Academic Year" value="2026-2027" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── CI/CD Tab ───────────────────────────────────────────────
+
+function CicdTab() {
+  return (
+    <div className="space-y-4">
+      <div className="bg-white rounded-lg border border-[#e8eaed] p-4">
+        <h3 className="text-[13px] font-semibold text-[#1a1a2e] mb-3">CI/CD Pipelines</h3>
+        <p className="text-[12px] text-[#5f6368] mb-4">
+          CI/CD is configured via GitHub Actions. The following workflows are available:
+        </p>
+        <div className="space-y-3">
+          <div className="p-3 bg-[#fafafa] rounded-lg border border-[#e8eaed]">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[12px] font-semibold text-[#1a1a2e]">CI — Continuous Integration</p>
+                <p className="text-[11px] text-[#5f6368]">Runs on PR and push to develop/staging</p>
+              </div>
+              <span className="px-2 py-0.5 bg-green-50 text-green-600 text-[10px] font-medium rounded">ci.yml</span>
+            </div>
+            <div className="mt-2 text-[11px] text-[#5f6368]">
+              Steps: Install → TypeScript Check → ESLint → Build Validation → Bundle Size Report
+            </div>
+          </div>
+
+          <div className="p-3 bg-[#fafafa] rounded-lg border border-[#e8eaed]">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[12px] font-semibold text-[#1a1a2e]">Preview Deploy</p>
+                <p className="text-[11px] text-[#5f6368]">Runs on PR to main/develop</p>
+              </div>
+              <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-medium rounded">deploy-preview.yml</span>
+            </div>
+            <div className="mt-2 text-[11px] text-[#5f6368]">
+              Steps: Deploy Convex (Preview) → Vite Build → Verify Artifacts
+            </div>
+          </div>
+
+          <div className="p-3 bg-[#fafafa] rounded-lg border border-[#e8eaed]">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[12px] font-semibold text-[#1a1a2e]">Production Deploy</p>
+                <p className="text-[11px] text-[#5f6368]">Runs on push to main or manual trigger</p>
+              </div>
+              <span className="px-2 py-0.5 bg-purple-50 text-purple-600 text-[10px] font-medium rounded">deploy-production.yml</span>
+            </div>
+            <div className="mt-2 text-[11px] text-[#5f6368]">
+              Steps: Validate → Deploy Convex → Build Frontend → Generate Release Notes → Deploy to Vercel → Notify
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Shared Components ───────────────────────────────────────
+
+function DeployRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between py-1">
+      <span className="text-[#5f6368]">{label}</span>
+      <span className="font-mono font-medium text-[#1a1a2e]">{value}</span>
+    </div>
+  );
+}
+
+function EnvVarRow({ label, value, present, isSecret }: { label: string; value: string; present: boolean; isSecret?: boolean }) {
+  return (
+    <div className="flex items-center justify-between py-1">
+      <div className="flex items-center gap-2">
+        {present ? <CheckCircle className="h-3 w-3 text-green-500" /> : <XCircle className="h-3 w-3 text-yellow-500" />}
+        <span className="text-[#5f6368]">{label}</span>
+      </div>
+      <span className={`font-mono text-[11px] ${present ? "text-[#1a1a2e]" : "text-yellow-600"}`}>{value}</span>
+    </div>
+  );
+}
