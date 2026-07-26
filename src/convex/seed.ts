@@ -674,7 +674,8 @@ export const seed = mutation({
 export const seedPasswords = mutation({
   args: {},
   handler: async (ctx) => {
-    const ceo = await ctx.db.query("users").withIndex("username", (q) => q.eq("username", "ceo")).first();
+    const allUsers = await ctx.db.query("users").collect();
+    const ceo = allUsers.find((u) => u.username === "ceo");
     if (ceo?.passwordHash) return { seeded: false };
 
     const users = await ctx.db.query("users").collect();
