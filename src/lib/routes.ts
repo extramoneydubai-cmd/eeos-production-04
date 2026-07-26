@@ -27,6 +27,7 @@ import {
   Crown,
   Activity,
   DollarSign,
+  FileText,
   Monitor as MonitorIcon,
   Megaphone as MegaphoneIcon,
   Users as UsersIcon,
@@ -68,21 +69,21 @@ export const routes: RouteEntry[] = [
   // ── Studios ─────────────────────────────────────────────────
   {
     label: "Organization",
-    href: "/studio/org",
+    href: "/org",
     icon: Building2,
     group: "Studios",
     visible,
   },
   {
     label: "Master Data",
-    href: "/studio/master-data",
+    href: "/studios/master-data",
     icon: Database,
     group: "Studios",
     visible,
   },
   {
     label: "Access Control",
-    href: "/studio/access",
+    href: "/access",
     icon: Shield,
     group: "Studios",
     visible,
@@ -96,14 +97,14 @@ export const routes: RouteEntry[] = [
   },
   {
     label: "Workflow",
-    href: "/studio/workflow",
+    href: "/studios/workflows",
     icon: Workflow,
     group: "Studios",
     visible,
   },
   {
-    label: "Task Management",
-    href: "/studio/tasks",
+    label: "Tasks",
+    href: "/tasks",
     icon: ListChecks,
     group: "Studios",
     visible,
@@ -226,7 +227,7 @@ export const routes: RouteEntry[] = [
   },
   {
     label: "Analytics",
-    href: "/studio/analytics",
+    href: "/analytics",
     icon: BarChart3,
     group: "Business Modules",
     visible,
@@ -253,7 +254,7 @@ export const routes: RouteEntry[] = [
     visible,
   },
   {
-    label: "Analytics",
+    label: "System Analytics",
     href: "/analytics",
     icon: BarChart3,
     group: "System",
