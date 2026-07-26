@@ -176,11 +176,10 @@ export const routes: RouteEntry[] = [
   },
   {
     label: "Marketing",
-    href: "/studio/marketing",
+    href: "/communication-marketing",
     icon: Megaphone,
     group: "Business Modules",
     visible,
-    isPlaceholder: placeholder,
   },
   {
     label: "Administration",
@@ -213,11 +212,10 @@ export const routes: RouteEntry[] = [
   },
   {
     label: "Communication",
-    href: "/studio/communication",
+    href: "/communication-marketing",
     icon: MessageSquare,
     group: "Business Modules",
     visible,
-    isPlaceholder: placeholder,
   },
   {
     label: "Analytics",
