@@ -10,7 +10,7 @@ import "./index.css";
 import "./types/global.d.ts";
 
 // Lazy load route components
-const LoginPage = lazy(() => import("./pages/Login.tsx"));
+import LoginPage from "./pages/Login.tsx";
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
 const OrganizationStudio = lazy(() => import("./pages/OrganizationStudio.tsx"));
 const UsersPage = lazy(() => import("./pages/UsersPage.tsx"));
