@@ -23,6 +23,7 @@ import {
   FileCheck,
   ShoppingCart,
   CircleUser,
+  Calendar,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -102,6 +103,13 @@ export const routes: RouteEntry[] = [
   },
 
   // ── Business Modules ────────────────────────────────────────
+  {
+    label: "Calendar",
+    href: "/calendar",
+    icon: Calendar,
+    group: "Business Modules",
+    visible,
+  },
   {
     label: "CRM",
     href: "/crm",

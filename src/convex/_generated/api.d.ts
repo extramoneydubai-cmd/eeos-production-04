@@ -205,6 +205,7 @@ import type * as salesTaxSlabs from "../salesTaxSlabs.js";
 import type * as salesTerritories from "../salesTerritories.js";
 import type * as schema_academic from "../schema/academic.js";
 import type * as schema_analytics from "../schema/analytics.js";
+import type * as schema_calendar from "../schema/calendar.js";
 import type * as schema_communication from "../schema/communication.js";
 import type * as schema_crm from "../schema/crm.js";
 import type * as schema_documents from "../schema/documents.js";
@@ -442,6 +443,7 @@ declare const fullApi: ApiFromModules<{
   salesTerritories: typeof salesTerritories;
   "schema/academic": typeof schema_academic;
   "schema/analytics": typeof schema_analytics;
+  "schema/calendar": typeof schema_calendar;
   "schema/communication": typeof schema_communication;
   "schema/crm": typeof schema_crm;
   "schema/documents": typeof schema_documents;
