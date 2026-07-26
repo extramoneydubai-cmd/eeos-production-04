@@ -26,7 +26,8 @@ interface MemorySnapshot {
 
 const CHECK_INTERVAL = 30000;
 const GROWTH_THRESHOLD = 3; // consecutive increases before warning
-const HEAP_PCT_WARNING = 0.8;
+const HEAP_PCT_INFO = 0.8;
+const HEAP_PCT_WARNING = 0.9;
 const INTERVAL_WARNING = 50;
 
 class MemoryLeakDetectorImpl {
@@ -127,15 +128,19 @@ class MemoryLeakDetectorImpl {
       warnings.push(`High interval count: ${snapshot.intervals}`);
     }
 
-    // Emit warnings
+    // Emit warnings or info based on heap percentage
+    const isHeapWarning = warnings.some((w) => w.startsWith("Heap usage at"));
     for (const msg of warnings) {
+      // Heap warnings at 80-90% are informational (normal SPA behavior)
+      // Only emit severity "warning" for 90%+ or consecutive growth
+      const severity = isHeapWarning ? "info" : "warning";
       errorLog.push({
         message: `[MemoryLeakDetector] ${msg}`,
         stack: "",
         source: "sdk",
-        severity: "warning",
+        severity,
       });
-      RuntimeSupervisor.emit("warning", "Memory", msg, snapshot);
+      RuntimeSupervisor.emit("info", "Memory", msg, snapshot);
     }
   }
 

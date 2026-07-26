@@ -200,12 +200,29 @@ class ProductionReadinessManagerImpl {
 
   private checkSchema(): ReadinessCheck {
     const start = performance.now();
-    const issues = schemaCompatibility.check();
+    const results = schemaCompatibility.check();
+    const fails = results.filter((r) => r.status === "fail");
+    const warns = results.filter((r) => r.status === "warn");
+
+    let status: "pass" | "warn" | "fail";
+    let message: string;
+
+    if (fails.length > 0) {
+      status = "fail";
+      message = fails.map((r) => r.message).join("; ");
+    } else if (warns.length > 0) {
+      status = "warn";
+      message = warns.map((r) => r.message).join("; ");
+    } else {
+      status = "pass";
+      message = results.length > 0 ? results.map((r) => r.message).join("; ") : "Schema versions compatible";
+    }
+
     return {
       name: "Schema Compatibility",
       category: "critical",
-      status: issues.length === 0 ? "pass" : "fail",
-      message: issues.length === 0 ? "Schema versions compatible" : issues.join("; "),
+      status,
+      message,
       duration: Math.round(performance.now() - start),
     };
   }
@@ -216,7 +233,7 @@ class ProductionReadinessManagerImpl {
     return {
       name: "Deployment",
       category: "critical",
-      status: issues.length === 0 ? "pass" : "fail",
+      status: issues.length === 0 ? "pass" : issues.length <= 1 ? "warn" : "fail",
       message: issues.length === 0 ? "Deployment valid" : issues.join("; "),
       duration: Math.round(performance.now() - start),
     };

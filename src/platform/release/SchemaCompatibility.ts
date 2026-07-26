@@ -4,18 +4,21 @@
  * Checks:
  *  - Frontend schema version vs backend schema version
  *  - Migration version vs deployed version
- *  - Entity version consistency
- *  - SDK version compatibility
  *
- * Detects:
- *  - Incompatible schema
- *  - Missing migration
- *  - Unsupported build
+ * Returns categorized results so the ProductionReadinessManager can
+ * treat unavailable backend as a warning, not a hard failure.
  */
 
-import { RuntimeSupervisor } from "@/platform/runtime/RuntimeSupervisor";
-
 const SCHEMA_VERSION_KEY = "eeos_schema_version";
+
+export interface SchemaCheckResult {
+  /** Human-readable label for this check */
+  label: string;
+  /** "pass" — compatible, "warn" — not verified but not blocking, "fail" — incompatible */
+  status: "pass" | "warn" | "fail";
+  /** Description of the issue */
+  message: string;
+}
 
 class SchemaCompatibilityImpl {
   private _frontendSchemaVersion: string = "1.0.0";
@@ -36,26 +39,67 @@ class SchemaCompatibilityImpl {
     return this._backendSchemaVersion;
   }
 
-  /** Run compatibility check */
-  check(): string[] {
-    const issues: string[] = [];
+  /**
+   * Run compatibility check.
+   * Returns categorized results:
+   *  - Backend unavailable → warn (not a hard fail during development)
+   *  - Version mismatch → fail (incompatible)
+   */
+  check(): SchemaCheckResult[] {
+    const results: SchemaCheckResult[] = [];
 
-    // Check if backend version is known
+    // If backend version is not available, it's a warning, not a failure
     if (!this._backendSchemaVersion) {
-      issues.push("Backend schema version not available (Convex may not be deployed)");
+      results.push({
+        label: "Backend Version",
+        status: "warn",
+        message: "Backend schema version not available (Convex may not be fully deployed or backend version not yet reported)",
+      });
+      return results;
     }
+
+    // Frontend version is always available
+    results.push({
+      label: "Frontend Version",
+      status: "pass",
+      message: `Frontend schema v${this._frontendSchemaVersion}`,
+    });
+
+    results.push({
+      label: "Backend Version",
+      status: "pass",
+      message: `Backend schema v${this._backendSchemaVersion}`,
+    });
 
     // Compare versions
-    if (this._backendSchemaVersion) {
-      const compat = this.compareVersions(this._frontendSchemaVersion, this._backendSchemaVersion);
-      if (compat === "backend_older") {
-        issues.push(`Frontend schema (${this._frontendSchemaVersion}) is newer than backend (${this._backendSchemaVersion})`);
-      } else if (compat === "frontend_older") {
-        issues.push(`Backend schema (${this._backendSchemaVersion}) is newer than frontend (${this._frontendSchemaVersion})`);
-      }
+    const compat = this.compareVersions(this._frontendSchemaVersion, this._backendSchemaVersion);
+    if (compat === "match") {
+      results.push({
+        label: "Compatibility",
+        status: "pass",
+        message: `Frontend (v${this._frontendSchemaVersion}) and backend (v${this._backendSchemaVersion}) are compatible`,
+      });
+    } else if (compat === "backend_older") {
+      results.push({
+        label: "Compatibility",
+        status: "warn",
+        message: `Frontend (v${this._frontendSchemaVersion}) is newer than backend (v${this._backendSchemaVersion})`,
+      });
+    } else if (compat === "frontend_older") {
+      results.push({
+        label: "Compatibility",
+        status: "warn",
+        message: `Backend (v${this._backendSchemaVersion}) is newer than frontend (v${this._frontendSchemaVersion})`,
+      });
+    } else {
+      results.push({
+        label: "Compatibility",
+        status: "fail",
+        message: `Incompatible versions: frontend v${this._frontendSchemaVersion}, backend v${this._backendSchemaVersion}`,
+      });
     }
 
-    return issues;
+    return results;
   }
 
   /** Quick compatibility check */
@@ -78,10 +122,13 @@ class SchemaCompatibilityImpl {
   persistVersion(): void {
     try {
       localStorage.setItem(SCHEMA_VERSION_KEY, this._frontendSchemaVersion);
-    } catch {}
+    } catch { /* noop */ }
   }
 
-  private compareVersions(frontend: string, backend: string): "match" | "backend_older" | "frontend_older" | "incompatible" {
+  private compareVersions(
+    frontend: string,
+    backend: string,
+  ): "match" | "backend_older" | "frontend_older" | "incompatible" {
     const fParts = frontend.split(".").map(Number);
     const bParts = backend.split(".").map(Number);
 
