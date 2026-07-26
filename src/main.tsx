@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
-import { StrictMode, useEffect, lazy, Suspense } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router";
 import "./index.css";
@@ -217,7 +217,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 createRoot(document.getElementById("root")!).render(
-  <StrictMode>
     <VlyToolbar />
     <>
       <InstrumentationProvider>      <ConvexAuthProvider client={convex}>
@@ -382,5 +381,4 @@ createRoot(document.getElementById("root")!).render(
       </ConvexAuthProvider>
       </InstrumentationProvider>
     </>
-  </StrictMode>,
 );
