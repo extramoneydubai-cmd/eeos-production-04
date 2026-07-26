@@ -159,6 +159,24 @@ import { FullPageLoading } from "@/components/system/FullPageLoading";
 import { HealthMonitor } from "@/components/system/HealthMonitor";
 import { useOnlineStatus } from "@/platform/core/offlineDetector";
 
+// Runtime supervisor imports
+import { RuntimeSupervisor } from "@/platform/runtime/RuntimeSupervisor";
+import { reactRenderWatcher } from "@/platform/runtime/ReactRenderWatcher";
+import { navigationSupervisor } from "@/platform/runtime/NavigationSupervisor";
+import { convexSupervisor } from "@/platform/runtime/ConvexSupervisor";
+import { sdkPerformanceMonitor } from "@/platform/runtime/SdkPerformanceMonitor";
+import { memoryLeakDetector } from "@/platform/runtime/MemoryLeakDetector";
+import { slowQueryDetector } from "@/platform/runtime/SlowQueryDetector";
+import { sessionRecovery } from "@/platform/runtime/SessionRecovery";
+import { workspaceRecovery } from "@/platform/runtime/WorkspaceRecovery";
+import { unsavedWorkProtector } from "@/platform/runtime/UnsavedWorkProtector";
+import { eventPipelineWatchdog } from "@/platform/runtime/EventPipelineWatchdog";
+import { runtimeMetrics } from "@/platform/runtime/RuntimeMetrics";
+import { runtimeSelfTest } from "@/platform/runtime/RuntimeSelfTest";
+import { healthScoreEngine } from "@/platform/runtime/HealthScoreEngine";
+import { buildGuard } from "@/platform/runtime/BuildGuard";
+import { RuntimeOverlay } from "@/components/system/RuntimeOverlay";
+
 // Offline banner component
 function OfflineBanner() {
   const online = useOnlineStatus();
@@ -172,8 +190,75 @@ function OfflineBanner() {
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
+/**
+ * AppBoot — Initializes all runtime supervisors on app startup.
+ * Runs once before the main app renders.
+ */
+function AppBoot() {
+  useEffect(() => {
+    // Run build guard validation (non-blocking)
+    try {
+      buildGuard.validate();
+    } catch {}
+
+    // Start RuntimeSupervisor
+    RuntimeSupervisor.start(30000);
+
+    // Start all monitors
+    reactRenderWatcher.start();
+    navigationSupervisor.start();
+    convexSupervisor.start();
+    sdkPerformanceMonitor.start();
+    memoryLeakDetector.start();
+    slowQueryDetector.start();
+    sessionRecovery.start();
+    workspaceRecovery.start();
+    unsavedWorkProtector.start();
+    eventPipelineWatchdog.start();
+    runtimeMetrics.start();
+    runtimeSelfTest.start();
+    healthScoreEngine.start();
+
+    // Emit platform ready
+    RuntimeSupervisor.emit("info", "Platform", "EEOS Runtime Self-Healing Platform initialized");
+
+    // Run self-test asynchronously
+    Promise.resolve().then(() => {
+      const results = runtimeSelfTest.runAll();
+      if (results.some((r) => r.status === "fail")) {
+        RuntimeSupervisor.emit("warning", "SelfTest", `${results.filter((r) => r.status === "fail").length} self-tests failed`);
+      }
+    });
+
+    return () => {
+      RuntimeSupervisor.stop();
+      reactRenderWatcher.stop();
+      navigationSupervisor.stop();
+      convexSupervisor.stop();
+      sdkPerformanceMonitor.stop();
+      memoryLeakDetector.stop();
+      slowQueryDetector.stop();
+      sessionRecovery.stop();
+      workspaceRecovery.stop();
+      unsavedWorkProtector.stop();
+      eventPipelineWatchdog.stop();
+      runtimeMetrics.stop();
+      runtimeSelfTest.stop();
+      healthScoreEngine.stop();
+    };
+  }, []);
+
+  return null;
+}
+
 function RouteSyncer() {
   const location = useLocation();
+
+  // Notify navigation supervisor of route transitions
+  useEffect(() => {
+    navigationSupervisor.onNavigationComplete(location.pathname);
+  }, [location.pathname]);
+
   useEffect(() => {
     window.parent.postMessage(
       { type: "iframe-route-change", path: location.pathname },
@@ -228,6 +313,7 @@ createRoot(document.getElementById("root")!).render(
       <InstrumentationProvider>      <ConvexAuthProvider client={convex}>
         <BrowserRouter>
           <DeveloperModeProvider>
+            <AppBoot />
             <RouteSyncer />
             <Suspense fallback={<PageLoadingFallback moduleName="EEOS" />}>
               <Routes>
@@ -383,6 +469,7 @@ createRoot(document.getElementById("root")!).render(
           <Toaster />
           <DebugPanel />
           <HealthMonitor />
+          <RuntimeOverlay />
           <OfflineBanner />
           </DeveloperModeProvider>
         </BrowserRouter>
