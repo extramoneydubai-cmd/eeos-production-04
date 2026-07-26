@@ -217,8 +217,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 createRoot(document.getElementById("root")!).render(
-    <VlyToolbar />
     <>
+      <VlyToolbar />
       <InstrumentationProvider>      <ConvexAuthProvider client={convex}>
         <BrowserRouter>
           <DeveloperModeProvider>
