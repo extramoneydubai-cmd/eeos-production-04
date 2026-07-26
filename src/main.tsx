@@ -177,6 +177,12 @@ import { healthScoreEngine } from "@/platform/runtime/HealthScoreEngine";
 import { buildGuard } from "@/platform/runtime/BuildGuard";
 import { RuntimeOverlay } from "@/components/system/RuntimeOverlay";
 
+// Production readiness imports
+import { productionReadinessManager } from "@/platform/release/ProductionReadinessManager";
+import { featureFlagManager } from "@/platform/release/FeatureFlagManager";
+import { cacheManager } from "@/platform/release/CacheManager";
+import { schemaCompatibility } from "@/platform/release/SchemaCompatibility";
+
 // Offline banner component
 function OfflineBanner() {
   const online = useOnlineStatus();
@@ -218,6 +224,26 @@ function AppBoot() {
     runtimeMetrics.start();
     runtimeSelfTest.start();
     healthScoreEngine.start();
+
+    // Initialize production readiness
+    featureFlagManager.init();
+
+    // Run production readiness validation
+    Promise.resolve().then(async () => {
+      try {
+        const report = await productionReadinessManager.validate();
+        if (report.state === "failed") {
+          RuntimeSupervisor.emit("failure", "ProductionReadiness", "Blocked by readiness checks");
+        }
+        // Cleanup stale cache
+        const cleaned = cacheManager.cleanup(3600000);
+        if (cleaned > 0) {
+          RuntimeSupervisor.emit("info", "CacheManager", `Cleaned ${cleaned} expired cache entries`);
+        }
+      } catch (err) {
+        RuntimeSupervisor.emit("failure", "ProductionReadiness", `Readiness validation threw: ${err}`);
+      }
+    });
 
     // Emit platform ready
     RuntimeSupervisor.emit("info", "Platform", "EEOS Runtime Self-Healing Platform initialized");
@@ -282,6 +308,7 @@ function RouteSyncer() {
 
 // Lazy-load AppLayout so it doesn't block the initial render
 const AppLayout = lazy(() => import("./components/AppLayout.tsx").then(m => ({ default: m.AppLayout })));
+const ReleaseHealthDashboard = lazy(() => import("./pages/ReleaseHealthDashboard.tsx"));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -463,6 +490,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/academic" element={<ProtectedRoute><AcademicDatabase /></ProtectedRoute>} />
               <Route path="/academic/:entityId" element={<ProtectedRoute><AcademicWorkspace /></ProtectedRoute>} />
               <Route path="/studios/workflows" element={<ProtectedRoute><WorkflowStudio /></ProtectedRoute>} />
+              <Route path="/release-health" element={<ProtectedRoute><ReleaseHealthDashboard /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
