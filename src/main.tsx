@@ -310,6 +310,8 @@ function RouteSyncer() {
 const AppLayout = lazy(() => import("./components/AppLayout.tsx").then(m => ({ default: m.AppLayout })));
 const ReleaseHealthDashboard = lazy(() => import("./pages/ReleaseHealthDashboard.tsx"));
 const OperationsCenter = lazy(() => import("./pages/OperationsCenter.tsx"));
+const SecurityCenter = lazy(() => import("./pages/SecurityCenter.tsx"));
+const AuditCenter = lazy(() => import("./pages/AuditCenter.tsx"));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -492,6 +494,8 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/academic/:entityId" element={<ProtectedRoute><AcademicWorkspace /></ProtectedRoute>} />
               <Route path="/studios/workflows" element={<ProtectedRoute><WorkflowStudio /></ProtectedRoute>} />
               <Route path="/release-health" element={<ProtectedRoute><ReleaseHealthDashboard /></ProtectedRoute>} />
+              <Route path="/security" element={<ProtectedRoute><SecurityCenter /></ProtectedRoute>} />
+              <Route path="/audit" element={<ProtectedRoute><AuditCenter /></ProtectedRoute>} />
               <Route path="/operations" element={<ProtectedRoute><OperationsCenter /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
