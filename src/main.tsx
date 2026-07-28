@@ -318,6 +318,9 @@ const ScheduleWorkspace = lazy(() => import("./pages/ScheduleWorkspace.tsx"));
 const SchedulerDashboard = lazy(() => import("./pages/SchedulerDashboard.tsx"));
 const SchedulerWorkspace = lazy(() => import("./pages/SchedulerWorkspace.tsx"));
 const FacultyScheduleWorkspace = lazy(() => import("./pages/FacultyScheduleWorkspace.tsx"));
+const ResourceBookingWorkspace = lazy(() => import("./pages/ResourceBookingWorkspace.tsx"));
+const SchedulingReports = lazy(() => import("./pages/SchedulingReports.tsx"));
+const OrganizationCalendar = lazy(() => import("./pages/OrganizationCalendar.tsx"));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -509,6 +512,9 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/scheduler" element={<ProtectedRoute><SchedulerDashboard /></ProtectedRoute>} />
               <Route path="/scheduler/:scheduleId" element={<ProtectedRoute><SchedulerWorkspace /></ProtectedRoute>} />
               <Route path="/scheduling/faculty/:facultyId" element={<ProtectedRoute><FacultyScheduleWorkspace /></ProtectedRoute>} />
+              <Route path="/scheduling/resources/:resourceId" element={<ProtectedRoute><ResourceBookingWorkspace /></ProtectedRoute>} />
+              <Route path="/scheduling/reports" element={<ProtectedRoute><SchedulingReports /></ProtectedRoute>} />
+              <Route path="/organization-calendar" element={<ProtectedRoute><OrganizationCalendar /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
