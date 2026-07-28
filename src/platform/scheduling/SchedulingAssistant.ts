@@ -505,6 +505,124 @@ class SchedulingAssistantImpl {
       totalMinutes: (WORKING_HOURS.end - WORKING_HOURS.start) * 60 - (WORKING_HOURS.lunchEnd - WORKING_HOURS.lunchStart) * 60,
     };
   }
+
+  /**
+   * Find a meeting time that works for ALL participants.
+   * Cross-references each participant's existing schedules to find mutual availability.
+   */
+  findMeetingTime(
+    participantSchedules: Record<string, any[]>,
+    options: {
+      duration: number;
+      startDate?: number;
+      endDate?: number;
+      maxSuggestions?: number;
+      preferMorning?: boolean;
+      preferAfternoon?: boolean;
+    } = { duration: 60 },
+  ): SlotSuggestion[] {
+    const participants = Object.keys(participantSchedules);
+    if (participants.length === 0) return [];
+
+    // Collect ALL schedules from all participants into one array
+    const allSchedules = participants.flatMap((p) => participantSchedules[p] || []);
+
+    // Generate candidate slots
+    const suggestions = this.suggestBestSlots(allSchedules, options);
+
+    // Score each suggestion by how many participants are free
+    return suggestions.map((slot) => {
+      const availableParticipants = participants.filter((p) => {
+        const schedules = participantSchedules[p] || [];
+        const hasConflict = schedules.some(
+          (s: any) => s.start < slot.end && s.end > slot.start,
+        );
+        return !hasConflict;
+      });
+
+      const availabilityRatio = availableParticipants.length / participants.length;
+      const adjustedScore = Math.round(slot.score * availabilityRatio);
+
+      return {
+        ...slot,
+        score: adjustedScore,
+        label: `${slot.label} — ${availableParticipants.length}/${participants.length} available`,
+        isOptimal: adjustedScore >= 85 && availableParticipants.length === participants.length,
+      };
+    }).filter((s) => s.score > 0);
+  }
+
+  /**
+   * Find free slots for a specific entity (faculty, room, resource).
+   */
+  findFreeSlots(
+    entitySchedules: any[],
+    options: {
+      duration: number;
+      startDate?: number;
+      endDate?: number;
+      maxResults?: number;
+      minGapMinutes?: number;
+    } = { duration: 60 },
+  ): SlotSuggestion[] {
+    const { duration, startDate, endDate, maxResults = 10, minGapMinutes = 15 } = options;
+
+    const slots = this.suggestBestSlots(entitySchedules, {
+      duration,
+      startDate,
+      endDate: endDate || startDate ? (startDate || Date.now()) + 7 * 86400000 : undefined,
+      maxSuggestions: maxResults,
+    });
+
+    // Add gap information
+    return slots.map((slot) => {
+      const previousEvent = entitySchedules
+        .filter((s: any) => s.end && s.end <= slot.start)
+        .sort((a: any, b: any) => b.end - a.end)[0];
+
+      const nextEvent = entitySchedules
+        .filter((s: any) => s.start && s.start >= slot.end)
+        .sort((a: any, b: any) => a.start - b.start)[0];
+
+      const gapBefore = previousEvent ? slot.start - previousEvent.end : Infinity;
+      const gapAfter = nextEvent ? nextEvent.start - slot.end : Infinity;
+
+      let label = slot.label;
+      if (gapBefore < Infinity && gapBefore < 3600000) label += ` (${Math.round(gapBefore / 60000)}min gap before)`;
+      if (gapAfter < Infinity && gapAfter < 3600000) label += ` (${Math.round(gapAfter / 60000)}min gap after)`;
+
+      return { ...slot, label };
+    });
+  }
+
+  /**
+   * Find available rooms/faculty across branches.
+   */
+  findCrossBranchAvailability(
+    branchSchedules: Record<string, any[]>,
+    options: {
+      duration: number;
+      startDate?: number;
+      endDate?: number;
+      preferredBranch?: string;
+    } = { duration: 60 },
+  ): { branch: string; slots: SlotSuggestion[] }[] {
+    const entries = Object.entries(branchSchedules);
+    if (entries.length === 0) return [];
+
+    return entries
+      .map(([branch, schedules]) => {
+        const slots = this.findFreeSlots(schedules, options);
+        return { branch, slots };
+      })
+      .sort((a, b) => {
+        // Sort by preferred branch first
+        if (options.preferredBranch && a.branch === options.preferredBranch) return -1;
+        if (options.preferredBranch && b.branch === options.preferredBranch) return 1;
+        // Then by availability (most slots first)
+        return b.slots.length - a.slots.length;
+      });
+  }
 }
 
 export const schedulingAssistant = new SchedulingAssistantImpl();
