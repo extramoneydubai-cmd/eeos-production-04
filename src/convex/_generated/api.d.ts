@@ -217,6 +217,7 @@ import type * as schema_lms from "../schema/lms.js";
 import type * as schema_organization from "../schema/organization.js";
 import type * as schema_people from "../schema/people.js";
 import type * as schema_procurement from "../schema/procurement.js";
+import type * as schema_scheduling from "../schema/scheduling.js";
 import type * as schema_shared from "../schema/shared.js";
 import type * as schema_student from "../schema/student.js";
 import type * as schema_tasks from "../schema/tasks.js";
@@ -455,6 +456,7 @@ declare const fullApi: ApiFromModules<{
   "schema/organization": typeof schema_organization;
   "schema/people": typeof schema_people;
   "schema/procurement": typeof schema_procurement;
+  "schema/scheduling": typeof schema_scheduling;
   "schema/shared": typeof schema_shared;
   "schema/student": typeof schema_student;
   "schema/tasks": typeof schema_tasks;
