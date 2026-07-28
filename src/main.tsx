@@ -176,6 +176,7 @@ import { runtimeSelfTest } from "@/platform/runtime/RuntimeSelfTest";
 import { healthScoreEngine } from "@/platform/runtime/HealthScoreEngine";
 import { buildGuard } from "@/platform/runtime/BuildGuard";
 import { RuntimeOverlay } from "@/components/system/RuntimeOverlay";
+import { QuickSchedulerProvider } from "@/components/scheduling/QuickSchedulerDialog";
 
 // Production readiness imports
 import { productionReadinessManager } from "@/platform/release/ProductionReadinessManager";
@@ -352,6 +353,7 @@ createRoot(document.getElementById("root")!).render(
       <InstrumentationProvider>      <ConvexAuthProvider client={convex}>
         <BrowserRouter>
           <DeveloperModeProvider>
+            <QuickSchedulerProvider>
             <AppBoot />
             <RouteSyncer />
             <Suspense fallback={<PageLoadingFallback moduleName="EEOS" />}>
@@ -523,6 +525,7 @@ createRoot(document.getElementById("root")!).render(
           <HealthMonitor />
           <RuntimeOverlay />
           <OfflineBanner />
+          </QuickSchedulerProvider>
           </DeveloperModeProvider>
         </BrowserRouter>
       </ConvexAuthProvider>

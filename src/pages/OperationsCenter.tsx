@@ -22,7 +22,7 @@ import { buildVersionManager } from "@/platform/release/BuildVersionManager";
 import { healthScoreEngine } from "@/platform/runtime/HealthScoreEngine";
 import { errorLog } from "@/lib/error-logger";
 
-type Tab = "overview" | "runtime" | "convex" | "sdk" | "queries" | "pipeline" | "memory" | "errors" | "deployment";
+type Tab = "overview" | "runtime" | "convex" | "sdk" | "queries" | "pipeline" | "memory" | "errors" | "deployment" | "scheduling";
 
 export default function OperationsCenter() {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
@@ -120,6 +120,7 @@ export default function OperationsCenter() {
              { id: "memory", label: "Memory", icon: HardDrive },
              { id: "errors", label: "Errors", icon: Bug },
              { id: "deployment", label: "Deployment", icon: Globe },
+             { id: "scheduling", label: "Scheduling", icon: Calendar },
           ] as const).map((tab) => (
             <button
               key={tab.id}
@@ -146,6 +147,7 @@ export default function OperationsCenter() {
         {activeTab === "memory" && snapshot && <MemoryTab snapshot={snapshot} />}
         {activeTab === "errors" && snapshot && <ErrorsTab snapshot={snapshot} />}
         {activeTab === "deployment" && snapshot && <DeploymentTab snapshot={snapshot} />}
+        {activeTab === "scheduling" && snapshot && <SchedulingTab />}
         {!snapshot && (
           <div className="flex items-center justify-center py-20 text-[#9aa0a6]">
             <Activity className="h-6 w-6 animate-pulse mr-2" />
@@ -424,6 +426,77 @@ function DeploymentTab({ snapshot }: { snapshot: OperationsSnapshot }) {
         <EnvRow label="Readiness State" value={snapshot.platform.readinessState} />
         <EnvRow label="Readiness Score" value={`${snapshot.platform.readinessScore}/100`} />
         <EnvRow label="Uptime" value={`${Math.round(snapshot.uptime / 1000)}s`} />
+      </div>
+    </div>
+  );
+}
+
+// ─── Scheduling Tab ───────────────────────────────────────────
+
+function SchedulingTab() {
+  const schedules = useQuery(api.schedulingSdk.getCounts, {});
+  const todaySchedules = useQuery(api.schedulingSdk.getToday, {}) as any[] | undefined;
+  const resources = useQuery(api.schedulingSdk.listResources, {}) as any[] | undefined;
+
+  const todayCount = todaySchedules?.length || 0;
+  const totalResources = resources?.length || 0;
+  const activeResources = resources?.filter((r: any) => r.status === "active").length || 0;
+
+  const scheduleKPIs = [
+    { label: "Today", value: String(todayCount), color: todayCount > 0 ? "text-blue-600" : "text-[#5f6368]" },
+    { label: "Upcoming", value: String(schedules?.upcoming || 0), color: (schedules?.upcoming || 0) > 0 ? "text-green-600" : "text-[#5f6368]" },
+    { label: "Pending", value: String(schedules?.pending || 0), color: (schedules?.pending || 0) > 0 ? "text-yellow-600" : "text-[#5f6368]" },
+    { label: "Completed", value: String(schedules?.completed || 0), color: (schedules?.completed || 0) > 0 ? "text-green-600" : "text-[#5f6368]" },
+    { label: "Cancelled", value: String(schedules?.cancelled || 0), color: (schedules?.cancelled || 0) > 0 ? "text-red-600" : "text-[#5f6368]" },
+    { label: "Resources", value: `${activeResources}/${totalResources}`, color: activeResources > 0 ? "text-[#1a73e8]" : "text-[#5f6368]" },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+        {scheduleKPIs.map((kpi) => (
+          <div key={kpi.label} className="bg-white rounded-lg border border-[#e8eaed] p-3 text-center">
+            <p className="text-[10px] text-[#9aa0a6] font-medium">{kpi.label}</p>
+            <p className={`text-lg font-semibold ${kpi.color} mt-0.5`}>{kpi.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-white rounded-lg border border-[#e8eaed] p-4">
+          <h3 className="text-[12px] font-semibold text-[#1a1a2e] mb-2">Today's Schedule ({todayCount})</h3>
+          <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
+            {todaySchedules?.length ? todaySchedules.slice(0, 8).map((s: any) => (
+              <div key={s._id} className="flex items-center gap-2 py-1.5 border-b border-[#f1f3f4] last:border-0 hover:bg-[#fafafa] rounded px-1 transition-colors">
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: ({
+                  meeting: "#4285f4", lecture: "#a855f7", exam: "#ea4335", interview: "#34a853",
+                  training: "#06b6d4", counseling: "#ec4899", maintenance: "#f59e0b", holiday: "#f97316",
+                })[s.scheduleType] || "#9aa0a6"}} />
+                <span className="text-[10px] text-[#1a1a2e] truncate flex-1">{s.title}</span>
+                <span className="text-[8px] text-[#5f6368] font-mono">{s.start ? new Date(s.start).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : ""}</span>
+              </div>
+            )) : (
+              <p className="text-[10px] text-[#9aa0a6] py-4 text-center">No schedules today</p>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg border border-[#e8eaed] p-4">
+          <h3 className="text-[12px] font-semibold text-[#1a1a2e] mb-2">Resource Status</h3>
+          <div className="space-y-2">
+            {resources?.length ? resources.slice(0, 8).map((r: any) => (
+              <div key={r._id} className="flex items-center justify-between py-1 border-b border-[#f1f3f4] last:border-0">
+                <div className="flex items-center gap-2">
+                  <div className={`w-1.5 h-1.5 rounded-full ${r.status === "active" ? "bg-green-500" : r.status === "maintenance" ? "bg-yellow-500" : "bg-red-500"}`} />
+                  <span className="text-[10px] text-[#1a1a2e]">{r.name}</span>
+                </div>
+                <span className="text-[9px] text-[#5f6368] capitalize">{r.resourceType} · {r.capacity || "—"} seats</span>
+              </div>
+            )) : (
+              <p className="text-[10px] text-[#9aa0a6] py-4 text-center">No resources configured</p>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
