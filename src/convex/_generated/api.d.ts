@@ -220,6 +220,7 @@ import type * as schema_procurement from "../schema/procurement.js";
 import type * as schema_scheduling from "../schema/scheduling.js";
 import type * as schema_shared from "../schema/shared.js";
 import type * as schema_student from "../schema/student.js";
+import type * as schema_support from "../schema/support.js";
 import type * as schema_tasks from "../schema/tasks.js";
 import type * as schema_workflow from "../schema/workflow.js";
 import type * as searchPlatform from "../searchPlatform.js";
@@ -459,6 +460,7 @@ declare const fullApi: ApiFromModules<{
   "schema/scheduling": typeof schema_scheduling;
   "schema/shared": typeof schema_shared;
   "schema/student": typeof schema_student;
+  "schema/support": typeof schema_support;
   "schema/tasks": typeof schema_tasks;
   "schema/workflow": typeof schema_workflow;
   searchPlatform: typeof searchPlatform;

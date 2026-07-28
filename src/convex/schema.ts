@@ -34,6 +34,7 @@ import { workflowTables } from "./schema/workflow";
 import { analyticsTables } from "./schema/analytics";
 import { calendarTables } from "./schema/calendar";
 import { schedulingTables } from "./schema/scheduling";
+import { supportTables } from "./schema/support";
 
 // Extended users table — accept any fields since our app adds dynamic
 // fields via patches across multiple modules
@@ -67,6 +68,7 @@ const schema = defineSchema({
     ...analyticsTables,
     ...calendarTables,
     ...schedulingTables,
+    ...supportTables,
     // Override authTables tables with our extended definitions
     users: extendedUsersTable,
     sessions: extendedSessionsTable,
