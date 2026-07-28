@@ -12,6 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SchedulingPlanner } from "@/components/scheduling/SchedulingPlanner";
 import {
   BookOpen,
   BookType,
@@ -29,6 +31,9 @@ import {
   Building2,
   School,
   Target,
+  CalendarRange,
+  ChevronRight,
+  Filter,
 } from "lucide-react";
 
 // ─── Main AcademicWorkspace ────────────────────────────────────
@@ -259,21 +264,39 @@ export default function AcademicWorkspace() {
       id: "timetable",
       label: "Timetable",
       icon: Calendar,
-      component: () => (
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Weekly schedule for this {entityLabel}. Manage class timings, room allocation,
-            and faculty schedules.
-          </p>
-          <div className="border border-dashed border-border rounded-lg p-8 text-center text-sm text-muted-foreground">
-            Timetable management will be available in the next release.
-            <br />
-            <Button variant="outline" size="sm" className="mt-2" disabled>
-              Create Timetable
-            </Button>
+      component: () => {
+        const [view, setView] = useState<"day" | "week" | "resource">("week");
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <CalendarRange className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-sm font-medium">{entityLabel} Timetable</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <Select value={view} onValueChange={(v: any) => setView(v)}>
+                  <SelectTrigger className="h-8 w-28 text-xs">
+                    <SelectValue placeholder="View" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="day">Day</SelectItem>
+                    <SelectItem value="week">Week</SelectItem>
+                    <SelectItem value="resource">Resource</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
+                  <Filter className="h-3 w-3" /> Filter
+                </Button>
+              </div>
+            </div>
+            <SchedulingPlanner
+              entityType={entityLabel.toLowerCase()}
+              entityId={programId || batchId || ""}
+              defaultView={view}
+            />
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       id: "examinations",

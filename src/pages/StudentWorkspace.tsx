@@ -27,6 +27,7 @@ import {
   MessageSquare, Activity, Target, ArrowUpRight,
   Ban, Archive, QrCode, Award, ExternalLink, Calendar,
   Percent, BarChart3, Clock, CreditCard, Zap, Star,
+  CalendarRange,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +38,7 @@ import { WorkspaceDocumentsTab } from "@/components/workspace/WorkspaceDocuments
 import { WorkspaceActivityTab } from "@/components/workspace/WorkspaceActivityTab";
 import { WorkspaceNotesTab } from "@/components/workspace/WorkspaceNotesTab";
 import { WorkspaceOverviewTab } from "@/components/workspace/WorkspaceOverviewTab";
+import { ScheduleWidget } from "@/components/scheduling/ScheduleWidget";
 import {
   Card, CardContent, CardHeader, CardTitle,
 } from "@/components/ui/card";
@@ -492,6 +494,30 @@ function StudentLMSTab({ entityType, entityId, entity }: WorkspaceTabProps) {
 }
 
 // ══════════════════════════════════════════════════════════════════
+// TAB: Schedule
+// ══════════════════════════════════════════════════════════════════
+function StudentScheduleTab({ entityType, entityId, entity }: WorkspaceTabProps) {
+  const nav = useNavigate();
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+          <CalendarRange className="h-3.5 w-3.5 text-muted-foreground" />
+          Schedule & Timetable
+        </h3>
+        <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => nav("/scheduler")}>
+          <CalendarRange className="h-3 w-3" /> View Planner
+        </Button>
+      </div>
+      <ScheduleWidget
+        entityType="student"
+        entityId={entityId || ""}
+      />
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
 // TAB: Calendar
 // ══════════════════════════════════════════════════════════════════
 function StudentCalendarTab({ entityType, entityId, entity }: WorkspaceTabProps) {
@@ -644,6 +670,7 @@ export default function StudentWorkspace() {
     { id: "exams", label: "Exams", icon: FileCheck, component: StudentExaminationTab },
     { id: "lms", label: "LMS", icon: Layers, component: StudentLMSTab },
     { id: "calendar", label: "Calendar", icon: Calendar, component: StudentCalendarTab },
+    { id: "schedule", label: "Schedule", icon: CalendarRange, component: StudentScheduleTab },
     { id: "documents", label: "Documents", icon: FileText, component: WorkspaceDocumentsTab },
     { id: "timeline", label: "Timeline", icon: History, component: WorkspaceTimelineTab },
     { id: "tasks", label: "Tasks", icon: ListChecks, component: WorkspaceTasksTab },

@@ -62,32 +62,89 @@ function formatDuration(start: number, end: number): string {
 // ─── Weekly Statistics Card ───────────────────────────────────────
 
 function WeeklyStats({ schedules }: { schedules: any[] }) {
-  const totalHours = schedules.reduce((sum: number, s: any) => sum + (s.end - s.start), 0);
+  const totalMs = schedules.reduce((sum: number, s: any) => sum + (s.end - s.start), 0);
+  const totalHours = totalMs / 3600000;
   const lectureHours = schedules.filter((s: any) => s.scheduleType === "lecture")
-    .reduce((sum: number, s: any) => sum + (s.end - s.start), 0);
+    .reduce((sum: number, s: any) => sum + (s.end - s.start), 0) / 3600000;
   const examHours = schedules.filter((s: any) => s.scheduleType === "exam" || s.scheduleType === "invigilation")
-    .reduce((sum: number, s: any) => sum + (s.end - s.start), 0);
+    .reduce((sum: number, s: any) => sum + (s.end - s.start), 0) / 3600000;
   const meetingHours = schedules.filter((s: any) => s.scheduleType === "meeting" || s.scheduleType === "counseling")
-    .reduce((sum: number, s: any) => sum + (s.end - s.start), 0);
+    .reduce((sum: number, s: any) => sum + (s.end - s.start), 0) / 3600000;
+  const freeHours = Math.max(0, 40 - totalHours);
+  const utilizationRate = Math.min(100, Math.round((totalHours / 40) * 100));
+
+  const utilizationColor = utilizationRate > 80 ? "text-red-600" : utilizationRate > 60 ? "text-amber-600" : "text-emerald-600";
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      {[
-        { label: "Total Hours", value: `${Math.round(totalHours / 3600000)}h`, icon: Clock, color: "text-blue-600" },
-        { label: "Teaching", value: `${Math.round(lectureHours / 3600000)}h`, icon: BookOpen, color: "text-purple-600" },
-        { label: "Exams", value: `${Math.round(examHours / 3600000)}h`, icon: FileCheck, color: "text-red-600" },
-        { label: "Meetings", value: `${Math.round(meetingHours / 3600000)}h`, icon: Users, color: "text-emerald-600" },
-      ].map((s) => (
-        <Card key={s.label} className="p-3 border-[#e8eaed]">
-          <div className="flex items-center gap-2">
-            <s.icon className={`h-4 w-4 ${s.color}`} />
-            <div>
-              <p className="text-[10px] text-[#5f6368]">{s.label}</p>
-              <p className="text-sm font-bold text-[#1a1a2e]">{s.value}</p>
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: "Total Hours", value: `${Math.round(totalHours)}h`, icon: Clock, color: "text-blue-600" },
+          { label: "Teaching", value: `${Math.round(lectureHours)}h`, icon: BookOpen, color: "text-purple-600" },
+          { label: "Exams", value: `${Math.round(examHours)}h`, icon: FileCheck, color: "text-red-600" },
+          { label: "Meetings", value: `${Math.round(meetingHours)}h`, icon: Users, color: "text-emerald-600" },
+        ].map((s) => (
+          <Card key={s.label} className="p-3 border-[#e8eaed]">
+            <div className="flex items-center gap-2">
+              <s.icon className={`h-4 w-4 ${s.color}`} />
+              <div>
+                <p className="text-[10px] text-[#5f6368]">{s.label}</p>
+                <p className="text-sm font-bold text-[#1a1a2e]">{s.value}</p>
+              </div>
             </div>
-          </div>
-        </Card>
-      ))}
+          </Card>
+        ))}
+      </div>
+
+      {/* Utilization Rate */}
+      <Card className="p-3 border-[#e8eaed]">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[10px] text-[#5f6368]">Weekly Utilization</span>
+          <span className={`text-[11px] font-bold ${utilizationColor}`}>{utilizationRate}%</span>
+        </div>
+        <div className="h-1.5 bg-[#e8eaed] rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all ${utilizationRate > 80 ? "bg-red-500" : utilizationRate > 60 ? "bg-amber-500" : "bg-emerald-500"}`}
+            style={{ width: `${utilizationRate}%` }}
+          />
+        </div>
+        <div className="flex justify-between mt-1 text-[9px] text-[#9aa0a6]">
+          <span>Free: {Math.round(freeHours)}h</span>
+          <span>40h max</span>
+        </div>
+      </Card>
+
+      {/* Heatmap mini */}
+      <Card className="p-3 border-[#e8eaed]">
+        <h4 className="text-[11px] font-semibold text-[#1a1a2e] mb-2 flex items-center gap-1.5">
+          <BarChart3 className="h-3 w-3 text-violet-500" />
+          Daily Activity Heatmap (7 days)
+        </h4>
+        <div className="grid grid-cols-7 gap-1">
+          {Array.from({ length: 7 }).map((_, dayIdx) => {
+            const dayStart = Date.now() - (6 - dayIdx) * 86400000;
+            const dayEnd = dayStart + 86400000;
+            const dayHours = schedules
+              .filter((s: any) => s.start >= dayStart && s.start < dayEnd)
+              .reduce((sum: number, s: any) => sum + (s.end - s.start), 0) / 3600000;
+            const intensity = Math.min(1, dayHours / 10);
+            const dayName = new Date(dayStart).toLocaleDateString("en-US", { weekday: "short" });
+            return (
+              <div key={dayIdx} className="text-center">
+                <div
+                  className="h-6 w-full rounded-sm mb-0.5"
+                  style={{
+                    backgroundColor: `rgba(139, 92, 246, ${Math.max(0.08, intensity)})`,
+                    border: intensity > 0.05 ? "1px solid rgba(139, 92, 246, 0.3)" : "1px solid #e8eaed",
+                  }}
+                  title={`${dayName}: ${Math.round(dayHours * 10) / 10}h`}
+                />
+                <span className="text-[8px] text-[#5f6368]">{dayName}</span>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
     </div>
   );
 }
@@ -219,7 +276,33 @@ export default function FacultyScheduleWorkspace() {
             </div>
           </Card>
 
-          {/* Conflict Warning */}
+          {/* Conflict Detection */}
+          {allSchedules.filter((s: any) => {
+            // Detect overlapping schedules
+            const overlaps = allSchedules.filter((o: any) =>
+              o._id !== s._id && s.start < o.end && s.end > o.start
+            );
+            return overlaps.length > 0;
+          }).length > 0 && (
+            <Card className="border-red-200 bg-red-50 p-3">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-[12px] font-medium text-red-800">Schedule Conflicts Detected</p>
+                  <p className="text-[11px] text-red-700 mt-0.5">
+                    {allSchedules.filter((s: any) => {
+                      const overlaps = allSchedules.filter((o: any) =>
+                        o._id !== s._id && s.start < o.end && s.end > o.start
+                      );
+                      return overlaps.length > 0;
+                    }).length} schedule(s) have overlapping time slots
+                  </p>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Pending Approval Warning */}
           {allSchedules.filter((s: any) => s.status === "pending_approval").length > 0 && (
             <Card className="border-amber-200 bg-amber-50 p-3">
               <div className="flex items-start gap-2">

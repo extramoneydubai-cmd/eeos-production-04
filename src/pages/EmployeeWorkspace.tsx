@@ -28,6 +28,7 @@ import {
   Target, ArrowUpRight, ExternalLink, Ban, Archive, QrCode,
   Award, Zap, CreditCard, Percent, Clock, Star, Trophy,
   Users, MapPin, Hash, GraduationCap, Mail, Phone,
+  CalendarRange,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WorkspaceShell } from "@/components/workspace/WorkspaceShell";
@@ -37,6 +38,8 @@ import { WorkspaceDocumentsTab } from "@/components/workspace/WorkspaceDocuments
 import { WorkspaceActivityTab } from "@/components/workspace/WorkspaceActivityTab";
 import { WorkspaceNotesTab } from "@/components/workspace/WorkspaceNotesTab";
 import { WorkspaceOverviewTab } from "@/components/workspace/WorkspaceOverviewTab";
+import { ScheduleWidget } from "@/components/scheduling/ScheduleWidget";
+import { SchedulingPlanner } from "@/components/scheduling/SchedulingPlanner";
 import {
   Card, CardContent, CardHeader, CardTitle,
 } from "@/components/ui/card";
@@ -415,6 +418,44 @@ function EmployeeAssetsTab({ entityType, entityId, entity }: WorkspaceTabProps) 
 }
 
 // ══════════════════════════════════════════════════════════════════
+// TAB: Schedule
+// ══════════════════════════════════════════════════════════════════
+function EmployeeScheduleTab({ entityType, entityId, entity }: WorkspaceTabProps) {
+  const nav = useNavigate();
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+          <CalendarRange className="h-3.5 w-3.5 text-muted-foreground" />
+          Schedule & Meetings
+        </h3>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => nav("/scheduler")}>
+            <CalendarRange className="h-3 w-3" /> Planner
+          </Button>
+        </div>
+      </div>
+      <ScheduleWidget
+        entityType="employee"
+        entityId={entityId || ""}
+        compact={false}
+      />
+      <div className="mt-4">
+        <h4 className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+          <CalendarRange className="h-3.5 w-3.5" />
+          Weekly Overview
+        </h4>
+        <SchedulingPlanner
+          entityType="employee"
+          entityId={entityId || ""}
+          defaultView="week"
+        />
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════
 // TAB: Calendar
 // ══════════════════════════════════════════════════════════════════
 function EmployeeCalendarTab({ entityType, entityId, entity }: WorkspaceTabProps) {
@@ -511,6 +552,7 @@ export default function EmployeeWorkspace() {
     { id: "training", label: "Training", icon: BookOpen, component: EmployeeTrainingTab },
     { id: "assets", label: "Assets", icon: Monitor, component: EmployeeAssetsTab },
     { id: "calendar", label: "Calendar", icon: Calendar, component: EmployeeCalendarTab },
+    { id: "schedule", label: "Schedule", icon: CalendarRange, component: EmployeeScheduleTab },
     { id: "documents", label: "Documents", icon: FileText, component: WorkspaceDocumentsTab },
     { id: "timeline", label: "Timeline", icon: History, component: WorkspaceTimelineTab },
     { id: "tasks", label: "Tasks", icon: ListChecks, component: WorkspaceTasksTab },
