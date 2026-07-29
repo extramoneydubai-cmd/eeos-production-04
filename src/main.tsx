@@ -331,6 +331,10 @@ const TicketDatabase = lazy(() => import("./pages/TicketDatabase.tsx"));
 const TicketWorkspace = lazy(() => import("./pages/TicketWorkspace.tsx"));
 const SupportDashboard = lazy(() => import("./pages/SupportDashboard.tsx"));
 const AgentDashboard = lazy(() => import("./pages/AgentDashboard.tsx"));
+const MarketingCampaigns = lazy(() => import("./pages/MarketingCampaigns.tsx"));
+const MarketingAnalytics = lazy(() => import("./pages/MarketingAnalytics.tsx"));
+const HRDashboard = lazy(() => import("./pages/HRDashboard.tsx"));
+const ProductionDashboard = lazy(() => import("./pages/ProductionDashboard.tsx"));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -532,6 +536,10 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/tickets/:ticketId" element={<ProtectedRoute><TicketWorkspace /></ProtectedRoute>} />
               <Route path="/support" element={<ProtectedRoute><SupportDashboard /></ProtectedRoute>} />
               <Route path="/support/agent" element={<ProtectedRoute><AgentDashboard /></ProtectedRoute>} />
+              <Route path="/marketing/campaigns" element={<ProtectedRoute><MarketingCampaigns /></ProtectedRoute>} />
+              <Route path="/marketing/analytics" element={<ProtectedRoute><MarketingAnalytics /></ProtectedRoute>} />
+              <Route path="/hr" element={<ProtectedRoute><HRDashboard /></ProtectedRoute>} />
+              <Route path="/production" element={<ProtectedRoute><ProductionDashboard /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
