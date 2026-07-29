@@ -178,6 +178,9 @@ import { buildGuard } from "@/platform/runtime/BuildGuard";
 import { RuntimeOverlay } from "@/components/system/RuntimeOverlay";
 import { QuickSchedulerProvider } from "@/components/scheduling/QuickSchedulerDialog";
 
+// Global error boundary — wraps the entire React root
+import { GlobalErrorBoundary } from "@/components/system/GlobalErrorBoundary";
+
 // Production readiness imports
 import { productionReadinessManager } from "@/platform/release/ProductionReadinessManager";
 import { featureFlagManager } from "@/platform/release/FeatureFlagManager";
@@ -354,7 +357,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 createRoot(document.getElementById("root")!).render(
-    <>
+    <GlobalErrorBoundary>
       <VlyToolbar />
       <InstrumentationProvider>      <ConvexAuthProvider client={convex}>
         <BrowserRouter>
@@ -542,5 +545,5 @@ createRoot(document.getElementById("root")!).render(
         </BrowserRouter>
       </ConvexAuthProvider>
       </InstrumentationProvider>
-    </>
+    </GlobalErrorBoundary>
 );
