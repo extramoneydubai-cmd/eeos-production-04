@@ -1,215 +1,329 @@
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/hooks/use-auth";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   BookOpen,
-  Users,
+  CalendarDays,
   CheckSquare,
   Clock,
-  Calendar,
+  FileText,
   GraduationCap,
-  BarChart3,
-  TrendingUp,
-  Loader2,
-  Activity,
-  AlertCircle,
-  CheckCircle2,
+  LucideIcon,
+  MessageSquare,
+  UserCheck,
+  ClipboardList,
+  HelpCircle,
+  BookMarked,
+  Users,
 } from "lucide-react";
-import { format } from "date-fns";
-
-function StatCard({ icon: Icon, label, value, sub, color }: {
-  icon: React.ElementType;
-  label: string;
-  value: string | number;
-  sub?: string;
-  color: string;
-}) {
-  return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs font-medium text-slate-500">{label}</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1">{value}</p>
-          {sub && <p className="text-[10px] text-slate-400 mt-0.5">{sub}</p>}
-        </div>
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${color}`}>
-          <Icon className="w-5 h-5 text-white" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function StudentRow({ student }: { student: any }) {
-  const dotColor =
-    student.attendance >= 90 ? "bg-emerald-500" :
-    student.attendance >= 75 ? "bg-amber-500" : "bg-rose-500";
-
-  const perfColor =
-    student.performance >= 85 ? "text-emerald-600" :
-    student.performance >= 70 ? "text-amber-600" : "text-rose-600";
-
-  return (
-    <div className="px-4 py-2.5 flex items-center gap-3 hover:bg-slate-50/50 transition-colors">
-      <div className={`w-2 h-2 rounded-full shrink-0 ${dotColor}`} />
-      <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-slate-800 truncate">{student.name}</p>
-        <p className="text-[10px] text-slate-400">Grade {student.grade} &bull; Section {student.section}</p>
-      </div>
-      <div className="text-right shrink-0">
-        <p className={`text-xs font-medium ${perfColor}`}>
-          {student.performance}%
-        </p>
-        <p className="text-[10px] text-slate-400">Perf.</p>
-      </div>
-    </div>
-  );
-}
-
-function TaskRow({ task }: { task: any }) {
-  const statusColors: Record<string, string> = {
-    Pending: "text-amber-600 bg-amber-50 border-amber-200",
-    "In Progress": "text-blue-600 bg-blue-50 border-blue-200",
-    Completed: "text-emerald-600 bg-emerald-50 border-emerald-200",
-  };
-  return (
-    <div className="px-4 py-2.5 hover:bg-slate-50/50 transition-colors">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium text-slate-800 truncate">{task.title}</p>
-          <p className="text-[10px] text-slate-400 mt-0.5 capitalize">{task.taskType}</p>
-        </div>
-        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full border shrink-0 ${
-          statusColors[task.status] || "text-slate-600 bg-slate-50 border-slate-200"
-        }`}>
-          {task.status}
-        </span>
-      </div>
-    </div>
-  );
-}
 
 export default function DashboardFaculty() {
-  const { user } = useAuth();
-  const demoProfile = useQuery(api.demo.queries.getCurrentDemoProfile);
-  const students = useQuery(api.demo.queries.getAllStudents);
-  const tasks = useQuery(api.demo.queries.getTasksForRole, { role: "Faculty" });
-  const notifications = useQuery(api.demo.queries.getNotificationsForRole, { role: "Faculty" });
-  const activities = useQuery(api.demo.queries.getActivities);
-
-  const isLoading = !demoProfile || !students || !tasks || !notifications || !activities;
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
-      </div>
-    );
-  }
-
-  const activeStudents = students.filter((s) => s.status === "Active").length;
-  const atRiskStudents = students.filter((s) => s.status === "At Risk").length;
-  const avgAttendance = Math.round(students.reduce((sum, s) => sum + s.attendance, 0) / students.length);
-  const avgPerformance = Math.round(students.reduce((sum, s) => sum + s.performance, 0) / students.length);
-  const pendingTasks = tasks.filter((t) => t.status !== "Completed").length;
-
-  const stats = [
-    { icon: BookOpen, label: "Total Students", value: students.length, sub: activeStudents + " Active", color: "bg-gradient-to-br from-emerald-600 to-teal-600" },
-    { icon: Users, label: "At Risk", value: atRiskStudents, sub: "Needs intervention", color: "bg-gradient-to-br from-rose-600 to-pink-600" },
-    { icon: TrendingUp, label: "Avg Attendance", value: avgAttendance + "%", sub: "All classes", color: "bg-gradient-to-br from-blue-600 to-cyan-600" },
-    { icon: BarChart3, label: "Avg Performance", value: avgPerformance + "%", sub: "All subjects", color: "bg-gradient-to-br from-violet-600 to-indigo-600" },
-    { icon: CheckSquare, label: "Assignments", value: pendingTasks, sub: "Pending grading", color: "bg-gradient-to-br from-amber-600 to-orange-600" },
-    { icon: GraduationCap, label: "Classes Today", value: "3", sub: "Grade 12, 11, 10", color: "bg-gradient-to-br from-sky-600 to-blue-600" },
-  ];
+  const WidgetCard = ({
+    icon: Icon,
+    title,
+    value,
+    subtitle,
+    color = "from-blue-500 to-indigo-600",
+  }: {
+    icon: LucideIcon;
+    title: string;
+    value: string | number;
+    subtitle?: string;
+    color?: string;
+  }) => (
+    <Card className="overflow-hidden transition-all hover:shadow-md">
+      <div className={`h-1.5 bg-gradient-to-r ${color}`} />
+      <CardContent className="pt-5">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            <p className="text-2xl font-bold mt-1">{value}</p>
+            {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
+          </div>
+          <div className={`p-2.5 rounded-lg bg-gradient-to-br ${color} text-white`}>
+            <Icon className="h-5 w-5" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   return (
-    <div className="space-y-6">
-      {/* Welcome */}
+    <div className="space-y-6 p-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">
-            Faculty Dashboard
-          </h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            {demoProfile?.fullName || user?.name || "User"} &bull; {demoProfile?.designation}
+          <h1 className="text-2xl font-bold tracking-tight">Faculty Portal</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Welcome, Mr. Sharma! Here&apos;s your teaching overview.
           </p>
         </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-xs">
+            Mathematics • Class 10A, 10B
+          </Badge>
+          <Button size="sm" variant="outline">
+            <MessageSquare className="h-4 w-4 mr-2" /> Messages
+          </Button>
+        </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
-        {stats.map((stat, i) => (
-          <StatCard key={i} {...stat} />
-        ))}
+      {/* KPI Widgets */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <WidgetCard
+          icon={BookOpen}
+          title="Today's Classes"
+          value="4"
+          subtitle="5.5 hours total"
+          color="from-blue-500 to-indigo-600"
+        />
+        <WidgetCard
+          icon={Users}
+          title="Students"
+          value="82"
+          subtitle="Across 2 sections"
+          color="from-emerald-500 to-teal-600"
+        />
+        <WidgetCard
+          icon={ClipboardList}
+          title="Homework to Review"
+          value="23"
+          subtitle="3 submissions pending"
+          color="from-amber-500 to-orange-600"
+        />
+        <WidgetCard
+          icon={Clock}
+          title="Weekly Load"
+          value="24h"
+          subtitle="Max: 30h"
+          color="from-rose-500 to-pink-600"
+        />
       </div>
 
-      {/* Three-panel layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* My Students */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-          <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-900">My Students</h3>
-            <span className="text-[10px] text-slate-400">{students.length} total</span>
-          </div>
-          <div className="divide-y divide-slate-100 max-h-[360px] overflow-y-auto">
-            {students.slice(0, 10).map((student, i) => (
-              <StudentRow key={i} student={student} />
-            ))}
-            {students.length === 0 && (
-              <div className="px-4 py-6 text-center text-xs text-slate-400">No students assigned</div>
-            )}
-          </div>
-        </div>
+      {/* Quick Actions */}
+      <div className="grid gap-3 md:grid-cols-4">
+        <Button variant="outline" className="h-20 flex-col gap-2 border-dashed">
+          <UserCheck className="h-5 w-5" />
+          <span className="text-xs">Mark Attendance</span>
+        </Button>
+        <Button variant="outline" className="h-20 flex-col gap-2 border-dashed">
+          <ClipboardList className="h-5 w-5" />
+          <span className="text-xs">Create Homework</span>
+        </Button>
+        <Button variant="outline" className="h-20 flex-col gap-2 border-dashed">
+          <HelpCircle className="h-5 w-5" />
+          <span className="text-xs">Question Bank</span>
+        </Button>
+        <Button variant="outline" className="h-20 flex-col gap-2 border-dashed">
+          <GraduationCap className="h-5 w-5" />
+          <span className="text-xs">Create Exam</span>
+        </Button>
+      </div>
 
-        {/* Tasks & Assignments */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-          <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-900">Tasks &amp; Assignments</h3>
-            <span className="text-[10px] text-slate-400">{pendingTasks} pending</span>
-          </div>
-          <div className="divide-y divide-slate-100 max-h-[360px] overflow-y-auto">
-            {tasks.filter(t => t.status !== "Completed").slice(0, 8).map((task, i) => (
-              <TaskRow key={i} task={task} />
-            ))}
-            {tasks.filter(t => t.status !== "Completed").length === 0 && (
-              <div className="px-4 py-6 text-center text-xs text-slate-400">No pending tasks</div>
-            )}
-          </div>
-        </div>
+      {/* Main Content Tabs */}
+      <Tabs defaultValue="schedule" className="space-y-4">
+        <TabsList className="grid w-full md:grid-cols-6">
+          <TabsTrigger value="schedule">Schedule</TabsTrigger>
+          <TabsTrigger value="attendance">Attendance</TabsTrigger>
+          <TabsTrigger value="homework">Homework</TabsTrigger>
+          <TabsTrigger value="exams">Exams</TabsTrigger>
+          <TabsTrigger value="performance">Performance</TabsTrigger>
+          <TabsTrigger value="documents">Documents</TabsTrigger>
+        </TabsList>
 
-        {/* Notifications */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-          <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-900">Notifications</h3>
-            <span className="text-[10px] text-slate-400">{notifications.filter(n => !n.isRead).length} unread</span>
-          </div>
-          <div className="divide-y divide-slate-100 max-h-[360px] overflow-y-auto">
-            {notifications.slice(0, 8).map((notif, i) => {
-              const typeIcons: Record<string, React.ElementType> = {
-                academic: BookOpen, warning: AlertCircle, success: CheckCircle2,
-                enrollment: Users, meeting: Calendar, reminder: Clock,
-              };
-              const NIcon = typeIcons[notif.type] || Activity;
-              return (
-                <div key={i} className={"px-4 py-2.5 flex items-start gap-2.5 hover:bg-slate-50/50 transition-colors " + (!notif.isRead ? "bg-indigo-50/30" : "")}>
-                  <div className={"w-7 h-7 rounded-full flex items-center justify-center shrink-0 " + (notif.type === "warning" ? "bg-amber-50" : "bg-emerald-50")}>
-                    <NIcon className={"w-3.5 h-3.5 " + (notif.type === "warning" ? "text-amber-600" : "text-emerald-600")} />
+        <TabsContent value="schedule" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Today&apos;s Schedule</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {[
+                  { time: "08:00 - 08:45", subject: "Maths 10A", room: "101", count: 42 },
+                  { time: "08:45 - 09:30", subject: "Maths 10A", room: "101", count: 42 },
+                  { time: "09:30 - 10:15", subject: "Maths 10B", room: "102", count: 40 },
+                  { time: "10:15 - 10:45", subject: "Break", room: "-", count: 0 },
+                  { time: "10:45 - 11:30", subject: "Maths 10B", room: "102", count: 40 },
+                  { time: "13:00 - 14:00", subject: "Office Hours", room: "Staff Room", count: 0 },
+                ].map((slot, i) => (
+                  <div
+                    key={i}
+                    className={`flex items-center justify-between p-3 rounded-lg border ${
+                      slot.subject === "Break" ? "bg-amber-50/50 dark:bg-amber-950/20" : "bg-card"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <p className="font-medium text-sm">{slot.subject}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Room {slot.room}{slot.count > 0 ? ` • ${slot.count} students` : ""}
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{slot.time}</span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-slate-800">{notif.title}</p>
-                    <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-1">{notif.message}</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">{format(new Date(notif.createdAt), "MMM d, h:mm a")}</p>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="attendance" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Attendance — Class 10A</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {[
+                  { name: "Aarav Sharma", status: "present" },
+                  { name: "Priya Patel", status: "present" },
+                  { name: "Rahul Verma", status: "absent" },
+                  { name: "Ananya Singh", status: "present" },
+                  { name: "Vikram Gupta", status: "leave" },
+                ].map((student, i) => (
+                  <div key={i} className="flex items-center justify-between p-2 border-b last:border-0">
+                    <span className="text-sm">{student.name}</span>
+                    <Badge
+                      variant={student.status === "present" ? "default" : "secondary"}
+                      className={
+                        student.status === "present"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : student.status === "absent"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-amber-100 text-amber-700"
+                      }
+                    >
+                      {student.status}
+                    </Badge>
                   </div>
-                  {!notif.isRead && <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />}
+                ))}
+              </div>
+              <Button size="sm" className="mt-3 w-full">
+                <UserCheck className="h-4 w-4 mr-2" /> Mark Full Attendance
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="homework" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Recent Homework</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <p className="font-medium text-sm">Algebra — Chapter 8 Exercise</p>
+                    <p className="text-xs text-muted-foreground">Class 10A • Due: 18 Jul • 32/42 submitted</p>
+                  </div>
+                  <Badge variant="secondary">32 Submitted</Badge>
                 </div>
-              );
-            })}
-            {notifications.length === 0 && (
-              <div className="px-4 py-6 text-center text-xs text-slate-400">No notifications</div>
-            )}
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <p className="font-medium text-sm">Geometry — Practice Problems</p>
+                    <p className="text-xs text-muted-foreground">Class 10B • Due: 19 Jul • 18/40 submitted</p>
+                  </div>
+                  <Badge variant="outline">18 Submitted</Badge>
+                </div>
+              </div>
+              <Button size="sm" variant="outline" className="mt-3">
+                <ClipboardList className="h-4 w-4 mr-2" /> Create New Homework
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="exams" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Exam Management</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <p className="font-medium text-sm">Unit Test 3 — Mathematics</p>
+                    <p className="text-xs text-muted-foreground">Scheduled: 25 Jul 2026 • Duration: 3h</p>
+                  </div>
+                  <Badge>Active</Badge>
+                </div>
+              </div>
+              <div className="mt-3 flex gap-2">
+                <Button size="sm">
+                  <HelpCircle className="h-4 w-4 mr-2" /> Create Question Paper
+                </Button>
+                <Button size="sm" variant="outline">
+                  <BookMarked className="h-4 w-4 mr-2" /> Question Bank
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="performance" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Student Performance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8 text-muted-foreground">
+                <GraduationCap className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                <p>Performance analytics available after exam results are published.</p>
+                <Button variant="outline" size="sm" className="mt-3">
+                  Generate Performance Report
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="documents" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">My Documents</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-muted/50">
+                  <FileText className="h-8 w-8 text-blue-500" />
+                  <div>
+                    <p className="font-medium text-sm">Teaching Schedule</p>
+                    <p className="text-xs text-muted-foreground">PDF</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-muted/50">
+                  <FileText className="h-8 w-8 text-orange-500" />
+                  <div>
+                    <p className="font-medium text-sm">Lesson Plan — Algebra</p>
+                    <p className="text-xs text-muted-foreground">PDF</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Leave & Training CTA */}
+      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 rounded-lg border">
+        <div className="flex items-center gap-3">
+          <CalendarDays className="h-5 w-5 text-purple-600" />
+          <div>
+            <p className="text-sm font-medium">Plan your leave</p>
+            <p className="text-xs text-muted-foreground">You have 12 leave days remaining this year</p>
           </div>
         </div>
+        <Button size="sm" variant="outline">Apply for Leave</Button>
       </div>
     </div>
   );
+}
+
+function Bell({ className }: { className?: string }) {
+  return <svg className={className} />;
 }

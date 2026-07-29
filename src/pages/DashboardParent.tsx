@@ -1,215 +1,325 @@
+import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useAuth } from "@/hooks/use-auth";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Users,
-  GraduationCap,
-  DollarSign,
-  Calendar,
-  Bell,
-  BookOpen,
-  TrendingUp,
-  CheckCircle2,
-  AlertCircle,
+  CalendarDays,
   Clock,
-  Activity,
-  Loader2,
+  FileText,
+  GraduationCap,
+  LucideIcon,
+  MessageSquare,
+  Smartphone,
   UserCheck,
+  BookOpen,
+  CreditCard,
+  Download,
+  HelpCircle,
+  Bell,
 } from "lucide-react";
-import { format } from "date-fns";
-
-function StatCard({ icon: Icon, label, value, sub, color }: {
-  icon: React.ElementType;
-  label: string;
-  value: string | number;
-  sub?: string;
-  color: string;
-}) {
-  return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-xs font-medium text-slate-500">{label}</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1">{value}</p>
-          {sub && <p className="text-[10px] text-slate-400 mt-0.5">{sub}</p>}
-        </div>
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${color}`}>
-          <Icon className="w-5 h-5 text-white" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function StudentCard({ student }: { student: any }) {
-  return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-      <div className="flex items-start justify-between mb-3">
-        <div>
-          <h3 className="text-sm font-semibold text-slate-900">{student.name}</h3>
-          <p className="text-[10px] text-slate-500">Grade {student.grade} • Section {student.section}</p>
-        </div>
-        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full border ${
-          student.status === "Active"
-            ? "text-emerald-600 bg-emerald-50 border-emerald-200"
-            : "text-amber-600 bg-amber-50 border-amber-200"
-        }`}>
-          {student.status}
-        </span>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-slate-50 rounded-lg p-2.5">
-          <p className="text-[10px] text-slate-500">Attendance</p>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full ${
-                  student.attendance >= 90 ? "bg-emerald-500" :
-                  student.attendance >= 75 ? "bg-amber-500" : "bg-rose-500"
-                }`}
-                style={{ width: `${student.attendance}%` }}
-              />
-            </div>
-            <span className="text-xs font-semibold text-slate-700">{student.attendance}%</span>
-          </div>
-        </div>
-        <div className="bg-slate-50 rounded-lg p-2.5">
-          <p className="text-[10px] text-slate-500">Performance</p>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full ${
-                  student.performance >= 85 ? "bg-emerald-500" :
-                  student.performance >= 70 ? "bg-blue-500" : "bg-amber-500"
-                }`}
-                style={{ width: `${student.performance}%` }}
-              />
-            </div>
-            <span className="text-xs font-semibold text-slate-700">{student.performance}%</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function NotificationItem({ notif }: { notif: any }) {
-  const typeIcons: Record<string, React.ElementType> = {
-    enrollment: Users, payment: DollarSign, meeting: Calendar,
-    success: CheckCircle2, warning: AlertCircle, reminder: Clock,
-  };
-  const NIcon = typeIcons[notif.type] || Bell;
-  return (
-    <div className={`px-4 py-2.5 flex items-start gap-2.5 hover:bg-slate-50/50 transition-colors ${!notif.isRead ? "bg-indigo-50/30" : ""}`}>
-      <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
-        notif.type === "warning" ? "bg-amber-50" : notif.type === "payment" ? "bg-emerald-50" : "bg-slate-50"
-      }`}>
-        <NIcon className={`w-3.5 h-3.5 ${
-          notif.type === "warning" ? "text-amber-600" : notif.type === "payment" ? "text-emerald-600" : "text-slate-600"
-        }`} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-slate-800">{notif.title}</p>
-        <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-1">{notif.message}</p>
-        <p className="text-[10px] text-slate-400 mt-0.5">{format(new Date(notif.createdAt), "MMM d, h:mm a")}</p>
-      </div>
-      {!notif.isRead && <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />}
-    </div>
-  );
-}
 
 export default function DashboardParent() {
   const { user } = useAuth();
-  const demoProfile = useQuery(api.demo.queries.getCurrentDemoProfile);
-  const students = useQuery(api.demo.queries.getAllStudents);
-  const admissions = useQuery(api.demo.queries.getAdmissions);
-  const notifications = useQuery(api.demo.queries.getAllNotifications);
-  const activities = useQuery(api.demo.queries.getActivities);
 
-  const isLoading = !demoProfile || !students || !admissions || !notifications || !activities;
+  const students = useQuery(api.users.listUsers, {});
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
-      </div>
-    );
-  }
-
-  // Aisha Khan is the demo parent's child (first student in seed data)
-  const myChildren = students.filter((s) => s.parentEmail === "parent@vedaedtech.ae");
-  const activeChildren = myChildren.filter((s) => s.status === "Active").length;
-  const avgChildAttendance = myChildren.length > 0
-    ? Math.round(myChildren.reduce((sum, s) => sum + s.attendance, 0) / myChildren.length)
-    : 0;
-  const totalFeePaid = admissions.reduce((sum, a) => sum + a.feePaid, 0);
-  const childAdmissions = admissions.filter((a) =>
-    myChildren.some((c) => c.name.toLowerCase().includes(a.studentName.toLowerCase().split(" ")[0].toLowerCase()))
-  );
-  const upcomingFee = childAdmissions.reduce((sum, a) => sum + (a.feeQuoted - a.feePaid), 0);
-
-  const stats = [
-    { icon: Users, label: "My Children", value: myChildren.length, sub: `${activeChildren} Active`, color: "bg-gradient-to-br from-indigo-600 to-purple-600" },
-    { icon: UserCheck, label: "Avg Attendance", value: `${avgChildAttendance}%`, sub: "All children", color: "bg-gradient-to-br from-emerald-600 to-teal-600" },
-    { icon: DollarSign, label: "Fee Paid (AED)", value: totalFeePaid.toLocaleString(), sub: "Total this year", color: "bg-gradient-to-br from-amber-600 to-orange-600" },
-    { icon: BookOpen, label: "Upcoming Fee (AED)", value: upcomingFee.toLocaleString(), sub: "Pending payments", color: "bg-gradient-to-br from-rose-600 to-pink-600" },
-    { icon: GraduationCap, label: "Avg Performance", value: myChildren.length > 0
-        ? `${Math.round(myChildren.reduce((sum, s) => sum + s.performance, 0) / myChildren.length)}%`
-        : "N/A", sub: "All subjects", color: "bg-gradient-to-br from-sky-600 to-blue-600" },
-    { icon: Bell, label: "Announcements", value: notifications.filter(n => n.type === "enrollment" || n.type === "meeting").length, sub: "Recent updates", color: "bg-gradient-to-br from-violet-600 to-indigo-600" },
-  ];
-
-  return (
-    <div className="space-y-6">
-      {/* Welcome */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">
-            Parent Portal
-          </h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            {demoProfile?.fullName || user?.name || "User"} • {demoProfile?.designation}
-          </p>
-        </div>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
-        {stats.map((stat, i) => (
-          <StatCard key={i} {...stat} />
-        ))}
-      </div>
-
-      {/* Children + Notifications */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* My Children */}
-        <div className="lg:col-span-2 space-y-3">
-          <h3 className="text-sm font-semibold text-slate-900">My Children</h3>
-          {myChildren.length > 0 ? (
-            myChildren.map((student, i) => (
-              <StudentCard key={i} student={student} />
-            ))
-          ) : (
-            <div className="bg-white rounded-xl border border-slate-200 p-6 text-center text-xs text-slate-400 shadow-sm">
-              No children found in the demo data
-            </div>
-          )}
-        </div>
-
-        {/* Notifications & Announcements */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
-          <div className="px-4 py-3 border-b border-slate-100">
-            <h3 className="text-sm font-semibold text-slate-900">Announcements</h3>
-          </div>
-          <div className="divide-y divide-slate-100 max-h-[480px] overflow-y-auto">
-            {notifications.slice(0, 10).map((notif, i) => (
-              <NotificationItem key={i} notif={notif} />
-            ))}
-            {notifications.length === 0 && (
-              <div className="px-4 py-6 text-center text-xs text-slate-400">No announcements</div>
+  const WidgetCard = ({
+    icon: Icon,
+    title,
+    value,
+    subtitle,
+    color = "from-blue-500 to-indigo-600",
+  }: {
+    icon: LucideIcon;
+    title: string;
+    value: string | number;
+    subtitle?: string;
+    color?: string;
+  }) => (
+    <Card className="overflow-hidden transition-all hover:shadow-md">
+      <div className={`h-1.5 bg-gradient-to-r ${color}`} />
+      <CardContent className="pt-5">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            <p className="text-2xl font-bold mt-1">{value}</p>
+            {subtitle && (
+              <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
             )}
           </div>
+          <div className={`p-2.5 rounded-lg bg-gradient-to-br ${color} text-white`}>
+            <Icon className="h-5 w-5" />
+          </div>
         </div>
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <div className="space-y-6 p-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Parent Portal</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Stay connected with your child&apos;s academic journey
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm">
+            <Bell className="h-4 w-4 mr-2" /> Notifications
+          </Button>
+          <Button size="sm">
+            <MessageSquare className="h-4 w-4 mr-2" /> Contact School
+          </Button>
+        </div>
+      </div>
+
+      {/* Child Selector */}
+      <Card className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20">
+        <CardContent className="flex items-center justify-between py-4">
+          <div className="flex items-center gap-3">
+            <GraduationCap className="h-8 w-8 text-purple-600" />
+            <div>
+              <p className="text-sm font-medium">Viewing</p>
+              <p className="text-lg font-bold">Aarav Sharma — Class 10A</p>
+            </div>
+          </div>
+          <Button variant="outline">Switch Child</Button>
+        </CardContent>
+      </Card>
+
+      {/* KPI Widgets */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <WidgetCard
+          icon={BookOpen}
+          title="Attendance"
+          value="94%"
+          subtitle="This month"
+          color="from-emerald-500 to-teal-600"
+        />
+        <WidgetCard
+          icon={FileText}
+          title="Homework"
+          value="3"
+          subtitle="Pending submissions"
+          color="from-blue-500 to-indigo-600"
+        />
+        <WidgetCard
+          icon={CreditCard}
+          title="Fee Balance"
+          value="₹12,500"
+          subtitle="Due: 15 Aug 2026"
+          color="from-amber-500 to-orange-600"
+        />
+        <WidgetCard
+          icon={Clock}
+          title="Upcoming Exams"
+          value="2"
+          subtitle="Next: Maths (20 Jul)"
+          color="from-rose-500 to-pink-600"
+        />
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Button variant="outline" className="h-20 border-dashed flex-col gap-1">
+          <Download className="h-5 w-5" />
+          <span>Download Receipts</span>
+        </Button>
+        <Button variant="outline" className="h-20 border-dashed flex-col gap-1">
+          <CalendarDays className="h-5 w-5" />
+          <span>View Calendar</span>
+        </Button>
+        <Button variant="outline" className="h-20 border-dashed flex-col gap-1">
+          <HelpCircle className="h-5 w-5" />
+          <span>Support Tickets</span>
+        </Button>
+      </div>
+
+      {/* Main Content Tabs */}
+      <Tabs defaultValue="attendance" className="space-y-4">
+        <TabsList className="grid w-full md:grid-cols-5">
+          <TabsTrigger value="attendance">Attendance</TabsTrigger>
+          <TabsTrigger value="fees">Fees & Receipts</TabsTrigger>
+          <TabsTrigger value="homework">Homework</TabsTrigger>
+          <TabsTrigger value="results">Results</TabsTrigger>
+          <TabsTrigger value="documents">Documents</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="attendance" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Attendance Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="text-center p-4 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg">
+                  <p className="text-3xl font-bold text-emerald-600">92</p>
+                  <p className="text-sm text-muted-foreground">Present</p>
+                </div>
+                <div className="text-center p-4 bg-red-50 dark:bg-red-950/30 rounded-lg">
+                  <p className="text-3xl font-bold text-red-600">4</p>
+                  <p className="text-sm text-muted-foreground">Absent</p>
+                </div>
+                <div className="text-center p-4 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
+                  <p className="text-3xl font-bold text-amber-600">2</p>
+                  <p className="text-sm text-muted-foreground">Leave</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="fees" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Fee Ledger</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <div>
+                    <p className="font-medium">Tuition Fee (Q2 2026)</p>
+                    <p className="text-sm text-muted-foreground">Due: 15 Jul 2026</p>
+                  </div>
+                  <Badge variant="outline" className="text-amber-600 border-amber-300">
+                    Pending ₹12,500
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <div>
+                    <p className="font-medium">Tuition Fee (Q1 2026)</p>
+                    <p className="text-sm text-muted-foreground">Paid: 15 Apr 2026</p>
+                  </div>
+                  <Badge variant="outline" className="text-emerald-600 border-emerald-300">
+                    Paid ₹12,500
+                  </Badge>
+                </div>
+              </div>
+              <div className="mt-4 flex gap-2">
+                <Button size="sm">
+                  <CreditCard className="h-4 w-4 mr-2" /> Pay Now
+                </Button>
+                <Button size="sm" variant="outline">
+                  Download Receipt
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="homework" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Homework & Assignments</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <p className="font-medium">Mathematics — Chapter 8: Algebra</p>
+                    <p className="text-xs text-muted-foreground">Due: 18 Jul 2026 • Submitted: 5/10 questions</p>
+                  </div>
+                  <Badge>In Progress</Badge>
+                </div>
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <p className="font-medium">Science — Lab Report</p>
+                    <p className="text-xs text-muted-foreground">Due: 20 Jul 2026 • Not yet submitted</p>
+                  </div>
+                  <Badge variant="secondary">Pending</Badge>
+                </div>
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <p className="font-medium">English — Essay</p>
+                    <p className="text-xs text-muted-foreground">Submitted: 12 Jul 2026 • 85/100</p>
+                  </div>
+                  <Badge className="bg-emerald-100 text-emerald-700">Completed</Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="results" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Exam Results</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <p className="font-medium">Mid-Term Exams 2026</p>
+                    <p className="text-xs text-muted-foreground">Overall: 85% — Rank: 12/45</p>
+                  </div>
+                  <Badge className="bg-green-100 text-green-700">Pass</Badge>
+                </div>
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <p className="font-medium">Unit Test 2</p>
+                    <p className="text-xs text-muted-foreground">Overall: 78% — Rank: 18/45</p>
+                  </div>
+                  <Badge className="bg-green-100 text-green-700">Pass</Badge>
+                </div>
+              </div>
+              <Button variant="outline" size="sm" className="mt-3">
+                <FileText className="h-4 w-4 mr-2" /> Download Report Card
+              </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="documents" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Documents & Downloads</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-muted/50">
+                  <FileText className="h-8 w-8 text-blue-500" />
+                  <div>
+                    <p className="font-medium text-sm">Admission Confirmation</p>
+                    <p className="text-xs text-muted-foreground">PDF • 2.3 MB</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-muted/50">
+                  <FileText className="h-8 w-8 text-orange-500" />
+                  <div>
+                    <p className="font-medium text-sm">Fee Receipt — Q1 2026</p>
+                    <p className="text-xs text-muted-foreground">PDF • 1.1 MB</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-muted/50">
+                  <FileText className="h-8 w-8 text-emerald-500" />
+                  <div>
+                    <p className="font-medium text-sm">Report Card — Mid-Term 2026</p>
+                    <p className="text-xs text-muted-foreground">PDF • 0.8 MB</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-muted/50">
+                  <FileText className="h-8 w-8 text-purple-500" />
+                  <div>
+                    <p className="font-medium text-sm">PDC Agreement</p>
+                    <p className="text-xs text-muted-foreground">PDF • 0.5 MB</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Bottom Quick Actions */}
+      <div className="flex items-center gap-2 text-sm text-muted-foreground justify-center pt-4 border-t">
+        <Smartphone className="h-4 w-4" />
+        <span>Download the EEOS Parent App for push notifications</span>
       </div>
     </div>
   );

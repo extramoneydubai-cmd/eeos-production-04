@@ -340,6 +340,9 @@ const AdmissionsDashboard = lazy(() => import("./pages/AdmissionsDashboard.tsx")
 const CollectionsExecutiveDashboard = lazy(() => import("./pages/CollectionsExecutiveDashboard.tsx"));
 const KnowledgeBase = lazy(() => import("./pages/KnowledgeBase.tsx"));
 const AdminConsole = lazy(() => import("./pages/AdminConsole.tsx"));
+const DashboardParent = lazy(() => import("./pages/DashboardParent.tsx"));
+const DashboardStudent = lazy(() => import("./pages/DashboardStudent.tsx"));
+const DashboardFaculty = lazy(() => import("./pages/DashboardFaculty.tsx"));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -550,6 +553,9 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/collections-executive" element={<ProtectedRoute><CollectionsExecutiveDashboard /></ProtectedRoute>} />
               <Route path="/knowledge" element={<ProtectedRoute><KnowledgeBase /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute><AdminConsole /></ProtectedRoute>} />
+              <Route path="/parent" element={<ProtectedRoute><DashboardParent /></ProtectedRoute>} />
+              <Route path="/student" element={<ProtectedRoute><DashboardStudent /></ProtectedRoute>} />
+              <Route path="/faculty" element={<ProtectedRoute><DashboardFaculty /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
