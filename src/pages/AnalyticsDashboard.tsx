@@ -590,7 +590,7 @@ export default function AnalyticsDashboard() {
   }, [navigate]);
 
   const handleExecuteReport = async (reportDefId: string) => {
-    try { await executeReport({ reportDefinitionId: reportDefId as any }); }
+    try { await executeReport({ reportDefinitionId: reportDefId as Id<"reports"> }); }
     catch (err) { console.error("Failed to execute report:", err); }
   };
 
@@ -598,13 +598,13 @@ export default function AnalyticsDashboard() {
     setExportingReportId(reportDefId);
     setShowExportDropdown(null);
     try {
-      const result = await exportReportMutation({ reportId: reportDefId as any, format: format as any });
+      const result = await exportReportMutation({ reportId: reportDefId as Id<"reports">, format: format });
       setExportStatus({
         id: reportDefId,
         success: !(result && 'error' in result && result.error),
         message: result && 'error' in result && result.error
-          ? (result as any).error
-          : `Exported to ${format.toUpperCase()} — ${(result as any)?.recordCount || 0} records`,
+          ? (result as { error?: string }).error
+          : `Exported to ${format.toUpperCase()} — ${(result as { recordCount?: number })?.recordCount || 0} records`,
       });
     } catch (err: any) {
       setExportStatus({ id: reportDefId, success: false, message: err.message || "Export failed" });

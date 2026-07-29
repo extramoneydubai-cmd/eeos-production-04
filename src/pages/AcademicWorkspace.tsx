@@ -57,7 +57,7 @@ export default function AcademicWorkspace() {
   const entityLabel = program ? "Program" : "Batch";
   const entityName = entity?.name ?? "Loading...";
   const entityCode = entity?.code ?? "";
-  const entityColor = (entity as any)?.color ?? "#6366f1";
+  const entityColor = entity?.color ?? "#6366f1";
 
   // ─── Tabs ───────────────────────────────────────────────────
   const tabs: WorkspaceTabConfig[] = [
@@ -139,13 +139,13 @@ export default function AcademicWorkspace() {
                   <dd>
                     <Badge
                       variant={
-                        (entity as any)?.isActive !== false && (entity as any)?.active !== false
+                        entity?.isActive !== false (entity as any)?.isActive !== false && (entity as any)?.active !== false(entity as any)?.isActive !== false && (entity as any)?.active !== false entity?.active !== false
                           ? "default"
                           : "secondary"
                       }
                       className="text-[10px]"
                     >
-                      {(entity as any)?.isActive !== false && (entity as any)?.active !== false
+                      {entity?.isActive !== false (entity as any)?.isActive !== false && (entity as any)?.active !== false(entity as any)?.isActive !== false && (entity as any)?.active !== false entity?.active !== false
                         ? "Active"
                         : "Inactive"}
                     </Badge>
@@ -188,11 +188,11 @@ export default function AcademicWorkspace() {
                   </>
                 )}
               </dl>
-              {(entity as any)?.description && (
+              {(entity as { description?: string })?.description && (
                 <div className="mt-4">
                   <dt className="text-muted-foreground text-xs mb-1">Description</dt>
                   <dd className="text-sm text-muted-foreground">
-                    {(entity as any).description}
+                    {(entity as { description: string }).description}
                   </dd>
                 </div>
               )}

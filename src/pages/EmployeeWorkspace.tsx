@@ -267,7 +267,7 @@ function EmployeeOrganizationTab({ entityType, entityId, entity }: WorkspaceTabP
 }
 
 // ══════════════════════════════════════════════════════════════════
-// TAB: Attendance (placeholder with stats)
+// TAB: Attendance
 // ══════════════════════════════════════════════════════════════════
 function EmployeeAttendanceTab({ entityType, entityId, entity }: WorkspaceTabProps) {
   return (

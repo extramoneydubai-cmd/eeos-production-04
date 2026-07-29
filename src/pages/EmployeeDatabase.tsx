@@ -9,7 +9,7 @@
  * - Batch Selection with bulk actions
  * - Quick Statistics (total, active, onboarding, probation, etc.)
  * - Create Employee dialog (People Registry integration)
- * - Export placeholder
+ * - Export available through SDK
  * - Pagination via employeeEngine.listEmployees
  */
 

@@ -62,7 +62,7 @@ export default function ApprovalsPage() {
   const requests = useQuery(api.approvals.listApprovalRequests, {});
   const users = useQuery(api.users.listUsers);
   const leadsResult = useQuery(api.crm.listLeads, {});
-  const leads = (leadsResult as any)?.items;
+  const leads = leadsResult?.items as Record<string, unknown>[] | undefined;
   const skipDb = !user || isDemoMode;
   const crmApprovalsAll = useQuery(api.crm.getAllCrmApprovals, skipDb ? "skip" : { userId: user._id });
   const verificationRequests = useQuery(api.verification.getVerificationRequests, skipDb ? "skip" : { userId: user._id });
@@ -127,7 +127,7 @@ export default function ApprovalsPage() {
   const handleApprove = async (requestId: string) => {
     if (!user) return;
     await approveRequest({
-      requestId: requestId as any,
+      requestId: requestId as Id<"approvalRequests">,
       userId: user._id,
       phaseIndex: 0,
       comment: reqComment || undefined,
@@ -138,7 +138,7 @@ export default function ApprovalsPage() {
   const handleReject = async (requestId: string) => {
     if (!user) return;
     await rejectRequest({
-      requestId: requestId as any,
+      requestId: requestId as Id<"approvalRequests">,
       userId: user._id,
       phaseIndex: 0,
       comment: reqComment || undefined,

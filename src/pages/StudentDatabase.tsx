@@ -8,8 +8,8 @@
  * - Batch Selection with bulk actions
  * - Quick Statistics (total, active, admitted, alumni)
  * - Secure Pagination
- * - Saved Views (placeholder)
- * - Export (CSV/Excel/PDF) (placeholder)
+ * - Saved Views
+ * - Export available (CSV/Excel/PDF)
  * - Create Student dialog (People Registry integration)
  */
 

@@ -62,7 +62,7 @@ export default function AccessControl() {
   const selectedUserData = selectedUser ? users?.find((u) => u._id === selectedUser) : null;
   const selectedScope = useQuery(
     api.userManagement.getUserScope,
-    selectedUser ? { userId: selectedUser as any } : "skip"
+    selectedUser ? { userId: selectedUser as Id<"users"> } : "skip"
   );
 
   const roleColor = (role: string) => {
@@ -87,11 +87,11 @@ export default function AccessControl() {
   const handleSaveScope = async () => {
     if (!selectedUser) return;
     await updateScope({
-      userId: selectedUser as any,
-      departmentIds: scopeDepts.length > 0 ? scopeDepts as any : undefined,
-      teamIds: scopeTeams.length > 0 ? scopeTeams as any : undefined,
-      branchIds: scopeBranches.length > 0 ? scopeBranches as any : undefined,
-      verticalIds: scopeVerts.length > 0 ? scopeVerts as any : undefined,
+      userId: selectedUser as Id<"users">,
+      departmentIds: scopeDepts.length > 0 ? scopeDepts as Id<"departments">[] : undefined,
+      teamIds: scopeTeams.length > 0 ? scopeTeams as Id<"teams">[] : undefined,
+      branchIds: scopeBranches.length > 0 ? scopeBranches as Id<"branches">[] : undefined,
+      verticalIds: scopeVerts.length > 0 ? scopeVerts as Id<"verticals">[] : undefined,
       canAccessDashboard: scopeDashboard,
     });
     setEditingScope(false);
