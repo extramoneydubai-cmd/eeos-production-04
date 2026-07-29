@@ -36,6 +36,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { errorLog } from "@/lib/error-logger";
 import { cn } from "@/lib/utils";
 
 // ─── Report Definitions ──────────────────────────────────────────
@@ -199,7 +200,7 @@ export default function SchedulingReports() {
 
   const exportFormat = async (format: string) => {
     // Placeholder for export functionality
-    console.log(`Exporting ${selectedReport} as ${format}`);
+    errorLog.push({ message: `Exporting report: ${selectedReport} as ${format}`, source: "react", stack: "" });
   };
 
   return (

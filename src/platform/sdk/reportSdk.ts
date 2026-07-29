@@ -37,7 +37,7 @@ export const generate = query({
         _id: report._id,
         name: report.name,
         module: report.moduole,
-        type: (report as any).type || "table",
+        type: (report as { type?: string }).type || "table",
       },
       message: "Report data should be resolved by the specific module's query platform.",
     };
@@ -83,7 +83,7 @@ export const create = mutation({
       status: "active",
       createdAt: now,
       updatedAt: now,
-    } as any);
+    });
   },
 });
 
@@ -109,7 +109,7 @@ export const schedule = mutation({
       nextRunAt: now + 24 * 60 * 60 * 1000, // Default: tomorrow
       createdAt: now,
       updatedAt: now,
-    } as any);
+    });
   },
 });
 

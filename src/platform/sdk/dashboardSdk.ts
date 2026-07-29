@@ -83,8 +83,8 @@ export const getRecentActivity = query({
       .collect();
 
     let filtered = events;
-    if (args.companyId) filtered = filtered.filter((e) => (e as any).companyId === args.companyId);
-    if (args.branchId) filtered = filtered.filter((e) => (e as any).branchId === args.branchId);
+    if (args.companyId) filtered = filtered.filter((e) => (e as { companyId?: string }).companyId === args.companyId);
+    if (args.branchId) filtered = filtered.filter((e) => (e as { branchId?: string }).branchId === args.branchId);
 
     return filtered.sort((a, b) => b.createdAt - a.createdAt).slice(0, args.limit || 10);
   },

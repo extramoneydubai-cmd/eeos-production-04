@@ -43,7 +43,7 @@ export const sendMessage = mutation({
     });
 
     // Update channel's last activity
-    await ctx.db.patch(args.channelId, { lastActivityAt: now } as any);
+    await ctx.db.patch(args.channelId, { lastActivityAt: now });
 
     return { messageId };
   },
@@ -141,7 +141,7 @@ export const createChannel = mutation({
       isActive: true,
       createdAt: now,
       updatedAt: now,
-    } as any);
+    });
   },
 });
 
@@ -218,7 +218,7 @@ export const markAsRead = mutation({
       .first();
 
     if (membership) {
-      await ctx.db.patch(membership._id, { lastReadAt: Date.now() } as any);
+      await ctx.db.patch(membership._id, { lastReadAt: Date.now() });
     }
     return { success: true };
   },

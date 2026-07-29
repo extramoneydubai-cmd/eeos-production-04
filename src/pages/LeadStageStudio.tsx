@@ -27,6 +27,7 @@ import {
   SortableContext, useSortable, verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { errorLog } from "@/lib/error-logger";
 import { useAuth } from "@/hooks/use-auth";
 
 const ICON_OPTIONS = [
@@ -219,7 +220,7 @@ export default function LeadStageStudio() {
     if (stages === undefined) {
       loadingTimerRef.current = setTimeout(() => {
         setStagesTimedOut(true);
-        console.warn("[LeadStageStudio] Query timed out after 15s — backend may be unavailable.");
+        errorLog.push({ message: "[LeadStageStudio] Query timed out after 15s — backend may be unavailable.", source: "react", stack: "", severity: "warning" });
       }, 15000);
     } else {
       if (loadingTimerRef.current) {
@@ -302,7 +303,7 @@ export default function LeadStageStudio() {
     try {
       await seedStages();
     } catch (err) {
-      console.error("[LeadStageStudio] seed error:", err);
+      errorLog.push({ message: "[LeadStageStudio] seed error: " + String(err), source: "convex", stack: String(err) });
       setConvexError("Failed to seed default stages. Backend may be unavailable.");
     } finally {
       setSeeding(false);
@@ -360,7 +361,7 @@ export default function LeadStageStudio() {
       }
       setShowDialog(false);
     } catch (err) {
-      console.error("[LeadStageStudio] save error:", err);
+      errorLog.push({ message: "[LeadStageStudio] save error: " + String(err), source: "convex", stack: String(err) });
       setConvexError("Failed to save stage. Backend may be unavailable.");
     } finally {
       setSaving(false);
@@ -375,7 +376,7 @@ export default function LeadStageStudio() {
         active: !stage.active,
       });
     } catch (err) {
-      console.error("[LeadStageStudio] toggle error:", err);
+      errorLog.push({ message: "[LeadStageStudio] toggle error: " + String(err), source: "convex", stack: String(err) });
       setConvexError("Failed to update stage. Backend may be unavailable.");
     }
   };
@@ -387,7 +388,7 @@ export default function LeadStageStudio() {
       await deleteStage({ stageId: deleteTarget._id });
       setDeleteTarget(null);
     } catch (err) {
-      console.error("[LeadStageStudio] delete error:", err);
+      errorLog.push({ message: "[LeadStageStudio] delete error: " + String(err), source: "convex", stack: String(err) });
       setConvexError("Failed to delete stage. Backend may be unavailable.");
     }
   };
@@ -397,7 +398,7 @@ export default function LeadStageStudio() {
     try {
       await duplicateStage({ stageId: stage._id });
     } catch (err) {
-      console.error("[LeadStageStudio] duplicate error:", err);
+      errorLog.push({ message: "[LeadStageStudio] duplicate error: " + String(err), source: "convex", stack: String(err) });
       setConvexError("Failed to duplicate stage. Backend may be unavailable.");
     }
   };
@@ -419,7 +420,7 @@ export default function LeadStageStudio() {
     try {
       await reorderStages({ stageIds: reordered.map((s) => s._id) });
     } catch (err) {
-      console.error("[LeadStageStudio] reorder error:", err);
+      errorLog.push({ message: "[LeadStageStudio] reorder error: " + String(err), source: "convex", stack: String(err) });
       setConvexError("Failed to reorder stages. Backend may be unavailable.");
     }
   }, [stages, reorderStages]);

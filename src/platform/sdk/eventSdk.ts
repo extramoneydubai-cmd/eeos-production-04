@@ -116,7 +116,7 @@ export const publish = mutation({
       status: "published",
       publishedAt: now,
       createdAt: now,
-    } as any);
+    });
 
     // 2. Record timeline event
     await ctx.db.insert("timelineEvents", {
@@ -143,7 +143,7 @@ export const publish = mutation({
       departmentId: args.departmentId,
       metadata: args.data,
       createdAt: now,
-    } as any);
+    });
 
     return { eventId, publishedAt: now };
   },

@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 import { supportEngine, TICKET_TYPES, TICKET_STATUSES, TICKET_PRIORITIES } from "@/platform/support/SupportEngine";
 import { ticketEngine } from "@/platform/support/TicketEngine";
 import { slaEngine } from "@/platform/support/SLAEngine";
@@ -50,15 +51,14 @@ function timeAgo(ts: number): string {
   return `${Math.floor(hours / 24)}d`;
 }
 
-// Simulated current agent ID — in production, use the authenticated user
-const CURRENT_AGENT = "agent_001";
-
 export default function AgentDashboard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [viewFilter, setViewFilter] = useState<string>("all");
 
   // ─── Data ──────────────────────────────────────────────────
-  const tickets = supportEngine.listTickets({ assignedTo: CURRENT_AGENT });
+  const currentAgentId = user?._id || user?.id || "current";
+  const tickets = supportEngine.listTickets({ assignedTo: currentAgentId });
   const allMetrics = calculateMetrics();
   const kbStats = knowledgeBaseEngine.getStats();
 
