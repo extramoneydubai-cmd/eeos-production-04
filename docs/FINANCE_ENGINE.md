@@ -1,70 +1,137 @@
-# EEOS Finance & Accounting Engine — Architecture Guide
+# EEOS Enterprise Finance Engine
 
-> **Version**: 1.0.0  
-> **Patch**: PATCH-EEOS-014  
-> **Compliance**: EEOS_CONSTITUTION.md, EEOS_DOMAIN_MODEL.md, EEOS_PLATFORM_REFERENCE_ARCHITECTURE.md  
-> **SDK Integration**: Shared SDK, Event Pipeline, Timeline SDK, Audit SDK, Notification SDK, Workflow SDK, Dashboard SDK, Visibility SDK, Permission SDK, People SDK, Document SDK
+**Version:** 0.95  
+**Status:** Architecture Reference  
+**Date:** 2026-07-29  
 
 ---
 
 ## Architecture Overview
 
-The Finance & Accounting Engine is built as a **native EEOS Platform consumer**. It does NOT duplicate platform capabilities — it consumes them through the Shared SDK.
+The EEOS Finance Engine is a configurable, multi-company, multi-branch enterprise finance platform designed for coaching institutes. It follows a layered architecture:
+
+| Layer | Components | Status |
+|-------|-----------|--------|
+| Dashboards | Finance, Collection, Refund, PDC, GST, Outstanding | 🟡 Partial |
+| Reports | Daily, Outstanding, GST, PDC, Receipts, Audit | 🟡 Partial |
+| SDK | financeSdk (get/list/search/create/update/delete) | ❌ Needs completion |
+| Engines | Fee, Payment, Collection, Refund, PDC, GST, Receipt | ✅ Most exist |
+| Schema | 43 tables covering complete finance domain | ✅ Complete |
+| Convex Backend | Auth, validation, event pipeline, audit, timeline | ✅ |
+
+---
+
+## Multi-Company & Multi-Branch Architecture
+
+Every financial entity is scoped by company, branch, department, and cost center. The schema enforces this with `companyId`, `branchId`, `departmentId`, and `costCenterId`.
+
+### Configuration Hierarchy
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                   FINANCE & ACCOUNTING ENGINE                  │
-├──────────────────────────────────────────────────────────────┤
-│  Fee Management    │  Invoice Engine    │  Payment Engine      │
-│  Scholarship Mgmt  │  Discount Mgmt     │  Waiver Mgmt         │
-│  Expense Mgmt      │  Vendor Bills      │  Refund Mgmt         │
-│  Journal Entries   │  Cash Book         │  Ledger              │
-│  Bank Accounts     │  Tax Mgmt          │  Budget              │
-├──────────────────────────────────────────────────────────────┤
-│  Platform SDK Integration Layer                                │
-├──────────────────────────────────────────────────────────────┤
-│  peopleSdk │ timelineSdk │ auditSdk │ notificationSdk          │
-│  workflowSdk │ documentSdk │ eventPipeline │ queryPlatform      │
-│  visibilitySdk │ permissionSdk │ dashboardSdk │ reportSdk       │
-└──────────────────────────────────────────────────────────────┘
+Company
+  ├── Financial Year (start/end, isCurrent, isClosed)
+  ├── GST Settings (registered type, GSTIN, filing frequency)
+  ├── Receipt Templates (logo, address, numbering rules)
+  ├── Bank Accounts
+  ├── Payment Modes
+  └── Branches
+        ├── Branch-specific receipt templates
+        ├── Branch-specific numbering
+        ├── Branch bank accounts
+        ├── Branch fee structures
+        └── Branch reporting
 ```
 
-## Key Design Principles
+---
 
-1. **No duplicated platform capabilities** — Every platform service is consumed through the SDK
-2. **People Registry first** — All entity references go through `personMaster`
-3. **Workflow for approvals** — No custom approval logic; all approvals use `workflowSdk`
-4. **Timeline for events** — All financial events use `timelineSdk`
-5. **Audit for changes** — All mutations use `auditSdk`
-6. **Event Pipeline for wiring** — Every mutation uses `withEventPipeline()`
-7. **Dashboard Providers** — No direct table queries in dashboards
-8. **Document Management** — No finance-specific file storage
+## Existing Schema — 43 Tables
 
-## Module Breakdown
+| Table | Purpose | Status |
+|-------|---------|--------|
+| feeStructures | Configurable fee items | ✅ |
+| studentFeeAccounts | Per-student fee ledger | ✅ |
+| feeInstallments | Installment schedules | ✅ |
+| feeInvoices | Invoice generation | ✅ |
+| feeDiscounts | Discount policies | ✅ |
+| feeScholarships | Scholarship definitions | ✅ |
+| feeWaivers | Fee waiver requests | ✅ |
+| paymentTransactions | All payment records | ✅ |
+| paymentMethods | Configurable payment methods | ✅ |
+| receiptHistory | Receipt generation tracking | ✅ |
+| refundRequests | Refund processing | ✅ |
+| creditNotes | Credit note lifecycle | ✅ |
+| lateFeeRules | Late fee configuration | ✅ |
+| cashBookEntries | Cash book with running balance | ✅ |
+| journalEntries | Double-entry journal | ✅ |
+| vendorBills | Vendor bill management | ✅ |
+| expenseRecords | Expense tracking | ✅ |
+| financeBankAccounts | Bank account master | ✅ |
+| financeGstRates | GST rate configuration | ✅ |
+| financePaymentModes | Payment mode master | ✅ |
+| financeFinancialYears | Financial year management | ✅ |
+| financeFeeCategories | Fee category master | ✅ |
+| financeDiscountCategories | Discount category master | ✅ |
+| financeExpenseCategories | Expense category master | ✅ |
+| financeIncomeCategories | Income category master | ✅ |
+| financeTaxTypes | Tax type master | ✅ |
+| financeCurrencies | Currency master | ✅ |
+| financialTransactions | Double-entry voucher | ✅ |
+| chartOfAccounts | COA with account groups | ✅ |
+| accountGroups | Account group categorization | ✅ |
+| costCenters | Cost center management | ✅ |
+| budgets | Budget planning | ✅ |
+| budgetRevisions | Budget revision history | ✅ |
+| budgetConsumptions | Budget consumption log | ✅ |
+| taxGroups | Tax group configuration | ✅ |
+| taxRules | Tax rule definitions | ✅ |
+| financialClosings | Period closing management | ✅ |
+| assetCategories | Fixed asset categories | ✅ |
+| fixedAssets | Fixed asset register | ✅ |
+| assetDepreciationEntries | Depreciation schedule | ✅ |
+| bankTransactions | Bank transaction log | ✅ |
+| hrSalaryComponents | Salary structure | ✅ |
+| employeeAdvances | Employee advance tracking | ✅ |
 
-| Module | File | Key Functions |
-|--------|------|---------------|
-| Fee Management | `feeEngine.ts` | Fee structures, accounts, installments, discounts, scholarships, waivers |
-| Invoice Engine | `invoiceEngine.ts` | Invoice generation, batch invoicing, credit notes |
-| Payment Engine | `paymentEngine.ts` | Payment methods, tax rules, transactions, verification, reversal |
-| Receipt Engine | `receiptEngine.ts` | Receipt generation, email/WhatsApp delivery |
-| Refund Engine | `refundEngine.ts` | Refund lifecycle (draft→pending→approved→processing→completed) |
-| Expense Engine | `expenseEngine.ts` | Expense CRUD, approval workflow, categorization |
-| Finance Engine | `financeEngine.ts` | Journal entries, cash book, vendor bills, credit notes |
-| Finance Platform | `financePlatform.ts` | **Platform-aligned wrappers** with SDK integration |
+---
 
-## Platform Integration Status
+## Existing Backend Engines
 
-| Component | Status | File |
-|-----------|--------|------|
-| People Registry | ✅ Integrated | `financePlatform.ts` — `resolvePersonFromStudent()` |
-| Workflow SDK | ✅ Integrated | `financePlatform.ts` — `approveExpenseWithWorkflow()` |
-| Timeline SDK | ✅ Integrated | `financePlatform.ts` — `withEventPipeline` |
-| Audit SDK | ✅ Integrated | `financePlatform.ts` — `withEventPipeline` |
-| Notification SDK | ✅ Ready | Via `withEventPipeline` notification config |
-| Event Pipeline | ✅ Integrated | `financePlatform.ts` — all mutations wrapped |
-| Dashboard Provider | ✅ Registered | `dashboardProviders.ts` — financeProvider |
-| Query Platform | ✅ Paginated queries | `financePlatform.ts` — list*Paginated |
-| Document Management | ✅ Ready | Expense attachments, invoice PDFs |
-| Visibility SDK | ✅ Available | Via `visibilitySdk.canDiscover()` |
-| Permission SDK | ✅ Available | Via `permissionSdk.canPerformAction()` |
+| Engine | File | Status |
+|--------|------|--------|
+| FinanceEngine | src/convex/financeEngine.ts | ✅ |
+| FeeEngine | src/convex/feeEngine.ts | ✅ |
+| PaymentEngine | src/convex/paymentEngine.ts | ✅ |
+| CollectionEngine | src/convex/collectionEngine.ts | ✅ |
+| BillingEngine | src/convex/billingEngine.ts | ✅ |
+| InvoiceEngine | src/convex/invoiceEngine.ts | ✅ |
+| ExpenseEngine | src/convex/expenseEngine.ts | ✅ |
+| FinancialTransactionEngine | src/convex/financialTransactionEngine.ts | ✅ |
+| ChartOfAccountsEngine | src/convex/chartOfAccountsEngine.ts | ✅ |
+| CostCenterEngine | src/convex/costCenterEngine.ts | ✅ |
+| BudgetEngine | src/convex/budgetEngine.ts | ✅ |
+
+---
+
+## Missing Gaps (To Build)
+
+| Component | Priority | Notes |
+|-----------|----------|-------|
+| Finance SDK (financeSdk.ts) | P0 | SDK file needs completion |
+| PDC Engine backend | P1 | PDC tables exist, engines pending |
+| GST Engine (filing workflow) | P1 | Rates exist, filing workflow pending |
+| Refund pro-rata calculator | P1 | Requests exist, calculation engine pending |
+| Receipt dynamic templates | P1 | History exists, templates pending |
+| Cheque Bounce Workflow | P1 | Needs configurable workflow |
+| Collection Dashboards | P1 | Basic exists, collection-specific pending |
+| Finance Reports generation | P1 | Page exists, report engine pending |
+
+---
+
+## Security & Audit
+
+Every financial transaction supports:
+- Role-based permissions (Cashier, Accounts, Finance Manager, Director, CEO)
+- Maker-checker approval for all mutations
+- Audit trail via Event Pipeline
+- Timeline events in student enrollment history
+- Soft-delete via status transitions (cancelled, reversed, voided)
