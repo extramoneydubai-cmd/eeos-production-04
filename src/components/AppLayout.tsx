@@ -37,6 +37,7 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Separator } from "./ui/separator";
 import { ENABLE_COLLECTIONS_PAGE } from "@/featureFlags";
+import { GlobalSearchButton } from "@/components/search/GlobalSearchDialog";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -552,6 +553,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </div>
 
           <div className="flex items-center gap-3">
+            <GlobalSearchButton />
             {user?.role === "super_admin" && (
               <Badge variant="outline" className="text-[10px] font-medium text-[#5f6368] border-[#e8eaed]">
                 CEO
