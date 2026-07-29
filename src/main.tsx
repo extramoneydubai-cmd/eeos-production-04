@@ -335,6 +335,9 @@ const MarketingCampaigns = lazy(() => import("./pages/MarketingCampaigns.tsx"));
 const MarketingAnalytics = lazy(() => import("./pages/MarketingAnalytics.tsx"));
 const HRDashboard = lazy(() => import("./pages/HRDashboard.tsx"));
 const ProductionDashboard = lazy(() => import("./pages/ProductionDashboard.tsx"));
+const Customer360 = lazy(() => import("./pages/Customer360.tsx"));
+const AdmissionsDashboard = lazy(() => import("./pages/AdmissionsDashboard.tsx"));
+const CollectionsExecutiveDashboard = lazy(() => import("./pages/CollectionsExecutiveDashboard.tsx"));
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -540,6 +543,9 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/marketing/analytics" element={<ProtectedRoute><MarketingAnalytics /></ProtectedRoute>} />
               <Route path="/hr" element={<ProtectedRoute><HRDashboard /></ProtectedRoute>} />
               <Route path="/production" element={<ProtectedRoute><ProductionDashboard /></ProtectedRoute>} />
+              <Route path="/customer360" element={<ProtectedRoute><Customer360 /></ProtectedRoute>} />
+              <Route path="/admissions" element={<ProtectedRoute><AdmissionsDashboard /></ProtectedRoute>} />
+              <Route path="/collections-executive" element={<ProtectedRoute><CollectionsExecutiveDashboard /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
