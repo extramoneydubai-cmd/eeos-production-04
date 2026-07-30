@@ -1,92 +1,114 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Shield, ShieldCheck, ShieldOff, Users, Key, FolderTree, UserCog,
-  UserCheck, Flag, Monitor, Menu, Earth, Plus, Search, Check, X,
+  UserCheck, Flag, Monitor, Menu as MenuIcon, Earth, Plus, Search, Check, X,
   Loader2, Sliders, Settings2, ChevronRight, Lock, Unlock,
   Eye, EyeOff, ChevronDown, LayoutDashboard, Building2,
   Database, Workflow, ListChecks, LineChart, GraduationCap,
   UserPlus, BookOpen, PiggyBank, UsersRound, Megaphone,
   MessageSquare, BarChart3, Crown, DollarSign, FileText,
   Activity, AlertTriangle, GitBranch, Globe, Layers,
+  ChevronLeft, RefreshCw, UserX, UserMinus, Terminal, AlertCircle,
+  HelpCircle, ToggleLeft, Copy, Download, Upload, Award,
+  Target, Siren, ShieldAlert,
 } from "lucide-react";
 
-// ─── Module Definitions ─────────────────────────────────────────
+// ─── Helper Icons ──────────────────────────────────────────────
 
-const MODULE_DEFINITIONS = [
-  { id: "crm", label: "CRM", icon: Users, color: "text-blue-500" },
-  { id: "students", label: "Students", icon: GraduationCap, color: "text-emerald-500" },
-  { id: "faculty", label: "Faculty", icon: UsersRound, color: "text-violet-500" },
-  { id: "finance", label: "Finance", icon: PiggyBank, color: "text-amber-500" },
-  { id: "hr", label: "HR", icon: UserCheck, color: "text-rose-500" },
-  { id: "academic", label: "Academic", icon: BookOpen, color: "text-indigo-500" },
-  { id: "exams", label: "Examinations", icon: FileText, color: "text-orange-500" },
-  { id: "admissions", label: "Admissions", icon: UserPlus, color: "text-cyan-500" },
-  { id: "marketing", label: "Marketing", icon: Megaphone, color: "text-pink-500" },
-  { id: "support", label: "Support", icon: MessageSquare, color: "text-teal-500" },
-  { id: "procurement", label: "Procurement", icon: ShoppingCart, color: "text-sky-500" },
-  { id: "inventory", label: "Inventory", icon: Database, color: "text-slate-500" },
-  { id: "lms", label: "LMS", icon: BookOpen, color: "text-lime-500" },
-  { id: "scheduling", label: "Scheduling", icon: Calendar, color: "text-purple-500" },
-  { id: "analytics", label: "Analytics", icon: BarChart3, color: "text-red-500" },
-  { id: "reports", label: "Reports", icon: FileText, color: "text-amber-600" },
-  { id: "documents", label: "Documents", icon: FileText, color: "text-gray-500" },
-  { id: "settings", label: "Settings", icon: Settings2, color: "text-slate-600" },
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, color: "text-emerald-600" },
-];
+function ShoppingCart(props: any) { return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg> }
+function CalendarIcon(props: any) { return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> }
 
-const ACCESS_ACTIONS = [
-  { id: "create", label: "Create", icon: Plus },
-  { id: "read", label: "Read", icon: Eye },
-  { id: "update", label: "Update", icon: Settings2 },
-  { id: "delete", label: "Delete", icon: X },
-  { id: "approve", label: "Approve", icon: Check },
-  { id: "export", label: "Export", icon: FileText },
-  { id: "assign", label: "Assign", icon: UserCheck },
-  { id: "manage", label: "Manage", icon: Sliders },
-];
+// ─── Constants ─────────────────────────────────────────────────
 
-const SCOPE_LEVELS = [
-  { id: "own", label: "Own", icon: UserCog, color: "bg-slate-100 text-slate-600" },
-  { id: "team", label: "Team", icon: Users, color: "bg-blue-100 text-blue-600" },
-  { id: "department", label: "Department", icon: Building2, color: "bg-indigo-100 text-indigo-600" },
-  { id: "branch", label: "Branch", icon: GitBranch, color: "bg-violet-100 text-violet-600" },
-  { id: "company", label: "Company", icon: Globe, color: "bg-purple-100 text-purple-600" },
-  { id: "organization", label: "Organization", icon: Layers, color: "bg-amber-100 text-amber-600" },
-  { id: "global", label: "Global", icon: Crown, color: "bg-emerald-100 text-emerald-600" },
-];
-
-// ─── Available modules (simulated available list) ───────────────
-
-const AVAILABLE_MODULES = [
+const ALL_MODULES = [
   "CRM", "Students", "Faculty", "Finance", "HR", "Academic",
-  "Examinations", "Admissions", "Marketing", "Support",
-  "Procurement", "Inventory", "LMS", "Scheduling", "Analytics",
-  "Reports", "Documents", "Settings", "Dashboard",
+  "Exams", "Admissions", "Marketing", "Support", "Procurement",
+  "Inventory", "LMS", "Scheduling", "Analytics", "Reports",
+  "Documents", "Settings", "Dashboard", "Communications", "Workflow",
 ];
 
-// ─── Loading + Empty States ─────────────────────────────────────
+const ALL_ACTIONS = [
+  "create", "read", "update", "delete", "approve", "reject",
+  "export", "print", "share", "assign", "transfer", "merge",
+  "restore", "archive", "import", "sync", "duplicate",
+  "lock", "unlock", "viewAnalytics", "viewReports",
+  "viewDocuments", "manage",
+];
 
-function Loading() {
+const SCOPE_OPTIONS = [
+  { value: "platform", label: "Platform" },
+  { value: "company", label: "Company" },
+  { value: "branch", label: "Branch" },
+  { value: "department", label: "Department" },
+  { value: "team", label: "Team" },
+  { value: "user", label: "User" },
+  { value: "vertical", label: "Vertical" },
+  { value: "batch", label: "Batch" },
+];
+
+const SUBSCRIPTION_PLANS = [
+  { name: "Starter", code: "STARTER", price: 0, users: 25, branches: 1, modules: 8, popular: false, features: ["Core CRM", "Student Management", "Basic Reports"] },
+  { name: "Professional", code: "PRO", price: 299, users: 100, branches: 5, modules: 14, popular: true, features: ["All Starter Features", "Finance Suite", "HR Module", "Marketing", "Advanced Reports"] },
+  { name: "Enterprise", code: "ENTERPRISE", price: 999, users: 500, branches: 50, modules: 20, popular: false, features: ["All Pro Features", "Unlimited Branches", "Custom Modules", "API Access", "Dedicated Support"] },
+];
+
+// ─── TREE NODE COMPONENT ──────────────────────────────────────
+
+function TreeNode({ node, depth = 0 }: { node: any; depth?: number }) {
+  const [expanded, setExpanded] = useState(depth < 1);
+  const hasChildren = node.children && node.children.length > 0;
+
+  const typeColors: Record<string, string> = {
+    company: "text-blue-500", branch: "text-violet-500", department: "text-indigo-500",
+    team: "text-emerald-500", vertical: "text-purple-500", program: "text-amber-500",
+    batch: "text-rose-500",
+  };
+  const typeIcons: Record<string, any> = {
+    company: Building2, branch: GitBranch, department: Layers,
+    team: Users, vertical: GraduationCap, program: BookOpen, batch: CalendarIcon,
+  };
+  const Icon = typeIcons[node.type] || FolderTree;
+
   return (
-    <div className="flex items-center justify-center py-20">
-      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+    <div>
+      <button
+        onClick={() => hasChildren && setExpanded(!expanded)}
+        className={`w-full flex items-center gap-1.5 px-2 py-1 text-xs rounded-sm hover:bg-accent/30 transition-colors text-left ${depth > 0 ? "ml-3" : ""}`}
+      >
+        {hasChildren ? (
+          expanded ? <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" /> : <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
+        ) : <div className="w-3 shrink-0" />}
+        <Icon className={`h-3.5 w-3.5 ${typeColors[node.type] || "text-muted-foreground"} shrink-0`} />
+        <span className="truncate flex-1">{node.name}</span>
+        {node.code && <span className="text-[8px] text-muted-foreground/40 uppercase">{node.code}</span>}
+        {hasChildren && <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 font-normal">{node.children.length}</Badge>}
+      </button>
+      {expanded && hasChildren && (
+        <div className="border-l border-border/20 ml-2">
+          {node.children.map((child: any, i: number) => (
+            <TreeNode key={child.id || i} node={child} depth={depth + 1} />
+          ))}
+        </div>
+      )}
     </div>
   );
+}
+
+// ─── LOADING & EMPTY STATES ───────────────────────────────────
+
+function Loading() {
+  return <div className="flex items-center justify-center py-20"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
 }
 
 function EmptyState({ icon: Icon, title, description }: { icon: any; title: string; description: string }) {
@@ -99,181 +121,534 @@ function EmptyState({ icon: Icon, title, description }: { icon: any; title: stri
   );
 }
 
-// ─── LEFT PANEL NAV ITEM ───────────────────────────────────────
+// ─── ORGANIZATION TREE ────────────────────────────────────────
 
-function NavItem({ icon: Icon, label, active, onClick, badge }: any) {
+function OrgTreeView({ data }: { data: any[] | undefined }) {
+  if (!data) return <Loading />;
+  if (data.length === 0) return <EmptyState icon={Building2} title="No Organization Data" description="Create companies and branches in Organization Studio" />;
+
   return (
-    <button
-      onClick={onClick}
-      className={`w-full flex items-center gap-2 px-3 py-2 text-xs rounded-sm transition-all text-left ${
-        active
-          ? "bg-primary/10 text-primary font-medium"
-          : "text-muted-foreground hover:bg-accent/30 hover:text-foreground"
-      }`}
-    >
-      <Icon className="h-3.5 w-3.5 shrink-0" />
-      <span className="truncate flex-1">{label}</span>
-      {badge && <Badge className="text-[8px] px-1 py-0 h-3.5 rounded-sm" variant="secondary">{badge}</Badge>}
-    </button>
+    <Card className="rounded-sm border-border/50 shadow-none">
+      <CardContent className="p-2">
+        {data.map((company, i) => (
+          <TreeNode key={company.id || i} node={company} />
+        ))}
+      </CardContent>
+    </Card>
   );
 }
 
-// ─── PERMISSION EDITOR (Right Panel) ───────────────────────────
+// ─── ACADEMIC TREE ────────────────────────────────────────────
 
-function PermissionEditor({ selectedRoleId, onClose }: { selectedRoleId: string | null; onClose: () => void }) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [expandedModules, setExpandedModules] = useState<Record<string, boolean>>({});
-  const [scope, setScope] = useState("own");
-
-  const toggleModule = (id: string) => {
-    setExpandedModules((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const filteredModules = MODULE_DEFINITIONS.filter(
-    (m) => !searchTerm || m.label.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
-
-  if (!selectedRoleId) {
-    return (
-      <div className="p-6">
-        <EmptyState icon={Shield} title="No Role Selected" description="Select a role from the center panel to edit its permissions" />
-      </div>
-    );
-  }
+function AcademicTreeView({ data }: { data: any[] | undefined }) {
+  if (!data) return <Loading />;
+  if (data.length === 0) return <EmptyState icon={GraduationCap} title="No Academic Data" description="Create academic verticals and programs in Academic Studio" />;
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="p-3 border-b border-border/40">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-xs font-semibold">Permission Editor</h3>
-          <div className="flex items-center gap-1">
-            <Select value={scope} onValueChange={setScope}>
-              <SelectTrigger className="h-6 text-[10px] rounded-sm px-2 w-[100px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {SCOPE_LEVELS.map((s) => (
-                  <SelectItem key={s.id} value={s.id} className="text-xs">{s.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={onClose}>
-              <X className="h-3 w-3" />
-            </Button>
-          </div>
-        </div>
-        <div className="relative">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/60" />
-          <Input
-            placeholder="Search modules..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-7 h-7 text-[10px] rounded-sm"
-          />
-        </div>
+    <Card className="rounded-sm border-border/50 shadow-none">
+      <CardContent className="p-2">
+        {data.map((vertical, i) => (
+          <TreeNode key={vertical.id || i} node={vertical} />
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── DYNAMIC PERMISSION MATRIX ────────────────────────────────
+
+function PermissionMatrix() {
+  const [selectedRole, setSelectedRole] = useState<string | null>(null);
+  const [selectedScope, setSelectedScope] = useState("company");
+  const roles = useQuery(api.engines.accessControlEngine.listRoles, {});
+  const perms = useQuery(api.engines.accessControlEngine.listPermissions, {});
+
+  const actionColors: Record<string, string> = {
+    create: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    read: "bg-blue-100 text-blue-700 border-blue-200",
+    update: "bg-amber-100 text-amber-700 border-amber-200",
+    delete: "bg-red-100 text-red-700 border-red-200",
+    approve: "bg-purple-100 text-purple-700 border-purple-200",
+    manage: "bg-slate-100 text-slate-700 border-slate-200",
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-3">
+        <Select value={selectedRole || ""} onValueChange={setSelectedRole}>
+          <SelectTrigger className="h-8 text-xs rounded-sm w-[200px]">
+            <SelectValue placeholder="Select a role..." />
+          </SelectTrigger>
+          <SelectContent>
+            {(roles || []).map((r: any) => (
+              <SelectItem key={r._id} value={r._id} className="text-xs">{r.name} ({r.code})</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={selectedScope} onValueChange={setSelectedScope}>
+          <SelectTrigger className="h-8 text-xs rounded-sm w-[140px]"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {SCOPE_OPTIONS.map((s) => (
+              <SelectItem key={s.value} value={s.value} className="text-xs">{s.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4">
+          {ALL_MODULES.length} modules × {ALL_ACTIONS.length} actions
+        </Badge>
       </div>
 
-      {/* Permission Tree */}
-      <ScrollArea className="flex-1">
-        <div className="p-1 space-y-0.5">
-          {filteredModules.map((mod) => {
-            const Icon = mod.icon;
-            const isExpanded = expandedModules[mod.id];
-            return (
-              <div key={mod.id}>
-                <button
-                  onClick={() => toggleModule(mod.id)}
-                  className={`w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-sm hover:bg-accent/30 transition-colors ${
-                    isExpanded ? "bg-accent/20" : ""
-                  }`}
-                >
-                  <ChevronRight className={`h-3 w-3 text-muted-foreground transition-transform ${isExpanded ? "rotate-90" : ""}`} />
-                  <Icon className={`h-3.5 w-3.5 ${mod.color}`} />
-                  <span className="flex-1 text-left font-medium">{mod.label}</span>
-                  <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 bg-transparent">Inherited</Badge>
-                </button>
-                {isExpanded && (
-                  <div className="ml-6 pl-2 border-l border-border/30 space-y-0.5 py-0.5">
-                    {ACCESS_ACTIONS.map((action) => {
-                      const ActionIcon = action.icon;
-                      return (
-                        <label
-                          key={action.id}
-                          className="flex items-center gap-2 px-2 py-1 rounded-sm hover:bg-accent/20 cursor-pointer transition-colors"
-                        >
-                          <input
-                            type="checkbox"
-                            className="h-3 w-3 rounded border-muted-foreground/40 accent-primary"
-                            defaultChecked={["read", "create"].includes(action.id)}
-                          />
-                          <ActionIcon className="h-3 w-3 text-muted-foreground/60" />
-                          <span className="text-[10px] text-muted-foreground/80">{action.label}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                )}
+      <ScrollArea className="h-[500px] border border-border/30 rounded-sm">
+        <div className="min-w-[900px]">
+          {/* Header Row */}
+          <div className="sticky top-0 z-10 grid grid-cols-[120px_repeat(23,minmax(60px,1fr))] bg-accent/50 border-b border-border/30">
+            <div className="px-2 py-1.5 text-[10px] font-medium text-muted-foreground uppercase">Module</div>
+            {ALL_ACTIONS.map((action) => (
+              <div key={action} className="px-1 py-1.5 text-[9px] font-medium text-muted-foreground uppercase text-center border-l border-border/20">
+                {action.replace(/([A-Z])/g, " $1").trim()}
               </div>
-            );
-          })}
+            ))}
+          </div>
+          {/* Data Rows */}
+          {ALL_MODULES.map((module, i) => (
+            <div
+              key={module}
+              className={`grid grid-cols-[120px_repeat(23,minmax(60px,1fr))] items-center ${
+                i % 2 === 0 ? "bg-background" : "bg-accent/10"
+              } hover:bg-accent/20 transition-colors border-b border-border/10`}
+            >
+              <div className="px-2 py-1 text-[10px] font-medium truncate">{module}</div>
+              {ALL_ACTIONS.map((action) => {
+                const isGranted = ["create", "read", "update", "approve"].includes(action);
+                return (
+                  <div key={action} className="px-1 py-1 flex items-center justify-center border-l border-border/10">
+                    <input
+                      type="checkbox"
+                      className="h-3 w-3 rounded border-muted-foreground/30 accent-primary"
+                      defaultChecked={isGranted}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          ))}
         </div>
       </ScrollArea>
-
-      {/* Footer */}
-      <div className="p-3 border-t border-border/40">
-        <Button size="sm" className="w-full h-7 text-[10px] rounded-sm">
-          <Check className="h-3 w-3 mr-1" /> Save Permissions
-        </Button>
-      </div>
     </div>
   );
 }
 
-// ─── SUBSCRIPTION PLANS TAB ────────────────────────────────────
+// ─── EFFECTIVE PERMISSION VIEWER ──────────────────────────────
 
-function SubscriptionPlansTab() {
-  const PLANS = [
-    { name: "Starter", code: "STARTER", price: 0, users: 25, branches: 1, modules: 8, features: ["Core CRM", "Student Management", "Basic Reports"], popular: false },
-    { name: "Professional", code: "PRO", price: 299, users: 100, branches: 5, modules: 14, features: ["All Starter Features", "Finance Suite", "HR Module", "Marketing", "Advanced Reports"], popular: true },
-    { name: "Enterprise", code: "ENTERPRISE", price: 999, users: 500, branches: 50, modules: 20, features: ["All Pro Features", "Unlimited Branches", "Custom Modules", "API Access", "Dedicated Support"], popular: false },
+function EffectivePermissionViewer() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const users = useQuery(api.users.listUsers, {});
+  const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const effectivePerms = useQuery(
+    selectedUser ? api.accessEngine.getEffectivePermissions : "skip",
+    selectedUser ? { userId: selectedUser as any } : "skip",
+  );
+
+  const filtered = (users || []).filter((u: any) =>
+    !searchQuery || u.name?.toLowerCase().includes(searchQuery.toLowerCase()) || u.email?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      {/* User List */}
+      <Card className="rounded-sm border-border/50 shadow-none lg:col-span-1">
+        <CardHeader className="pb-1">
+          <CardTitle className="text-xs font-semibold">Select User</CardTitle>
+          <div className="relative mt-1">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/60" />
+            <Input placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-6 h-7 text-[10px] rounded-sm" />
+          </div>
+        </CardHeader>
+        <ScrollArea className="h-[400px]">
+          <div className="divide-y divide-border/20">
+            {filtered.map((u: any) => (
+              <button
+                key={u._id}
+                onClick={() => setSelectedUser(u._id)}
+                className={`w-full flex items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors ${
+                  selectedUser === u._id ? "bg-primary/5 text-primary" : "hover:bg-accent/20"
+                }`}
+              >
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-accent/50 text-[9px] font-medium shrink-0">
+                  {u.name?.charAt(0) || "?"}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="truncate font-medium">{u.name}</p>
+                  <p className="text-[9px] text-muted-foreground/60 truncate">{u.email}</p>
+                </div>
+                <Badge variant="outline" className="text-[7px] px-1 py-0 h-3">{u.role || "staff"}</Badge>
+              </button>
+            ))}
+          </div>
+        </ScrollArea>
+      </Card>
+
+      {/* Permission Details */}
+      <Card className="rounded-sm border-border/50 shadow-none lg:col-span-2">
+        <CardHeader className="pb-1">
+          <CardTitle className="text-xs font-semibold">
+            {effectivePerms ? `Effective Permissions — ${effectivePerms.user?.name || selectedUser}` : "Effective Permissions"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!selectedUser ? (
+            <EmptyState icon={Shield} title="No User Selected" description="Select a user to view their effective permissions" />
+          ) : !effectivePerms ? (
+            <Loading />
+          ) : (
+            <div className="space-y-3">
+              {/* Summary */}
+              <div className="grid grid-cols-4 gap-2">
+                <div className="p-2 rounded-sm bg-accent/20 text-center">
+                  <p className="text-lg font-bold">{effectivePerms.summary.totalGranted}</p>
+                  <p className="text-[9px] text-muted-foreground">Granted</p>
+                </div>
+                <div className="p-2 rounded-sm bg-accent/20 text-center">
+                  <p className="text-lg font-bold">{effectivePerms.summary.totalDenied}</p>
+                  <p className="text-[9px] text-muted-foreground">Denied</p>
+                </div>
+                <div className="p-2 rounded-sm bg-accent/20 text-center">
+                  <p className="text-lg font-bold">{effectivePerms.summary.modulesWithAccess}</p>
+                  <p className="text-[9px] text-muted-foreground">Modules</p>
+                </div>
+                <div className="p-2 rounded-sm bg-accent/20 text-center">
+                  <p className="text-lg font-bold capitalize">{effectivePerms.scopeLevel}</p>
+                  <p className="text-[9px] text-muted-foreground">Scope</p>
+                </div>
+              </div>
+
+              {/* Permission breakdown */}
+              <ScrollArea className="h-[320px]">
+                <div className="space-y-1">
+                  {effectivePerms.permissions.map((perm: any, i: number) => {
+                    const grantedCount = Object.values(perm.actions).filter(Boolean).length;
+                    if (grantedCount === 0) return null;
+                    return (
+                      <div key={i} className="p-2 rounded-sm border border-border/30 hover:bg-accent/10 transition-colors">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium">{perm.module}</span>
+                          <div className="flex items-center gap-1">
+                            <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5">{grantedCount}/{ALL_ACTIONS.length}</Badge>
+                            <Badge className="text-[8px] px-1 py-0 h-3.5 bg-emerald-50 text-emerald-600 border-0">{perm.source}</Badge>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-0.5">
+                          {Object.entries(perm.actions).map(([action, granted]: [string, any]) => (
+                            <span
+                              key={action}
+                              className={`inline-flex items-center gap-0.5 px-1 py-0.5 text-[8px] rounded-sm ${
+                                granted ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-400"
+                              }`}
+                            >
+                              {granted ? <Check className="h-2.5 w-2.5" /> : <X className="h-2.5 w-2.5" />}
+                              {action.replace(/([A-Z])/g, " $1").trim()}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </ScrollArea>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ─── LOGIN AS SIMULATOR ───────────────────────────────────────
+
+function LoginAsSimulator() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [targetUser, setTargetUser] = useState<any>(null);
+  const [reason, setReason] = useState("");
+  const [simulating, setSimulating] = useState(false);
+  const users = useQuery(api.users.listUsers, {});
+  const simulateLogin = useMutation(api.accessEngine.simulateLogin);
+
+  const filtered = (users || []).filter((u: any) =>
+    !searchQuery || u.name?.toLowerCase().includes(searchQuery.toLowerCase()) || u.email?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleSimulate = async () => {
+    if (!targetUser) return;
+    setSimulating(true);
+    try {
+      const result = await simulateLogin({
+        adminUserId: users?.[0]?._id || "",
+        targetUserId: targetUser._id,
+        reason,
+      });
+      alert(`✅ ${result.message}`);
+    } catch (e: any) {
+      alert(`❌ ${e.message}`);
+    }
+    setSimulating(false);
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* User Selector */}
+      <Card className="rounded-sm border-border/50 shadow-none">
+        <CardHeader className="pb-1">
+          <CardTitle className="text-xs font-semibold">Impersonate User</CardTitle>
+          <p className="text-[9px] text-muted-foreground/60">Simulate login without password. All actions are read-only and audited.</p>
+          <div className="relative mt-1">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/60" />
+            <Input placeholder="Search users..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-6 h-7 text-[10px] rounded-sm" />
+          </div>
+        </CardHeader>
+        <ScrollArea className="h-[300px]">
+          <div className="divide-y divide-border/20">
+            {filtered.map((u: any) => (
+              <button
+                key={u._id}
+                onClick={() => setTargetUser(u)}
+                className={`w-full flex items-center gap-2 px-3 py-1.5 text-left text-xs transition-colors ${
+                  targetUser?._id === u._id ? "bg-primary/5 text-primary" : "hover:bg-accent/20"
+                }`}
+              >
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-accent/50 text-[9px] font-medium shrink-0">
+                  {u.name?.charAt(0) || "?"}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="truncate font-medium">{u.name}</p>
+                  <p className="text-[9px] text-muted-foreground/60 truncate">{u.email}</p>
+                </div>
+                <Badge variant="outline" className="text-[7px] px-1 py-0 h-3">{u.role || "staff"}</Badge>
+              </button>
+            ))}
+          </div>
+        </ScrollArea>
+      </Card>
+
+      {/* Simulation Panel */}
+      <Card className="rounded-sm border-border/50 shadow-none">
+        <CardHeader className="pb-1">
+          <CardTitle className="text-xs font-semibold">Simulation Session</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!targetUser ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Terminal className="h-8 w-8 text-muted-foreground/30 mb-2" />
+              <p className="text-xs text-muted-foreground/60">Select a user to simulate</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="p-3 rounded-sm border border-amber-200 bg-amber-50/50">
+                <div className="flex items-center gap-2 mb-1">
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
+                  <span className="text-xs font-medium text-amber-700">Simulation Mode</span>
+                </div>
+                <p className="text-[10px] text-amber-600/80">All actions will be logged. No permanent changes will be made.</p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-accent/50 text-xs font-medium shrink-0">
+                  {targetUser.name?.charAt(0) || "?"}
+                </div>
+                <div>
+                  <p className="text-sm font-medium">{targetUser.name}</p>
+                  <p className="text-[10px] text-muted-foreground">{targetUser.email} · {targetUser.role || "staff"}</p>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] text-muted-foreground mb-1 block">Reason for simulation (optional)</label>
+                <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g., Troubleshooting permission issue" className="h-7 text-[10px] rounded-sm" />
+              </div>
+
+              <Button
+                onClick={handleSimulate}
+                disabled={simulating}
+                className="w-full h-8 text-xs rounded-sm bg-amber-500 hover:bg-amber-600"
+              >
+                {simulating ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Terminal className="h-3.5 w-3.5 mr-1" />}
+                Start Simulation
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ─── CONFLICT RESOLVER ─────────────────────────────────────────
+
+function ConflictResolver() {
+  const conflicts = useQuery(api.accessEngine.detectConflicts, { userId: "" as any });
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-semibold">Permission Conflict Resolver</h3>
+        <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4">
+          {conflicts ? `${conflicts.duplicates + conflicts.circularPermissions + conflicts.invalidScopes + conflicts.missingDependencies} issues` : "Analyzing..."}
+        </Badge>
+      </div>
+
+      {!conflicts ? <Loading /> : (
+        <div className="grid gap-2 grid-cols-2 lg:grid-cols-4">
+          <Card className="rounded-sm border-border/50 shadow-none">
+            <CardContent className="p-3 text-center">
+              <AlertCircle className="h-4 w-4 text-amber-500 mx-auto mb-1" />
+              <p className="text-lg font-bold">{conflicts.duplicates}</p>
+              <p className="text-[9px] text-muted-foreground">Duplicate Permissions</p>
+            </CardContent>
+          </Card>
+          <Card className="rounded-sm border-border/50 shadow-none">
+            <CardContent className="p-3 text-center">
+              <GitBranch className="h-4 w-4 text-red-500 mx-auto mb-1" />
+              <p className="text-lg font-bold">{conflicts.circularPermissions}</p>
+              <p className="text-[9px] text-muted-foreground">Circular Permissions</p>
+            </CardContent>
+          </Card>
+          <Card className="rounded-sm border-border/50 shadow-none">
+            <CardContent className="p-3 text-center">
+              <X className="h-4 w-4 text-orange-500 mx-auto mb-1" />
+              <p className="text-lg font-bold">{conflicts.invalidScopes}</p>
+              <p className="text-[9px] text-muted-foreground">Invalid Scopes</p>
+            </CardContent>
+          </Card>
+          <Card className="rounded-sm border-border/50 shadow-none">
+            <CardContent className="p-3 text-center">
+              <HelpCircle className="h-4 w-4 text-purple-500 mx-auto mb-1" />
+              <p className="text-lg font-bold">{conflicts.missingDependencies}</p>
+              <p className="text-[9px] text-muted-foreground">Missing Dependencies</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {conflicts && conflicts.details.length > 0 && (
+        <Card className="rounded-sm border-border/50 shadow-none">
+          <CardHeader className="pb-1">
+            <CardTitle className="text-xs font-semibold">Conflict Details</CardTitle>
+          </CardHeader>
+          <ScrollArea className="h-[200px]">
+            <div className="space-y-1 px-4 pb-3">
+              {conflicts.details.map((detail, i) => (
+                <div key={i} className="flex items-start gap-2 text-[10px] text-muted-foreground py-0.5">
+                  <AlertTriangle className="h-3 w-3 text-amber-500 mt-0.5 shrink-0" />
+                  <span>{detail}</span>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </Card>
+      )}
+
+      {(!conflicts || conflicts.details.length === 0) && (
+        <Card className="rounded-sm border-emerald-200 bg-emerald-50/30 shadow-none">
+          <CardContent className="p-3 flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-emerald-500" />
+            <p className="text-xs text-emerald-700">No permission conflicts detected. All scopes are valid.</p>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// ─── ACCESS ANALYTICS ─────────────────────────────────────────
+
+function AccessAnalytics() {
+  const analytics = useQuery(api.accessEngine.getAccessAnalytics, {});
+
+  if (!analytics) return <Loading />;
+
+  const statCards = [
+    { label: "Total Roles", value: analytics.totalRoles, icon: Key, color: "text-blue-500", bg: "bg-blue-50" },
+    { label: "Permissions", value: analytics.totalPermissions, icon: Shield, color: "text-violet-500", bg: "bg-violet-50" },
+    { label: "Active Users", value: analytics.activeUsers, icon: Users, color: "text-emerald-500", bg: "bg-emerald-50" },
+    { label: "Inactive Users", value: analytics.inactiveUsers, icon: UserMinus, color: "text-red-500", bg: "bg-red-50" },
+    { label: "User-Role Assignments", value: analytics.totalUserRoles, icon: UserCheck, color: "text-amber-500", bg: "bg-amber-50" },
+    { label: "Feature Flags", value: analytics.totalFeatureFlags, icon: Flag, color: "text-purple-500", bg: "bg-purple-50" },
+    { label: "Role-Permission Links", value: analytics.totalRolePerms, icon: GitBranch, color: "text-indigo-500", bg: "bg-indigo-50" },
+    { label: "Total Users", value: analytics.totalUsers, icon: UsersRound, color: "text-sky-500", bg: "bg-sky-50" },
   ];
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold">Subscription Plans</h3>
-        <Button size="sm" className="h-8 text-xs rounded-sm">
-          <Plus className="h-3.5 w-3.5 mr-1" /> Add Plan
-        </Button>
+      <div className="grid gap-2 grid-cols-2 lg:grid-cols-4">
+        {statCards.map((s) => (
+          <Card key={s.label} className="rounded-sm border-border/50 shadow-none">
+            <CardContent className="p-3">
+              <div className={`p-1.5 rounded-sm w-fit ${s.bg} mb-1`}>
+                <s.icon className={`h-3.5 w-3.5 ${s.color}`} />
+              </div>
+              <p className="text-lg font-bold">{s.value}</p>
+              <p className="text-[9px] text-muted-foreground">{s.label}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
-      <div className="grid gap-4 md:grid-cols-3">
-        {PLANS.map((plan) => (
+
+      {/* Most Privileged Roles */}
+      <Card className="rounded-sm border-border/50 shadow-none">
+        <CardHeader className="pb-1">
+          <CardTitle className="text-xs font-semibold">Most Privileged Roles</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="divide-y divide-border/20">
+            <div className="grid grid-cols-3 gap-2 px-4 py-1.5 text-[9px] uppercase text-muted-foreground/40 font-medium">
+              <span>Role</span>
+              <span>Permissions</span>
+              <span>Risk Level</span>
+            </div>
+            {analytics.mostPrivileged.map((role: any, i: number) => (
+              <div key={i} className="grid grid-cols-3 gap-2 px-4 py-1.5 text-xs items-center hover:bg-accent/10 transition-colors">
+                <span className="font-medium">{role.roleName}</span>
+                <span>{role.permissionCount}</span>
+                <Badge className={`w-fit text-[8px] px-1 py-0 h-3.5 ${
+                  role.permissionCount > 50 ? "bg-red-50 text-red-600" : role.permissionCount > 20 ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600"
+                }`}>
+                  {role.permissionCount > 50 ? "High" : role.permissionCount > 20 ? "Medium" : "Low"}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ─── SUBSCRIPTION PLANS ────────────────────────────────────────
+
+function SubscriptionPlans() {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-semibold">Subscription Plans</h3>
+        <Button size="sm" className="h-7 text-[10px] rounded-sm"><Plus className="h-3 w-3 mr-1" /> Add Plan</Button>
+      </div>
+      <div className="grid gap-3 md:grid-cols-3">
+        {SUBSCRIPTION_PLANS.map((plan) => (
           <Card key={plan.code} className={`rounded-sm border ${plan.popular ? 'border-primary/30 ring-1 ring-primary/20' : 'border-border/50'} shadow-none`}>
             <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-1">
                 <h4 className="text-sm font-semibold">{plan.name}</h4>
                 {plan.popular && <Badge className="text-[8px] px-1.5 py-0 h-4 bg-primary/10 text-primary border-primary/20">Popular</Badge>}
               </div>
-              <div className="text-2xl font-bold mb-3">${plan.price}<span className="text-xs font-normal text-muted-foreground">/{plan.price === 0 ? 'free' : 'mo'}</span></div>
-              <div className="space-y-1.5 mb-3">
-                <div className="flex items-center justify-between text-[10px]">
-                  <span className="text-muted-foreground">Users</span>
-                  <span className="font-medium">{plan.users}</span>
-                </div>
-                <div className="flex items-center justify-between text-[10px]">
-                  <span className="text-muted-foreground">Branches</span>
-                  <span className="font-medium">{plan.branches}</span>
-                </div>
-                <div className="flex items-center justify-between text-[10px]">
-                  <span className="text-muted-foreground">Modules</span>
-                  <span className="font-medium">{plan.modules}</span>
-                </div>
+              <div className="text-2xl font-bold mb-2">${plan.price}<span className="text-xs font-normal text-muted-foreground">/{plan.price === 0 ? 'free' : 'mo'}</span></div>
+              <div className="space-y-1 mb-2">
+                <div className="flex items-center justify-between text-[10px]"><span className="text-muted-foreground">Users</span><span className="font-medium">{plan.users}</span></div>
+                <div className="flex items-center justify-between text-[10px]"><span className="text-muted-foreground">Branches</span><span className="font-medium">{plan.branches}</span></div>
+                <div className="flex items-center justify-between text-[10px]"><span className="text-muted-foreground">Modules</span><span className="font-medium">{plan.modules}</span></div>
               </div>
-              <Separator className="my-2" />
-              <div className="space-y-1 mb-3">
+              <Separator className="my-1.5" />
+              <div className="space-y-0.5 mb-2">
                 {plan.features.map((f, i) => (
-                  <div key={i} className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                  <div key={i} className="flex items-center gap-1 text-[10px] text-muted-foreground">
                     <Check className="h-3 w-3 text-emerald-500 shrink-0" />
                     {f}
                   </div>
@@ -290,235 +665,161 @@ function SubscriptionPlansTab() {
   );
 }
 
-// ─── ANALYTICS TAB ────────────────────────────────────────────
+// ─── FEATURE FLAGS ─────────────────────────────────────────────
 
-function AccessAnalyticsTab() {
-  const stats = [
-    { label: "Total Roles", value: "8", icon: Key, color: "text-blue-500", bg: "bg-blue-50" },
-    { label: "Total Permissions", value: "156", icon: Shield, color: "text-violet-500", bg: "bg-violet-50" },
-    { label: "Active Users", value: "1,247", icon: Users, color: "text-emerald-500", bg: "bg-emerald-50" },
-    { label: "Feature Flags", value: "23", icon: Flag, color: "text-amber-500", bg: "bg-amber-50" },
-    { label: "Inactive Users", value: "89", icon: UserX, color: "text-red-500", bg: "bg-red-50" },
-    { label: "Permission Conflicts", value: "3", icon: AlertTriangle, color: "text-orange-500", bg: "bg-orange-50" },
+function FeatureFlagsTab() {
+  const flags: { key: string; name: string; status: string; description: string }[] = [
+    { key: "AI_ASSISTANT", name: "AI Assistant", status: "enabled", description: "Enable AI-powered scheduling assistant" },
+    { key: "BULK_EMAIL", name: "Bulk Email", status: "enabled", description: "Enable bulk email campaigns" },
+    { key: "WHATSAPP", name: "WhatsApp Integration", status: "beta", description: "WhatsApp messaging integration" },
+    { key: "FACE_RECOGNITION", name: "Face Recognition", status: "coming_soon", description: "Biometric face attendance" },
+    { key: "PAYMENT_GATEWAY", name: "Payment Gateway", status: "enabled", description: "Online payment processing" },
+    { key: "SMS", name: "SMS Notifications", status: "disabled", description: "SMS notification delivery" },
+    { key: "GST", name: "GST Compliance", status: "enabled", description: "GST invoice generation" },
+    { key: "BULK_SMS", name: "Bulk SMS", status: "beta", description: "Bulk SMS campaigns" },
   ];
 
+  const statusColors: Record<string, string> = {
+    enabled: "bg-emerald-50 text-emerald-600 border-emerald-200",
+    disabled: "bg-slate-50 text-slate-400 border-slate-200",
+    beta: "bg-amber-50 text-amber-600 border-amber-200",
+    coming_soon: "bg-blue-50 text-blue-600 border-blue-200",
+    deprecated: "bg-red-50 text-red-400 border-red-200",
+  };
+
   return (
-    <div className="space-y-4">
-      <h3 className="text-sm font-semibold">Access Analytics</h3>
-      <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        {stats.map((s) => (
-          <Card key={s.label} className="rounded-sm border-border/50 shadow-none">
-            <CardContent className="p-3">
-              <div className="flex items-center justify-between mb-2">
-                <div className={`p-1.5 rounded-sm ${s.bg}`}>
-                  <s.icon className={`h-3.5 w-3.5 ${s.color}`} />
-                </div>
-              </div>
-              <p className="text-lg font-bold">{s.value}</p>
-              <p className="text-[10px] text-muted-foreground">{s.label}</p>
-            </CardContent>
-          </Card>
-        ))}
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-semibold">Feature Flags</h3>
+        <Button size="sm" className="h-7 text-[10px] rounded-sm"><Plus className="h-3 w-3 mr-1" /> Add Flag</Button>
       </div>
       <Card className="rounded-sm border-border/50 shadow-none">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-xs font-semibold">Recent Permission Changes</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="divide-y divide-border/30">
-            <div className="grid grid-cols-4 gap-2 px-4 py-2 text-[10px] uppercase text-muted-foreground/40 font-medium">
-              <span>Action</span>
-              <span>User</span>
-              <span>Module</span>
-              <span>Time</span>
-            </div>
-            {[
-              { action: "Granted", user: "Admin", module: "Finance", time: "2m ago" },
-              { action: "Revoked", user: "System", module: "CRM", time: "15m ago" },
-              { action: "Updated", user: "Super Admin", module: "HR", time: "1h ago" },
-              { action: "Created", user: "Admin", module: "Roles", time: "3h ago" },
-            ].map((log, i) => (
-              <div key={i} className="grid grid-cols-4 gap-2 px-4 py-2 text-xs items-center hover:bg-accent/10 transition-colors">
-                <Badge variant="outline" className="w-fit text-[8px] px-1 py-0 h-4">{log.action}</Badge>
-                <span className="text-muted-foreground">{log.user}</span>
-                <span>{log.module}</span>
-                <span className="text-muted-foreground/60">{log.time}</span>
+        <div className="divide-y divide-border/20">
+          {flags.map((flag) => (
+            <div key={flag.key} className="flex items-center gap-3 px-4 py-2">
+              <ToggleLeft className="h-4 w-4 text-muted-foreground/40" />
+              <div className="flex-1">
+                <p className="text-xs font-medium">{flag.name}</p>
+                <p className="text-[9px] text-muted-foreground/60">{flag.key} — {flag.description}</p>
               </div>
-            ))}
-          </div>
-        </CardContent>
+              <Badge className={`text-[8px] px-1.5 py-0 h-4 border ${statusColors[flag.status] || "bg-slate-50 text-slate-500"}`}>
+                {flag.status.replace("_", " ")}
+              </Badge>
+              <Button variant="ghost" size="sm" className="h-6 w-6 p-0"><Settings2 className="h-3 w-3 text-muted-foreground/60" /></Button>
+            </div>
+          ))}
+        </div>
       </Card>
     </div>
   );
 }
 
-// ─── MAIN ACCESS CONTROL COMPONENT ─────────────────────────────
+// ─── MAIN PAGE ─────────────────────────────────────────────────
 
 export default function AccessControlList() {
-  const [selectedNav, setSelectedNav] = useState("roles");
-  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
+  const [selectedNav, setSelectedNav] = useState("org-tree");
   const [showEditor, setShowEditor] = useState(true);
 
-  const roles = useQuery(api.engines.accessControlEngine.listRoles, {});
-  const perms = useQuery(api.engines.accessControlEngine.listPermissions, {});
+  const orgTree = useQuery(api.accessEngine.getOrganizationTree, {});
+  const academicTree = useQuery(api.accessEngine.getAcademicTree, {});
   const stats = useQuery(api.engines.accessControlEngine.getStats, {});
 
-  // ─── Nav items ───────────────────────────────────────────────
   const NAV_ITEMS = [
-    { id: "organization", label: "Organization", icon: Building2 },
-    { id: "companies", label: "Companies", icon: Globe },
-    { id: "branches", label: "Branches", icon: GitBranch },
-    { id: "departments", label: "Departments", icon: Layers },
-    { id: "teams", label: "Teams", icon: Users },
-    { id: "designations", label: "Designations", icon: UserCog },
-    { id: "users", label: "Users", icon: Users },
+    { id: "org-tree", label: "Organization Tree", icon: GitBranch },
+    { id: "academic-tree", label: "Academic Tree", icon: GraduationCap },
     { id: "roles", label: "Roles", icon: Key },
-    { id: "permissions", label: "Permissions", icon: Shield },
-    { id: "templates", label: "Permission Templates", icon: FileText },
-    { id: "subscriptions", label: "Subscription Plans", icon: DollarSign },
+    { id: "permissions", label: "Permission Matrix", icon: Shield },
+    { id: "effective", label: "Effective Permissions", icon: Eye },
+    { id: "simulator", label: "Login As", icon: Terminal },
+    { id: "conflicts", label: "Conflict Resolver", icon: AlertTriangle },
     { id: "analytics", label: "Access Analytics", icon: Activity },
+    { id: "subscriptions", label: "Subscription Plans", icon: DollarSign },
     { id: "flags", label: "Feature Flags", icon: Flag },
+    { id: "templates", label: "Permission Templates", icon: FileText },
     { id: "audit", label: "Audit Logs", icon: ShieldCheck },
   ];
 
   return (
     <div className="flex h-[calc(100vh-4rem)] gap-0 overflow-hidden">
-      {/* ── LEFT PANEL ────────────────────────────────────────── */}
+      {/* ── LEFT PANEL ────────────────────────────────────── */}
       <div className="w-56 border-r border-border/40 bg-accent/10 flex flex-col shrink-0">
         <div className="p-3 border-b border-border/30">
           <h2 className="text-xs font-semibold flex items-center gap-1.5">
             <Shield className="h-3.5 w-3.5 text-primary" />
             Access Control
           </h2>
-          <p className="text-[9px] text-muted-foreground/60 mt-0.5">Enterprise Permissions Manager</p>
+          <p className="text-[9px] text-muted-foreground/60 mt-0.5">Enterprise Governance Platform</p>
         </div>
         <ScrollArea className="flex-1">
           <div className="p-2 space-y-0.5">
             {NAV_ITEMS.map((item) => (
-              <NavItem
+              <button
                 key={item.id}
-                icon={item.icon}
-                label={item.label}
-                active={selectedNav === item.id}
-                onClick={() => {
-                  setSelectedNav(item.id);
-                  if (item.id !== "roles") setSelectedRoleId(null);
-                }}
-                badge={item.id === "roles" ? stats?.totalRoles : item.id === "permissions" ? stats?.totalPermissions : undefined}
-              />
+                onClick={() => setSelectedNav(item.id)}
+                className={`w-full flex items-center gap-2 px-3 py-2 text-xs rounded-sm transition-all text-left ${
+                  selectedNav === item.id
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "text-muted-foreground hover:bg-accent/30 hover:text-foreground"
+                }`}
+              >
+                <item.icon className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate flex-1">{item.label}</span>
+              </button>
             ))}
           </div>
         </ScrollArea>
       </div>
 
-      {/* ── CENTER PANEL ─────────────────────────────────────── */}
-      <div className={`flex-1 flex flex-col overflow-hidden ${showEditor ? "" : ""}`}>
+      {/* ── CENTER PANEL ─────────────────────────────────── */}
+      <div className="flex-1 flex flex-col overflow-hidden">
         <div className="p-3 border-b border-border/30 bg-background">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-semibold capitalize">{selectedNav.replace(/_/g, " ")}</h3>
+              <h3 className="text-sm font-semibold capitalize">
+                {NAV_ITEMS.find(n => n.id === selectedNav)?.label || selectedNav}
+              </h3>
               <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 font-normal">
                 {selectedNav === "roles" ? `${stats?.totalRoles || 0} entries` : ""}
               </Badge>
-            </div>
-            <div className="flex items-center gap-1.5">
-              {(selectedNav === "roles" || selectedNav === "permissions") && (
-                <Button size="sm" className="h-7 text-[10px] rounded-sm">
-                  <Plus className="h-3 w-3 mr-1" /> Add
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0"
-                onClick={() => setShowEditor(!showEditor)}
-                title="Toggle permission editor"
-              >
-                <Shield className="h-3.5 w-3.5" />
-              </Button>
             </div>
           </div>
         </div>
 
         <ScrollArea className="flex-1">
           <div className="p-3">
-            {/* ── Roles View ──────────────────────────────── */}
+            {selectedNav === "org-tree" && <OrgTreeView data={orgTree} />}
+            {selectedNav === "academic-tree" && <AcademicTreeView data={academicTree} />}
+            {selectedNav === "permissions" && <PermissionMatrix />}
+            {selectedNav === "effective" && <EffectivePermissionViewer />}
+            {selectedNav === "simulator" && <LoginAsSimulator />}
+            {selectedNav === "conflicts" && <ConflictResolver />}
+            {selectedNav === "analytics" && <AccessAnalytics />}
+            {selectedNav === "subscriptions" && <SubscriptionPlans />}
+            {selectedNav === "flags" && <FeatureFlagsTab />}
+
             {selectedNav === "roles" && (
-              <div className="space-y-2">
-                {!roles ? (
-                  <Loading />
-                ) : roles.length === 0 ? (
-                  <EmptyState icon={Key} title="No Roles Created" description="Create your first role to define access levels" />
-                ) : (
-                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {roles.map((role: any) => (
-                      <button
-                        key={role._id}
-                        onClick={() => setSelectedRoleId(role._id)}
-                        className={`text-left p-3 rounded-sm border transition-all ${
-                          selectedRoleId === role._id
-                            ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20"
-                            : "border-border/50 hover:border-border hover:bg-accent/10"
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          <div className={`p-1 rounded-sm ${role.isSystem ? "bg-amber-50" : "bg-accent/50"}`}>
-                            <Key className={`h-3 w-3 ${role.isSystem ? "text-amber-500" : "text-muted-foreground"}`} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium truncate">{role.name}</p>
-                            <p className="text-[9px] text-muted-foreground/60">{role.code}</p>
-                          </div>
-                          <Badge variant="outline" className={`text-[8px] px-1 py-0 h-3.5 ${
-                            role.isActive ? "border-emerald-300/50 text-emerald-600" : "border-red-300/50 text-red-500"
-                          }`}>
-                            {role.isActive ? "Active" : "Inactive"}
-                          </Badge>
-                        </div>
-                        {role.description && (
-                          <p className="text-[10px] text-muted-foreground/60 truncate mt-1">{role.description}</p>
-                        )}
-                        <div className="flex items-center gap-2 mt-1.5 text-[8px] text-muted-foreground/40">
-                          <span>Priority: {role.priority ?? 0}</span>
-                          {role.isSystem && <Badge className="text-[7px] px-1 py-0 h-3 bg-amber-50 text-amber-600 border-0">System</Badge>}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
+              <div className="text-center py-12 text-muted-foreground/60">
+                <Key className="h-8 w-8 mx-auto mb-2 text-muted-foreground/30" />
+                <p className="text-xs">Role management is available in the Organization Studio</p>
               </div>
             )}
 
-            {/* ── Subscriptions ──────────────────────────── */}
-            {selectedNav === "subscriptions" && <SubscriptionPlansTab />}
+            {selectedNav === "templates" && (
+              <div className="text-center py-12 text-muted-foreground/60">
+                <Copy className="h-8 w-8 mx-auto mb-2 text-muted-foreground/30" />
+                <p className="text-xs">Permission templates allow bulk cloning of role permissions</p>
+              </div>
+            )}
 
-            {/* ── Analytics ─────────────────────────────────── */}
-            {selectedNav === "analytics" && <AccessAnalyticsTab />}
-
-            {/* ── Other panels ─────────────────────────────── */}
-            {!["roles", "subscriptions", "analytics"].includes(selectedNav) && (
-              <EmptyState
-                icon={selectedNav === "flags" ? Flag : selectedNav === "audit" ? ShieldCheck : Building2}
-                title={`${selectedNav.charAt(0).toUpperCase() + selectedNav.slice(1)} Management`}
-                description="Select an item from the left panel to manage its settings"
-              />
+            {selectedNav === "audit" && (
+              <div className="text-center py-12 text-muted-foreground/60">
+                <ShieldCheck className="h-8 w-8 mx-auto mb-2 text-muted-foreground/30" />
+                <p className="text-xs">Permission audit logs track every change made to the access system</p>
+              </div>
             )}
           </div>
         </ScrollArea>
       </div>
-
-      {/* ── RIGHT PANEL (Permission Editor) ──────────────────── */}
-      {showEditor && (
-        <div className="w-80 border-l border-border/40 bg-background flex flex-col shrink-0">
-          <PermissionEditor selectedRoleId={selectedRoleId} onClose={() => setShowEditor(false)} />
-        </div>
-      )}
     </div>
   );
 }
-
-// ─── Missing icon imports ──────────────────────────────────────
-function ShoppingCart(props: any) { return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg> }
-function Calendar(props: any) { return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> }
-function UserX(props: any) { return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="17" y1="8" x2="22" y2="13"/><line x1="22" y1="8" x2="17" y2="13"/></svg> }
-function PersonStanding(props: any) { return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="5" r="1"/><path d="m9 20 3-6 3 6"/><path d="m6 8 6 2 6-2"/><path d="M12 10v4"/></svg> }
