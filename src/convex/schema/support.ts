@@ -233,7 +233,7 @@ export const supportTables = {
     category: v.optional(v.string()),
     priority: v.optional(v.string()),
     title: v.string(),                  // Default ticket title
-    description: v.optional(v.string()), // Default description body
+    body: v.optional(v.string()), // Default description body
     customFields: v.optional(v.any()),
     tags: v.optional(v.array(v.string())),
     isActive: v.optional(v.boolean()),

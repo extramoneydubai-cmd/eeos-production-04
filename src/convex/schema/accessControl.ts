@@ -201,13 +201,14 @@ export const accessControlTables = {
       v.literal("global"),
     ),
     isSystem: v.boolean(),
+    isActive: v.boolean(),
     version: v.number(),
     createdBy: v.optional(v.id("users")),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_role", ["roleId"])
-    .index("by_active", []),
+    .index("by_active", ["isActive"]),
 
   // ─── Permission Audit Logs ────────────────────────────────────
   permissionAuditLogs: defineTable({

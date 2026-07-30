@@ -138,16 +138,10 @@ export default function AcademicWorkspace() {
                   <dt className="text-muted-foreground text-xs">Status</dt>
                   <dd>
                     <Badge
-                      variant={
-                        entity?.isActive !== false (entity as any)?.isActive !== false && (entity as any)?.active !== false(entity as any)?.isActive !== false && (entity as any)?.active !== false entity?.active !== false
-                          ? "default"
-                          : "secondary"
-                      }
+                      variant={entity?.isActive !== false ? "default" : "secondary"}
                       className="text-[10px]"
                     >
-                      {entity?.isActive !== false (entity as any)?.isActive !== false && (entity as any)?.active !== false(entity as any)?.isActive !== false && (entity as any)?.active !== false entity?.active !== false
-                        ? "Active"
-                        : "Inactive"}
+                      {entity?.isActive !== false ? "Active" : "Inactive"}
                     </Badge>
                   </dd>
                 </div>
