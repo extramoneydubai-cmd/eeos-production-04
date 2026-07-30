@@ -1,7 +1,9 @@
-# EEOS — Code-Derived Platform Audit (v0.96)
+# EEOS — Code-Derived Platform Audit (v0.97)
 
 > Generated: Code-derived from actual source files.
 > No assumptions. No documentation-only claims.
+> PATCH-ENTERPRISE-010: Added PlatformSDK barrel, Attendance Page, Integration Studio, AI Studio.
+> TypeScript: 0 errors. Routes: 39. SDK files: 28.
 
 ---
 
@@ -9,18 +11,20 @@
 
 | Metric | Value | Source |
 |--------|:-----:|--------|
-| **Total Source Files** | **736** | `find src -name '*.ts' -o -name '*.tsx' \| grep -v _generated` |
+| **Total Source Files** | **743** | `find src -name '*.ts' -o -name '*.tsx' \| grep -v _generated` |
 | **Convex Engine Files** | **257** | `ls src/convex/*.ts \| grep -v schema` |
-| **React Pages** | **103** | `ls src/pages/*.tsx \| grep -v studios` |
-| **Studio Pages** | **78** | `ls src/pages/studios/*.tsx` |
+| **React Pages** | **104** | `ls src/pages/*.tsx \| grep -v studios` |
+| **Studio Pages** | **80** | `ls src/pages/studios/*.tsx` |
 | **Schema Tables** | **364** | `grep -c defineTable src/convex/schema/*.ts` (23 schema files) |
-| **Route Entries** | **36** | `grep -c 'href:' src/lib/routes.ts` |
-| **Platform SDK Files** | **95** | `find src/platform -name '*.ts' \| wc -l` |
+| **Route Entries** | **39** | `grep -c 'href:' src/lib/routes.ts` |
+| **Platform SDK Files** | **99** | `find src/platform -name '*.ts' \| wc -l` |
 | **Convex Generated API** | **641 lines** | `src/convex/_generated/api.d.ts` |
 | **TypeScript Status** | **0 errors** | `bunx tsc --noEmit` |
 | **Convex Deploy** | **Stale lock** | Pending manual `convex deploy --typecheck=disable` |
-| **Dead/Unused Engines** | **108** | Engines with 0 imports across convex/ and pages/ |
-| **Direct `api.xxx` in Pages** | **80+ pages** | Pages bypassing SDK and calling Convex directly |
+| **Dead/Unused Engines** | **108** | Engines with 0 imports across convex/ and pages/ (unchanged — adoption target) |
+| **Direct `api.xxx` in Pages** | **80+ pages** | Pages bypassing SDK and calling Convex directly (PlatformSDK now available as replacement) |
+| **PlatformSDK Methods** | **28 SDKs** | Unified barrel export at `@/platform/sdk` covering all modules |
+| **New Pages This Patch** | **3** | AttendancePage, IntegrationStudio, AIStudio |
 
 ---
 

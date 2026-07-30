@@ -254,6 +254,13 @@ export const routes: RouteEntry[] = [
     visible,
   },
   {
+    label: "Attendance",
+    href: "/attendance",
+    icon: ListChecks,
+    group: "Business Modules",
+    visible,
+  },
+  {
     label: "System Analytics",
     href: "/analytics",
     icon: BarChart3,
@@ -266,6 +273,20 @@ export const routes: RouteEntry[] = [
     href: "/control",
     icon: Crown,
     group: "Business Modules",
+    visible,
+  },
+  {
+    label: "Integration Studio",
+    href: "/studios/integration",
+    icon: Settings,
+    group: "Studios",
+    visible,
+  },
+  {
+    label: "AI Studio",
+    href: "/studios/ai",
+    icon: Activity,
+    group: "Studios",
     visible,
   },
   {

@@ -1,0 +1,71 @@
+/**
+ * PlatformSDK — Unified Enterprise Data Layer
+ *
+ * Single import for ALL page-consumable SDK methods.
+ * Every page MUST import from here instead of calling api.xxx directly.
+ *
+ * Usage:
+ *   import { PlatformSDK } from "@/platform/sdk";
+ *   const students = await PlatformSDK.students.list(ctx, { branchId });
+ *   const account = await PlatformSDK.finance.getStudentFeeAccount(ctx, { studentId });
+ */
+
+import * as academic from "./academicSdk";
+import * as attendance from "./attendanceSdk";
+import * as audit from "./auditSdk";
+import * as calendar from "./calendarSdk";
+import * as communication from "./communicationSdk";
+import * as crm from "./crmSdk";
+import * as dashboard from "./dashboardSdk";
+import * as documents from "./documentSdk";
+import * as events from "./eventSdk";
+import * as finance from "./financeSdk";
+import * as hr from "./hrSdk";
+import * as integration from "./integrationSdk";
+import * as marketing from "./marketingSdk";
+import * as notifications from "./notificationSdk";
+import * as parent from "./parentSdk";
+import * as people from "./peopleSdk";
+import * as permissions from "./permissionSdk";
+import * as procurement from "./procurementSdk";
+import * as production from "./productionSdk";
+import * as reports from "./reportSdk";
+import * as scheduling from "./schedulingSdk";
+import * as students from "./studentSdk";
+import * as tasks from "./taskSdk";
+import * as timeline from "./timelineSdk";
+import * as visibility from "./visibilitySdk";
+import * as workflow from "./workflowSdk";
+import * as ai from "./aiSdk";
+
+export const PlatformSDK = {
+  academic,
+  attendance,
+  audit,
+  calendar,
+  communication,
+  crm,
+  dashboard,
+  documents,
+  events,
+  finance,
+  hr,
+  integration,
+  marketing,
+  notifications,
+  parent,
+  people,
+  permissions,
+  procurement,
+  production,
+  reports,
+  scheduling,
+  students,
+  tasks,
+  timeline,
+  visibility,
+  workflow,
+  ai,
+} as const;
+
+export type PlatformSDKType = typeof PlatformSDK;
