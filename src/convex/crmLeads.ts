@@ -3,8 +3,9 @@ import { mutation, query } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
 import { LEAD_PIPELINE_STAGES, logActivity, createNotification } from "./crmHelpers";
 import { paginatedQuery, applyStandardFilters, type PaginatedResponse } from "./queryHelpers";
-import { withScopeAndEvents } from "./withScopeAndEvents";
+import { withScopeAndEvents, type ScopeAndEventsConfig } from "./withScopeAndEvents";
 import { Events } from "./eventRegistry";
+import { Id } from "./_generated/dataModel";
 
 // ============================
 // LEAD CRUD
@@ -124,17 +125,19 @@ export const createLead = mutation({
 
 export const updateLead = mutation({
   args: { leadId: v.id("leadMaster"), firstName: v.optional(v.string()), lastName: v.optional(v.string()), phone: v.optional(v.string()), email: v.optional(v.string()), whatsappUsername: v.optional(v.string()), whatsappPin: v.optional(v.string()), dob: v.optional(v.number()), gender: v.optional(v.string()), location: v.optional(v.string()), verticalId: v.optional(v.id("verticals")), subVerticalId: v.optional(v.id("subVerticals")), boardId: v.optional(v.id("boards")), courseInterest: v.optional(v.string()), branchInterestId: v.optional(v.id("branches")), academicDetails: v.optional(v.string()), priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("critical"))), probability: v.optional(v.number()), expectedRevenue: v.optional(v.number()), expectedJoining: v.optional(v.number()), nextAction: v.optional(v.string()), nextActionDate: v.optional(v.number()), standardAmount: v.optional(v.number()), discountAmount: v.optional(v.number()), waiverAmount: v.optional(v.number()), finalPayable: v.optional(v.number()), status: v.optional(v.union(v.literal("active"), v.literal("converted"), v.literal("lost"), v.literal("archived"))), tags: v.optional(v.array(v.string())), userId: v.id("users") },
-  handler: withEventPipeline(
+  handler: withScopeAndEvents(
     {
+      operation: "update",
       module: "crm",
       entity: "lead",
-      action: "update",
-      getEntityId: entityIdFromArg("leadId"),
-      getUserId: userIdFromArg("userId"),
+      eventType: Events.CRM.LEAD_UPDATED,
       title: "Lead updated",
+      getUserId: (args) => args.userId,
+      getEntityBranchId: (args) => args.branchInterestId,
+      notifyViaMatrix: true,
     },
     async (ctx, args) => {
-      const { leadId, userId, ...fields } = args;
+      const { leadId, userId, branchInterestId, ...fields } = args;
       const updates: Record<string, any> = { updatedAt: Date.now() };
       for (const [key, value] of Object.entries(fields)) { if (value !== undefined) updates[key] = value; }
       await ctx.db.patch(leadId, updates);

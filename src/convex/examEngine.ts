@@ -200,7 +200,7 @@ export const updateExamSessionStatus = mutation({
       getUserId: (args) => args.performedBy,
       getEntityCompanyId: () => undefined,
       getEntityBranchId: () => undefined,
-      notifyViaMatrix: args.title === "published" || args.status === "published",
+      notifyViaMatrix: true,
     },
     async (ctx, args) => {
       const { id, performedBy, remarks, ...updates } = args;

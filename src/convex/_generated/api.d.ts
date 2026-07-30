@@ -124,6 +124,8 @@ import type * as engines_seedEngine from "../engines/seedEngine.js";
 import type * as engines_sequenceEngine from "../engines/sequenceEngine.js";
 import type * as engines_timelineEngine from "../engines/timelineEngine.js";
 import type * as enrollmentEngine from "../enrollmentEngine.js";
+import type * as enterpriseReleaseValidation from "../enterpriseReleaseValidation.js";
+import type * as enterpriseSimulation from "../enterpriseSimulation.js";
 import type * as enterpriseValidation from "../enterpriseValidation.js";
 import type * as eventRegistry from "../eventRegistry.js";
 import type * as examEngine from "../examEngine.js";
@@ -225,6 +227,7 @@ import type * as recruitmentEngine from "../recruitmentEngine.js";
 import type * as refundCalcEngine from "../refundCalcEngine.js";
 import type * as refundEngine from "../refundEngine.js";
 import type * as relationshipEngine from "../relationshipEngine.js";
+import type * as releaseVerdict from "../releaseVerdict.js";
 import type * as reportCardEngine from "../reportCardEngine.js";
 import type * as reportEngine from "../reportEngine.js";
 import type * as reportExportEngine from "../reportExportEngine.js";
@@ -283,6 +286,7 @@ import type * as visibilityEngine from "../visibilityEngine.js";
 import type * as whatsappEngine from "../whatsappEngine.js";
 import type * as withScopeAndEvents from "../withScopeAndEvents.js";
 import type * as workflowEngine from "../workflowEngine.js";
+import type * as zeroGapReporter from "../zeroGapReporter.js";
 
 import type {
   ApiFromModules,
@@ -407,6 +411,8 @@ declare const fullApi: ApiFromModules<{
   "engines/sequenceEngine": typeof engines_sequenceEngine;
   "engines/timelineEngine": typeof engines_timelineEngine;
   enrollmentEngine: typeof enrollmentEngine;
+  enterpriseReleaseValidation: typeof enterpriseReleaseValidation;
+  enterpriseSimulation: typeof enterpriseSimulation;
   enterpriseValidation: typeof enterpriseValidation;
   eventRegistry: typeof eventRegistry;
   examEngine: typeof examEngine;
@@ -508,6 +514,7 @@ declare const fullApi: ApiFromModules<{
   refundCalcEngine: typeof refundCalcEngine;
   refundEngine: typeof refundEngine;
   relationshipEngine: typeof relationshipEngine;
+  releaseVerdict: typeof releaseVerdict;
   reportCardEngine: typeof reportCardEngine;
   reportEngine: typeof reportEngine;
   reportExportEngine: typeof reportExportEngine;
@@ -566,6 +573,7 @@ declare const fullApi: ApiFromModules<{
   whatsappEngine: typeof whatsappEngine;
   withScopeAndEvents: typeof withScopeAndEvents;
   workflowEngine: typeof workflowEngine;
+  zeroGapReporter: typeof zeroGapReporter;
 }>;
 
 /**
