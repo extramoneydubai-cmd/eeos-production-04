@@ -227,10 +227,6 @@ export const seedSupplemental = mutation({
     }
     results.push(`✅ ${camp} marketing campaigns`);
 
-    // Free up memory by nullifying large arrays
-    (students as any) = null;
-    (employees as any) = null;
-
     return {
       ok: true,
       message: "9 Internal Testing Only modules boosted with supplemental data",

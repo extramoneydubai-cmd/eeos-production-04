@@ -1,0 +1,47 @@
+# ── Dependencies ────────────────────────────────────────
+node_modules
+.bun-cache
+
+# ── Build Output ────────────────────────────────────────
+dist
+build
+.out
+
+# ── Convex Generated ───────────────────────────────────
+src/convex/_generated
+
+# ── Environment ─────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── IDE / OS ────────────────────────────────────────────
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ── Git ─────────────────────────────────────────────────
+.git
+.gitignore
+
+# ── Logs ────────────────────────────────────────────────
+*.log
+npm-debug.log*
+
+# ── Documentation ───────────────────────────────────────
+docs/
+*.md
+*.mdx
+
+# ── CI/CD ───────────────────────────────────────────────
+.github/
+
+# ── Other ───────────────────────────────────────────────
+.dockerignore
+docker-compose.yml
+Dockerfile
+tmp/
