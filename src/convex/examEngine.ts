@@ -1,7 +1,8 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
-import { withEventPipeline, entityIdFromResult, entityIdFromArg, userIdFromArg } from "../platform/eventPipeline";
+import { withScopeAndEvents } from "./withScopeAndEvents";
+import { Events } from "./eventRegistry";
 
 // ═══════════════════════════════════════════════════════════════════
 // EXAM TEMPLATES
@@ -33,15 +34,25 @@ export const createExamTemplate = mutation({
     description: v.optional(v.string()), duration: v.optional(v.number()),
     maxMarks: v.number(), passPercentage: v.number(), weightage: v.optional(v.number()),
     gradeScheme: v.optional(v.string()),
+    createdBy: v.id("users"),
   },
-  handler: withEventPipeline(
-    { module: "exam", entity: "template", action: "create", getEntityId: entityIdFromResult(), title: "Exam template created" },
+  handler: withScopeAndEvents(
+    {
+      operation: "create",
+      module: "exam",
+      entity: "template",
+      eventType: Events.EXAM.CREATED,
+      title: "Exam template created",
+      getUserId: (args) => args.createdBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: false,
+    },
     async (ctx, args) => {
-      const identity = await ctx.auth.getUserIdentity();
-      if (!identity) throw new Error("Not authenticated");
+      const { createdBy, ...rest } = args;
       const now = Date.now();
       return await ctx.db.insert("examTemplates", {
-        ...args, isActive: true, createdBy: identity.subject as any, createdAt: now, updatedAt: now,
+        ...rest, isActive: true, createdBy, createdAt: now, updatedAt: now,
       });
     },
   ),
@@ -146,45 +157,60 @@ export const createExamSession = mutation({
     startDate: v.number(), endDate: v.optional(v.number()),
     coordinatorId: v.optional(v.id("users")), totalStudents: v.optional(v.number()),
     instructions: v.optional(v.string()), metadata: v.optional(v.string()),
+    createdBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    const now = Date.now();
-    const id = await ctx.db.insert("examSessions", { ...args, status: "draft", createdAt: now, updatedAt: now });
-
-    await ctx.db.insert("examTimeline", {
-      examSessionId: id, eventType: "exam_created",
-      description: `Exam session "${args.name}" created`, userId: identity.subject as any, createdAt: now,
-    });
-    await ctx.db.insert("examPublishLog", {
-      examSessionId: id, action: "draft", performedBy: identity.subject as any, createdAt: now,
-    });
-    return id;
-  },
+  handler: withScopeAndEvents(
+    {
+      operation: "create",
+      module: "exam",
+      entity: "session",
+      eventType: Events.EXAM.CREATED,
+      title: "Exam session created",
+      getUserId: (args) => args.createdBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args) => args.branchId,
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
+      const { createdBy, ...rest } = args;
+      const now = Date.now();
+      const id = await ctx.db.insert("examSessions", { ...rest, status: "draft", createdAt: now, updatedAt: now });
+      await ctx.db.insert("examPublishLog", {
+        examSessionId: id, action: "draft", performedBy: createdBy, createdAt: now,
+      });
+      return id;
+    },
+  ),
 });
 
 export const updateExamSessionStatus = mutation({
   args: {
     id: v.id("examSessions"),
     status: v.union(v.literal("draft"), v.literal("scheduled"), v.literal("in_progress"), v.literal("completed"), v.literal("published"), v.literal("archived")),
+    performedBy: v.id("users"),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-    const { id, remarks, ...updates } = args;
-    await ctx.db.patch(id, { ...updates, updatedAt: Date.now() });
-
-    await ctx.db.insert("examPublishLog", {
-      examSessionId: id, action: args.status, performedBy: identity.subject as any, remarks, createdAt: Date.now(),
-    });
-    await ctx.db.insert("examTimeline", {
-      examSessionId: id, eventType: `session_${args.status}`,
-      description: `Session status changed to ${args.status}`, userId: identity.subject as any, createdAt: Date.now(),
-    });
-    return id;
-  },
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "exam",
+      entity: "session",
+      eventType: Events.EXAM.PUBLISHED,
+      title: "Exam session status changed",
+      getUserId: (args) => args.performedBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: args.title === "published" || args.status === "published",
+    },
+    async (ctx, args) => {
+      const { id, performedBy, remarks, ...updates } = args;
+      await ctx.db.patch(id, { ...updates, updatedAt: Date.now() });
+      await ctx.db.insert("examPublishLog", {
+        examSessionId: id, action: args.status, performedBy, remarks, createdAt: Date.now(),
+      });
+      return id;
+    },
+  ),
 });
 
 // ═══════════════════════════════════════════════════════════════════
