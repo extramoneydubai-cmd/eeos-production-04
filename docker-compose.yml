@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    environment:
+      - VITE_CONVEX_URL=${VITE_CONVEX_URL}
+      - CONVEX_DEPLOY_KEY=${CONVEX_DEPLOY_KEY}
+      - APP_URL=${APP_URL:-http://localhost:80}
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ─── Convex Backend (Cloud-hosted) ──────────────────
+  # Convex is a managed cloud service. No Docker container needed.
+  # The VITE_CONVEX_URL env var points to your Convex deployment.
+  # 
+  # To deploy to Convex:
+  #   npx convex deploy --cmd 'docker build -t eeos-app .'
+  #
+  # The CONVEX_DEPLOY_KEY is set in your CI/CD environment.
+
+networks:
+  default:
+    driver: bridge
