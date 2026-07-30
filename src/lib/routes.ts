@@ -269,6 +269,20 @@ export const routes: RouteEntry[] = [
     visible,
   },
   {
+    label: "Governance",
+    href: "/governance",
+    icon: Shield,
+    group: "System",
+    visible,
+  },
+  {
+    label: "Configuration",
+    href: "/configuration",
+    icon: Settings,
+    group: "System",
+    visible,
+  },
+  {
     label: "Settings",
     href: "/settings",
     icon: Settings,

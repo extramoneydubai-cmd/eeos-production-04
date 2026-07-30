@@ -21,13 +21,33 @@ import {
   Activity, AlertTriangle, GitBranch, Globe, Layers,
   ChevronLeft, RefreshCw, UserX, UserMinus, Terminal, AlertCircle,
   HelpCircle, ToggleLeft, Copy, Download, Upload, Award,
-  Target, Siren, ShieldAlert,
+  Target, Siren, ShieldAlert, ContactRound, FileCheck,
+  ShoppingCart, Gauge,
 } from "lucide-react";
 
 // ─── Helper Icons ──────────────────────────────────────────────
 
-function ShoppingCart(props: any) { return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg> }
-function CalendarIcon(props: any) { return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> }
+function ShoppingCartIcon(props: any) {
+  return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>;
+}
+function CalendarIconSvg(props: any) {
+  return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>;
+}
+function MonitorIconSvg(props: any) {
+  return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>;
+}
+
+// ─── Icon Map for Dynamic Menu Builder ─────────────────────────
+
+const iconMap: Record<string, React.ElementType> = {
+  LayoutDashboard, Building2, Database, Shield, Workflow, ListChecks,
+  Calendar: CalendarIconSvg, Users, LineChart, GraduationCap, UserPlus,
+  BookOpen, PiggyBank, UsersRound, Megaphone, MessageSquare, BarChart3,
+  Crown, DollarSign, FileText, Activity, Settings, ShoppingCart: ShoppingCartIcon,
+  ContactRound, FileCheck, Monitor: MonitorIconSvg, ShieldCheck, ShieldAlert,
+  Users, Target, Siren, Gauge, Globe, Key, UserCog, Flag, ChevronRight,
+  ToggleLeft, Eye, EyeOff, Copy, Sliders,
+};
 
 // ─── Constants ─────────────────────────────────────────────────
 
@@ -76,7 +96,7 @@ function TreeNode({ node, depth = 0 }: { node: any; depth?: number }) {
   };
   const typeIcons: Record<string, any> = {
     company: Building2, branch: GitBranch, department: Layers,
-    team: Users, vertical: GraduationCap, program: BookOpen, batch: CalendarIcon,
+    team: Users, vertical: GraduationCap, program: BookOpen, batch: CalendarIconSvg,
   };
   const Icon = typeIcons[node.type] || FolderTree;
 
@@ -161,16 +181,6 @@ function PermissionMatrix() {
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [selectedScope, setSelectedScope] = useState("company");
   const roles = useQuery(api.engines.accessControlEngine.listRoles, {});
-  const perms = useQuery(api.engines.accessControlEngine.listPermissions, {});
-
-  const actionColors: Record<string, string> = {
-    create: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    read: "bg-blue-100 text-blue-700 border-blue-200",
-    update: "bg-amber-100 text-amber-700 border-amber-200",
-    delete: "bg-red-100 text-red-700 border-red-200",
-    approve: "bg-purple-100 text-purple-700 border-purple-200",
-    manage: "bg-slate-100 text-slate-700 border-slate-200",
-  };
 
   return (
     <div className="space-y-3">
@@ -714,6 +724,303 @@ function FeatureFlagsTab() {
   );
 }
 
+// ─── DYNAMIC MENU BUILDER ──────────────────────────────────────
+
+function DynamicMenuBuilder() {
+  const allMenus = useQuery(api.menuEngine.getAllMenus, {});
+  const seedDefault = useMutation(api.menuEngine.seedDefaultMenus);
+  const createMenu = useMutation(api.menuEngine.createMenu);
+  const updateMenu = useMutation(api.menuEngine.updateMenu);
+  const deleteMenu = useMutation(api.menuEngine.deleteMenu);
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
+  const toggleGroup = (group: string) => setExpandedGroups(p => ({ ...p, [group]: !p[group] }));
+
+  const handleCreate = async () => {
+    const name = prompt("Menu label:");
+    if (!name) return;
+    const href = prompt("Route href:", "/" + name.toLowerCase().replace(/\s+/g, "-"));
+    if (!href) return;
+    const group = prompt("Group (e.g., Overview, Studios, Business Modules):", "Business Modules");
+    if (!group) return;
+    await createMenu({
+      label: name, href, icon: "LayoutDashboard", group,
+      order: 99, visibility: "visible", isPlaceholder: false,
+    });
+  };
+
+  const handleToggleVisibility = async (menu: any) => {
+    await updateMenu({
+      menuId: menu._id,
+      visibility: menu.visibility === "visible" ? "hidden" : "visible",
+    });
+  };
+
+  const handleDelete = async (menuId: any) => {
+    if (confirm("Delete this menu? This will also delete any child menus.")) {
+      await deleteMenu({ menuId });
+    }
+  };
+
+  // Group menus
+  const grouped = (allMenus || []).reduce((acc: Record<string, any[]>, m: any) => {
+    if (!acc[m.group]) acc[m.group] = [];
+    acc[m.group].push(m);
+    return acc;
+  }, {});
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-semibold">Dynamic Menu Builder</h3>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="ghost" className="h-7 text-[10px] rounded-sm" onClick={() => seedDefault({})}>
+            <RefreshCw className="h-3 w-3 mr-1" /> Seed Defaults
+          </Button>
+          <Button size="sm" className="h-7 text-[10px] rounded-sm" onClick={handleCreate}>
+            <Plus className="h-3 w-3 mr-1" /> Add Menu
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <Card className="rounded-sm border-border/50 shadow-none lg:col-span-1">
+          <CardHeader className="pb-1"><CardTitle className="text-xs font-semibold">Menu Groups</CardTitle></CardHeader>
+          <ScrollArea className="h-[450px]">
+            <div className="divide-y divide-border/20">
+              {Object.entries(grouped).map(([group, items]: [string, any]) => (
+                <div key={group}>
+                  <button
+                    onClick={() => toggleGroup(group)}
+                    className="w-full flex items-center justify-between px-3 py-2 hover:bg-accent/20 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      {expandedGroups[group] ? <ChevronDown className="h-3 w-3 text-muted-foreground" /> : <ChevronRight className="h-3 w-3 text-muted-foreground" />}
+                      <span className="text-xs font-medium">{group}</span>
+                    </div>
+                    <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5">{items.length}</Badge>
+                  </button>
+                  {expandedGroups[group] && items.map((menu: any) => {
+                    const MenuIconComp = iconMap[menu.icon] || Shield;
+                    const isHidden = menu.visibility === "hidden";
+                    return (
+                      <div
+                        key={menu._id}
+                        className={`flex items-center gap-2 px-6 py-1.5 text-[10px] ${
+                          isHidden ? "opacity-40" : ""
+                        } hover:bg-accent/10 transition-colors`}
+                      >
+                        <MenuIconComp className="h-3 w-3 shrink-0 text-muted-foreground" />
+                        <span className="flex-1 truncate">{menu.label}</span>
+                        <span className="text-[7px] text-muted-foreground/50 truncate max-w-[80px]">{menu.href}</span>
+                        {menu.isPlaceholder && <Badge className="text-[7px] px-1 py-0 h-3 bg-amber-50 text-amber-600">Soon</Badge>}
+                        <button onClick={() => handleToggleVisibility(menu)} className="p-0.5 hover:text-primary">
+                          {isHidden ? <EyeOff className="h-2.5 w-2.5" /> : <Eye className="h-2.5 w-2.5" />}
+                        </button>
+                        <button onClick={() => handleDelete(menu._id)} className="p-0.5 hover:text-red-500">
+                          <X className="h-2.5 w-2.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </Card>
+
+        <Card className="rounded-sm border-border/50 shadow-none lg:col-span-2">
+          <CardHeader className="pb-1">
+            <CardTitle className="text-xs font-semibold">Menu Editor</CardTitle>
+            <p className="text-[9px] text-muted-foreground/60">Manage sidebar navigation entirely from the database. No hardcoded menus.</p>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col items-center justify-center py-16">
+              <MenuIcon className="h-10 w-10 text-muted-foreground/20 mb-2" />
+              <p className="text-sm font-medium text-muted-foreground/40">Menus are fully dynamic — controlled from this panel</p>
+              <p className="text-[10px] text-muted-foreground/30 mt-1">Click any menu to edit visibility, roles, and ordering</p>
+              <div className="mt-4 p-3 rounded-sm border border-border/20 bg-accent/5 max-w-sm">
+                <p className="text-[10px] text-muted-foreground/60">
+                  <strong className="font-medium">Inheritance:</strong> Platform → Company → Branch.
+                  Menus respect feature flags, subscription plans, roles, and permissions.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+// ─── MODULE ACTIVATION ────────────────────────────────────────
+
+function ModuleActivationTab() {
+  const companies = useQuery(api.organizationBranches.listCompanies, {} as any);
+  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+  const activations = useQuery(
+    selectedCompany ? api.moduleActivationEngine.getCompanyModuleActivations : "skip",
+    selectedCompany ? { companyId: selectedCompany as any } : "skip",
+  );
+  const setActivation = useMutation(api.moduleActivationEngine.setModuleActivation);
+
+  const modules: { name: string; icon: any; description: string }[] = [
+    { name: "dashboard", icon: LayoutDashboard, description: "Main dashboard and analytics" },
+    { name: "crm", icon: Users, description: "Lead and customer management" },
+    { name: "students", icon: GraduationCap, description: "Student lifecycle management" },
+    { name: "academic", icon: BookOpen, description: "Academic management" },
+    { name: "finance", icon: PiggyBank, description: "Finance and accounting" },
+    { name: "hr", icon: UsersRound, description: "HR and employee management" },
+    { name: "marketing", icon: Megaphone, description: "Marketing campaigns" },
+    { name: "support", icon: MessageSquare, description: "Support tickets" },
+    { name: "procurement", icon: ShoppingCartIcon, description: "Procurement and purchasing" },
+    { name: "inventory", icon: Database, description: "Inventory management" },
+    { name: "lms", icon: BookOpen, description: "Learning management" },
+    { name: "scheduling", icon: CalendarIconSvg, description: "Enterprise scheduling" },
+    { name: "analytics", icon: BarChart3, description: "Analytics and reports" },
+    { name: "examinations", icon: FileCheck, description: "Exam management" },
+    { name: "payroll", icon: DollarSign, description: "Payroll processing" },
+    { name: "attendance", icon: Activity, description: "Attendance tracking" },
+  ];
+
+  const toggleModule = async (module: string, currentEnabled: boolean) => {
+    if (!selectedCompany) return;
+    await setActivation({
+      module,
+      companyId: selectedCompany as any,
+      enabled: !currentEnabled,
+    });
+  };
+
+  return (
+    <div className="space-y-3">
+      <h3 className="text-xs font-semibold">Dynamic Module Activation</h3>
+      <p className="text-[9px] text-muted-foreground/60">Enable or disable entire modules per company. No code deployment needed.</p>
+
+      <Select value={selectedCompany || ""} onValueChange={setSelectedCompany}>
+        <SelectTrigger className="h-8 text-xs rounded-sm w-[300px]">
+          <SelectValue placeholder="Select a company..." />
+        </SelectTrigger>
+        <SelectContent>
+          {(companies || []).map((c: any) => (
+            <SelectItem key={c._id} value={c._id} className="text-xs">{c.name}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {!selectedCompany ? (
+        <div className="flex flex-col items-center justify-center py-16">
+          <Building2 className="h-10 w-10 text-muted-foreground/20 mb-2" />
+          <p className="text-sm font-medium text-muted-foreground/40">Select a company to manage its module activation</p>
+        </div>
+      ) : !activations ? <Loading /> : (
+        <div className="grid gap-2 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
+          {modules.map((mod) => {
+            const activation = activations.find((a: any) => a.module === mod.name);
+            const enabled = activation?.enabled ?? true;
+            const ModIcon = mod.icon;
+
+            return (
+              <Card
+                key={mod.name}
+                className={`rounded-sm border shadow-none transition-all cursor-pointer ${
+                  enabled ? "border-emerald-200 bg-emerald-50/20" : "border-border/30 opacity-60"
+                } hover:shadow-sm`}
+                onClick={() => toggleModule(mod.name, enabled)}
+              >
+                <CardContent className="p-3 flex items-center gap-2">
+                  <div className={`p-1.5 rounded-sm ${enabled ? "bg-emerald-100" : "bg-accent/30"}`}>
+                    <ModIcon className={`h-3.5 w-3.5 ${enabled ? "text-emerald-600" : "text-muted-foreground"}`} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs font-medium capitalize">{mod.name}</p>
+                    <p className="text-[9px] text-muted-foreground/60">{mod.description}</p>
+                  </div>
+                  <Badge className={`text-[8px] px-1.5 py-0 h-4 ${
+                    enabled ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-slate-400"
+                  }`}>
+                    {enabled ? "Enabled" : "Disabled"}
+                  </Badge>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── CONFIGURATION MANAGER ─────────────────────────────────────
+
+function ConfigurationTab() {
+  const CONFIG_DOMAINS = [
+    { id: "general", label: "General", icon: Settings, desc: "System-wide settings and defaults" },
+    { id: "finance", label: "Finance", icon: PiggyBank, desc: "Currency, GST, receipt numbering" },
+    { id: "academic", label: "Academic", icon: BookOpen, desc: "Attendance, classes, scheduling" },
+    { id: "hr", label: "HR", icon: UsersRound, desc: "Probation, leave, notice period" },
+    { id: "attendance", label: "Attendance", icon: Activity, desc: "Auto-mark, biometric, overrides" },
+    { id: "pdc", label: "PDC", icon: DollarSign, desc: "Bounce count, penalties, restrictions" },
+    { id: "scheduling", label: "Scheduling", icon: CalendarIconSvg, desc: "Slot duration, buffers, hours" },
+    { id: "support", label: "Support", icon: MessageSquare, desc: "Response SLA, resolution SLA" },
+    { id: "marketing", label: "Marketing", icon: Megaphone, desc: "WhatsApp, email, SMS settings" },
+    { id: "inventory", label: "Inventory", icon: Database, desc: "Stock, warehouse, transfers" },
+  ];
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      <Card className="rounded-sm border-border/50 shadow-none">
+        <CardHeader className="pb-1">
+          <CardTitle className="text-xs font-semibold">Configuration Domains</CardTitle>
+          <p className="text-[9px] text-muted-foreground/60 mt-0.5">Enterprise configuration inheritance chain</p>
+        </CardHeader>
+        <ScrollArea className="h-[420px]">
+          <div className="space-y-0.5 px-2 pb-3">
+            {CONFIG_DOMAINS.map((domain) => {
+              const DomIcon = domain.icon;
+              return (
+                <button
+                  key={domain.id}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs rounded-sm hover:bg-accent/20 transition-colors text-left"
+                >
+                  <div className="p-1 rounded-sm bg-accent/30">
+                    <DomIcon className="h-3 w-3 text-muted-foreground shrink-0" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{domain.label}</p>
+                    <p className="text-[9px] text-muted-foreground/60 truncate">{domain.desc}</p>
+                  </div>
+                  <ChevronRight className="h-3 w-3 text-muted-foreground/30 shrink-0" />
+                </button>
+              );
+            })}
+          </div>
+        </ScrollArea>
+      </Card>
+
+      <Card className="rounded-sm border-border/50 shadow-none lg:col-span-2">
+        <CardHeader className="pb-1">
+          <CardTitle className="text-xs font-semibold">Configuration Editor</CardTitle>
+          <p className="text-[9px] text-muted-foreground/60">Select a configuration domain to view and manage settings</p>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center py-16">
+            <Settings2 className="h-10 w-10 text-muted-foreground/20 mb-2" />
+            <p className="text-sm font-medium text-muted-foreground/40">Select a domain from the left panel</p>
+            <div className="mt-4 p-3 rounded-sm border border-border/20 bg-accent/5 max-w-md">
+              <p className="text-[10px] text-muted-foreground/60 leading-relaxed">
+                <strong className="font-medium">Inheritance Chain:</strong><br />
+                Platform defaults → Company overrides → Branch overrides → Dept overrides → User overrides.
+                Each level only overrides specific keys defined at that scope.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // ─── MAIN PAGE ─────────────────────────────────────────────────
 
 export default function AccessControlList() {
@@ -729,13 +1036,16 @@ export default function AccessControlList() {
     { id: "academic-tree", label: "Academic Tree", icon: GraduationCap },
     { id: "roles", label: "Roles", icon: Key },
     { id: "permissions", label: "Permission Matrix", icon: Shield },
+    { id: "menus", label: "Menu Builder", icon: MenuIcon },
+    { id: "modules", label: "Module Activation", icon: ToggleLeft },
+    { id: "configuration", label: "Configuration", icon: Settings2 },
     { id: "effective", label: "Effective Permissions", icon: Eye },
     { id: "simulator", label: "Login As", icon: Terminal },
     { id: "conflicts", label: "Conflict Resolver", icon: AlertTriangle },
     { id: "analytics", label: "Access Analytics", icon: Activity },
     { id: "subscriptions", label: "Subscription Plans", icon: DollarSign },
     { id: "flags", label: "Feature Flags", icon: Flag },
-    { id: "templates", label: "Permission Templates", icon: FileText },
+    { id: "templates", label: "Permission Templates", icon: Copy },
     { id: "audit", label: "Audit Logs", icon: ShieldCheck },
   ];
 
@@ -790,6 +1100,9 @@ export default function AccessControlList() {
             {selectedNav === "org-tree" && <OrgTreeView data={orgTree} />}
             {selectedNav === "academic-tree" && <AcademicTreeView data={academicTree} />}
             {selectedNav === "permissions" && <PermissionMatrix />}
+            {selectedNav === "menus" && <DynamicMenuBuilder />}
+            {selectedNav === "modules" && <ModuleActivationTab />}
+            {selectedNav === "configuration" && <ConfigurationTab />}
             {selectedNav === "effective" && <EffectivePermissionViewer />}
             {selectedNav === "simulator" && <LoginAsSimulator />}
             {selectedNav === "conflicts" && <ConflictResolver />}
