@@ -269,6 +269,13 @@ export const routes: RouteEntry[] = [
     visible,
   },
   {
+    label: "Health Center",
+    href: "/health",
+    icon: Activity,
+    group: "System",
+    visible,
+  },
+  {
     label: "Governance",
     href: "/governance",
     icon: Shield,

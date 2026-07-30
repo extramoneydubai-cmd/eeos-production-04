@@ -36,6 +36,18 @@ export const metadataTables = {
     .index("by_usage", ["usageCount"])
     .index("by_updated", ["updatedAt"]),
 
+  // ─── White Label Config ──────────────────────────────────────
+  whiteLabelConfig: defineTable({
+    companyId: v.optional(v.id("companies")),
+    branchId: v.optional(v.id("branches")),
+    companyName: v.optional(v.string()),
+    config: v.any(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_company", ["companyId"])
+    .index("by_branch", ["branchId"]),
+
   // ─── Metadata Version History ───────────────────────────────
   metadataHistory: defineTable({
     entityType: v.union(
