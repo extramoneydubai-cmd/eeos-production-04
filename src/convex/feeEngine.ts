@@ -1,24 +1,23 @@
+/**
+ * Fee Engine — Enterprise-integrated Fee Management
+ *
+ * Every operation uses withScopeAndEvents() wrapper for:
+ *   - ScopeEngine authorization (fee structures require write access)
+ *   - Event Pipeline (finance.fee.created, finance.receipt.issued, etc.)
+ *   - Timeline auto-recording
+ *   - Audit auto-logging
+ *   - Notification Matrix (payment notification triggers)
+ *   - Auto-document generation (fee_receipt on createFeeAccount)
+ */
+
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
+import { withScopeAndEvents, scopeFromArgs } from "./withScopeAndEvents";
+import { Events } from "./eventRegistry";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
 // ─── HELPERS ───────────────────────────────────────────────
-
-async function createTimelineEvent(
-  ctx: any,
-  args: { studentId: string; eventType: string; title: string; description?: string; metadata?: string; performedBy?: string }
-) {
-  const performedBy = args.performedBy || (await getAuthUserId(ctx));
-  await ctx.db.insert("studentEnrollmentHistory", {
-    studentId: args.studentId,
-    eventType: args.eventType,
-    title: args.title,
-    description: args.description,
-    metadata: args.metadata,
-    performedBy: performedBy,
-    createdAt: Date.now(),
-  });
-}
 
 function generateInvoiceNumber(prefix: string, count: number): string {
   const padded = String(count + 1).padStart(5, "0");
@@ -40,23 +39,36 @@ export const createFeeStructure = mutation({
     isRefundable: v.boolean(),
     applicableToVerticals: v.optional(v.array(v.string())),
     applicableToCourses: v.optional(v.array(v.id("courses"))),
+    createdBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const id = await ctx.db.insert("feeStructures", {
-      ...args,
-      isActive: true,
-      createdBy: userId,
-    });
-    return id;
-  },
+  handler: withScopeAndEvents(
+    {
+      operation: "create",
+      module: "finance",
+      entity: "fee_structure",
+      eventType: Events.FINANCE.FEE_STRUCTURE_CREATED,
+      title: "Fee Structure Created",
+      getUserId: (args) => args.createdBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
+      const { createdBy, ...rest } = args;
+      const id = await ctx.db.insert("feeStructures", {
+        ...rest,
+        isActive: true,
+        createdBy,
+      });
+      return id;
+    }
+  ),
 });
 
 export const updateFeeStructure = mutation({
   args: {
     id: v.id("feeStructures"),
+    performedBy: v.id("users"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
     description: v.optional(v.string()),
@@ -67,14 +79,24 @@ export const updateFeeStructure = mutation({
     isRefundable: v.optional(v.boolean()),
     isActive: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    const { id, ...fields } = args;
-    await ctx.db.patch(id, fields);
-    return id;
-  },
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "finance",
+      entity: "fee_structure",
+      eventType: Events.FINANCE.FEE_STRUCTURE_UPDATED,
+      title: "Fee Structure Updated",
+      getUserId: (args) => args.performedBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
+      const { id, performedBy, ...fields } = args;
+      await ctx.db.patch(id, fields);
+      return id;
+    }
+  ),
 });
 
 export const listFeeStructures = query({
@@ -109,41 +131,55 @@ export const createFeeAccount = mutation({
     totalFee: v.number(),
     installmentCount: v.number(),
     installmentFrequency: v.string(),
+    performedBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    // Check if account already exists
-    const existing = await ctx.db.query("studentFeeAccounts")
-      .withIndex("studentId", (q: any) => q.eq("studentId", args.studentId))
-      .first();
-    if (existing) throw new Error("Fee account already exists for this student");
-
-    const id = await ctx.db.insert("studentFeeAccounts", {
-      studentId: args.studentId,
-      totalFee: args.totalFee,
-      totalPaid: 0,
-      outstandingBalance: args.totalFee,
-      totalDiscount: 0,
-      totalScholarship: 0,
-      totalWaiver: 0,
-      installmentsCount: args.installmentCount,
-      installmentFrequency: args.installmentFrequency,
-      status: "active",
-      createdBy: userId,
-    });
-
-    await createTimelineEvent(ctx, {
-      studentId: args.studentId,
-      eventType: "FeeAccountCreated",
+  handler: withScopeAndEvents(
+    {
+      operation: "create",
+      module: "finance",
+      entity: "fee_account",
+      eventType: Events.FINANCE.FEE_STRUCTURE_CREATED,
       title: "Fee Account Created",
-      description: `Total fee: ${args.totalFee}, ${args.installmentCount} installments`,
-      performedBy: userId,
-    });
+      getUserId: (args) => args.performedBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: true, // Notify student + parent + finance
+      autoGenerateDocs: [
+        {
+          documentType: "fee_receipt",
+          contextBuilder: (args, result: any) => ({
+            studentId: args.studentId,
+            amount: args.totalFee,
+            receiptNumber: result,
+            paymentMode: "fee_account",
+            generatedAt: new Date().toISOString(),
+          }),
+        },
+      ],
+    },
+    async (ctx, args) => {
+      const { performedBy, ...rest } = args;
 
-    return id;
-  },
+      // Check if account already exists
+      const existing = await ctx.db.query("studentFeeAccounts")
+        .withIndex("studentId", (q: any) => q.eq("studentId", args.studentId))
+        .first();
+      if (existing) throw new Error("Fee account already exists for this student");
+
+      const id = await ctx.db.insert("studentFeeAccounts", {
+        ...rest,
+        totalPaid: 0,
+        outstandingBalance: args.totalFee,
+        totalDiscount: 0,
+        totalScholarship: 0,
+        totalWaiver: 0,
+        status: "active",
+        createdBy: performedBy,
+      });
+
+      return id;
+    }
+  ),
 });
 
 export const getStudentFeeAccount = query({
@@ -183,28 +219,36 @@ export const calculateOutstanding = query({
 });
 
 export const recalculateBalances = mutation({
-  args: { feeAccountId: v.id("studentFeeAccounts") },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+  args: { feeAccountId: v.id("studentFeeAccounts"), performedBy: v.id("users") },
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "finance",
+      entity: "fee_account",
+      getUserId: (args) => args.performedBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
+      const account = await ctx.db.get(args.feeAccountId);
+      if (!account) throw new Error("Fee account not found");
 
-    const account = await ctx.db.get(args.feeAccountId);
-    if (!account) throw new Error("Fee account not found");
+      const installments = await ctx.db.query("feeInstallments")
+        .withIndex("studentId", (q: any) => q.eq("studentId", account.studentId))
+        .collect();
 
-    const installments = await ctx.db.query("feeInstallments")
-      .withIndex("studentId", (q: any) => q.eq("studentId", account.studentId))
-      .collect();
+      const totalPaid = installments.reduce((sum: number, i: any) => sum + i.paidAmount, 0);
+      const totalDue = installments.reduce((sum: number, i: any) => sum + i.amount, 0);
 
-    const totalPaid = installments.reduce((sum: number, i: any) => sum + i.paidAmount, 0);
-    const totalDue = installments.reduce((sum: number, i: any) => sum + i.amount, 0);
+      await ctx.db.patch(args.feeAccountId, {
+        totalPaid,
+        outstandingBalance: Math.max(0, totalDue - totalPaid),
+      });
 
-    await ctx.db.patch(args.feeAccountId, {
-      totalPaid,
-      outstandingBalance: Math.max(0, totalDue - totalPaid),
-    });
-
-    return args.feeAccountId;
-  },
+      return args.feeAccountId;
+    }
+  ),
 });
 
 // ─── INSTALLMENTS ──────────────────────────────────────────
@@ -213,66 +257,67 @@ export const generateInstallments = mutation({
   args: {
     feeAccountId: v.id("studentFeeAccounts"),
     startDate: v.number(),
+    performedBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+  handler: withScopeAndEvents(
+    {
+      operation: "create",
+      module: "finance",
+      entity: "installments",
+      getUserId: (args) => args.performedBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
+      const account = await ctx.db.get(args.feeAccountId);
+      if (!account) throw new Error("Fee account not found");
 
-    const account = await ctx.db.get(args.feeAccountId);
-    if (!account) throw new Error("Fee account not found");
+      // Delete existing installments if regenerating
+      const existing = await ctx.db.query("feeInstallments")
+        .withIndex("studentId", (q: any) => q.eq("studentId", account.studentId))
+        .collect();
+      for (const inst of existing) {
+        await ctx.db.delete(inst._id);
+      }
 
-    // Delete existing installments if regenerating
-    const existing = await ctx.db.query("feeInstallments")
-      .withIndex("studentId", (q: any) => q.eq("studentId", account.studentId))
-      .collect();
-    for (const inst of existing) {
-      await ctx.db.delete(inst._id);
+      const installments: any[] = [];
+      const perInstallment = account.totalFee / account.installmentsCount;
+      const frequencyMap: Record<string, number> = {
+        monthly: 30 * 24 * 60 * 60 * 1000,
+        quarterly: 91 * 24 * 60 * 60 * 1000,
+        half_yearly: 182 * 24 * 60 * 60 * 1000,
+        yearly: 365 * 24 * 60 * 60 * 1000,
+      };
+
+      const interval = frequencyMap[account.installmentFrequency] || 30 * 24 * 60 * 60 * 1000;
+
+      for (let i = 0; i < account.installmentsCount; i++) {
+        const dueDate = args.startDate + i * interval;
+        const id = await ctx.db.insert("feeInstallments", {
+          studentId: account.studentId,
+          feeAccountId: args.feeAccountId,
+          installmentNumber: i + 1,
+          totalInstallments: account.installmentsCount,
+          amount: Math.round(perInstallment * 100) / 100,
+          paidAmount: 0,
+          dueDate,
+          status: "pending",
+          lateFee: 0,
+        });
+        installments.push(id);
+      }
+
+      // Update next due date
+      if (installments.length > 0) {
+        await ctx.db.patch(args.feeAccountId, {
+          nextDueDate: args.startDate + (installments.length * interval),
+        });
+      }
+
+      return installments;
     }
-
-    const installments: any[] = [];
-    const perInstallment = account.totalFee / account.installmentsCount;
-    const frequencyMap: Record<string, number> = {
-      monthly: 30 * 24 * 60 * 60 * 1000,
-      quarterly: 91 * 24 * 60 * 60 * 1000,
-      half_yearly: 182 * 24 * 60 * 60 * 1000,
-      yearly: 365 * 24 * 60 * 60 * 1000,
-    };
-
-    const interval = frequencyMap[account.installmentFrequency] || 30 * 24 * 60 * 60 * 1000;
-
-    for (let i = 0; i < account.installmentsCount; i++) {
-      const dueDate = args.startDate + i * interval;
-      const id = await ctx.db.insert("feeInstallments", {
-        studentId: account.studentId,
-        feeAccountId: args.feeAccountId,
-        installmentNumber: i + 1,
-        totalInstallments: account.installmentsCount,
-        amount: Math.round(perInstallment * 100) / 100,
-        paidAmount: 0,
-        dueDate,
-        status: "pending",
-        lateFee: 0,
-      });
-      installments.push(id);
-    }
-
-    // Update next due date
-    if (installments.length > 0) {
-      await ctx.db.patch(args.feeAccountId, {
-        nextDueDate: args.startDate + (installments.length * interval),
-      });
-    }
-
-    await createTimelineEvent(ctx, {
-      studentId: account.studentId,
-      eventType: "InstallmentsGenerated",
-      title: "Installments Generated",
-      description: `${account.installmentsCount} installments of ${Math.round(perInstallment * 100) / 100} each`,
-      performedBy: userId,
-    });
-
-    return installments;
-  },
+  ),
 });
 
 export const listInstallments = query({
@@ -305,18 +350,28 @@ export const createDiscount = mutation({
     validUntil: v.optional(v.number()),
     maxApplications: v.optional(v.number()),
     description: v.optional(v.string()),
+    createdBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    return ctx.db.insert("feeDiscounts", {
-      ...args,
-      isActive: true,
-      currentApplications: 0,
-      createdBy: userId,
-    });
-  },
+  handler: withScopeAndEvents(
+    {
+      operation: "create",
+      module: "finance",
+      entity: "discount",
+      getUserId: (args) => args.createdBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
+      const { createdBy, ...rest } = args;
+      return ctx.db.insert("feeDiscounts", {
+        ...rest,
+        isActive: true,
+        currentApplications: 0,
+        createdBy,
+      });
+    }
+  ),
 });
 
 export const applyDiscount = mutation({
@@ -324,52 +379,51 @@ export const applyDiscount = mutation({
     studentId: v.id("studentMaster"),
     feeAccountId: v.id("studentFeeAccounts"),
     discountId: v.id("feeDiscounts"),
+    performedBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "finance",
+      entity: "discount_applied",
+      getUserId: (args) => args.performedBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
+      const discount = await ctx.db.get(args.discountId);
+      if (!discount || !discount.isActive) throw new Error("Discount not available");
+      if (discount.maxApplications && discount.currentApplications >= discount.maxApplications) {
+        throw new Error("Discount usage limit reached");
+      }
 
-    const discount = await ctx.db.get(args.discountId);
-    if (!discount || !discount.isActive) throw new Error("Discount not available");
-    if (discount.maxApplications && discount.currentApplications >= discount.maxApplications) {
-      throw new Error("Discount usage limit reached");
+      const account = await ctx.db.get(args.feeAccountId);
+      if (!account) throw new Error("Fee account not found");
+
+      let discountAmount = 0;
+      if (discount.discountType === "percentage") {
+        discountAmount = (account.totalFee * discount.value) / 100;
+        if (discount.maxAmount) discountAmount = Math.min(discountAmount, discount.maxAmount);
+      } else {
+        discountAmount = discount.value;
+      }
+
+      const newOutstanding = account.outstandingBalance - discountAmount;
+
+      await ctx.db.patch(args.feeAccountId, {
+        totalDiscount: (account.totalDiscount || 0) + discountAmount,
+        outstandingBalance: Math.max(0, newOutstanding),
+        totalFee: account.totalFee - discountAmount,
+      });
+
+      await ctx.db.patch(args.discountId, {
+        currentApplications: (discount.currentApplications || 0) + 1,
+      });
+
+      return { discountAmount, newOutstanding };
     }
-
-    const account = await ctx.db.get(args.feeAccountId);
-    if (!account) throw new Error("Fee account not found");
-
-    let discountAmount = 0;
-    if (discount.discountType === "percentage") {
-      discountAmount = (account.totalFee * discount.value) / 100;
-      if (discount.maxAmount) discountAmount = Math.min(discountAmount, discount.maxAmount);
-    } else {
-      discountAmount = discount.value;
-    }
-
-    const newOutstanding = account.outstandingBalance - discountAmount;
-
-    await ctx.db.patch(args.feeAccountId, {
-      totalDiscount: (account.totalDiscount || 0) + discountAmount,
-      outstandingBalance: Math.max(0, newOutstanding),
-      totalFee: account.totalFee - discountAmount,
-    });
-
-    // Increment usage count
-    await ctx.db.patch(args.discountId, {
-      currentApplications: (discount.currentApplications || 0) + 1,
-    });
-
-    await createTimelineEvent(ctx, {
-      studentId: args.studentId,
-      eventType: "DiscountApplied",
-      title: "Discount Applied",
-      description: `${discount.name}: ${discountAmount} (${discount.discountType === "percentage" ? discount.value + "%" : "fixed"})`,
-      metadata: JSON.stringify({ discountId: args.discountId, amount: discountAmount }),
-      performedBy: userId,
-    });
-
-    return { discountAmount, newOutstanding };
-  },
+  ),
 });
 
 export const listDiscounts = query({
@@ -400,18 +454,28 @@ export const createScholarship = mutation({
     validUntil: v.optional(v.number()),
     maxApplications: v.optional(v.number()),
     description: v.optional(v.string()),
+    createdBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    return ctx.db.insert("feeScholarships", {
-      ...args,
-      isActive: true,
-      currentApplications: 0,
-      createdBy: userId,
-    });
-  },
+  handler: withScopeAndEvents(
+    {
+      operation: "create",
+      module: "finance",
+      entity: "scholarship",
+      getUserId: (args) => args.createdBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
+      const { createdBy, ...rest } = args;
+      return ctx.db.insert("feeScholarships", {
+        ...rest,
+        isActive: true,
+        currentApplications: 0,
+        createdBy,
+      });
+    }
+  ),
 });
 
 export const applyScholarship = mutation({
@@ -419,50 +483,50 @@ export const applyScholarship = mutation({
     studentId: v.id("studentMaster"),
     feeAccountId: v.id("studentFeeAccounts"),
     scholarshipId: v.id("feeScholarships"),
+    performedBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "finance",
+      entity: "scholarship_applied",
+      getUserId: (args) => args.performedBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
+      const scholarship = await ctx.db.get(args.scholarshipId);
+      if (!scholarship || !scholarship.isActive) throw new Error("Scholarship not available");
+      if (scholarship.maxApplications && scholarship.currentApplications >= scholarship.maxApplications) {
+        throw new Error("Scholarship usage limit reached");
+      }
 
-    const scholarship = await ctx.db.get(args.scholarshipId);
-    if (!scholarship || !scholarship.isActive) throw new Error("Scholarship not available");
-    if (scholarship.maxApplications && scholarship.currentApplications >= scholarship.maxApplications) {
-      throw new Error("Scholarship usage limit reached");
+      const account = await ctx.db.get(args.feeAccountId);
+      if (!account) throw new Error("Fee account not found");
+
+      let scholarshipAmount = 0;
+      if (scholarship.scholarshipType === "percentage") {
+        scholarshipAmount = (account.totalFee * scholarship.value) / 100;
+        if (scholarship.maxAmount) scholarshipAmount = Math.min(scholarshipAmount, scholarship.maxAmount);
+      } else {
+        scholarshipAmount = scholarship.value;
+      }
+
+      const newOutstanding = account.outstandingBalance - scholarshipAmount;
+
+      await ctx.db.patch(args.feeAccountId, {
+        totalScholarship: (account.totalScholarship || 0) + scholarshipAmount,
+        outstandingBalance: Math.max(0, newOutstanding),
+      });
+
+      await ctx.db.patch(args.scholarshipId, {
+        currentApplications: (scholarship.currentApplications || 0) + 1,
+      });
+
+      return { scholarshipAmount, newOutstanding };
     }
-
-    const account = await ctx.db.get(args.feeAccountId);
-    if (!account) throw new Error("Fee account not found");
-
-    let scholarshipAmount = 0;
-    if (scholarship.scholarshipType === "percentage") {
-      scholarshipAmount = (account.totalFee * scholarship.value) / 100;
-      if (scholarship.maxAmount) scholarshipAmount = Math.min(scholarshipAmount, scholarship.maxAmount);
-    } else {
-      scholarshipAmount = scholarship.value;
-    }
-
-    const newOutstanding = account.outstandingBalance - scholarshipAmount;
-
-    await ctx.db.patch(args.feeAccountId, {
-      totalScholarship: (account.totalScholarship || 0) + scholarshipAmount,
-      outstandingBalance: Math.max(0, newOutstanding),
-    });
-
-    await ctx.db.patch(args.scholarshipId, {
-      currentApplications: (scholarship.currentApplications || 0) + 1,
-    });
-
-    await createTimelineEvent(ctx, {
-      studentId: args.studentId,
-      eventType: "ScholarshipApplied",
-      title: "Scholarship Applied",
-      description: `${scholarship.name}: ${scholarshipAmount}`,
-      metadata: JSON.stringify({ scholarshipId: args.scholarshipId, amount: scholarshipAmount }),
-      performedBy: userId,
-    });
-
-    return { scholarshipAmount, newOutstanding };
-  },
+  ),
 });
 
 export const listScholarships = query({
@@ -486,17 +550,27 @@ export const createWaiver = mutation({
     amount: v.number(),
     reason: v.string(),
     notes: v.optional(v.string()),
+    createdBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    return ctx.db.insert("feeWaivers", {
-      ...args,
-      status: "pending",
-      createdBy: userId,
-    });
-  },
+  handler: withScopeAndEvents(
+    {
+      operation: "create",
+      module: "finance",
+      entity: "waiver",
+      getUserId: (args) => args.createdBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
+      const { createdBy, ...rest } = args;
+      return ctx.db.insert("feeWaivers", {
+        ...rest,
+        status: "pending",
+        createdBy,
+      });
+    }
+  ),
 });
 
 export const approveWaiver = mutation({
@@ -504,44 +578,45 @@ export const approveWaiver = mutation({
     waiverId: v.id("feeWaivers"),
     approve: v.boolean(),
     notes: v.optional(v.string()),
+    performedBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+  handler: withScopeAndEvents(
+    {
+      operation: "approve",
+      module: "finance",
+      entity: "waiver",
+      getUserId: (args) => args.performedBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: true, // Notify student + parent + finance
+    },
+    async (ctx, args) => {
+      const waiver = await ctx.db.get(args.waiverId);
+      if (!waiver) throw new Error("Waiver not found");
 
-    const waiver = await ctx.db.get(args.waiverId);
-    if (!waiver) throw new Error("Waiver not found");
+      const status = args.approve ? "approved" as any : "rejected" as any;
 
-    const status = args.approve ? "approved" : "rejected";
+      await ctx.db.patch(args.waiverId, {
+        status,
+        approvedBy: args.performedBy,
+        approvedAt: Date.now(),
+        notes: args.notes || waiver.notes,
+      });
 
-    await ctx.db.patch(args.waiverId, {
-      status,
-      approvedBy: userId,
-      approvedAt: Date.now(),
-      notes: args.notes || waiver.notes,
-    });
-
-    if (args.approve) {
-      const account = await ctx.db.get(waiver.feeAccountId);
-      if (account) {
-        const waiverAmount = waiver.waiverType === "full" ? account.outstandingBalance : waiver.amount;
-        await ctx.db.patch(waiver.feeAccountId, {
-          totalWaiver: (account.totalWaiver || 0) + waiverAmount,
-          outstandingBalance: Math.max(0, account.outstandingBalance - waiverAmount),
-        });
+      if (args.approve) {
+        const account = await ctx.db.get(waiver.feeAccountId);
+        if (account) {
+          const waiverAmount = waiver.waiverType === "full" ? account.outstandingBalance : waiver.amount;
+          await ctx.db.patch(waiver.feeAccountId, {
+            totalWaiver: (account.totalWaiver || 0) + waiverAmount,
+            outstandingBalance: Math.max(0, account.outstandingBalance - waiverAmount),
+          });
+        }
       }
+
+      return args.waiverId;
     }
-
-    await createTimelineEvent(ctx, {
-      studentId: waiver.studentId,
-      eventType: "WaiverApproved",
-      title: args.approve ? "Waiver Approved" : "Waiver Rejected",
-      description: `${args.approve ? "Approved" : "Rejected"} waiver of ${waiver.amount} for ${waiver.reason}`,
-      performedBy: userId,
-    });
-
-    return args.waiverId;
-  },
+  ),
 });
 
 export const listWaivers = query({
@@ -574,75 +649,92 @@ export const createLateFeeRule = mutation({
     maxLateFee: v.optional(v.number()),
     waiveFirstLateFee: v.boolean(),
     notes: v.optional(v.string()),
+    createdBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
-    return ctx.db.insert("lateFeeRules", {
-      ...args,
-      isActive: true,
-    });
-  },
+  handler: withScopeAndEvents(
+    {
+      operation: "create",
+      module: "finance",
+      entity: "late_fee_rule",
+      getUserId: (args) => args.createdBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
+      const { createdBy, ...rest } = args;
+      return ctx.db.insert("lateFeeRules", {
+        ...rest,
+        isActive: true,
+      });
+    }
+  ),
 });
 
 export const calculateLateFees = mutation({
-  args: { feeAccountId: v.id("studentFeeAccounts") },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+  args: { feeAccountId: v.id("studentFeeAccounts"), performedBy: v.id("users") },
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "finance",
+      entity: "late_fee",
+      getUserId: (args) => args.performedBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
+      const account = await ctx.db.get(args.feeAccountId);
+      if (!account) throw new Error("Fee account not found");
 
-    const account = await ctx.db.get(args.feeAccountId);
-    if (!account) throw new Error("Fee account not found");
+      const rules = await ctx.db.query("lateFeeRules")
+        .filter((q: any) => q.eq(q.field("isActive"), true))
+        .collect();
 
-    const rules = await ctx.db.query("lateFeeRules")
-      .filter((q: any) => q.eq(q.field("isActive"), true))
-      .collect();
+      const installments = await ctx.db.query("feeInstallments")
+        .withIndex("studentId", (q: any) => q.eq("studentId", account.studentId))
+        .filter((q: any) => q.neq(q.field("status"), "paid"))
+        .collect();
 
-    const installments = await ctx.db.query("feeInstallments")
-      .withIndex("studentId", (q: any) => q.eq("studentId", account.studentId))
-      .filter((q: any) => q.neq(q.field("status"), "paid"))
-      .collect();
+      const now = Date.now();
+      const results: any[] = [];
 
-    const now = Date.now();
-    const results: any[] = [];
+      for (const inst of installments) {
+        if (inst.dueDate >= now) continue;
 
-    for (const inst of installments) {
-      if (inst.dueDate >= now) continue;
+        const daysLate = Math.floor((now - inst.dueDate) / (24 * 60 * 60 * 1000));
+        let totalLateFee = 0;
 
-      const daysLate = Math.floor((now - inst.dueDate) / (24 * 60 * 60 * 1000));
-      let totalLateFee = 0;
+        for (const rule of rules) {
+          const graceMs = rule.gracePeriod * (rule.gracePeriodUnit === "days" ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000);
+          if (now - inst.dueDate <= graceMs) continue;
+          if (inst.installmentNumber === 1 && rule.waiveFirstLateFee) continue;
 
-      for (const rule of rules) {
-        const graceMs = rule.gracePeriod * (rule.gracePeriodUnit === "days" ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000);
-        if (now - inst.dueDate <= graceMs) continue;
+          let fee = 0;
+          if (rule.lateFeeType === "percentage") {
+            fee = (inst.amount * rule.value) / 100;
+          } else if (rule.lateFeeType === "fixed") {
+            fee = rule.value;
+          } else if (rule.lateFeeType === "per_day") {
+            fee = rule.value * daysLate;
+          }
 
-        if (inst.installmentNumber === 1 && rule.waiveFirstLateFee) continue;
-
-        let fee = 0;
-        if (rule.lateFeeType === "percentage") {
-          fee = (inst.amount * rule.value) / 100;
-        } else if (rule.lateFeeType === "fixed") {
-          fee = rule.value;
-        } else if (rule.lateFeeType === "per_day") {
-          fee = rule.value * daysLate;
+          if (rule.maxLateFee) fee = Math.min(fee, rule.maxLateFee);
+          totalLateFee += fee;
         }
 
-        if (rule.maxLateFee) fee = Math.min(fee, rule.maxLateFee);
-        totalLateFee += fee;
+        if (totalLateFee > 0) {
+          await ctx.db.patch(inst._id, {
+            lateFee: totalLateFee,
+            status: "overdue" as any,
+          });
+          results.push({ installmentId: inst._id, lateFee: totalLateFee, daysLate });
+        }
       }
 
-      if (totalLateFee > 0) {
-        await ctx.db.patch(inst._id, {
-          lateFee: totalLateFee,
-          status: "overdue",
-        });
-        results.push({ installmentId: inst._id, lateFee: totalLateFee, daysLate });
-      }
+      return results;
     }
-
-    return results;
-  },
+  ),
 });
 
 export const listLateFeeRules = query({
