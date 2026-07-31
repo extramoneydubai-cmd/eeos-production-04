@@ -48,10 +48,10 @@ export interface ScopeAndEventsConfig<P = any, R = any> {
   entity: string;
   eventType?: string;
   title?: string;
-  getEntityCompanyId?: (args: P) => string | undefined;
-  getEntityBranchId?: (args: P) => string | undefined;
-  getEntityDepartmentId?: (args: P) => string | undefined;
-  getUserId?: (args: P) => Id<"users"> | undefined;
+  getEntityCompanyId?: (args: P) => any;
+  getEntityBranchId?: (args: P) => any;
+  getEntityDepartmentId?: (args: P) => any;
+  getUserId?: (args: P) => any;
   eventConfig?: Partial<EventPipelineConfig<P, R>>;
 
   // Auto-document generation
@@ -70,11 +70,11 @@ export interface ScopeAndEventsConfig<P = any, R = any> {
 
 // ─── Unified Handler Factory ────────────────────────────────
 
-export function withScopeAndEvents<P extends Record<string, unknown>, R extends MutationResult>(
+export function withScopeAndEvents<P = any, R = any>(
   config: ScopeAndEventsConfig<P, R>,
-  handler: (ctx: MutationContext, args: P) => Promise<R>,
-): (ctx: MutationContext, args: P) => Promise<R> {
-  return async (ctx: MutationContext, args: P) => {
+  handler: (ctx: any, args: P) => Promise<R>,
+): (ctx: any, args: P) => Promise<R> {
+  return async (ctx: any, args: P) => {
     const userId = config.getUserId?.(args);
     let scope: ScopeEngine | null = null;
 
@@ -308,12 +308,12 @@ export function scopeFromArgs<P extends ScopeArgs>() {
 
 // ─── Scope-Enforcing Query Wrapper ──────────────────────────
 
-export function withScopeCheck<P extends { userId?: Id<"users"> } & Record<string, unknown>, R>(
+export function withScopeCheck<P = any, R = any>(
   operation: "read" | "admin",
-  getEntityScope: (args: P) => { companyId?: string; branchId?: string; departmentId?: string },
-  handler: (ctx: MutationContext, args: P) => Promise<R>,
-): (ctx: MutationContext, args: P) => Promise<R> {
-  return async (ctx: MutationContext, args: P) => {
+  getEntityScope: (args: P) => any,
+  handler: (ctx: any, args: P) => Promise<R>,
+): (ctx: any, args: P) => Promise<R> {
+  return async (ctx: any, args: P) => {
     const userId = args.userId;
     if (userId) {
       const scope = await ScopeEngine.forUser(ctx as any, userId);
