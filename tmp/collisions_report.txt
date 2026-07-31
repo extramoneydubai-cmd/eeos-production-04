@@ -1,0 +1,179 @@
+=== SIMILAR EXISTING TABLES (fuzzy match on missing) ===
+approvalTemplates: similar -> ['employeeAdvances', 'employeeAssets', 'employeeDocuments', 'employeeEmployment', 'employeeHistory', 'employeeMaster', 'employeeQualifications', 'employeeSkills', 'lateFeeRules']
+assets: similar -> ['assessmentTypes', 'assessments', 'assetAllocations', 'assetCategories', 'assetDepreciationEntries']
+attendance: similar -> ['attendanceRecords']
+auditLogs: similar -> ['audit_entities', 'audit_logs', 'audit_sessions']
+candidateTimeline: similar -> ['candidates']
+certificates: similar -> ['categoryPermissions']
+commCampaigns: similar -> ['commEmailTemplates', 'commNotificationTypes', 'commSmsTemplates', 'commWhatsAppTemplates', 'comments', 'communicationLogs', 'communicationPreferences', 'communicationQueue', 'communicationTemplates', 'payment_commitments']
+commTemplates: similar -> ['commEmailTemplates', 'commNotificationTypes', 'commSmsTemplates', 'commWhatsAppTemplates', 'comments', 'communicationLogs', 'communicationPreferences', 'communicationQueue', 'communicationTemplates', 'employeeAdvances', 'employeeAssets', 'employeeDocuments', 'employeeEmployment', 'employeeHistory', 'employeeMaster', 'employeeQualifications', 'employeeSkills', 'lateFeeRules', 'payment_commitments']
+consentTemplates: similar -> ['employeeAdvances', 'employeeAssets', 'employeeDocuments', 'employeeEmployment', 'employeeHistory', 'employeeMaster', 'employeeQualifications', 'employeeSkills', 'lateFeeRules']
+counselorWorkloads: similar -> ['accountGroups', 'chartOfAccounts', 'counselorMetrics', 'feeDiscounts', 'financeBankAccounts', 'financeDiscountCategories', 'leadDiscounts', 'studentFeeAccounts']
+dashboardRefreshSignals: similar -> ['boardRules', 'boards', 'dashboardLayouts', 'dashboardWidgetPermissions', 'dashboardWidgets']
+discounts: similar -> ['counselorMetrics']
+documentGenerationQueue: similar -> ['documentFolders', 'documentPermissions', 'documentTags', 'documentTimeline', 'documentVersions', 'documents']
+documentRecords: similar -> ['documentFolders', 'documentPermissions', 'documentTags', 'documentTimeline', 'documentVersions', 'documents']
+documentTemplates: similar -> ['documentFolders', 'documentPermissions', 'documentTags', 'documentTimeline', 'documentVersions', 'documents', 'employeeAdvances', 'employeeAssets', 'employeeDocuments', 'employeeEmployment', 'employeeHistory', 'employeeMaster', 'employeeQualifications', 'employeeSkills', 'lateFeeRules']
+employees: similar -> ['commEmailTemplates', 'commSmsTemplates', 'commWhatsAppTemplates', 'communicationTemplates', 'employeeAdvances', 'employeeAssets', 'employeeDocuments', 'employeeEmployment', 'employeeHistory', 'employeeMaster', 'employeeQualifications', 'employeeSkills', 'examTemplates', 'permissionTemplates', 'ticketTemplates']
+entityTimeline: similar -> ['audit_entities', 'dataRetentionPolicies']
+examMaster: similar -> ['examAttendance', 'examCertificates', 'examGradeRules', 'examHallAllocation', 'examIncidents', 'examInvigilators', 'examMarks', 'examPromotions', 'examPublishLog', 'examQuestionPapers', 'examReportCards', 'examResults', 'examRevaluation', 'examSessions', 'examSubjects', 'examTemplates', 'examTimeline', 'examTimetable']
+exams: similar -> ['examAttendance', 'examCertificates', 'examGradeRules', 'examHallAllocation', 'examIncidents', 'examInvigilators', 'examMarks', 'examPromotions', 'examPublishLog', 'examQuestionPapers', 'examReportCards', 'examResults', 'examRevaluation', 'examSessions', 'examSubjects', 'examTemplates', 'examTimeline', 'examTimetable']
+experienceLetters: similar -> ['expenseRecords']
+feeAccounts: similar -> ['counselorMetrics']
+homework: similar -> ['workflowAudit', 'workflowConditions', 'workflowDefinitions', 'workflowExecutions', 'workflowTasks', 'workflowVariables', 'workflowVersions']
+integrationAuditRecords: similar -> ['integrationConnectors', 'interviewRounds']
+inventoryAudit: similar -> ['inventoryCategories', 'inventoryItems']
+inventoryStock: similar -> ['inventoryCategories', 'inventoryItems']
+knowledgeArticleVersions: similar -> ['knowledgeArticles', 'knowledgeCategories']
+leadEscalations: similar -> ['leadActivity', 'leadApprovalDecisions', 'leadApprovals', 'leadAssignments', 'leadAttachments', 'leadCommunications', 'leadConversionPipeline', 'leadCourses', 'leadDiscounts', 'leadDocuments', 'leadFollowUpRules', 'leadHealthScores', 'leadMaster', 'leadMeetings', 'leadNotes', 'leadPayments', 'leadStageHistory', 'leadStatusEngine', 'leadTasks', 'leadTimeline', 'leadWhatsAppMessages']
+leaves: similar -> ['leaveApplications', 'leaveBalances', 'leaveTypes']
+messageCampaigns: similar -> ['messages']
+notificationCenter: similar -> ['notifications']
+notificationMatrix: similar -> ['notifications']
+onboardingTasks: similar -> ['boardRules', 'boards']
+performanceGoals: similar -> ['formFields', 'formSubmissions', 'formVersions', 'forms']
+performanceReviews: similar -> ['formFields', 'formSubmissions', 'formVersions', 'forms']
+personProfiles: similar -> ['examQuestionPapers', 'personDocuments', 'personMaster']
+personQRCode: similar -> ['examQuestionPapers', 'personDocuments', 'personMaster']
+questionBank: similar -> ['paymentRequests', 'refundRequests']
+receiptTemplates: similar -> ['employeeAdvances', 'employeeAssets', 'employeeDocuments', 'employeeEmployment', 'employeeHistory', 'employeeMaster', 'employeeQualifications', 'employeeSkills', 'lateFeeRules', 'receiptHistory']
+receipts: similar -> ['receiptHistory']
+refundPolicies: similar -> ['refundRequests']
+refundTransactions: similar -> ['actionPermissions', 'refundRequests']
+scheduledJobs: similar -> ['schedules', 'schedulingBookings', 'schedulingResources']
+scopeEngine: similar -> ['scopeRules']
+studentAcademicAllocation: similar -> ['studentFeeAccounts', 'studentMaster', 'studioPermissions']
+studentAcademicProfile: similar -> ['studentFeeAccounts', 'studentMaster', 'studioPermissions']
+studentAchievements: similar -> ['studentFeeAccounts', 'studentMaster', 'studioPermissions']
+studentAdmissions: similar -> ['studentFeeAccounts', 'studentMaster', 'studioPermissions']
+studentDisciplinaryRecords: similar -> ['studentFeeAccounts', 'studentMaster', 'studioPermissions']
+studentDocuments: similar -> ['studentFeeAccounts', 'studentMaster', 'studioPermissions']
+studentEnrollmentHistory: similar -> ['studentFeeAccounts', 'studentMaster', 'studioPermissions']
+studentMedicalProfile: similar -> ['studentFeeAccounts', 'studentMaster', 'studioPermissions']
+studentStatusHistory: similar -> ['studentFeeAccounts', 'studentMaster', 'studioPermissions']
+studentTimeline: similar -> ['studentFeeAccounts', 'studentMaster', 'studioPermissions']
+tickets: similar -> ['ticketApprovals', 'ticketAssets', 'ticketAssignments', 'ticketAttachments', 'ticketAutomation', 'ticketCategories', 'ticketComments', 'ticketMaster', 'ticketRatings', 'ticketSLA', 'ticketTemplates', 'ticketTimeline', 'ticketWatchers']
+userPreferences: similar -> ['userDashboardLayouts', 'userRoles']
+userScopes: similar -> ['userDashboardLayouts', 'userRoles']
+vendors: similar -> ['vendorBills', 'vendorMaster']
+verification_requests: similar -> ['requisitionItems']
+visibilityPolicies: similar -> ['budgetRevisions']
+workflowEdges: similar -> ['workflowAudit', 'workflowConditions', 'workflowDefinitions', 'workflowExecutions', 'workflowTasks', 'workflowVariables', 'workflowVersions']
+workflowInstances: similar -> ['workflowAudit', 'workflowConditions', 'workflowDefinitions', 'workflowExecutions', 'workflowTasks', 'workflowVariables', 'workflowVersions']
+workflowLogs: similar -> ['workflowAudit', 'workflowConditions', 'workflowDefinitions', 'workflowExecutions', 'workflowTasks', 'workflowVariables', 'workflowVersions']
+workflowNodes: similar -> ['workflowAudit', 'workflowConditions', 'workflowDefinitions', 'workflowExecutions', 'workflowTasks', 'workflowVariables', 'workflowVersions']
+workflows: similar -> ['workflowAudit', 'workflowConditions', 'workflowDefinitions', 'workflowExecutions', 'workflowTasks', 'workflowVariables', 'workflowVersions']
+
+=== .BAK DEFINITIONS BY LINE ===
+
+// ---- approvalRequestApprovers (from .bak) ----
+approvalRequestApprovers: defineTable({
+    requestId: v.id("approvalRequests"),
+
+// ---- approvalRequests (from .bak) ----
+approvalRequests: defineTable({
+    templateId: v.optional(v.id("approvalTemplates")),
+
+// ---- approvalTemplates (from .bak) ----
+approvalTemplates: defineTable({
+    name: v.string(),
+
+// ---- messageCampaigns (from .bak) ----
+messageCampaigns: defineTable({
+    name: v.string(),
+
+// ---- notificationCenter (from .bak) ----
+notificationCenter: defineTable({
+    userId: v.id("users"),
+
+// ---- offers (from .bak) ----
+offers: defineTable({
+    candidateId: v.id("candidates"),
+
+// ---- onboardingTasks (from .bak) ----
+onboardingTasks: defineTable({
+    employeeId: v.optional(v.id("employeeMaster")),
+
+// ---- personProfiles (from .bak) ----
+personProfiles: defineTable({
+    personId: v.id("personMaster"),
+
+// ---- personQRCode (from .bak) ----
+personQRCode: defineTable({
+    personId: v.id("personMaster"),
+
+// ---- recordPolicies (from .bak) ----
+recordPolicies: defineTable({
+    module: v.string(),
+
+// ---- sectionPermissions (from .bak) ----
+sectionPermissions: defineTable({
+    designationId: v.id("designations"),
+
+// ---- socialLinks (from .bak) ----
+socialLinks: defineTable({
+    personId: v.id("personMaster"),
+
+// ---- studentAcademicProfile (from .bak) ----
+studentAcademicProfile: defineTable({
+    studentId: v.id("studentMaster"),
+
+// ---- studentAchievements (from .bak) ----
+studentAchievements: defineTable({
+    studentId: v.id("studentMaster"),
+
+// ---- studentAdmissions (from .bak) ----
+studentAdmissions: defineTable({
+    studentId: v.id("studentMaster"),
+
+// ---- studentDisciplinaryRecords (from .bak) ----
+studentDisciplinaryRecords: defineTable({
+    studentId: v.id("studentMaster"),
+
+// ---- studentMedicalProfile (from .bak) ----
+studentMedicalProfile: defineTable({
+    studentId: v.id("studentMaster"),
+
+// ---- studentStatusHistory (from .bak) ----
+studentStatusHistory: defineTable({
+    studentId: v.id("studentMaster"),
+
+// ---- studentTimeline (from .bak) ----
+studentTimeline: defineTable({
+    studentId: v.id("studentMaster"),
+
+// ---- userScopes (from .bak) ----
+userScopes: defineTable({
+    userId: v.id("users"),
+
+// ---- verification_decisions (from .bak) ----
+verification_decisions: defineTable({
+    requestId: v.id("verification_requests"),
+
+// ---- verification_requests (from .bak) ----
+verification_requests: defineTable({
+    entityType: v.string(),
+
+// ---- visibilityPolicies (from .bak) ----
+visibilityPolicies: defineTable({
+    policyName: v.string(),
+
+// ---- workflowEdges (from .bak) ----
+workflowEdges: defineTable({
+    workflowId: v.id("workflows"),
+
+// ---- workflowInstances (from .bak) ----
+workflowInstances: defineTable({
+    workflowId: v.id("workflows"),
+
+// ---- workflowLogs (from .bak) ----
+workflowLogs: defineTable({
+    instanceId: v.id("workflowInstances"),
+
+// ---- workflowNodes (from .bak) ----
+workflowNodes: defineTable({
+    workflowId: v.id("workflows"),
+
+// ---- workflows (from .bak) ----
+workflows: defineTable({
+    name: v.string(),

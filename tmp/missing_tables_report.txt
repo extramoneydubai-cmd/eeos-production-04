@@ -1,0 +1,2171 @@
+=== UNIQUE MISSING TABLES (count = rejections in log) ===
+   30  businessRules
+   19  personProfiles
+   15  recordPolicies
+   15  timelineEvents
+   12  personQRCode
+   10  auditLogs
+    9  slaViolations
+    9  dashboardRefreshSignals
+    9  workflowNodes
+    8  approvalRequests
+    8  userScopes
+    8  workflowInstances
+    8  offers
+    8  studentAcademicProfile
+    7  documentGenerationQueue
+    7  onboardingTasks
+    6  sectionPermissions
+    6  events
+    6  documentTemplates
+    6  studentAdmissions
+    6  visibilityPolicies
+    6  workflowEdges
+    5  assignmentRules
+    5  searchIndex
+    5  consentRecords
+    5  leadEscalations
+    5  integrationAuditRecords
+    5  certificates
+    5  workflows
+    5  userPreferences
+    5  studentStatusHistory
+    4  admissions
+    4  alumniRecords
+    4  approvalTemplates
+    4  approvalRequestApprovers
+    4  receiptTemplates
+    4  exams
+    4  refundPolicies
+    4  verification_decisions
+    3  systemConfig
+    3  verification_requests
+    3  counselorWorkloads
+    3  feeRefunds
+    3  notificationCenter
+    3  consentTemplates
+    3  homework
+    3  performanceReviews
+    3  socialLinks
+    3  slaPolicies
+    3  studentTimeline
+    2  scheduledJobs
+    2  apiKeys
+    2  webhooks
+    2  backupRecords
+    2  payrollEntries
+    2  candidateTimeline
+    2  commCampaigns
+    2  generatedDocuments
+    2  studentAcademicAllocation
+    2  inventoryStock
+    2  documentRecords
+    2  studentDocuments
+    2  _tables
+    2  exitRecords
+    2  questionBank
+    2  transfers
+    2  knowledgeArticleVersions
+    2  refundTransactions
+    2  studentMedicalProfile
+    1  commTemplates
+    1  campaignSchedules
+    1  messageCampaigns
+    1  authConfig
+    1  marketingCampaigns
+    1  examMaster
+    1  guardianDetails
+    1  studentEnrollmentHistory
+    1  withScopeAndEvents
+    1  automationRules
+    1  notificationMatrix
+    1  receipts
+    1  gstRecords
+    1  facultyAssignments
+    1  payrollRecords
+    1  entityTimeline
+    1  exitClearanceItems
+    1  fullFinalSettlements
+    1  experienceLetters
+    1  inventoryAudit
+    1  performanceGoals
+    1  feeAccounts
+    1  discounts
+    1  scopeEngine
+    1  vendors
+    1  recruitmentTimeline
+    1  studentAchievements
+    1  studentDisciplinaryRecords
+    1  employees
+    1  workflowLogs
+    1  tickets
+    1  campaigns
+    1  attendance
+    1  leaves
+    1  assets
+
+TOTAL MISSING: 104
+
+=== INSERT SHAPES PER MISSING TABLE ===
+
+----- businessRules -----
+  [src/convex/businessRulesEngine.ts:71]
+       return ctx.db.insert("businessRules", {
+         domain: args.domain,
+         key: args.key,
+         value: args.value,
+         label: args.label || args.key,
+         description: args.description,
+         valueType: args.valueType || typeof args.value === "number" ? "number" : "string",
+         companyId: args.companyId,
+         branchId: args.branchId,
+         isActive: args.isActive ?? true,
+         createdAt: Date.now(),
+         updatedAt: Date.now(),
+       });
+     },
+   
+  [src/convex/businessRulesEngine.ts:242]
+         await ctx.db.insert("businessRules", { ...rule, isActive: true, createdAt: Date.now(), updatedAt: Date.now() });
+         count++;
+       }
+       return { created: true, count };
+     },
+   });
+   
+  [src/convex/teacherSchedulingEngine.ts:498]
+         await ctx.db.insert("businessRules", {
+           ruleType: "teacher_scheduling",
+           scopeId: args.teacherId,
+           ruleName: `Teacher Scheduling — ${args.teacherId}`,
+           description: "Per-teacher scheduling configuration",
+           config,
+           enabled: true,
+           priority: 100,
+           organization: undefined,
+           company: undefined,
+           branch: undefined,
+         });
+       }
+   
+   
+
+----- personProfiles -----
+  [src/convex/studentEngine.ts:154]
+         await ctx.db.insert("personProfiles", {
+           personId,
+           profileType: "student",
+           active: true,
+           primaryProfile: true,
+           displayLabel: "Student",
+           createdAt: now,
+           updatedAt: now,
+         });
+   
+         // Step 4: Auto-generate QR code for the person
+         const raw = `${personId}-${now}-${Math.random().toString(36).substring(2, 10)}`;
+         const encoder = new TextEncoder();
+         const data = encoder.encode(raw);
+   
+  [src/convex/employeeEngine.ts:133]
+         await ctx.db.insert("personProfiles", {
+           personId,
+           profileType: "employee",
+           profileReferenceId: employeeCode,
+           active: true,
+           primaryProfile: true,
+         });
+   
+         const employeeId = await ctx.db.insert("employeeMaster", {
+           employeeCode,
+           personId,
+           employmentType: args.employmentType,
+           primaryRole: args.primaryRole,
+           joiningDate: args.joiningDate,
+   
+  [src/convex/profileEngine.ts:39]
+       return await ctx.db.insert("personProfiles", {
+         personId: args.personId,
+         profileType: args.profileType,
+         profileReferenceId: args.profileReferenceId,
+         active: isActive,
+         primaryProfile: isPrimary,
+         displayLabel: args.displayLabel,
+         description: args.description,
+         startDate: args.startDate,
+         endDate: args.endDate,
+         metadata: args.metadata,
+         createdAt: now,
+         updatedAt: now,
+       });
+   
+
+----- recordPolicies -----
+  [src/convex/recordScope.ts:38]
+       return await ctx.db.insert("recordPolicies", {
+         module: args.module,
+         recordId: args.recordId,
+         policyId: args.policyId,
+         ownerUserId: args.ownerUserId,
+         departmentId: args.departmentId,
+         branchId: args.branchId,
+         companyId: args.companyId,
+         createdAt: now,
+         updatedAt: now,
+       });
+     },
+   });
+   
+   
+  [src/convex/recordScope.ts:267]
+           const id = await ctx.db.insert("recordPolicies", {
+             module: args.module,
+             recordId,
+             policyId: args.policyId,
+             ownerUserId: args.ownerUserId,
+             departmentId: args.departmentId,
+             branchId: args.branchId,
+             companyId: args.companyId,
+             createdAt: now,
+             updatedAt: now,
+           });
+           results.push(id);
+         }
+       }
+   
+  [src/convex/securityPolicies.ts:304]
+       return await ctx.db.insert("recordPolicies", {
+         module: args.module,
+         recordId: args.recordId,
+         policyId: policy._id,
+         createdAt: now,
+         updatedAt: now,
+       });
+     },
+   });
+   
+   // ─── Get Policy Stats ─────────────────────────────────────
+   
+   export const getPolicyStats = query({
+     args: {},
+   
+
+----- timelineEvents -----
+  [src/convex/automationEngine.ts:319]
+         await ctx.db.insert("timelineEvents", {
+           module: config.module || context.module || "automation",
+           eventType: config.eventType || "automation.executed",
+           entityType: config.entityType || (context.entityType as string) || "unknown",
+           entityId: config.entityId || (context.entityId as string) || "unknown",
+           title: config.title || "Automation Executed",
+           description: renderTemplate(config.description || "", context),
+           performedBy: config.performedBy || context.userId,
+           companyId: config.companyId || context.companyId,
+           branchId: config.branchId || context.branchId,
+           createdAt: Date.now(),
+         });
+         return { timelineCreated: true };
+       }
+   
+  [src/convex/withScopeAndEvents.ts:138]
+           await ctx.db.insert("timelineEvents", {
+             module: config.module,
+             eventType,
+             entityType: config.entity,
+             entityId,
+             title,
+             description: title,
+             performedBy,
+             companyId: entityScope.companyId,
+             branchId: entityScope.branchId,
+             departmentId: entityScope.departmentId,
+             createdAt: now,
+           });
+         }
+   
+  [src/convex/financePlatform.ts:689]
+       await ctx.db.insert("timelineEvents", {
+         module: "finance",
+         eventType: args.approved ? "finance.expense.approved" : "finance.expense.rejected",
+         entityType: "expense",
+         entityId: args.id,
+         title: args.approved ? "Expense Approved" : "Expense Rejected",
+         description: args.notes,
+         performedBy: identity.subject as any,
+         createdAt: now,
+       });
+   
+       return args.id;
+     },
+   });
+   
+
+----- personQRCode -----
+  [src/convex/studentEngine.ts:172]
+         await ctx.db.insert("personQRCode", {
+           personId,
+           qrToken,
+           deepLink: `eeos://person/${personId}`,
+           active: true,
+           createdAt: now,
+           updatedAt: now,
+         });
+   
+         // Step 5: Generate student code and admission number
+         const studentCode = await generateStudentCode(ctx);
+         const admissionNumber = await generateAdmissionNumber(ctx);
+   
+         // Step 6: Create Student Master record
+   
+  [src/convex/personEngine.ts:56]
+       await ctx.db.insert("personQRCode", {
+         personId,
+         qrToken,
+         deepLink,
+         active: true,
+         createdAt: now,
+         updatedAt: now,
+       });
+   
+       return personId;
+     },
+   });
+   
+   export const updatePerson = mutation({
+   
+  [src/convex/personQRCode.ts:43]
+       const qrId = await ctx.db.insert("personQRCode", {
+         personId: args.personId,
+         qrToken,
+         deepLink,
+         active: true,
+         createdAt: now,
+         updatedAt: now,
+       });
+   
+       return {
+         qrId,
+         qrToken,
+         deepLink,
+         deepLinkFallback: `eeos://person/${args.personId}`,
+   
+
+----- auditLogs -----
+  [src/convex/withScopeAndEvents.ts:125]
+         await ctx.db.insert("auditLogs", {
+           action: config.operation,
+           entity: config.entity,
+           entityId: entityId || "",
+           userId: performedBy,
+           companyId: entityScope.companyId,
+           branchId: entityScope.branchId,
+           departmentId: entityScope.departmentId,
+           createdAt: now,
+         });
+   
+         // 2. Timeline event
+         if (entityId) {
+           await ctx.db.insert("timelineEvents", {
+   
+  [src/convex/financePlatform.ts:680]
+       await ctx.db.insert("auditLogs", {
+         action: args.approved ? "approve" : "reject",
+         entity: "expense",
+         entityId: args.id,
+         userId: identity.subject as any,
+         changes: args.notes ? { reason: args.notes } : undefined,
+         createdAt: now,
+       });
+   
+       await ctx.db.insert("timelineEvents", {
+         module: "finance",
+         eventType: args.approved ? "finance.expense.approved" : "finance.expense.rejected",
+         entityType: "expense",
+         entityId: args.id,
+   
+  [src/convex/financePlatform.ts:725]
+       await ctx.db.insert("auditLogs", {
+         action: args.approved ? "approve" : "reject",
+         entity: "refund",
+         entityId: args.id,
+         userId: identity.subject as any,
+         changes: args.notes ? { reason: args.notes } : undefined,
+         createdAt: now,
+       });
+   
+       await ctx.db.insert("timelineEvents", {
+         module: "finance",
+         eventType: args.approved ? "finance.refund.approved" : "finance.refund.rejected",
+         entityType: "refund",
+         entityId: args.id,
+   
+
+----- slaViolations -----
+  [src/convex/slaEngine.ts:246]
+       const violationId = await ctx.db.insert("slaViolations", {
+         leadId: args.leadId,
+         slaPolicyId: args.slaPolicyId,
+         slaStartedAt: args.slaStartedAt,
+         slaDeadlineAt: args.slaDeadlineAt,
+         violatedAt: now,
+         status: "open",
+         notes: args.notes,
+         createdAt: now,
+       });
+   
+       await createTimelineEvent(ctx, {
+         leadId: args.leadId,
+         eventType: "LeadUpdated",
+   
+
+----- dashboardRefreshSignals -----
+  [src/convex/withScopeAndEvents.ts:272]
+               await ctx.db.insert("dashboardRefreshSignals", {
+                 module: config.module,
+                 entity: config.entity,
+                 lastRefresh: now,
+                 createdAt: now,
+                 updatedAt: now,
+               });
+             }
+           } catch {}
+         }
+   
+       } catch (error) {
+         // Pipeline failure must NEVER break the business operation
+         console.error(`[EnterprisePipeline] Failed for ${config.module}.${config.entity}:`, error);
+   
+  [src/convex/dashboardLiveRefresh.ts:58]
+         await ctx.db.insert("dashboardRefreshSignals", {
+           module: args.module,
+           scopeKey,
+           companyId: args.companyId,
+           branchId: args.branchId,
+           entityType: args.entityType,
+           entityId: args.entityId,
+           metric: args.metric,
+           lastRefreshedAt: now,
+           refreshCount: 1,
+         });
+       }
+     },
+   });
+   
+
+----- workflowNodes -----
+  [src/convex/workflowEngine.ts:129]
+       const startId = await ctx.db.insert("workflowNodes", {
+         workflowId,
+         nodeType: "start",
+         label: "Start",
+         positionX: 50,
+         positionY: 250,
+         createdAt: now,
+         updatedAt: now,
+       });
+   
+       const endId = await ctx.db.insert("workflowNodes", {
+         workflowId,
+         nodeType: "end",
+         label: "End",
+   
+  [src/convex/workflowEngine.ts:139]
+       const endId = await ctx.db.insert("workflowNodes", {
+         workflowId,
+         nodeType: "end",
+         label: "End",
+         positionX: 700,
+         positionY: 250,
+         createdAt: now,
+         updatedAt: now,
+       });
+   
+       return { workflowId, startNodeId: startId, endNodeId: endId };
+     },
+   });
+   
+   
+  [src/convex/workflowEngine.ts:282]
+         const newNodeId = await ctx.db.insert("workflowNodes", {
+           workflowId: newWorkflowId,
+           nodeType: node.nodeType,
+           label: node.label,
+           positionX: node.positionX,
+           positionY: node.positionY,
+           config: node.config,
+           configSchema: node.configSchema,
+           description: node.description,
+           createdAt: now,
+           updatedAt: now,
+         });
+         nodeIdMap.set(node._id, newNodeId);
+       }
+   
+
+----- approvalRequests -----
+  [src/convex/approvals.ts:119]
+       return await ctx.db.insert("approvalRequests", {
+         templateId: args.templateId,
+         taskId: args.taskId,
+         requesterId: args.requesterId,
+         title: args.title,
+         description: args.description,
+         mode: args.mode as any,
+         status: "pending",
+         currentPhase: 0,
+         totalPhases: args.totalPhases,
+         createdAt: now,
+         updatedAt: now,
+       });
+     },
+   
+
+----- userScopes -----
+  [src/convex/seed.ts:461]
+         await ctx.db.insert("userScopes", {
+           userId: uid,
+           canAccessDashboard: true,
+           createdAt: now,
+           updatedAt: now,
+         });
+       }
+   
+       // Create channels
+       const generalChannelId = await ctx.db.insert("channels", {
+         name: "General",
+         description: "General discussion",
+         type: "channel",
+         createdBy: ceoUser,
+   
+  [src/convex/userManagement.ts:98]
+       await ctx.db.insert("userScopes", {
+         userId,
+         canAccessDashboard: true,
+         createdAt: now,
+         updatedAt: now,
+       });
+   
+       return userId;
+     },
+   });
+   
+   // ============================
+   // UPDATE USER
+   // ============================
+   
+  [src/convex/userManagement.ts:474]
+         await ctx.db.insert("userScopes", { userId, ...scopeData, createdAt: now, updatedAt: now });
+       }
+     },
+   });
+   
+
+----- workflowInstances -----
+  [src/convex/automationEngine.ts:358]
+           const instanceId = await ctx.db.insert("workflowInstances", {
+             workflowId,
+             status: "pending",
+             context: JSON.stringify(context),
+             startedBy: context.userId,
+             companyId: context.companyId,
+             branchId: context.branchId,
+             createdAt: Date.now(),
+             updatedAt: Date.now(),
+           });
+           return { workflowStarted: instanceId };
+         }
+         return { workflowStarted: false, error: "No workflowId configured" };
+       }
+   
+  [src/convex/workflowEngine.ts:535]
+       const instanceId = await ctx.db.insert("workflowInstances", {
+         workflowId: args.workflowId,
+         workflowVersion: workflow.version,
+         status: INSTANCE_STATUS.STARTED,
+         currentStepId: startNode._id,
+         triggerSource: args.triggerSource,
+         triggerEntityId: args.triggerEntityId,
+         triggerPayload: args.triggerPayload,
+         startedAt: now,
+         retryCount: 0,
+         createdAt: now,
+         updatedAt: now,
+       });
+   
+   
+
+----- offers -----
+  [src/convex/seed.ts:1171]
+       await ctx.db.insert("offers", {
+         candidateId: candidateIds[0],
+         offeredSalary: 1250000,
+         joiningDate: now + 30 * day,
+         offerLetter: undefined,
+         status: "accepted",
+         approvedBy: ceo._id,
+         notes: "Accepted verbally. Offer letter sent.",
+         createdAt: now - 2 * day,
+         updatedAt: now - 1 * day,
+       });
+   
+       // Offer for Neha
+       await ctx.db.insert("offers", {
+   
+  [src/convex/seed.ts:1184]
+       await ctx.db.insert("offers", {
+         candidateId: candidateIds[4],
+         offeredSalary: 650000,
+         joiningDate: now + 20 * day,
+         offerLetter: undefined,
+         status: "pending_approval",
+         approvedBy: undefined,
+         notes: "Awaiting CFO approval on budget.",
+         createdAt: now - 1 * day,
+         updatedAt: now - 1 * day,
+       });
+   
+       // ─── ONBOARDING TASKS ───
+   
+   
+  [src/convex/offerEngine.ts:49]
+       const id = await ctx.db.insert("offers", {
+         candidateId: args.candidateId,
+         offeredSalary: args.offeredSalary,
+         joiningDate: args.joiningDate,
+         offerLetter: args.offerLetter,
+         notes: args.notes,
+         status: "pending",
+         createdAt: now,
+         updatedAt: now,
+       });
+   
+       // Update candidate status
+       await ctx.db.patch(args.candidateId, {
+         status: "offer_pending",
+   
+
+----- studentAcademicProfile -----
+  [src/convex/studentEngine.ts:215]
+           await ctx.db.insert("studentAcademicProfile", {
+             studentId,
+             verticalId: academicProfile.verticalId,
+             subVerticalId: academicProfile.subVerticalId,
+             boardId: academicProfile.boardId,
+             courseId: academicProfile.courseId,
+             batchId: academicProfile.batchId,
+             sectionId: academicProfile.sectionId,
+             semesterId: academicProfile.semesterId,
+             termId: academicProfile.termId,
+             currentYear: 1,
+             isCurrent: true,
+             startDate: now,
+             createdAt: now,
+   
+  [src/convex/studentLifecycle.ts:185]
+         await ctx.db.insert("studentAcademicProfile", {
+           studentId: args.studentId,
+           verticalId: args.academicProfile.verticalId,
+           subVerticalId: args.academicProfile.subVerticalId,
+           boardId: args.academicProfile.boardId,
+           courseId: args.academicProfile.courseId,
+           batchId: args.academicProfile.batchId,
+           sectionId: args.academicProfile.sectionId,
+           semesterId: args.academicProfile.semesterId,
+           termId: args.academicProfile.termId,
+           currentYear: 1,
+           currentTerm: "1",
+           isCurrent: true,
+           startDate: now,
+   
+  [src/convex/studentLifecycle.ts:251]
+       await ctx.db.insert("studentAcademicProfile", {
+         studentId: args.studentId,
+         verticalId: profileData.verticalId,
+         subVerticalId: profileData.subVerticalId,
+         boardId: profileData.boardId,
+         courseId: profileData.courseId,
+         batchId: profileData.batchId,
+         sectionId: profileData.sectionId,
+         semesterId: profileData.semesterId,
+         termId: profileData.termId,
+         currentYear: args.nextYear,
+         currentTerm: "1",
+         isCurrent: true,
+         startDate: now,
+   
+
+----- documentGenerationQueue -----
+  [src/convex/withScopeAndEvents.ts:175]
+               await ctx.db.insert("documentGenerationQueue", {
+                 documentType: docConfig.documentType,
+                 entityType: config.entity,
+                 entityId,
+                 context: JSON.stringify(docContext),
+                 companyId: entityScope.companyId,
+                 branchId: entityScope.branchId,
+                 status: "pending",
+                 createdAt: now,
+               });
+             } catch (e) {
+               console.error(`[Pipeline] Doc gen failed for ${docConfig.documentType}:`, e);
+             }
+           }
+   
+
+----- onboardingTasks -----
+  [src/convex/seed.ts:1213]
+         await ctx.db.insert("onboardingTasks", {
+           employeeId: undefined,
+           candidateId: hiredCandId,
+           checklistItem: onboardingItems[i],
+           assignedTo: i < 3 ? hrHead._id : cto._id,
+           dueDate: now + (i < 3 ? 5 : 10) * day,
+           completed: i < 2,
+           completedAt: i < 2 ? now + (i + 1) * day : undefined,
+           notes: i === 0 ? "Documents submitted" : undefined,
+           createdAt: now,
+         });
+       }
+   
+       return {
+   
+  [src/convex/onboardingEngine.ts:34]
+       const id = await ctx.db.insert("onboardingTasks", {
+         candidateId: args.candidateId,
+         checklistItem: args.checklistItem,
+         assignedTo: args.assignedTo,
+         dueDate: args.dueDate,
+         notes: args.notes,
+         completed: false,
+         createdAt: Date.now(),
+       });
+   
+       return id;
+     },
+   });
+   
+   
+  [src/convex/onboardingEngine.ts:61]
+         const id = await ctx.db.insert("onboardingTasks", {
+           candidateId: args.candidateId,
+           employeeId: args.employeeId,
+           checklistItem: item,
+           completed: false,
+           createdAt: now,
+         });
+         taskIds.push(id);
+       }
+   
+       // Create timeline event
+       await ctx.db.insert("candidateTimeline", {
+         candidateId: args.candidateId,
+         eventType: "onboarding_started",
+   
+
+----- sectionPermissions -----
+  [src/convex/actionPermissions.ts:120]
+       return await ctx.db.insert("sectionPermissions", {
+         designationId: args.designationId,
+         module: args.module,
+         sectionName: args.sectionName,
+         visible: args.visible,
+         createdAt: now,
+         updatedAt: now,
+       });
+     },
+   });
+   
+   export const listSectionPermissions = query({
+     args: {
+       designationId: v.optional(v.id("designations")),
+   
+
+----- events -----
+  [src/convex/automationEngine.ts:375]
+         await ctx.db.insert("events", {
+           module: config.module || context.module || "automation",
+           eventType: config.eventType || "automation.log",
+           entityType: context.entityType as string || "unknown",
+           entityId: context.entityId as string || "unknown",
+           performedBy: context.userId,
+           companyId: context.companyId,
+           branchId: context.branchId,
+           status: "completed",
+           publishedAt: Date.now(),
+           createdAt: Date.now(),
+         });
+         return { eventLogged: true };
+       }
+   
+  [src/convex/withScopeAndEvents.ts:155]
+           await ctx.db.insert("events", {
+             module: config.module,
+             eventType,
+             entityType: config.entity,
+             entityId,
+             performedBy,
+             companyId: entityScope.companyId,
+             branchId: entityScope.branchId,
+             departmentId: entityScope.departmentId,
+             status: "published",
+             publishedAt: now,
+             createdAt: now,
+           });
+         }
+   
+  [src/convex/withScopeAndEvents.ts:194]
+             await ctx.db.insert("events", {
+               module: "notification",
+               eventType: `notification.${config.module}.${config.entity}.${config.operation}`,
+               entityType: config.entity,
+               entityId,
+               performedBy,
+               companyId: entityScope.companyId,
+               branchId: entityScope.branchId,
+               status: "triggered",
+               publishedAt: now,
+               createdAt: now,
+             });
+           } catch {}
+         }
+   
+
+----- documentTemplates -----
+  [src/convex/documentTemplateEngine.ts:62]
+       return ctx.db.insert("documentTemplates", {
+         documentType: args.documentType,
+         name: args.name,
+         content: args.content,
+         description: args.description,
+         variables: args.variables || [],
+         companyId: args.companyId,
+         branchId: args.branchId,
+         isDefault: args.isDefault ?? false,
+         version: 1,
+         createdBy: userId,
+         createdAt: Date.now(),
+         updatedAt: Date.now(),
+       });
+   
+
+----- studentAdmissions -----
+  [src/convex/studentLifecycle.ts:107]
+       await ctx.db.insert("studentAdmissions", {
+         studentId: args.studentId,
+         leadId: student.leadId,
+         admissionNumber,
+         admissionType: args.admissionType || "regular",
+         courseId: args.courseId,
+         batchId: args.batchId,
+         totalFee: args.totalFee,
+         discountAmount: args.discountAmount,
+         finalFee: args.finalFee,
+         installmentCount: args.installmentCount,
+         admittedBy: args.performedBy,
+         status: "admitted",
+         decisionDate: now,
+   
+  [src/convex/enrollmentEngine.ts:78]
+       const admId = await ctx.db.insert("studentAdmissions", {
+         studentId,
+         leadId: args.leadId,
+         admissionNumber,
+         admissionDate: now,
+         admissionType: "fresh",
+         courseId: "" as any, // Will be updated when allocateCourse is called
+         totalFee: lead.standardAmount || 0,
+         discountAmount: (lead.discountAmount || 0) + (lead.waiverAmount || 0),
+         finalFee: lead.finalPayable || lead.standardAmount || 0,
+         installmentCount: 1,
+         status: "pending",
+         createdBy: args.createdBy,
+         createdAt: now,
+   
+
+----- visibilityPolicies -----
+  [src/convex/securityPolicies.ts:24]
+       return await ctx.db.insert("visibilityPolicies", {
+         policyName: args.policyName,
+         policyCode: args.policyCode,
+         description: args.description,
+         securityLevel: args.securityLevel,
+         active: args.active !== undefined ? args.active : true,
+         createdAt: now,
+         updatedAt: now,
+       });
+     },
+   });
+   
+   export const updatePolicy = mutation({
+     args: {
+   
+  [src/convex/securityPolicies.ts:154]
+           const id = await ctx.db.insert("visibilityPolicies", {
+             ...d,
+             active: true,
+             createdAt: now,
+             updatedAt: now,
+           });
+           results.push(id);
+         }
+       }
+   
+       return results;
+     },
+   });
+   
+   
+
+----- workflowEdges -----
+  [src/convex/workflowEngine.ts:304]
+         await ctx.db.insert("workflowEdges", {
+           workflowId: newWorkflowId,
+           sourceNodeId: nodeIdMap.get(edge.sourceNodeId) || edge.sourceNodeId,
+           targetNodeId: nodeIdMap.get(edge.targetNodeId) || edge.targetNodeId,
+           label: edge.label,
+           condition: edge.condition,
+           displayOrder: edge.displayOrder,
+           createdAt: now,
+         });
+       }
+   
+       return { workflowId: newWorkflowId };
+     },
+   });
+   
+  [src/convex/workflowEngine.ts:440]
+       const edgeId = await ctx.db.insert("workflowEdges", {
+         workflowId: args.workflowId,
+         sourceNodeId: args.sourceNodeId,
+         targetNodeId: args.targetNodeId,
+         label: args.label,
+         condition: args.condition,
+         displayOrder: args.displayOrder,
+         createdAt: Date.now(),
+       });
+       return { edgeId };
+     },
+   });
+   
+   export const updateEdge = mutation({
+   
+
+----- assignmentRules -----
+  [src/convex/assignmentEngine.ts:614]
+       return ctx.db.insert("assignmentRules", {
+         ...args,
+         isActive: true,
+         priority: maxPriority + 1,
+         createdAt: Date.now(),
+         updatedAt: Date.now(),
+       });
+     },
+   });
+   
+   export const updateAssignmentRule = mutation({
+     args: {
+       ruleId: v.id("assignmentRules"),
+       name: v.optional(v.string()),
+   
+
+----- searchIndex -----
+  [src/convex/autoSearchIndexer.ts:43]
+       await ctx.db.insert("searchIndex", {
+         entityType: entry.entityType,
+         entityId: entry.entityId,
+         title: entry.title,
+         subtitle: entry.subtitle || "",
+         keywords: (entry.keywords || []).join(","),
+         identifiers: entry.identifiers ? JSON.stringify(entry.identifiers) : "",
+         module: entry.module,
+         companyId: entry.companyId,
+         branchId: entry.branchId,
+         departmentId: entry.departmentId,
+         tags: (entry.tags || []).join(","),
+         createdBy: entry.createdBy,
+         createdAt: now,
+   
+
+----- consentRecords -----
+  [src/convex/consentEngine.ts:68]
+       const consentId = await ctx.db.insert("consentRecords", {
+         studentId: args.studentId,
+         consentTemplateId: args.consentTemplateId,
+         documentType: (template as any).documentType,
+         consentGiven: args.consentGiven,
+         parentSignature: args.parentSignature,
+         studentSignature: args.studentSignature,
+         deviceInfo: args.deviceInfo,
+         ipAddress: args.ipAddress,
+         consentDate: Date.now(),
+         createdAt: Date.now(),
+       });
+   
+       // Generate PDF record
+   
+
+----- leadEscalations -----
+  [src/convex/slaEngine.ts:298]
+     const escalationId = await ctx.db.insert("leadEscalations", {
+       leadId,
+       level,
+       escalationType: escalationType as any,
+       escalatedTo,
+       escalatedBy,
+       reason,
+       slaViolationId,
+       status: "pending",
+       createdAt: now,
+       updatedAt: now,
+     });
+   
+     await createTimelineEvent(ctx, {
+   
+
+----- integrationAuditRecords -----
+  [src/convex/integrationAuditAutoRun.ts:84]
+       await ctx.db.insert("integrationAuditRecords", {
+         ...auditRecord,
+         triggeredBy: args.triggeredBy || "manual",
+         createdAt: startTime,
+       });
+   
+       return auditRecord;
+     },
+   });
+   
+   // ─── Get Latest Audit ───────────────────────────────────────
+   
+   export const getLatestAudit = query({
+     handler: async (ctx) => {
+   
+
+----- certificates -----
+  [src/convex/receiptTemplateEngine.ts:134]
+       return ctx.db.insert("certificates", {
+         certificateNumber: certNumber,
+         studentId: args.studentId,
+         certificateType: args.certificateType,
+         certificateData: args.certificateData,
+         issuedBy: args.issuedBy,
+         issueDate: now,
+         status: "issued",
+         verificationUrl: `verify/${certNumber}`,
+         createdAt: now,
+       });
+     },
+   });
+   
+   
+
+----- workflows -----
+  [src/convex/workflowEngine.ts:114]
+       const workflowId = await ctx.db.insert("workflows", {
+         name: args.name,
+         code: args.code,
+         description: args.description,
+         module: args.module,
+         status: WORKFLOW_STATUS.DRAFT,
+         version: 1,
+         isActive: false,
+         tag: args.tag,
+         createdBy: args.createdBy,
+         createdAt: now,
+         updatedAt: now,
+       });
+   
+   
+  [src/convex/workflowEngine.ts:260]
+       const newWorkflowId = await ctx.db.insert("workflows", {
+         name: args.newName,
+         code: args.newCode,
+         description: original.description,
+         module: original.module,
+         status: WORKFLOW_STATUS.DRAFT,
+         version: 1,
+         isActive: false,
+         tag: original.tag,
+         createdBy: args.createdBy,
+         createdAt: now,
+         updatedAt: now,
+       });
+   
+   
+
+----- userPreferences -----
+
+----- studentStatusHistory -----
+  [src/convex/studentEngine.ts:203]
+         await ctx.db.insert("studentStatusHistory", {
+           studentId,
+           fromStatus: undefined,
+           toStatus: leadId ? "lead" : "enquiry",
+           remarks: "Student created",
+           changedBy: createdBy,
+           changedAt: now,
+           createdAt: now,
+         });
+   
+         // Step 8: Create academic profile if provided
+         if (academicProfile) {
+           await ctx.db.insert("studentAcademicProfile", {
+             studentId,
+   
+  [src/convex/studentEngine.ts:377]
+         await ctx.db.insert("studentStatusHistory", {
+           studentId: args.studentId,
+           fromStatus: student.currentStatus,
+           toStatus: "cancelled",
+           remarks: args.reason || "Student archived",
+           changedBy: args.performedBy,
+           changedAt: now,
+           createdAt: now,
+         });
+   
+         return args.studentId;
+       }
+     ),
+   });
+   
+  [src/convex/studentEngine.ts:418]
+         await ctx.db.insert("studentStatusHistory", {
+           studentId: args.studentId,
+           fromStatus: student.currentStatus,
+           toStatus: "active",
+           remarks: "Student restored",
+           changedBy: args.performedBy,
+           changedAt: now,
+           createdAt: now,
+         });
+   
+         return args.studentId;
+       }
+     ),
+   });
+   
+
+----- admissions -----
+  [src/convex/admissionEngine.ts:92]
+       const admissionId = await ctx.db.insert("admissions", {
+         admissionNumber,
+         leadId: args.leadId,
+         studentId: args.studentId,
+         academicSessionId: args.academicSessionId,
+         programId: args.programId,
+         batchId: args.batchId,
+         sectionId: args.sectionId,
+         admissionDate: args.admissionDate,
+         admissionType: args.admissionType,
+         feePlanId: args.feePlanId,
+         status: "enrolled",
+         documents: args.documents,
+         notes: args.notes,
+   
+  [src/convex/enterpriseSimulation.ts:298]
+         const aid = await ctx.db.insert("admissions", {
+           studentId: sid as any,
+           batchId: batchId as any,
+           admissionDate: now - randomInt(30, 365) * 86400000,
+           admissionType: randomPick(["regular", "management", "scholarship"]),
+           status: "admitted",
+           createdAt: now,
+           updatedAt: now,
+         });
+         admissionIds.push(aid);
+       }
+       r.push(`Phase 4: ${studentIds.length} students with admissions`);
+   
+       // ────────────────────────────────────────────────────────────
+   
+
+----- alumniRecords -----
+  [src/convex/alumniEngine.ts:31]
+       return ctx.db.insert("alumniRecords", {
+         ...args,
+         engagementScore: 0,
+         lastContactDate: Date.now(),
+         createdBy: userId,
+         createdAt: Date.now(),
+         updatedAt: Date.now(),
+       });
+     },
+   });
+   
+   export const listAlumni = query({
+     args: {
+       graduationYear: v.optional(v.number()),
+   
+
+----- approvalTemplates -----
+  [src/convex/approvals.ts:30]
+       return await ctx.db.insert("approvalTemplates", {
+         name: args.name,
+         description: args.description,
+         mode: args.mode as any,
+         phases: args.phases.map((p) => ({ ...p, order: p.order, requiredApprovers: p.requiredApprovers })),
+         isActive: true,
+         createdAt: now,
+         updatedAt: now,
+       });
+     },
+   });
+   
+   export const updateApprovalTemplate = mutation({
+     args: {
+   
+  [src/convex/seed.ts:641]
+       await ctx.db.insert("approvalTemplates", {
+         name: "Standard Approval",
+         description: "Two-phase sequential approval process",
+         mode: "sequential",
+         phases: [
+           { name: "Manager Review", order: 0, requiredApprovers: 1 },
+           { name: "Director Approval", order: 1, requiredApprovers: 1 },
+         ],
+         isActive: true,
+         createdAt: now,
+         updatedAt: now,
+       });
+   
+       await ctx.db.insert("approvalTemplates", {
+   
+  [src/convex/seed.ts:654]
+       await ctx.db.insert("approvalTemplates", {
+         name: "Quick Approval",
+         description: "Single-phase parallel approval",
+         mode: "parallel",
+         phases: [
+           { name: "Approver Decision", order: 0, requiredApprovers: 2 },
+         ],
+         isActive: true,
+         createdAt: now,
+         updatedAt: now,
+       });
+   
+       return {
+         seeded: true,
+   
+
+----- approvalRequestApprovers -----
+  [src/convex/approvals.ts:149]
+       await ctx.db.insert("approvalRequestApprovers", {
+         requestId: args.requestId,
+         userId: args.userId,
+         phaseIndex: args.phaseIndex,
+         status: "approved",
+         comment: args.comment,
+         decidedAt: now,
+         createdAt: now,
+       });
+   
+       // Check if all required approvers for this phase have approved
+       const phaseApprovers = await ctx.db.query("approvalRequestApprovers")
+         .withIndex("requestId", (q) => q.eq("requestId", args.requestId))
+         .collect();
+   
+  [src/convex/approvals.ts:203]
+       await ctx.db.insert("approvalRequestApprovers", {
+         requestId: args.requestId,
+         userId: args.userId,
+         phaseIndex: args.phaseIndex,
+         status: "rejected",
+         comment: args.comment,
+         decidedAt: now,
+         createdAt: now,
+       });
+   
+       await ctx.db.patch(args.requestId, {
+         status: "rejected",
+         updatedAt: now,
+       });
+   
+
+----- receiptTemplates -----
+  [src/convex/receiptTemplateEngine.ts:38]
+       return ctx.db.insert("receiptTemplates", {
+         name: args.name,
+         documentType: args.documentType,
+         templateHtml: args.templateHtml,
+         companyId: args.companyId,
+         branchId: args.branchId,
+         isDefault: args.isDefault || false,
+         variables: args.variables || [],
+         createdAt: Date.now(),
+         updatedAt: Date.now(),
+       });
+     },
+   });
+   
+   
+
+----- exams -----
+  [src/convex/facultyEngine.ts:84]
+       return ctx.db.insert("exams", { ...args, status: "draft", createdAt: Date.now(), updatedAt: Date.now() });
+     },
+   });
+   
+   export const publishExam = mutation({
+     args: { id: v.id("exams") },
+     handler: async (ctx, args) => {
+       await ctx.db.patch(args.id, { status: "published", publishedAt: Date.now(), updatedAt: Date.now() });
+       return args.id;
+     },
+   });
+   
+   export const listExams = query({
+     args: { batchId: v.optional(v.id("academicBatches")), facultyId: v.optional(v.id("users")) },
+   
+
+----- refundPolicies -----
+  [src/convex/refundCalcEngine.ts:149]
+       return ctx.db.insert("refundPolicies", {
+         name: args.name,
+         description: args.description,
+         nonRefundableAmount: args.nonRefundableAmount,
+         nonRefundablePercent: args.nonRefundablePercent,
+         slabs: args.slabs,
+         isActive: args.isDefault || false,
+         createdAt: Date.now(),
+         updatedAt: Date.now(),
+       });
+     },
+   });
+   
+   export const listRefundPolicies = query({
+   
+
+----- verification_decisions -----
+  [src/convex/verification.ts:218]
+       await ctx.db.insert("verification_decisions", {
+         requestId: args.requestId,
+         userId: args.userId,
+         status: args.decision,
+         comment: args.comment,
+         decidedAt: now,
+         createdAt: now,
+       });
+   
+       // Compute new status as a simple string to avoid TypeScript narrowing issues
+       let newStatus: string = request.status;
+   
+       if (args.decision === "rejected" || args.decision === "returned") {
+         newStatus = args.decision;
+   
+
+----- systemConfig -----
+  [src/convex/adminEngine.ts:29]
+       return ctx.db.insert("systemConfig", { ...args, createdAt: Date.now(), updatedAt: Date.now() });
+     },
+   });
+   
+   // ─── Company Management ────────────────────────────────────
+   
+   export const listCompanies = query({
+     handler: async (ctx) => ctx.db.query("companies").collect(),
+   });
+   
+   export const createCompany = mutation({
+     args: { name: v.string(), code: v.string(), domain: v.optional(v.string()), gstNumber: v.optional(v.string()), address: v.optional(v.string()), contactEmail: v.optional(v.string()), contactPhone: v.optional(v.string()), isActive: v.optional(v.boolean()) },
+     handler: async (ctx, args) => {
+       const userId = await getAuthUserId(ctx);
+   
+
+----- verification_requests -----
+  [src/convex/verification.ts:98]
+     const requestId = await ctx.db.insert("verification_requests", {
+       entityType: args.entityType,
+       entityId: args.entityId,
+       requesterId: args.requesterId,
+       assignedUserIds,
+       mode: "any_one",
+       status: "pending",
+       metadata: args.metadata,
+       createdAt: now,
+       updatedAt: now,
+     });
+   
+     for (const verifierId of assignedUserIds) {
+       await ctx.db.insert("notifications", {
+   
+
+----- counselorWorkloads -----
+  [src/convex/assignmentEngine.ts:524]
+         await ctx.db.insert("counselorWorkloads", {
+           userId: args.userId,
+           leadCount: userLeads.length,
+           activeLeadCount: activeLeads.length,
+           pendingTaskCount: userTasks.length,
+           overdueCount,
+           period: new Date().toISOString().slice(0, 7), // YYYY-MM
+           calculatedAt: now,
+           createdAt: now,
+         });
+   
+         return { userId: args.userId, leadCount: userLeads.length, activeLeadCount: activeLeads.length, pendingTaskCount: userTasks.length, overdueCount };
+       }
+   
+   
+  [src/convex/assignmentEngine.ts:560]
+         await ctx.db.insert("counselorWorkloads", {
+           userId: user._id,
+           leadCount: userLeads.length,
+           activeLeadCount: activeLeads.length,
+           pendingTaskCount: userTasks.length,
+           overdueCount,
+           period,
+           calculatedAt: now,
+           createdAt: now,
+         });
+   
+         results.push({ userId: user._id, leadCount: userLeads.length, activeLeadCount: activeLeads.length, pendingTaskCount: userTasks.length, overdueCount });
+       }
+   
+   
+
+----- feeRefunds -----
+  [src/convex/billingEngine.ts:327]
+       const id = await ctx.db.insert("feeRefunds", {
+         studentId: args.studentId,
+         feeAccountId: args.feeAccountId,
+         invoiceId: args.invoiceId,
+         transactionId: args.transactionId,
+         refundAmount: args.refundAmount,
+         refundReason: args.refundReason,
+         refundMethod: args.refundMethod,
+         refundDate: Date.now(),
+         status: "pending",
+         processedBy: userId,
+         notes: args.notes,
+       });
+   
+   
+
+----- notificationCenter -----
+  [src/convex/communicationHub.ts:21]
+     await ctx.db.insert("notificationCenter", {
+       userId: args.userId,
+       title: args.title,
+       message: args.message,
+       category: args.category,
+       priority: args.priority as any,
+       channel: args.channel as any,
+       referenceType: args.referenceType,
+       referenceId: args.referenceId,
+       actionUrl: args.actionUrl,
+       isRead: false,
+       isPinned: false,
+       isArchived: false,
+       createdAt: Date.now(),
+   
+
+----- consentTemplates -----
+  [src/convex/consentEngine.ts:29]
+       return ctx.db.insert("consentTemplates", {
+         name: args.name,
+         documentType: args.documentType,
+         contentHtml: args.contentHtml,
+         isMandatory: args.isMandatory || false,
+         version: args.version || "1.0",
+         isActive: true,
+         createdBy: args.createdBy,
+         createdAt: Date.now(),
+         updatedAt: Date.now(),
+       });
+     },
+   });
+   
+   
+
+----- homework -----
+  [src/convex/facultyEngine.ts:41]
+       return ctx.db.insert("homework", {
+         title: args.title, description: args.description, batchId: args.batchId,
+         subjectId: args.subjectId, dueDate: args.dueDate, attachments: args.attachments,
+         status: "assigned", createdBy: args.createdBy, createdAt: now, updatedAt: now,
+       });
+     },
+   });
+   
+   export const listHomework = query({
+     args: { batchId: v.optional(v.id("academicBatches")), facultyId: v.optional(v.id("users")) },
+     handler: async (ctx, args) => {
+       let items = await ctx.db.query("homework").collect();
+       if (args.batchId) items = items.filter((h: any) => h.batchId === args.batchId);
+       if (args.facultyId) items = items.filter((h: any) => h.createdBy === args.facultyId);
+   
+
+----- performanceReviews -----
+  [src/convex/performanceEngine.ts:25]
+       const reviewId = await ctx.db.insert("performanceReviews", {
+         employeeId: args.employeeId,
+         reviewerId: args.reviewerId,
+         reviewPeriod: args.reviewPeriod,
+         reviewType: args.reviewType,
+         ratings: args.ratings,
+         overallRating: args.ratings
+           ? Math.round(args.ratings.reduce((s: number, r) => s + r.score, 0) / args.ratings.length)
+           : 0,
+         overallComments: args.overallComments,
+         status: "draft",
+         createdBy: userId,
+         createdAt: Date.now(),
+         updatedAt: Date.now(),
+   
+
+----- socialLinks -----
+
+----- slaPolicies -----
+  [src/convex/slaEngine.ts:92]
+       return ctx.db.insert("slaPolicies", {
+         ...args,
+         isActive: true,
+         createdAt: Date.now(),
+         updatedAt: Date.now(),
+       });
+     },
+   });
+   
+   export const updateSlaPolicy = mutation({
+     args: {
+       policyId: v.id("slaPolicies"),
+       name: v.optional(v.string()),
+       description: v.optional(v.string()),
+   
+
+----- studentTimeline -----
+  [src/convex/studentLifecycle.ts:30]
+     await ctx.db.insert("studentTimeline", {
+       studentId,
+       eventType,
+       title,
+       description,
+       metadata,
+       performedBy,
+       createdAt: Date.now(),
+     });
+   }
+   
+   async function transitionStatus(
+     ctx: {
+       db: { get: (id: Id<"studentMaster">) => Promise<Doc<"studentMaster"> | null>; patch: (id: Id<"studentMaster">, updates: Record<string, any>) => Promise<void>; insert: (table: string, doc: any) => Promise<any> };
+   
+
+----- scheduledJobs -----
+  [src/convex/adminEngine.ts:73]
+       return ctx.db.insert("scheduledJobs", { ...args, isActive: args.isActive ?? true, lastRun: null, nextRun: null, createdAt: Date.now(), updatedAt: Date.now() });
+     },
+   });
+   
+   export const toggleJob = mutation({
+     args: { id: v.id("scheduledJobs"), isActive: v.boolean() },
+     handler: async (ctx, args) => {
+       await ctx.db.patch(args.id, { isActive: args.isActive, updatedAt: Date.now() });
+       return args.id;
+     },
+   });
+   
+   // ─── API Keys ──────────────────────────────────────────────
+   
+   
+
+----- apiKeys -----
+  [src/convex/adminEngine.ts:97]
+       return ctx.db.insert("apiKeys", { name: args.name, key, scope: args.scope, expiresAt: args.expiresAt, isActive: true, createdBy: userId, createdAt: Date.now() });
+     },
+   });
+   
+   export const revokeApiKey = mutation({
+     args: { id: v.id("apiKeys") },
+     handler: async (ctx, args) => {
+       await ctx.db.patch(args.id, { isActive: false, updatedAt: Date.now() });
+       return args.id;
+     },
+   });
+   
+   // ─── Webhooks ──────────────────────────────────────────────
+   
+   
+
+----- webhooks -----
+  [src/convex/adminEngine.ts:118]
+       return ctx.db.insert("webhooks", { ...args, isActive: args.isActive ?? true, createdAt: Date.now() });
+     },
+   });
+   
+   // ─── Audit Log Viewer ──────────────────────────────────────
+   
+   export const listAuditLogs = query({
+     args: { limit: v.optional(v.number()), module: v.optional(v.string()), severity: v.optional(v.string()) },
+     handler: async (ctx, args) => {
+       let logs = await ctx.db.query("auditLogs").order("desc").collect();
+       if (args.module) logs = logs.filter((l: any) => l.module === args.module);
+       if (args.severity) logs = logs.filter((l: any) => l.severity === args.severity);
+       return logs.slice(0, args.limit || 100);
+     },
+   
+
+----- backupRecords -----
+  [src/convex/adminEngine.ts:145]
+       return ctx.db.insert("backupRecords", {
+         backupType: args.backupType, notes: args.notes, status: "in_progress",
+         fileSize: 0, createdBy: userId, createdAt: Date.now(), completedAt: null,
+       });
+     },
+   });
+   
+   export const completeBackup = mutation({
+     args: { id: v.id("backupRecords"), fileSize: v.number() },
+     handler: async (ctx, args) => {
+       await ctx.db.patch(args.id, { status: "completed", fileSize: args.fileSize, completedAt: Date.now() });
+       return args.id;
+     },
+   });
+   
+
+----- payrollEntries -----
+  [src/convex/enterpriseSimulation.ts:883]
+         await ctx.db.insert("payrollEntries", {
+           employeeId: employeeIds[i],
+           baseSalary: rp([25000, 35000, 50000, 75000]),
+           allowances: rp([5000, 10000, 15000]),
+           deductions: rp([2000, 5000, 8000]),
+           netPay: rp([28000, 40000, 57000, 82000]),
+           payPeriod: "2026-07",
+           status: "paid",
+           createdAt: now - ri(1, 60) * 86400000,
+           updatedAt: now,
+         });
+         pye++;
+       } catch { /* skip */ }
+     }
+   
+  [src/convex/boostEnterpriseSimulation.ts:141]
+           await ctx.db.insert("payrollEntries", {
+             employeeId: employees[i]._id as any,
+             baseSalary: randomPick([25000, 35000, 50000, 75000, 100000]),
+             allowances: randomPick([5000, 10000, 15000]),
+             deductions: randomPick([2000, 5000, 8000]),
+             netPay: randomPick([28000, 40000, 57000, 82000, 107000]),
+             payPeriod: "2026-07", status: "paid",
+             createdAt: now - randomInt(1, 60) * 86400000, updatedAt: now,
+           });
+           pay++;
+         } catch { /* skip */ }
+       }
+       results.push(`✅ ${pay} payroll entries`);
+   
+   
+  [src/convex/seedSupplementalData.ts:135]
+           await ctx.db.insert("payrollEntries", {
+             employeeId: employees[i]._id as any,
+             baseSalary: [25000,35000,50000,75000][i % 4],
+             allowances: [5000,10000,15000][i % 3],
+             deductions: [2000,5000,8000][i % 3],
+             netPay: [28000,35000,50000,75000][i % 4],
+             payPeriod: "2026-07", status: "paid",
+             createdAt: now - Math.floor(Math.random() * 60) * 86400000,
+             updatedAt: now,
+           });
+           py++;
+         } catch { /* skip */ }
+       }
+       results.push(`✅ ${py} payroll entries`);
+   
+
+----- candidateTimeline -----
+  [src/convex/candidateEngine.ts:52]
+     await ctx.db.insert("candidateTimeline", {
+       candidateId: args.candidateId,
+       eventType: args.eventType,
+       title: args.title,
+       description: args.description,
+       performedBy: args.performedBy,
+       createdAt: Date.now(),
+     });
+   }
+   
+   async function insertCandidateStatusHistory(
+     ctx: any,
+     candidateId: Id<"candidates">,
+     fromStatus: string,
+   
+  [src/convex/interviewEngine.ts:17]
+     await ctx.db.insert("candidateTimeline", {
+       candidateId: args.candidateId,
+       eventType: args.eventType,
+       title: args.title,
+       description: args.description,
+       performedBy: args.performedBy,
+       createdAt: Date.now(),
+     });
+   }
+   
+   // ─── INTERVIEW CRUD ────────────────────────────────────────
+   
+   export const scheduleInterview = mutation({
+     args: {
+   
+  [src/convex/offerEngine.ts:17]
+     await ctx.db.insert("candidateTimeline", {
+       candidateId: args.candidateId,
+       eventType: args.eventType,
+       title: args.title,
+       description: args.description,
+       performedBy: args.performedBy,
+       createdAt: Date.now(),
+     });
+   }
+   
+   // ─── OFFER CRUD ────────────────────────────────────────────
+   
+   export const createOffer = mutation({
+     args: {
+   
+
+----- commCampaigns -----
+  [src/convex/communicationCampaignEngine.ts:51]
+       const campaignId = await ctx.db.insert("commCampaigns", {
+         name: args.name,
+         description: args.description,
+         templateId: args.templateId,
+         targetAudience: args.targetAudience,
+         filters: args.filters,
+         scheduleDate: args.scheduleDate,
+         batchSize: args.batchSize || 100,
+         status: args.scheduleDate ? "scheduled" : "draft",
+         totalRecipients: 0,
+         sentCount: 0,
+         deliveredCount: 0,
+         failedCount: 0,
+         openedCount: 0,
+   
+
+----- generatedDocuments -----
+  [src/convex/consentEngine.ts:82]
+       await ctx.db.insert("generatedDocuments", {
+         studentId: args.studentId,
+         documentType: (template as any).documentType,
+         consentId,
+         status: "generated",
+         createdAt: Date.now(),
+       });
+   
+       return consentId;
+     },
+   });
+   
+   export const getStudentConsents = query({
+     args: { studentId: v.id("studentMaster") },
+   
+
+----- studentAcademicAllocation -----
+  [src/convex/enrollmentEngine.ts:161]
+       await ctx.db.insert("studentAcademicAllocation", {
+         studentId: args.studentId,
+         academicYearId: args.academicYearId,
+         verticalId: args.verticalId,
+         subVerticalId: args.subVerticalId,
+         boardId: args.boardId,
+         courseId: args.courseId,
+         batchId: args.batchId,
+         isCurrent: true,
+         allocatedAt: now,
+         allocatedBy: args.allocatedBy,
+         createdAt: now,
+       });
+   
+   
+
+----- inventoryStock -----
+
+----- documentRecords -----
+  [src/convex/documentAutoGeneration.ts:59]
+           await ctx.db.insert("documentRecords", {
+             documentType: qi.documentType,
+             entityType: qi.entityType,
+             entityId: qi.entityId,
+             content: rendered,
+             context: qi.context,
+             companyId: qi.companyId,
+             branchId: qi.branchId,
+             status: "generated",
+             generatedAt: Date.now(),
+           });
+   
+           // Mark queue item as completed
+           await ctx.db.patch(item._id, {
+   
+
+----- studentDocuments -----
+  [src/convex/enrollmentEngine.ts:259]
+       const docId = await ctx.db.insert("studentDocuments", {
+         studentId: args.studentId,
+         documentType: args.documentType,
+         fileName: args.fileName,
+         fileUrl: args.fileUrl,
+         fileSize: args.fileSize,
+         isVerified: false,
+         uploadedBy: args.uploadedBy,
+         createdAt: Date.now(),
+       });
+   
+       await createEnrollmentHistory(ctx, args.studentId, "document_uploaded", `Document uploaded: ${args.documentType}`, args.fileName, undefined, args.uploadedBy);
+   
+       return docId;
+   
+
+----- _tables -----
+
+----- exitRecords -----
+  [src/convex/exitEngine.ts:25]
+       const exitId = await ctx.db.insert("exitRecords", {
+         employeeId: args.employeeId,
+         resignationDate: args.resignationDate,
+         lastWorkingDay: args.lastWorkingDay,
+         reason: args.reason,
+         reasonCategory: args.reasonCategory,
+         comments: args.comments,
+         status: "initiated",
+         initiatedBy: userId,
+         createdAt: Date.now(),
+         updatedAt: Date.now(),
+       });
+   
+       // Create clearance checklist
+   
+
+----- questionBank -----
+  [src/convex/facultyEngine.ts:64]
+       return ctx.db.insert("questionBank", { ...args, createdAt: Date.now(), updatedAt: Date.now() });
+     },
+   });
+   
+   export const listQuestions = query({
+     args: { subjectId: v.optional(v.id("academicSubjects")), difficulty: v.optional(v.string()), questionType: v.optional(v.string()) },
+     handler: async (ctx, args) => {
+       let qs = await ctx.db.query("questionBank").collect();
+       if (args.subjectId) qs = qs.filter((q: any) => q.subjectId === args.subjectId);
+       if (args.difficulty) qs = qs.filter((q: any) => q.difficulty === args.difficulty);
+       if (args.questionType) qs = qs.filter((q: any) => q.questionType === args.questionType);
+       return qs;
+     },
+   });
+   
+
+----- transfers -----
+  [src/convex/inventoryBranchEngine.ts:310]
+       const transferId = await ctx.db.insert("transfers", {
+         sourceBranchId: args.sourceBranchId,
+         destBranchId: args.destBranchId,
+         itemId: args.itemId,
+         quantity: args.quantity,
+         reason: args.reason,
+         status: "pending",
+         priority: args.priority ?? "normal",
+         requestedBy: args.requestedBy,
+         approvedBy: undefined,
+         approvedAt: undefined,
+         completedAt: undefined,
+         notes: undefined,
+       });
+   
+
+----- knowledgeArticleVersions -----
+  [src/convex/knowledgeEngine.ts:45]
+       await ctx.db.insert("knowledgeArticleVersions", {
+         articleId: args.id, title: article.title, content: article.content, version: (article as any).version || 1,
+         updatedBy: await getAuthUserId(ctx), updatedAt: Date.now(),
+       });
+       const { id, ...updates } = args;
+       await ctx.db.patch(id, { ...updates, version: ((article as any).version || 1) + 1, updatedAt: Date.now() });
+       return id;
+     },
+   });
+   
+   export const listArticles = query({
+     args: { categoryId: v.optional(v.id("knowledgeCategories")), articleType: v.optional(v.string()), tag: v.optional(v.string()), module: v.optional(v.string()), isPublished: v.optional(v.boolean()), searchQuery: v.optional(v.string()), limit: v.optional(v.number()) },
+     handler: async (ctx, args) => {
+       let articles = await ctx.db.query("knowledgeArticles").collect();
+   
+
+----- refundTransactions -----
+
+----- studentMedicalProfile -----
+
+----- commTemplates -----
+  [src/convex/communicationCampaignEngine.ts:24]
+       return ctx.db.insert("commTemplates", {
+         name: args.name,
+         channel: args.channel,
+         subject: args.subject,
+         body: args.body,
+         variables: args.variables || [],
+         createdBy: args.createdBy,
+         createdAt: Date.now(),
+         updatedAt: Date.now(),
+       });
+     },
+   });
+   
+   // ─── Campaign Execution ─────────────────────────────────────
+   
+
+----- campaignSchedules -----
+  [src/convex/communicationCampaignEngine.ts:72]
+         await ctx.db.insert("campaignSchedules", {
+           campaignId,
+           scheduledAt: args.scheduleDate,
+           status: "pending",
+           createdAt: Date.now(),
+         });
+       }
+   
+       return campaignId;
+     },
+   });
+   
+   export const launchCampaign = mutation({
+     args: { campaignId: v.id("commCampaigns"), userId: v.id("users") },
+   
+
+----- messageCampaigns -----
+
+----- authConfig -----
+
+----- marketingCampaigns -----
+
+----- examMaster -----
+
+----- guardianDetails -----
+
+----- studentEnrollmentHistory -----
+  [src/convex/billingEngine.ts:12]
+     await ctx.db.insert("studentEnrollmentHistory", {
+       studentId: args.studentId,
+       eventType: args.eventType,
+       title: args.title,
+       description: args.description,
+       metadata: args.metadata,
+       performedBy: performedBy,
+       createdAt: Date.now(),
+     });
+   }
+   
+   function generateInvoiceNumber(prefix: string, serial: number): string {
+     return `${prefix}-${String(serial).padStart(6, "0")}`;
+   }
+   
+  [src/convex/invoiceEngine.ts:12]
+     await ctx.db.insert("studentEnrollmentHistory", {
+       studentId: args.studentId,
+       eventType: args.eventType,
+       title: args.title,
+       description: args.description,
+       metadata: args.metadata,
+       performedBy: performedBy,
+       createdAt: Date.now(),
+     });
+   }
+   
+   function generateInvoiceNumber(prefix: string, serial: number): string {
+     return `${prefix}-${String(serial).padStart(6, "0")}`;
+   }
+   
+  [src/convex/paymentEngine.ts:12]
+     await ctx.db.insert("studentEnrollmentHistory", {
+       studentId: args.studentId,
+       eventType: args.eventType,
+       title: args.title,
+       description: args.description,
+       metadata: args.metadata,
+       performedBy: performedBy,
+       createdAt: Date.now(),
+     });
+   }
+   
+   function generateTransactionNumber(): string {
+     const ts = Date.now().toString(36).toUpperCase();
+     const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+   
+
+----- withScopeAndEvents -----
+
+----- automationRules -----
+
+----- notificationMatrix -----
+
+----- receipts -----
+  [src/convex/enterpriseSimulation.ts:353]
+                 await ctx.db.insert("receipts", {
+                   studentId: studentIds[i] as any,
+                   paymentTransactionId: txId as any,
+                   receiptNumber: `RCP-${String(rc + 1).padStart(6, "0")}`,
+                   amount: randomPick([25000, 50000, 75000, 100000]),
+                   receiptDate: now - randomInt(1, 60) * 86400000,
+                   status: "issued",
+                   createdBy: usersId,
+                   createdAt: now,
+                 });
+                 rc++;
+               } catch { /* skip */ }
+             }
+           } catch { /* skip */ }
+   
+
+----- gstRecords -----
+
+----- facultyAssignments -----
+
+----- payrollRecords -----
+
+----- entityTimeline -----
+
+----- exitClearanceItems -----
+  [src/convex/exitEngine.ts:44]
+         await ctx.db.insert("exitClearanceItems", {
+           exitId,
+           item,
+           status: "pending",
+           createdAt: Date.now(),
+         });
+       }
+   
+       return exitId;
+     },
+   });
+   
+   export const updateClearanceItem = mutation({
+     args: {
+   
+
+----- fullFinalSettlements -----
+  [src/convex/exitEngine.ts:92]
+       await ctx.db.insert("fullFinalSettlements", {
+         exitId: args.exitId,
+         salaryDues: args.salaryDues,
+         noticePeriodDeduction: args.noticePeriodDeduction || 0,
+         otherDeductions: args.otherDeductions,
+         totalDeductions: (args.noticePeriodDeduction || 0) + (args.otherDeductions || []).reduce((s: number, d) => s + d.amount, 0),
+         netPayable: args.netPayable,
+         paymentReference: args.paymentReference,
+         status: "pending_payment",
+         createdAt: Date.now(),
+         updatedAt: Date.now(),
+       });
+   
+       return args.exitId;
+   
+
+----- experienceLetters -----
+  [src/convex/exitEngine.ts:135]
+         await ctx.db.insert("experienceLetters", {
+           employeeId: exit.employeeId,
+           exitId: args.exitId,
+           issueDate: Date.now(),
+           status: "generated",
+           createdAt: Date.now(),
+         });
+       }
+   
+       return args.exitId;
+     },
+   });
+   
+   export const listExitRecords = query({
+   
+
+----- inventoryAudit -----
+  [src/convex/inventoryBranchEngine.ts:227]
+       await ctx.db.insert("inventoryAudit", {
+         itemId: args.itemId,
+         previousQuantity: currentQty,
+         newQuantity: newQty,
+         adjustmentType: args.adjustmentType,
+         quantity: args.quantity,
+         reason: args.reason,
+         userId: args.userId,
+         timestamp: Date.now(),
+       });
+   
+       return {
+         itemId: args.itemId,
+         previousQuantity: currentQty,
+   
+
+----- performanceGoals -----
+  [src/convex/performanceEngine.ts:43]
+           await ctx.db.insert("performanceGoals", {
+             reviewId,
+             employeeId: args.employeeId,
+             title: goal.title,
+             description: goal.description,
+             targetDate: goal.targetDate,
+             status: goal.status || "pending",
+             createdAt: Date.now(),
+           });
+         }
+       }
+   
+       return reviewId;
+     },
+   
+
+----- feeAccounts -----
+
+----- discounts -----
+
+----- scopeEngine -----
+
+----- vendors -----
+
+----- recruitmentTimeline -----
+  [src/convex/seed.ts:1044]
+         await ctx.db.insert("recruitmentTimeline", {
+           candidateId: cId,
+           eventType: "status_change",
+           previousStatus: "applied",
+           newStatus: d.status,
+           changedBy: hrHead._id,
+           note: `Candidate ${d.status === "rejected" ? "rejected after initial review" : "progressed to " + d.status.replace("_", " ")}`,
+           createdAt: now - 5 * day,
+         });
+       }
+   
+       // ─── INTERVIEWS ───
+   
+       // Interview for Rahul (Senior SE - shortlisted)
+   
+
+----- studentAchievements -----
+
+----- studentDisciplinaryRecords -----
+
+----- employees -----
+
+----- workflowLogs -----
+  [src/convex/workflowEngine.ts:497]
+     return ctx.db.insert("workflowLogs", {
+       instanceId,
+       workflowId,
+       nodeId,
+       action,
+       status,
+       details,
+       metadata,
+       performedBy,
+       createdAt: Date.now(),
+     });
+   }
+   
+   export const startWorkflow = mutation({
+   
+
+----- tickets -----
+
+----- campaigns -----
+
+----- attendance -----
+
+----- leaves -----
+
+----- assets -----
