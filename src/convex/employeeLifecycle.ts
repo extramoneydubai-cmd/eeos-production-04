@@ -19,7 +19,7 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
 // ─── Helper ──────────────────────────────────────────────────────
 
 async function createTimelineEvent(
-  ctx: { db: { insert: (table: string, doc: any) => Promise<Id<any>> } },
+  ctx: any,
   employeeId: Id<"employeeMaster">,
   eventType: string,
   eventName: string,
@@ -40,7 +40,7 @@ async function createTimelineEvent(
 }
 
 async function transitionStatus(
-  ctx: { db: { get: (id: Id<"employeeMaster">) => Promise<Doc<"employeeMaster"> | null>; patch: (id: Id<"employeeMaster">, doc: any) => Promise<void>; insert: (table: string, doc: any) => Promise<Id<any>> } },
+  ctx: any,
   employeeId: Id<"employeeMaster">,
   newStatus: string,
   changedBy: Id<"employeeMaster">,
@@ -264,7 +264,7 @@ export const assignManager = mutation({
         throw new Error("Circular reporting hierarchy detected");
       }
       const currentMgr = await ctx.db.get(currentManagerId);
-      currentManagerId = currentMgr?.reportingManagerId || null;
+      currentManagerId = currentMgr?.reportingManagerId || undefined;
     }
 
     const oldManager = employee.reportingManagerId;

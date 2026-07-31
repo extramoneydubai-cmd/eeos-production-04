@@ -95,11 +95,9 @@ export async function paginatedQuery<T extends Record<string, any>>(
     paginationOpts: any;
     [key: string]: any;
   },
-  queryBuilder?: (
-    q: ReturnType<typeof ctx.db.query>,
-  ) => any,
+  queryBuilder?: (q: any) => any,
 ): Promise<PaginatedResponse<T>> {
-  let q = ctx.db.query(tableName as any);
+  let q: any = ctx.db.query(tableName as any);
 
   if (queryBuilder) {
     q = queryBuilder(q);
@@ -125,7 +123,7 @@ export async function getTotalCount(
   tableName: string,
   filter?: (q: any) => any,
 ): Promise<number> {
-  let q = ctx.db.query(tableName as any);
+  let q: any = ctx.db.query(tableName as any);
   if (filter) {
     q = filter(q);
   }
@@ -214,7 +212,7 @@ export async function createLookup<T extends Record<string, any>>(
   tableName: string,
   options?: { index?: string; filter?: (q: any) => any },
 ): Promise<Map<Id<any>, T>> {
-  let q = ctx.db.query(tableName as any);
+  let q: any = ctx.db.query(tableName as any);
   if (options?.index) {
     q = q.withIndex(options.index as any);
   }
@@ -247,7 +245,7 @@ export async function dashboardCounts(
 ): Promise<number[]> {
   const results = await Promise.all(
     queries.map(async (q) => {
-      let query = ctx.db.query(q.table as any);
+      let query: any = ctx.db.query(q.table as any);
       if (q.index) {
         query = query.withIndex(q.index as any);
       }
@@ -348,7 +346,7 @@ export async function dashboardCharts(
 ): Promise<DashboardChartSeries[]> {
   const results = await Promise.all(
     chartDefs.map(async (cd) => {
-      let q = ctx.db.query(cd.table as any);
+      let q: any = ctx.db.query(cd.table as any);
       if (cd.filter) {
         q = cd.filter(q);
       }
@@ -386,7 +384,7 @@ export async function dashboardTimeline(
     filter?: (q: any) => any;
   },
 ): Promise<any[]> {
-  let q = ctx.db.query(table as any);
+  let q: any = ctx.db.query(table as any);
 
   if (options?.index) {
     q = q.withIndex(options.index as any);
@@ -409,7 +407,7 @@ export async function dashboardRecent<T extends Record<string, any>>(
   limit: number = 10,
   filter?: (q: any) => any,
 ): Promise<T[]> {
-  let q = ctx.db.query(table as any);
+  let q: any = ctx.db.query(table as any);
   if (filter) {
     q = filter(q);
   }
@@ -435,7 +433,7 @@ export async function dashboardTasks(
   overdue: any[];
   total: number;
 }> {
-  let q = ctx.db.query(table as any);
+  let q: any = ctx.db.query(table as any);
   if (options?.userId) {
     q = q.withIndex("by_owner", (iq: any) => iq.eq("ownerId", options.userId!));
   }
