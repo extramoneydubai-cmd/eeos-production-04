@@ -37,6 +37,7 @@ import type * as assessmentFramework from "../assessmentFramework.js";
 import type * as assetEngine from "../assetEngine.js";
 import type * as assignmentEngine from "../assignmentEngine.js";
 import type * as attendanceEngine from "../attendanceEngine.js";
+import type * as attendanceVerificationEngine from "../attendanceVerificationEngine.js";
 import type * as auth from "../auth.js";
 import type * as auth_emailOtp from "../auth/emailOtp.js";
 import type * as authHelpers from "../authHelpers.js";
@@ -334,6 +335,7 @@ declare const fullApi: ApiFromModules<{
   assetEngine: typeof assetEngine;
   assignmentEngine: typeof assignmentEngine;
   attendanceEngine: typeof attendanceEngine;
+  attendanceVerificationEngine: typeof attendanceVerificationEngine;
   auth: typeof auth;
   "auth/emailOtp": typeof auth_emailOtp;
   authHelpers: typeof authHelpers;

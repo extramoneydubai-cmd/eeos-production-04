@@ -225,4 +225,50 @@ export const metadataTables = {
     .index("by_batch_date", ["batchId", "date"])
     .index("entityType_entityId", ["entityType", "entityId"])
     .index("entityType_entityId_date", ["entityType", "entityId", "date"]),
+
+  // ─── Attendance QR Tokens (PATCH-ATTENDANCE-VERIFY-001) ──────
+  // One-time-use signed tokens issued per entity+date for QR verification.
+  attendanceQrTokens: defineTable({
+    token: v.string(),
+    entityType: v.union(
+      v.literal("student"), v.literal("employee"), v.literal("faculty"),
+      v.literal("visitor"), v.literal("vendor"), v.literal("support"),
+    ),
+    entityId: v.string(),
+    date: v.number(),
+    expiresAt: v.number(),
+    usedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_token", ["token"])
+    .index("entityType_entityId_date", ["entityType", "entityId", "date"]),
+
+  // ─── Face Registrations (PATCH-ATTENDANCE-VERIFY-001) ────────
+  // Reference photos used to verify face-based attendance marks.
+  faceRegistrations: defineTable({
+    entityType: v.union(
+      v.literal("student"), v.literal("employee"), v.literal("faculty"),
+      v.literal("visitor"), v.literal("vendor"), v.literal("support"),
+    ),
+    entityId: v.string(),
+    photoStorageId: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("entityType_entityId", ["entityType", "entityId"]),
+
+  // ─── Branch Geofences (PATCH-ATTENDANCE-VERIFY-001) ──────────
+  // GPS radius per branch used to verify in-location attendance.
+  geofences: defineTable({
+    branchId: v.id("branches"),
+    name: v.string(),
+    latitude: v.number(),
+    longitude: v.number(),
+    radiusM: v.number(),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_branch", ["branchId"])
+    .index("by_active", ["isActive"]),
 };
