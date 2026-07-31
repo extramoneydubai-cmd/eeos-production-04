@@ -231,3 +231,92 @@ export const getMarketingDashboard = query({
     };
   },
 });
+
+// ─── Communication Campaigns SDK — wires communicationCampaignEngine ────
+// WhatsApp / Email / SMS / Push — launch, delivery tracking, analytics.
+
+/**
+ * Create a communication template (email/sms/whatsapp/push).
+ */
+export const createCommTemplate = mutation({
+  args: {
+    name: v.string(),
+    channel: v.union(v.literal("email"), v.literal("sms"), v.literal("whatsapp"), v.literal("push")),
+    subject: v.optional(v.string()),
+    body: v.string(),
+    variables: v.optional(v.array(v.string())),
+    createdBy: v.optional(v.id("users")),
+  },
+  handler: async (ctx, args) => {
+    const { createCommTemplate } = await import("../../convex/communicationCampaignEngine");
+    return createCommTemplate.handler(ctx, args);
+  },
+});
+
+/**
+ * Create a communication campaign against a template + target audience.
+ */
+export const createCommCampaign = mutation({
+  args: {
+    name: v.string(),
+    description: v.optional(v.string()),
+    templateId: v.id("commTemplates"),
+    targetAudience: v.union(v.literal("students"), v.literal("parents"), v.literal("employees"), v.literal("faculty"), v.literal("leads"), v.literal("vendors"), v.literal("alumni"), v.literal("all")),
+    filters: v.optional(v.string()),
+    scheduleDate: v.optional(v.number()),
+    batchSize: v.optional(v.number()),
+    createdBy: v.optional(v.id("users")),
+  },
+  handler: async (ctx, args) => {
+    const { createCampaign } = await import("../../convex/communicationCampaignEngine");
+    return createCampaign.handler(ctx, args);
+  },
+});
+
+/**
+ * Launch a communication campaign (resolves recipients from audience).
+ */
+export const launchCommCampaign = mutation({
+  args: { campaignId: v.id("commCampaigns"), userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { launchCampaign } = await import("../../convex/communicationCampaignEngine");
+    return launchCampaign.handler(ctx, args);
+  },
+});
+
+/**
+ * Track delivery status (sent/delivered/read/failed/clicked) for a queued message.
+ */
+export const trackDelivery = mutation({
+  args: {
+    messageId: v.id("communicationQueue"),
+    status: v.union(v.literal("sent"), v.literal("delivered"), v.literal("read"), v.literal("failed"), v.literal("clicked")),
+    campaignId: v.optional(v.id("commCampaigns")),
+  },
+  handler: async (ctx, args) => {
+    const { trackDelivery } = await import("../../convex/communicationCampaignEngine");
+    return trackDelivery.handler(ctx, args);
+  },
+});
+
+/**
+ * List communication campaigns.
+ */
+export const listCommCampaigns = query({
+  args: { status: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const { listCampaigns } = await import("../../convex/communicationCampaignEngine");
+    return listCampaigns.handler(ctx, args);
+  },
+});
+
+/**
+ * Get communication campaign analytics (delivery funnel).
+ */
+export const getCommCampaignAnalytics = query({
+  args: { campaignId: v.id("commCampaigns") },
+  handler: async (ctx, args) => {
+    const { getCampaignAnalytics } = await import("../../convex/communicationCampaignEngine");
+    return getCampaignAnalytics.handler(ctx, args);
+  },
+});

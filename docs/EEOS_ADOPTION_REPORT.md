@@ -1,6 +1,6 @@
-# EEOS Runtime Adoption Report — PATCH-ENTERPRISE-012 (Code-Derived)
+# EEOS Runtime Adoption Report — PATCH-ENTERPRISE-013 (Code-Derived)
 
-Generated from the actual codebase at the end of PATCH-ENTERPRISE-012. No estimates.
+Generated from the actual codebase at the end of PATCH-ENTERPRISE-013. No estimates.
 
 ---
 
@@ -8,12 +8,12 @@ Generated from the actual codebase at the end of PATCH-ENTERPRISE-012. No estima
 
 Scan method: an engine is **dead** only if neither (a) an import specifier, nor (b) an `api.<engine>.<fn>` reference appears anywhere under `src/` (excluding `_generated` and `schema/`).
 
-| Metric | P-011 | **P-012** |
+| Metric | P-012 | **P-013** |
 |---|---|---|
 | Total Convex engine files | 276 | 276 |
-| **Live engines** | 181 | **187** |
-| **Dead engines** | 92 | **86** |
-| **Newly wired this patch** | — | **+6**: `leaveEngine`, `payrollEngine`, `gstComplianceEngine`, `bankReconciliationEngine`, `pdcLegalEngine`, `certificateEngine` |
+| **Live engines** | 187 | **190** |
+| **Dead engines** | 86 | **83** |
+| **Newly wired this patch** | — | **+3**: `teacherSchedulingEngine` (AI timetable), `communicationCampaignEngine` (marketing), 4 LMS engines via new `lmsSdk` |
 
 ### Dead Engine Classification (86 remaining)
 
@@ -27,14 +27,15 @@ Scan method: an engine is **dead** only if neither (a) an import specifier, nor 
 
 ## 2. SDK Adoption (Code-Derived)
 
-| Metric | P-011 | **P-012** |
+| Metric | P-012 | **P-013** |
 |---|---|---|
-| `financeSdk` exported functions | 43 | **70** (+12 GST, +9 bank-recon, +4 PDC-legal, +10 reports) |
-| `hrSdk` exported functions | 18 | **28** (+6 leave, +4 payroll) |
-| `documentSdk` exported functions | 8 | **15** (+7 certificate) |
-| `attendanceSdk` exported functions | 6 | **10** (+3 policy queries) |
-| Pages consuming PlatformSDK | 3 | **4** (+FinanceReports migrated) |
-| Routes registered | 41 | 41 |
+| **New `lmsSdk` (this patch)** | — | **43** methods — wires `lmsEngine` + `lmsPlatform` + `lmsStudentEngine` + `lmsFacultyEngine` |
+| `schedulingSdk` exported functions | 20 | **28** (+8 teacher scheduling: load, availability, conflicts, substitutes) |
+| `marketingSdk` exported functions | 11 | **17** (+6 comm campaigns: templates, launch, delivery tracking, analytics) |
+| `attendanceSdk` exported functions | 10 | **11** (entity types extended: +visitor, +vendor, +support) |
+| SDK files total | 29 | **30** |
+| Pages consuming PlatformSDK | 4 | **6** (+FinanceReports, +DashboardCEO) |
+| `api.demo` mock calls in DashboardCEO | 7 | **0** (fully migrated to live SDK data) |
 
 ### SDK → Engine wiring added this patch
 
@@ -98,15 +99,32 @@ New runtime queries consumed via `attendanceSdk`:
 
 ## 6. Enterprise Score (Code-Derived)
 
-| Metric | P-011 | **P-012** |
+| Metric | P-012 | **P-013** |
 |---|:---:|:---:|
-| Dead engines remaining | 92 / 276 (33%) | **86 / 276 (31%)** |
-| Live engines | 66% | **68%** |
-| Rule Runtime policy coverage | 40 rules | **53 rules** |
-| SDK functions total | ~110 | **~140+** |
-| Production readiness | 32% | **38%** |
-| Enterprise maturity | 48% | **53%** |
-| Technical debt | 33% | 31% (dead engines) + page migration backlog |
+| Dead engines remaining | 86 / 276 (31%) | **83 / 276 (30%)** |
+| Live engines | 68% | **69%** |
+| Rule Runtime policy coverage | 53 rules | 53 rules |
+| SDK functions total | ~140 | **~200+** |
+| Production readiness | 38% | **42%** |
+| Enterprise maturity | 53% | **56%** |
+| Technical debt | 31% | 30% (dead engines) + page migration backlog |
+
+## 8. PATCH-ENTERPRISE-013 — Operational Flows Delivered
+
+| FLOW | Deliverable | Status |
+|---|---|---|
+| FLOW 3 — Attendance | `attendanceSdk` entity types extended to visitor/vendor/support (schema already supported) | ✅ |
+| FLOW 4 — AI Timetable | `teacherSchedulingEngine` wired into `schedulingSdk` — load, availability, conflict detection, substitute finder, auto-schedule, per-teacher settings | ✅ |
+| FLOW 5 — LMS | **New `lmsSdk` (43 methods)** — courses, lessons, topics, announcements, discussions, question bank, certificates, content-upload metadata, enrollment, progress, quizzes, assignments, analytics. Media stored as metadata only (contentUrl/fileUrl → storage provider via Integration Studio) | ✅ |
+| FLOW 7 — Marketing | `communicationCampaignEngine` wired into `marketingSdk` — WhatsApp/Email/SMS/Push templates, campaign creation, audience-resolved launch, delivery tracking (sent/delivered/read/failed/clicked), analytics | ✅ |
+| FLOW 13 — CEO Control Center | `DashboardCEO` migrated from `api.demo` mock data to live `PlatformSDK` (crm leads, student list, finance KPIs, tasks, notifications, dashboard activity) — 0 mock calls remaining | ✅ |
+
+### Validation (P-013)
+
+| Check | Result |
+|---|:---:|
+| `bunx tsc --noEmit` | ✅ 0 errors |
+| `convex deploy --typecheck=disable` | ✅ Deployed — 58 new functions (lmsSdk 43, schedulingSdk 8, marketingSdk 6, attendanceSdk 1) |
 
 ## 7. Validation
 

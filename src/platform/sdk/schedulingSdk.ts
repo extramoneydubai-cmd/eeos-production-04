@@ -6,6 +6,7 @@
  *
  * Integrates with:
  * - Scheduling Engine (CRUD)
+ * - Teacher Scheduling Engine (AI timetable, load, conflicts, substitutes)
  * - Conflict Engine (conflict detection)
  * - Availability Engine (availability checks)
  * - Booking Engine (booking management)
@@ -538,5 +539,143 @@ export const createResource = mutation({
       createdAt: now,
       updatedAt: now,
     });
+  },
+});
+
+// ─── Teacher Scheduling SDK — wires teacherSchedulingEngine (AI Timetable) ─
+
+/**
+ * Get a teacher's schedule for a date range (multi-branch aware).
+ */
+export const getTeacherSchedule = query({
+  args: {
+    teacherId: v.id("employees"),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+    branchId: v.optional(v.id("branches")),
+  },
+  handler: async (ctx, args) => {
+    const { getTeacherSchedule } = await import("../../convex/teacherSchedulingEngine");
+    return getTeacherSchedule.handler(ctx, args);
+  },
+});
+
+/**
+ * Get teacher load (daily/weekly hours vs max, travel buffer, branches).
+ */
+export const getTeacherLoad = query({
+  args: {
+    teacherId: v.id("employees"),
+    date: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const { getTeacherLoad } = await import("../../convex/teacherSchedulingEngine");
+    return getTeacherLoad.handler(ctx, args);
+  },
+});
+
+/**
+ * Check teacher availability for a proposed time slot (conflict + load check).
+ */
+export const getTeacherAvailability = query({
+  args: {
+    teacherId: v.id("employees"),
+    date: v.number(),
+    startTime: v.number(),
+    endTime: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const { getTeacherAvailability } = await import("../../convex/teacherSchedulingEngine");
+    return getTeacherAvailability.handler(ctx, args);
+  },
+});
+
+/**
+ * Find substitute faculty for an absent teacher (match-score ranked).
+ */
+export const findSubstitute = query({
+  args: {
+    absentTeacherId: v.id("employees"),
+    date: v.number(),
+    startTime: v.number(),
+    endTime: v.number(),
+    branchId: v.optional(v.id("branches")),
+    subject: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { findSubstitute } = await import("../../convex/teacherSchedulingEngine");
+    return findSubstitute.handler(ctx, args);
+  },
+});
+
+/**
+ * Detect scheduling conflicts across teachers (time/branch/room overlaps).
+ */
+export const detectConflicts = query({
+  args: {
+    teacherIds: v.array(v.id("employees")),
+    date: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const { detectConflicts } = await import("../../convex/teacherSchedulingEngine");
+    return detectConflicts.handler(ctx, args);
+  },
+});
+
+/**
+ * Assign a schedule entry to a teacher (enforces max hours + travel buffer).
+ */
+export const assignTeacherSchedule = mutation({
+  args: {
+    teacherId: v.id("employees"),
+    dayOfWeek: v.number(),
+    startTime: v.number(),
+    endTime: v.number(),
+    branchId: v.id("branches"),
+    verticalId: v.optional(v.id("verticals")),
+    batchId: v.optional(v.id("batches")),
+    courseId: v.optional(v.id("courses")),
+    subject: v.optional(v.string()),
+    roomId: v.optional(v.id("rooms")),
+    scheduleType: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { assignTeacherSchedule } = await import("../../convex/teacherSchedulingEngine");
+    return assignTeacherSchedule.handler(ctx, args);
+  },
+});
+
+/**
+ * Auto-assign the best substitute for an absent teacher.
+ */
+export const autoScheduleSubstitute = mutation({
+  args: {
+    absentTeacherId: v.id("employees"),
+    date: v.number(),
+    startTime: v.number(),
+    endTime: v.number(),
+    branchId: v.optional(v.id("branches")),
+    subject: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { autoScheduleSubstitute } = await import("../../convex/teacherSchedulingEngine");
+    return autoScheduleSubstitute.handler(ctx, args);
+  },
+});
+
+/**
+ * Update per-teacher scheduling settings (max hours, travel buffer, branches).
+ */
+export const updateTeacherSettings = mutation({
+  args: {
+    teacherId: v.id("employees"),
+    maxDailyHours: v.optional(v.number()),
+    maxWeeklyHours: v.optional(v.number()),
+    travelBufferMinutes: v.optional(v.number()),
+    branches: v.optional(v.array(v.id("branches"))),
+  },
+  handler: async (ctx, args) => {
+    const { updateTeacherSettings } = await import("../../convex/teacherSchedulingEngine");
+    return updateTeacherSettings.handler(ctx, args);
   },
 });

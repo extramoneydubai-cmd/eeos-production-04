@@ -17,10 +17,15 @@ import { Id } from "../../convex/_generated/dataModel";
 
 export const ATTENDANCE_MODES = [
   "manual", "qr", "face_recognition", "biometric", "gps", "nfc", "rfid",
+  "bulk_import", "offline_sync",
 ] as const;
 
 export const ATTENDANCE_STATUSES = [
   "present", "absent", "late", "half_day", "holiday", "on_leave",
+] as const;
+
+export const ATTENDANCE_ENTITY_TYPES = [
+  "student", "employee", "faculty", "visitor", "vendor", "support",
 ] as const;
 
 // ─── SDK Queries ─────────────────────────────────────────────
@@ -30,7 +35,7 @@ export const ATTENDANCE_STATUSES = [
  */
 export const getRecords = query({
   args: {
-    entityType: v.union(v.literal("student"), v.literal("employee"), v.literal("faculty")),
+    entityType: v.union(v.literal("student"), v.literal("employee"), v.literal("faculty"), v.literal("visitor"), v.literal("vendor"), v.literal("support")),
     entityId: v.optional(v.string()),
     batchId: v.optional(v.id("academicBatches")),
     startDate: v.number(),
@@ -64,7 +69,7 @@ export const getRecords = query({
  */
 export const getSummary = query({
   args: {
-    entityType: v.union(v.literal("student"), v.literal("employee"), v.literal("faculty")),
+    entityType: v.union(v.literal("student"), v.literal("employee"), v.literal("faculty"), v.literal("visitor"), v.literal("vendor"), v.literal("support")),
     entityId: v.string(),
     days: v.optional(v.number()),
   },
@@ -129,7 +134,7 @@ export const getTodayStats = query({
 export const mark = mutation({
   args: {
     records: v.array(v.object({
-      entityType: v.union(v.literal("student"), v.literal("employee"), v.literal("faculty")),
+      entityType: v.union(v.literal("student"), v.literal("employee"), v.literal("faculty"), v.literal("visitor"), v.literal("vendor"), v.literal("support")),
       entityId: v.string(),
       entityName: v.optional(v.string()),
       status: v.union(v.literal("present"), v.literal("absent"), v.literal("late"), v.literal("half_day"), v.literal("holiday")),

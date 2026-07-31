@@ -22,6 +22,7 @@ import * as events from "./eventSdk";
 import * as finance from "./financeSdk";
 import * as hr from "./hrSdk";
 import * as integration from "./integrationSdk";
+import * as lms from "./lmsSdk";
 import * as marketing from "./marketingSdk";
 import * as notifications from "./notificationSdk";
 import * as parent from "./parentSdk";
@@ -51,6 +52,7 @@ export const PlatformSDK = {
   finance,
   hr,
   integration,
+  lms,
   marketing,
   notifications,
   parent,
