@@ -1,0 +1,538 @@
+=== 28 AUTHORITATIVE .BAK DEFINITIONS (WITH INDEXES) ===
+
+// ---- approvalRequestApprovers ----
+
+
+  approvalRequestApprovers: defineTable({
+    requestId: v.id("approvalRequests"),
+    userId: v.id("users"),
+    phaseIndex: v.number(),
+    status: approvalStatusValidator,
+    comment: v.optional(v.string()),
+    decidedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+
+// ---- approvalRequests ----
+
+
+  approvalRequests: defineTable({
+    templateId: v.optional(v.id("approvalTemplates")),
+    taskId: v.optional(v.id("tasks")),
+    requesterId: v.id("users"),
+    title: v.string(),
+    description: v.optional(v.string()),
+    mode: approvalModeValidator,
+    status: approvalStatusValidator,
+    currentPhase: v.optional(v.number()),
+    totalPhases: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+
+// ---- approvalTemplates ----
+
+
+  approvalTemplates: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    mode: approvalModeValidator,
+    phases: v.array(
+      v.object({
+        name: v.string(),
+        order: v.number(),
+        requiredApprovers: v.number(),
+      })
+    ),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+
+// ---- messageCampaigns ----
+
+
+  messageCampaigns: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    channel: v.union(v.literal("email"), v.literal("whatsapp"), v.literal("sms"), v.literal("push")),
+    templateId: v.optional(v.id("communicationTemplates")),
+    targetType: v.string(),
+    targetFilter: v.optional(v.string()),
+    totalRecipients: v.number(),
+    sentCount: v.number(),
+    deliveredCount: v.number(),
+    readCount: v.number(),
+    failedCount: v.number(),
+    status: v.union(v.literal("draft"), v.literal("scheduled"), v.literal("running"), v.literal("completed"), v.literal("paused"), v.literal("cancelled"), v.literal("failed")),
+    scheduledAt: v.optional(v.number()),
+    startedAt: v.optional(v.number()),
+    completedAt: v.optional(v.number()),
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+
+// ---- notificationCenter ----
+
+
+  notificationCenter: defineTable({
+    userId: v.id("users"),
+    title: v.string(),
+    message: v.string(),
+    category: v.string(),
+    priority: v.union(v.literal("low"), v.literal("normal"), v.literal("high"), v.literal("urgent")),
+    channel: v.union(v.literal("email"), v.literal("whatsapp"), v.literal("sms"), v.literal("push"), v.literal("in_app")),
+    referenceType: v.optional(v.string()),
+    referenceId: v.optional(v.string()),
+    actionUrl: v.optional(v.string()),
+    isRead: v.boolean(),
+    isPinned: v.boolean(),
+    isArchived: v.boolean(),
+    readAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+
+// ---- offers ----
+
+
+  offers: defineTable({
+    candidateId: v.id("candidates"),
+    offeredSalary: v.number(),
+    joiningDate: v.number(),
+    offerLetter: v.optional(v.string()),
+    status: v.union(
+      v.literal("pending"), v.literal("approved"),
+      v.literal("rejected"), v.literal("accepted"),
+      v.literal("declined"), v.literal("withdrawn"),
+    ),
+    approvedBy: v.optional(v.id("users")),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+
+// ---- onboardingTasks ----
+
+
+  onboardingTasks: defineTable({
+    employeeId: v.optional(v.id("employeeMaster")),
+    candidateId: v.id("candidates"),
+    checklistItem: v.string(),
+    assignedTo: v.optional(v.id("users")),
+    dueDate: v.optional(v.number()),
+    completed: v.boolean(),
+    completedAt: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+
+// ---- personProfiles ----
+
+
+  personProfiles: defineTable({
+    personId: v.id("personMaster"),
+    profileType: v.string(),
+    profileReferenceId: v.optional(v.string()),
+    active: v.boolean(),
+    primaryProfile: v.boolean(),
+    displayLabel: v.optional(v.string()),
+    description: v.optional(v.string()),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+    metadata: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+
+// ---- personQRCode ----
+
+
+  personQRCode: defineTable({
+    personId: v.id("personMaster"),
+    qrToken: v.string(),
+    deepLink: v.string(),
+    qrImage: v.optional(v.string()),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+
+// ---- recordPolicies ----
+
+
+  recordPolicies: defineTable({
+    module: v.string(),
+    recordId: v.string(),
+    policyId: v.optional(v.id("visibilityPolicies")),
+    ownerUserId: v.optional(v.id("users")),
+    departmentId: v.optional(v.id("departments")),
+    branchId: v.optional(v.id("branches")),
+    companyId: v.optional(v.id("companies")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+
+// ---- sectionPermissions ----
+
+
+  sectionPermissions: defineTable({
+    designationId: v.id("designations"),
+    module: v.string(),
+    sectionName: v.string(),
+    visible: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+
+// ---- socialLinks ----
+
+
+  socialLinks: defineTable({
+    personId: v.id("personMaster"),
+    platform: v.string(),
+    url: v.string(),
+    username: v.optional(v.string()),
+    verified: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+
+// ---- studentAcademicProfile ----
+
+
+  studentAcademicProfile: defineTable({
+    studentId: v.id("studentMaster"),
+    verticalId: v.optional(v.id("verticals")),
+    subVerticalId: v.optional(v.id("subVerticals")),
+    boardId: v.optional(v.id("boards")),
+    courseId: v.optional(v.id("courses")),
+    batchId: v.optional(v.id("academicBatches")),
+    sectionId: v.optional(v.id("academicSections")),
+    semesterId: v.optional(v.id("academicSemesters")),
+    termId: v.optional(v.id("academicTerms")),
+    currentYear: v.optional(v.number()),
+    currentTerm: v.optional(v.string()),
+    isCurrent: v.boolean(),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+
+// ---- studentAchievements ----
+
+
+  studentAchievements: defineTable({
+    studentId: v.id("studentMaster"),
+    title: v.string(),
+    category: v.string(),
+    description: v.optional(v.string()),
+    issuedBy: v.optional(v.string()),
+    issueDate: v.optional(v.number()),
+    certificateUrl: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+
+// ---- studentAdmissions ----
+
+
+  studentAdmissions: defineTable({
+    studentId: v.id("studentMaster"),
+    leadId: v.optional(v.id("leadMaster")),
+    admissionNumber: v.string(),
+    admissionType: v.optional(v.string()),
+    courseId: v.optional(v.id("courses")),
+    batchId: v.optional(v.id("academicBatches")),
+    totalFee: v.optional(v.number()),
+    discountAmount: v.optional(v.number()),
+    finalFee: v.optional(v.number()),
+    installmentCount: v.optional(v.number()),
+    admittedBy: v.id("users"),
+    status: v.string(),
+    decisionDate: v.optional(v.number()),
+    remarks: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+
+// ---- studentDisciplinaryRecords ----
+
+
+  studentDisciplinaryRecords: defineTable({
+    studentId: v.id("studentMaster"),
+    incident: v.string(),
+    actionTaken: v.string(),
+    status: v.union(v.literal("open"), v.literal("resolved"), v.literal("appealed"), v.literal("closed")),
+    incidentDate: v.optional(v.number()),
+    reportedBy: v.optional(v.id("users")),
+    resolutionDate: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+
+// ---- studentMedicalProfile ----
+
+
+  studentMedicalProfile: defineTable({
+    studentId: v.id("studentMaster"),
+    allergies: v.optional(v.string()),
+    medicalConditions: v.optional(v.string()),
+    bloodGroup: v.optional(v.string()),
+    doctorName: v.optional(v.string()),
+    doctorContact: v.optional(v.string()),
+    insuranceInfo: v.optional(v.string()),
+    emergencyNotes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+
+// ---- studentStatusHistory ----
+
+
+  studentStatusHistory: defineTable({
+    studentId: v.id("studentMaster"),
+    fromStatus: v.optional(v.string()),
+    toStatus: v.string(),
+    remarks: v.optional(v.string()),
+    changedBy: v.id("users"),
+    changedAt: v.number(),
+    createdAt: v.number(),
+  })
+
+// ---- studentTimeline ----
+
+
+  studentTimeline: defineTable({
+    studentId: v.id("studentMaster"),
+    eventType: v.string(),
+    title: v.string(),
+    description: v.optional(v.string()),
+    metadata: v.optional(v.string()),
+    performedBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+  })
+
+// ---- userScopes ----
+
+
+  userScopes: defineTable({
+    userId: v.id("users"),
+    companyIds: v.optional(v.array(v.id("companies"))),
+    departmentIds: v.optional(v.array(v.id("departments"))),
+    branchIds: v.optional(v.array(v.id("branches"))),
+    teamIds: v.optional(v.array(v.id("teams"))),
+    verticalIds: v.optional(v.array(v.id("verticals"))),
+    canAccessDashboard: v.optional(v.boolean()),
+    canAccessCrm: v.optional(v.boolean()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+
+// ---- verification_decisions ----
+
+
+  verification_decisions: defineTable({
+    requestId: v.id("verification_requests"),
+    userId: v.id("users"),
+    status: v.union(v.literal("verified"), v.literal("rejected"), v.literal("returned"), v.literal("request_proof")),
+    comment: v.optional(v.string()),
+    decidedAt: v.number(),
+    createdAt: v.number(),
+  })
+
+// ---- verification_requests ----
+
+
+  verification_requests: defineTable({
+    entityType: v.string(),
+    entityId: v.string(),
+    requesterId: v.id("users"),
+    assignedUserIds: v.array(v.id("users")),
+    mode: v.union(v.literal("any_one"), v.literal("all_required"), v.literal("sequential"), v.literal("round_robin")),
+    status: v.union(v.literal("pending"), v.literal("verified"), v.literal("rejected"), v.literal("returned")),
+    metadata: v.optional(v.string()),
+    remarks: v.optional(v.string()),
+    decidedBy: v.optional(v.id("users")),
+    decidedAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+
+// ---- visibilityPolicies ----
+
+
+  visibilityPolicies: defineTable({
+    policyName: v.string(),
+    policyCode: v.string(),
+    description: v.optional(v.string()),
+    securityLevel: v.union(
+      v.literal("public"), v.literal("internal"),
+      v.literal("confidential"), v.literal("highly_confidential"),
+      v.literal("executive"), v.literal("legal_hold"),
+    ),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+
+// ---- workflowEdges ----
+
+
+  workflowEdges: defineTable({
+    workflowId: v.id("workflows"),
+    sourceNodeId: v.id("workflowNodes"),
+    targetNodeId: v.id("workflowNodes"),
+    label: v.optional(v.string()),
+    condition: v.optional(v.string()),
+    displayOrder: v.number(),
+    createdAt: v.number(),
+  })
+
+// ---- workflowInstances ----
+
+
+  workflowInstances: defineTable({
+    workflowId: v.id("workflows"),
+    workflowVersion: v.number(),
+    status: v.string(),
+    currentStepId: v.optional(v.id("workflowNodes")),
+    triggerSource: v.string(),
+    triggerEntityId: v.optional(v.string()),
+    triggerPayload: v.optional(v.string()),
+    context: v.optional(v.string()),
+    assignedTo: v.optional(v.id("users")),
+    assignedTeam: v.optional(v.id("organizationTeams")),
+    startedAt: v.number(),
+    completedAt: v.optional(v.number()),
+    error: v.optional(v.string()),
+    retryCount: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+
+// ---- workflowLogs ----
+
+
+  workflowLogs: defineTable({
+    instanceId: v.id("workflowInstances"),
+    workflowId: v.id("workflows"),
+    nodeId: v.optional(v.id("workflowNodes")),
+    action: v.string(),
+    status: v.string(),
+    details: v.optional(v.string()),
+    metadata: v.optional(v.string()),
+    performedBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+  })
+
+// ---- workflowNodes ----
+
+
+  workflowNodes: defineTable({
+    workflowId: v.id("workflows"),
+    nodeType: v.string(),
+    label: v.string(),
+    positionX: v.number(),
+    positionY: v.number(),
+    config: v.optional(v.string()),
+    configSchema: v.optional(v.string()),
+    description: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+
+// ---- workflows ----
+
+
+  workflows: defineTable({
+    name: v.string(),
+    code: v.string(),
+    description: v.optional(v.string()),
+    module: v.string(),
+    status: v.string(),
+    version: v.number(),
+    isActive: v.boolean(),
+    tag: v.optional(v.string()),
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+
+BAK COUNT: 28
+
+
+=== WITHINDEX FIELD USAGE FOR NON-BAK TABLES ===
+admissions: {}
+alumniRecords: {}
+apiKeys: {}
+assets: {}
+assignmentRules: {'isActive': ['isActive']}
+attendance: {}
+auditLogs: {'by_entity': []}
+authConfig: {}
+backupRecords: {}
+businessRules: {'domain_key': [], 'domain': [], 'by_type': ['ruleType']}
+campaignSchedules: {}
+campaigns: {}
+candidateTimeline: {}
+certificates: {'verificationUrl': []}
+commCampaigns: {}
+commTemplates: {}
+consentRecords: {'studentId': [], 'consentTemplateId': []}
+consentTemplates: {}
+counselorWorkloads: {'period': ['period']}
+dashboardRefreshSignals: {'module_entity': []}
+discounts: {}
+documentGenerationQueue: {}
+documentRecords: {}
+documentTemplates: {}
+employees: {}
+entityTimeline: {'by_entity': []}
+events: {}
+examMaster: {}
+exams: {}
+exitClearanceItems: {}
+exitRecords: {}
+experienceLetters: {}
+facultyAssignments: {}
+feeAccounts: {'studentId': []}
+feeRefunds: {'studentId': []}
+fullFinalSettlements: {}
+generatedDocuments: {}
+gstRecords: {}
+guardianDetails: {'studentId': ['studentId'], 'studentId_createdAt': ['studentId']}
+homework: {}
+integrationAuditRecords: {}
+inventoryAudit: {}
+inventoryStock: {}
+knowledgeArticleVersions: {'articleId': []}
+leadEscalations: {'leadId': ['leadId'], 'status': ['status']}
+leaves: {}
+marketingCampaigns: {}
+payrollEntries: {}
+payrollRecords: {}
+performanceGoals: {}
+performanceReviews: {}
+questionBank: {}
+receiptTemplates: {}
+receipts: {}
+recruitmentTimeline: {}
+refundPolicies: {}
+refundTransactions: {}
+scheduledJobs: {}
+searchIndex: {}
+slaPolicies: {}
+slaViolations: {'leadId': ['leadId'], 'status': ['status'], 'violatedAt': []}
+studentAcademicAllocation: {}
+studentDocuments: {'studentId': ['studentId']}
+studentEnrollmentHistory: {'studentId_createdAt': ['studentId']}
+systemConfig: {}
+tickets: {}
+timelineEvents: {}
+transfers: {}
+userPreferences: {'userId': []}
+vendors: {}
+webhooks: {}

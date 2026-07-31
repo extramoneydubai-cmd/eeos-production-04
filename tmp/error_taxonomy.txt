@@ -1,0 +1,102 @@
+TOTAL ERROR LINES: 0
+
+=== BY ERROR CODE ===
+
+=== UNIQUE MESSAGE PATTERNS (top 35) ===
+
+=== .handler(ctx call sites in source ===
+
+src/convex/businessRulesEngine.ts
+  :144  const rules = await getRules.handler(ctx, { domain: DOMAINS.REFUND, companyId: args.companyId, branc
+  :167  const rules = await getRules.handler(ctx, {
+  :181  const rules = await getRules.handler(ctx, { domain: DOMAINS.RECEIPT_NUMBERING, companyId: args.compa
+
+src/convex/documentAutoGeneration.ts
+  :46  const result = await renderTemplate.handler(ctx, {
+
+src/convex/documentTemplateEngine.ts
+  :260  template = await getDefaultTemplate.handler(ctx, {
+  :352  const result = await renderTemplate.handler(ctx, {
+  :390  return renderTemplate.handler(ctx, {
+  :419  return renderTemplate.handler(ctx, {
+  :445  return renderTemplate.handler(ctx, {
+
+src/convex/governanceEngine.ts
+  :70  const scope = await resolveUserScope.handler(ctx, { userId: args.userId });
+  :115  const scope = await resolveUserScope.handler(ctx, { userId: args.viewerUserId });
+  :134  const scope = await resolveUserScope.handler(ctx, { userId: args.viewerUserId });
+
+src/convex/gridEngine.ts
+  :200  const data = await getGridData.handler(ctx, {
+
+src/convex/gstComplianceEngine.ts
+  :201  const gstr1 = await exportGSTR1.handler(ctx, args);
+
+src/convex/integrationAuditAutoRun.ts
+  :61  const coverage = await generateCoverageMatrix.handler(ctx, {
+  :133  const audit = await runIntegrationAudit.handler(ctx, { triggeredBy: "pre_release" });
+  :151  return runIntegrationAudit.handler(ctx, { triggeredBy: "scheduled" });
+  :159  const audit = await runIntegrationAudit.handler(ctx, { triggeredBy: "deployment" });
+  :162  const previous = await getLatestAudit.handler(ctx);
+  :194  return getLatestAudit.handler(ctx);
+  :220  const coverage = await generateCoverageMatrix.handler(ctx, {});
+
+src/convex/integrationAuditEngine.ts
+  :249  const result = await runFullAudit.handler(ctx);
+  :276  const audit = await runFullAudit.handler(ctx);
+
+src/convex/moduleActivationEngine.ts
+  :93  const result = await isModuleEnabled.handler(ctx, {
+
+src/convex/multiCompanyTest.ts
+  :221  result.branchIsolation = await validateBranchIsolation.handler(ctx, {
+  :229  result.companyIsolation = await validateCompanyIsolation.handler(ctx, {
+  :236  result.accessLevel = await validateAccessLevel.handler(ctx, {
+
+src/convex/notificationMatrix.ts
+  :309  const rules = await listNotificationRules.handler(ctx, { module, eventType });
+  :536  return listNotificationRules.handler(ctx, {
+
+src/convex/refundCalcEngine.ts
+  :181  const calculation = await calculateRefund.handler(ctx, {
+
+src/convex/relationshipEngine.ts
+  :443  const view = await get360View.handler(ctx, args);
+
+src/convex/ruleRuntimeEngine.ts
+  :442  const domainRules = await getDomainRules.handler(ctx, { domain: "refund", companyId: args.companyId,
+  :481  const domainRules = await getDomainRules.handler(ctx, { domain: "late_fee", companyId: args.companyI
+  :512  const domainRules = await getDomainRules.handler(ctx, { domain: "gst", companyId: args.companyId, br
+  :534  const domainRules = await getDomainRules.handler(ctx, { domain: "cheque", companyId: args.companyId,
+  :592  const domainRules = await getDomainRules.handler(ctx, { domain: "attendance", companyId: args.compan
+  :636  const domainRules = await getDomainRules.handler(ctx, { domain: "attendance", companyId: args.compan
+  :673  const domainRules = await getDomainRules.handler(ctx, { domain: "attendance", companyId: args.compan
+
+src/convex/runtimeObservability.ts
+  :381  getQueueLengths.handler(ctx),
+  :382  getWorkflowHealth.handler(ctx),
+  :383  getEventPipelineHealth.handler(ctx, { sinceHours: 24 }),
+  :384  getScopeViolations.handler(ctx),
+  :385  getSLABreaches.handler(ctx, { sinceHours: 24 }),
+  :386  getSystemHealth.handler(ctx),
+  :387  getFinanceMetrics.handler(ctx, { companyId: args.companyId, branchId: args.branchId }),
+  :388  getSchedulingMetrics.handler(ctx, { companyId: args.companyId, branchId: args.branchId }),
+
+src/convex/searchEngine.ts
+  :122  const results = await globalSearch.handler(ctx, { query: args.query, limit: 5 });
+
+src/convex/searchEngineV2.ts
+  :583  const result = await globalSearchV2.handler(ctx, { query: args.query, limit: 5 });
+
+src/convex/seed.ts
+  :1650  const result = await mod.fn.handler(ctx, {} as any);
+
+src/convex/timelineEngine.ts
+  :113  return getEntityTimeline.handler(ctx, {
+  :128  return getEntityTimeline.handler(ctx, {
+  :143  return getEntityTimeline.handler(ctx, {
+  :158  return getEntityTimeline.handler(ctx, {
+  :173  return getEntityTimeline.handler(ctx, {
+
+src/convex/whiteLabelEngine.ts
+  :227  const config = await getWhiteLabelConfig.handler(ctx, { companyId: args.companyId });

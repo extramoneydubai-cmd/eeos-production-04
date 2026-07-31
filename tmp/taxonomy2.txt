@@ -1,0 +1,28 @@
+TOTAL ERROR LINES: 0
+
+=== BY ERROR CODE ===
+
+=== UNIQUE MESSAGE PATTERNS (top 30) ===
+
+=== PER-FILE COUNTS ===
+
+=== v.id targets in .bak NOT in current schema (potential new errors) ===
+   approvalRequests
+   approvalTemplates
+   attendancePolicies
+   holidayCalendars
+   leavePolicies
+   messageCampaigns
+   organization
+   organizationBranches
+   organizationCompanies
+   organizationDepartments
+   organizationDesignations
+   organizationTeams
+   payrollProfiles
+   shiftPolicies
+   verification_requests
+   visibilityPolicies
+   workflowInstances
+   workflowNodes
+   workflows

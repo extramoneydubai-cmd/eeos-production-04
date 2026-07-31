@@ -38,6 +38,7 @@ import { supportTables } from "./schema/support";
 import { accessControlTables } from "./schema/accessControl";
 import { dynamicMenusTables } from "./schema/dynamicMenus";
 import { metadataTables } from "./schema/metadata";
+import { enterpriseTables } from "./schema/enterprise";
 
 // Extended users table — accept any fields since our app adds dynamic
 // fields via patches across multiple modules
@@ -75,6 +76,7 @@ const schema = defineSchema({
     ...dynamicMenusTables,
     ...metadataTables,
     ...supportTables,
+    ...enterpriseTables,
     // Override authTables tables with our extended definitions
     users: extendedUsersTable,
     sessions: extendedSessionsTable,

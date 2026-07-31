@@ -263,6 +263,7 @@ import type * as schema_communication from "../schema/communication.js";
 import type * as schema_crm from "../schema/crm.js";
 import type * as schema_documents from "../schema/documents.js";
 import type * as schema_dynamicMenus from "../schema/dynamicMenus.js";
+import type * as schema_enterprise from "../schema/enterprise.js";
 import type * as schema_examination from "../schema/examination.js";
 import type * as schema_finance from "../schema/finance.js";
 import type * as schema_forms from "../schema/forms.js";
@@ -568,6 +569,7 @@ declare const fullApi: ApiFromModules<{
   "schema/crm": typeof schema_crm;
   "schema/documents": typeof schema_documents;
   "schema/dynamicMenus": typeof schema_dynamicMenus;
+  "schema/enterprise": typeof schema_enterprise;
   "schema/examination": typeof schema_examination;
   "schema/finance": typeof schema_finance;
   "schema/forms": typeof schema_forms;

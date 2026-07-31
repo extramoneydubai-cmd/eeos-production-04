@@ -1,0 +1,201 @@
+MISSING_TABLES: 99
+  admissions
+  alumniRecords
+  apiKeys
+  approvalRequestApprovers
+  approvalRequests
+  approvalTemplates
+  assets
+  assignmentRules
+  attendance
+  auditLogs
+  authConfig
+  backupRecords
+  businessRules
+  campaignSchedules
+  campaigns
+  candidateTimeline
+  certificates
+  commCampaigns
+  commTemplates
+  consentRecords
+  consentTemplates
+  counselorWorkloads
+  dashboardRefreshSignals
+  discounts
+  documentGenerationQueue
+  documentRecords
+  documentTemplates
+  employees
+  entityTimeline
+  events
+  examMaster
+  exams
+  exitClearanceItems
+  exitRecords
+  experienceLetters
+  facultyAssignments
+  feeAccounts
+  feeRefunds
+  fullFinalSettlements
+  generatedDocuments
+  gstRecords
+  guardianDetails
+  homework
+  integrationAuditRecords
+  inventoryAudit
+  inventoryStock
+  knowledgeArticleVersions
+  leadEscalations
+  leaves
+  marketingCampaigns
+  messageCampaigns
+  notificationCenter
+  offers
+  onboardingTasks
+  payrollEntries
+  payrollRecords
+  performanceGoals
+  performanceReviews
+  personProfiles
+  personQRCode
+  questionBank
+  receiptTemplates
+  receipts
+  recordPolicies
+  recruitmentTimeline
+  refundPolicies
+  refundTransactions
+  scheduledJobs
+  searchIndex
+  sectionPermissions
+  slaPolicies
+  slaViolations
+  socialLinks
+  studentAcademicAllocation
+  studentAcademicProfile
+  studentAchievements
+  studentAdmissions
+  studentDisciplinaryRecords
+  studentDocuments
+  studentEnrollmentHistory
+  studentMedicalProfile
+  studentStatusHistory
+  studentTimeline
+  systemConfig
+  tickets
+  timelineEvents
+  transfers
+  userPreferences
+  userScopes
+  vendors
+  verification_decisions
+  verification_requests
+  visibilityPolicies
+  webhooks
+  workflowEdges
+  workflowInstances
+  workflowLogs
+  workflowNodes
+  workflows
+
+=== INDEX REQUIREMENTS ===
+admissions|
+alumniRecords|
+apiKeys|
+approvalRequestApprovers|requestId
+approvalRequests|requesterId,status,userId_isRead
+approvalTemplates|
+assets|
+assignmentRules|isActive
+attendance|
+auditLogs|by_entity
+authConfig|
+backupRecords|
+businessRules|by_type,domain,domain_key
+campaignSchedules|
+campaigns|
+candidateTimeline|
+certificates|verificationUrl
+commCampaigns|
+commTemplates|
+consentRecords|consentTemplateId,studentId
+consentTemplates|
+counselorWorkloads|period
+dashboardRefreshSignals|module_entity
+discounts|
+documentGenerationQueue|
+documentRecords|
+documentTemplates|
+employees|
+entityTimeline|by_entity
+events|
+examMaster|
+exams|
+exitClearanceItems|
+exitRecords|
+experienceLetters|
+facultyAssignments|
+feeAccounts|studentId
+feeRefunds|studentId
+fullFinalSettlements|
+generatedDocuments|
+gstRecords|
+guardianDetails|studentId
+homework|
+integrationAuditRecords|
+inventoryAudit|
+inventoryStock|
+knowledgeArticleVersions|articleId
+leadEscalations|leadId,status
+leaves|
+marketingCampaigns|
+messageCampaigns|
+notificationCenter|userId,userId_isRead
+offers|candidateId
+onboardingTasks|assignedTo,candidateId
+payrollEntries|
+payrollRecords|
+performanceGoals|
+performanceReviews|
+personProfiles|personId,personId_profileType,profileType
+personQRCode|personId,qrToken
+questionBank|
+receiptTemplates|
+receipts|
+recordPolicies|module_recordId
+recruitmentTimeline|
+refundPolicies|
+refundTransactions|
+scheduledJobs|
+searchIndex|
+sectionPermissions|designationId_module
+slaPolicies|
+slaViolations|leadId,status,violatedAt
+socialLinks|personId
+studentAcademicAllocation|
+studentAcademicProfile|studentId
+studentAchievements|studentId
+studentAdmissions|studentId
+studentDisciplinaryRecords|studentId,studentId_createdAt
+studentDocuments|studentId
+studentEnrollmentHistory|studentId_createdAt
+studentMedicalProfile|studentId
+studentStatusHistory|studentId_changedAt
+studentTimeline|studentId_createdAt
+systemConfig|
+tickets|
+timelineEvents|
+transfers|
+userPreferences|userId
+userScopes|userId
+vendors|
+verification_decisions|requestId
+verification_requests|
+visibilityPolicies|policyCode
+webhooks|
+workflowEdges|sourceNodeId,workflowId
+workflowInstances|
+workflowLogs|instanceId
+workflowNodes|workflowId
+workflows|code
