@@ -36,6 +36,7 @@ export interface NotificationRule {
     channel?: ("email" | "sms" | "whatsapp" | "push" | "in_app")[];
     delay?: number;         // Delay in minutes before sending
     templateRef?: string;   // Reference to notification template
+    priority?: "low" | "normal" | "high" | "critical";
   }>;
   isActive: boolean;
   priority: "low" | "normal" | "high" | "critical";
@@ -298,15 +299,15 @@ export async function resolveNotificationRecipients(
     amount?: number;
     bounceCount?: number;
     totalRefund?: number;
-    studentId?: Id<"students">;
-    employeeId?: Id<"employees">;
+    studentId?: Id<"studentMaster">;
+    employeeId?: Id<"employeeMaster">;
     parentId?: Id<"users">;
   },
 ): Promise<RecipientsResolution[]> {
   const resolution: RecipientsResolution[] = [];
 
   // Get rules
-  const rules = await listNotificationRules.handler(ctx, { module, eventType });
+  const rules = await (listNotificationRules as any)(ctx, { module, eventType });
   if (rules.length === 0) return resolution;
 
   for (const rule of rules) {
@@ -533,7 +534,7 @@ export const getNotificationMatrix = query({
     eventType: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    return listNotificationRules.handler(ctx, {
+    return (listNotificationRules as any)(ctx, {
       module: args.module,
       eventType: args.eventType,
       isActive: true,

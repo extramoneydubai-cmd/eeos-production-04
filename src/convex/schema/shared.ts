@@ -147,9 +147,6 @@ export const submissionStatusValidator = v.union(
   v.literal(SUBMISSION_STATUS.REJECTED),
 );
 
-import { defineTable } from "convex/server";
-import { v } from "convex/values";
-
 export const sharedTables = {
   accessAuditLogs: defineTable({
     userId: v.id("users"),
@@ -758,9 +755,13 @@ export const sharedTables = {
       v.literal("medical"), v.literal("leave"),
     ),
     graceMarks: v.optional(v.number()),
+    moderatedMarks: v.optional(v.number()),
+    moderatedBy: v.optional(v.id("users")),
+    moderatedAt: v.optional(v.number()),
+    moderationNotes: v.optional(v.string()),
     remarks: v.optional(v.string()),
-    enteredBy: v.id("users"),
-    enteredAt: v.number(),
+    enteredBy: v.optional(v.id("users")),
+    enteredAt: v.optional(v.number()),
     verifiedBy: v.optional(v.id("users")),
     verifiedAt: v.optional(v.number()),
     createdAt: v.number(),
@@ -775,11 +776,7 @@ export const sharedTables = {
     .index("by_updated", ["updatedAt"]),
   examPublishLog: defineTable({
     examSessionId: v.id("examSessions"),
-    action: v.union(
-      v.literal("draft"), v.literal("submitted_for_approval"),
-      v.literal("approved"), v.literal("rejected"),
-      v.literal("published"), v.literal("archived"),
-    ),
+    action: v.string(),
     performedBy: v.id("users"),
     remarks: v.optional(v.string()),
     createdAt: v.number(),
@@ -852,14 +849,9 @@ export const sharedTables = {
     .index("by_updated", ["updatedAt"]),
   examTimeline: defineTable({
     examSessionId: v.id("examSessions"),
-    eventType: v.union(
-      v.literal("exam_created"), v.literal("marks_submitted"),
-      v.literal("marks_verified"), v.literal("result_calculated"),
-      v.literal("result_published"), v.literal("report_downloaded"),
-      v.literal("timetable_updated"), v.literal("exam_completed"),
-    ),
+    eventType: v.string(),
     description: v.string(),
-    userId: v.id("users"),
+    userId: v.optional(v.id("users")),
     metadata: v.optional(v.string()),
     createdAt: v.number(),
   })

@@ -31,7 +31,7 @@
  *   });
  */
 
-import { Id } from "./convex/_generated/dataModel";
+import { Id } from "../convex/_generated/dataModel";
 
 // ─── Types ───────────────────────────────────────────────────────────────
 
@@ -108,9 +108,9 @@ export interface EventPipelineConfig<P = any, R = any> {
  */
 export function withEventPipeline<P extends Record<string, unknown>, R extends MutationResult>(
   config: EventPipelineConfig<P, R>,
-  handler: (ctx: MutationContext, args: P) => Promise<R>,
-): (ctx: MutationContext, args: P) => Promise<R> {
-  return async (ctx: MutationContext, args: P) => {
+  handler: (ctx: any, args: P) => Promise<R>,
+): (ctx: any, args: P) => Promise<R> {
+  return async (ctx: any, args: P) => {
     // Execute the original business logic
     const result = await handler(ctx, args);
 
