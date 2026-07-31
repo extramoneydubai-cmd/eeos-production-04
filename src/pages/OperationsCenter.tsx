@@ -8,6 +8,8 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import { useQuery } from "convex/react";
+import { PlatformSDK } from "@/platform/sdk";
 import { motion } from "framer-motion";
 import {
   Activity, Server, Shield, Database, HardDrive, Wifi, Cpu,
@@ -434,9 +436,10 @@ function DeploymentTab({ snapshot }: { snapshot: OperationsSnapshot }) {
 // ─── Scheduling Tab ───────────────────────────────────────────
 
 function SchedulingTab() {
-  const schedules = useQuery(api.schedulingSdk.getCounts, {});
-  const todaySchedules = useQuery(api.schedulingSdk.getToday, {}) as any[] | undefined;
-  const resources = useQuery(api.schedulingSdk.listResources, {}) as any[] | undefined;
+  const schedules = useQuery(PlatformSDK.scheduling.getCounts, {});
+  const todaySchedules = useQuery(PlatformSDK.scheduling.getToday, {}) as any[] | undefined;
+  const resources = useQuery(PlatformSDK.scheduling.listResources, {}) as any[] | undefined;
+  const opsHealth = useQuery(PlatformSDK.health.operationsDashboard, {});
 
   const todayCount = todaySchedules?.length || 0;
   const totalResources = resources?.length || 0;
@@ -461,6 +464,26 @@ function SchedulingTab() {
           </div>
         ))}
       </div>
+
+      {opsHealth && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: "Queues", value: opsHealth?.queues?.total ?? 0, color: "text-[#1a73e8]" },
+            { label: "Workflow Failures", value: opsHealth?.workflow?.failed ?? 0, color: "text-red-600" },
+            { label: "Pending Refunds", value: opsHealth?.finance?.pendingRefunds ?? 0, color: "text-yellow-600" },
+            { label: "Scheduling Conflicts", value: opsHealth?.scheduling?.conflicts ?? 0, color: "text-orange-600" },
+            { label: "Bounced PDC", value: opsHealth?.finance?.bouncedCheques ?? 0, color: "text-red-600" },
+            { label: "SLA Breaches", value: opsHealth?.slaBreaches ?? 0, color: "text-red-600" },
+            { label: "Scope Violations", value: opsHealth?.scopeViolations ?? 0, color: "text-purple-600" },
+            { label: "Health Score", value: `${opsHealth?.healthScore ?? 100}%`, color: "text-green-600" },
+          ].map((h) => (
+            <div key={h.label} className="bg-[#fafafa] rounded-lg border border-[#e8eaed] p-3">
+              <p className="text-[10px] text-[#9aa0a6] font-medium">{h.label}</p>
+              <p className={`text-lg font-semibold ${h.color} mt-0.5`}>{h.value}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-white rounded-lg border border-[#e8eaed] p-4">

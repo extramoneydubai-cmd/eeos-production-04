@@ -17,8 +17,21 @@ import { Id } from "../../convex/_generated/dataModel";
 
 export const ATTENDANCE_MODES = [
   "manual", "qr", "face_recognition", "biometric", "gps", "nfc", "rfid",
-  "bulk_import", "offline_sync",
+  "bulk_import", "offline_sync", "selfie", "otp", "api", "webhook",
 ] as const;
+
+export const ATTENDANCE_SHIFT_TYPES = [
+  "morning", "evening", "night", "split", "rotational", "flexible", "wfh", "hybrid",
+] as const;
+
+export const ATTENDANCE_DUTY_TYPES = [
+  "office", "field", "remote", "teaching", "research", "meeting",
+  "delivery", "installation", "repair",
+] as const;
+
+export const VISITOR_ATTENDANCE_MODES = ["qr", "otp", "manual"] as const;
+
+export const VENDOR_ATTENDANCE_DUTIES = ["delivery", "installation", "repair", "amc_visit"] as const;
 
 export const ATTENDANCE_STATUSES = [
   "present", "absent", "late", "half_day", "holiday", "on_leave",
@@ -239,6 +252,68 @@ export const classifyAttendance = query({
   handler: async (ctx, args) => {
     const { classifyAttendance } = await import("../../convex/ruleRuntimeEngine");
     return classifyAttendance.handler(ctx, args);
+  },
+});
+
+/**
+ * Get shift roster breakdown (morning/evening/night/wfh/etc.) for a period.
+ */
+export const getShiftRoster = query({
+  args: {
+    branchId: v.optional(v.id("branches")),
+    entityId: v.optional(v.string()),
+    startDate: v.number(),
+    endDate: v.number(),
+  },
+  handler: async (ctx, args) => {
+    try {
+      const all = await ctx.db.query("attendanceRecords").collect();
+      const filtered = all.filter((r: any) => {
+        if (args.branchId && (r as any).branchId !== args.branchId) return false;
+        if (args.entityId && (r as any).entityId !== args.entityId) return false;
+        if ((r as any).date < args.startDate || (r as any).date > args.endDate) return false;
+        return true;
+      });
+      const byShift: Record<string, number> = {};
+      const byDuty: Record<string, number> = {};
+      for (const r of filtered) {
+        const shift = (r as any).shiftType || "unassigned";
+        const duty = (r as any).dutyType || "office";
+        byShift[shift] = (byShift[shift] || 0) + 1;
+        byDuty[duty] = (byDuty[duty] || 0) + 1;
+      }
+      return {
+        total: filtered.length,
+        byShift,
+        byDuty,
+        overtimeMinutes: filtered.reduce((s: number, r: any) => s + ((r as any).overtimeMinutes || 0), 0),
+        geofenceVerified: filtered.filter((r: any) => (r as any).geofenceVerified).length,
+      };
+    } catch {
+      return { total: 0, byShift: {}, byDuty: {}, overtimeMinutes: 0, geofenceVerified: 0 };
+    }
+  },
+});
+
+/**
+ * Calculate payslip impact from attendance (LWP, OT, allowances) via Rule Runtime.
+ */
+export const getPayrollImpact = query({
+  args: {
+    monthlySalary: v.number(),
+    workingDaysInMonth: v.number(),
+    absentDays: v.number(),
+    halfDays: v.number(),
+    lateDays: v.number(),
+    overtimeHours: v.number(),
+    nightShifts: v.number(),
+    eligibleShifts: v.number(),
+    companyId: v.optional(v.id("companies")),
+    branchId: v.optional(v.id("branches")),
+  },
+  handler: async (ctx, args) => {
+    const { calculatePayslipImpact } = await import("../../convex/ruleRuntimeEngine");
+    return calculatePayslipImpact.handler(ctx, args);
   },
 });
 

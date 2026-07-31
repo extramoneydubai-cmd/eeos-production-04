@@ -907,6 +907,120 @@ export const getLegalDashboard = query({
   },
 });
 
+// ─── Enterprise PDC Lifecycle SDK (PATCH-ENTERPRISE-020) ────────────────
+
+/**
+ * Register a NACH mandate for a cheque (auto-debit recovery).
+ */
+export const registerNACH = mutation({
+  args: {
+    chequeId: v.id("chequeEntries"),
+    mandateRef: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { registerNACH } = await import("../../convex/pdcLegalEngine");
+    return registerNACH.handler(ctx, args);
+  },
+});
+
+/**
+ * Assign a lawyer to a bounced-cheque legal case.
+ */
+export const assignLawyer = mutation({
+  args: {
+    chequeId: v.id("chequeEntries"),
+    lawyerId: v.id("users"),
+    lawyerName: v.optional(v.string()),
+    caseNumber: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { assignLawyer } = await import("../../convex/pdcLegalEngine");
+    return assignLawyer.handler(ctx, args);
+  },
+});
+
+/**
+ * Update court status for a legal case (filed/hearing/judgment/decree/execution).
+ */
+export const updateCourtStatus = mutation({
+  args: {
+    chequeId: v.id("chequeEntries"),
+    courtStatus: v.union(v.literal("none"), v.literal("filed"), v.literal("hearing"), v.literal("judgment"), v.literal("decree"), v.literal("execution")),
+    caseNumber: v.optional(v.string()),
+    courtNotes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { updateCourtStatus } = await import("../../convex/pdcLegalEngine");
+    return updateCourtStatus.handler(ctx, args);
+  },
+});
+
+/**
+ * Compute and persist a risk score for a cheque (low/medium/high/critical).
+ */
+export const computeRiskScore = mutation({
+  args: { chequeId: v.id("chequeEntries") },
+  handler: async (ctx, args) => {
+    const { computeRiskScore } = await import("../../convex/pdcLegalEngine");
+    return computeRiskScore.handler(ctx, args);
+  },
+});
+
+/**
+ * Blacklist a student from future cheques after repeated bounces.
+ */
+export const blacklistStudentCheques = mutation({
+  args: {
+    studentId: v.id("studentMaster"),
+    reason: v.string(),
+    maxBounceCount: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const { blacklistStudentCheques } = await import("../../convex/pdcLegalEngine");
+    return blacklistStudentCheques.handler(ctx, args);
+  },
+});
+
+/**
+ * Record a settlement for a bounced cheque.
+ */
+export const recordSettlement = mutation({
+  args: {
+    chequeId: v.id("chequeEntries"),
+    settlementAmount: v.number(),
+    settlementDate: v.number(),
+    recoveryStatus: v.optional(v.union(v.literal("none"), v.literal("demand_letter"), v.literal("negotiation"), v.literal("legal_action"), v.literal("recovered"), v.literal("write_off"))),
+  },
+  handler: async (ctx, args) => {
+    const { recordSettlement } = await import("../../convex/pdcLegalEngine");
+    return recordSettlement.handler(ctx, args);
+  },
+});
+
+/**
+ * Write off an unrecoverable bounced cheque.
+ */
+export const writeOffCheque = mutation({
+  args: {
+    chequeId: v.id("chequeEntries"),
+    reason: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const { writeOffCheque } = await import("../../convex/pdcLegalEngine");
+    return writeOffCheque.handler(ctx, args);
+  },
+});
+
+/**
+ * Get the PDC recovery dashboard (bounced, negotiation, legal, recovered, write-off, risk).
+ */
+export const getRecoveryDashboard = query({
+  handler: async (ctx) => {
+    const { getRecoveryDashboard } = await import("../../convex/pdcLegalEngine");
+    return getRecoveryDashboard.handler(ctx, {});
+  },
+});
+
 // ─── Finance Report SDK — wires financePlatform + financeReports ─────────
 
 /**

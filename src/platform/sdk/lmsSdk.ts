@@ -338,6 +338,64 @@ export const listContentUploads = query({
   },
 });
 
+// ─── Video Metadata SDK (PATCH-ENTERPRISE-020) — media stays external ────
+
+/**
+ * Update video metadata for an upload — EEOS never stores the video itself,
+ * only provider references, duration, thumbnail, captions, transcripts, DRM.
+ */
+export const updateVideoMetadata = mutation({
+  args: {
+    uploadId: v.id("lmsContentUploads"),
+    storageProvider: v.optional(v.union(v.literal("aws_s3"), v.literal("cloudflare_r2"), v.literal("google_drive"), v.literal("azure_blob"), v.literal("dropbox"), v.literal("onedrive"), v.literal("minio"), v.literal("bunny_cdn"), v.literal("wasabi"), v.literal("vimeo"), v.literal("mux"), v.literal("youtube_private"), v.literal("custom"))),
+    bucket: v.optional(v.string()),
+    objectKey: v.optional(v.string()),
+    playbackUrl: v.optional(v.string()),
+    durationSeconds: v.optional(v.number()),
+    thumbnailUrl: v.optional(v.string()),
+    captionsUrl: v.optional(v.string()),
+    transcriptUrl: v.optional(v.string()),
+    chapters: v.optional(v.array(v.object({ time: v.number(), title: v.string() }))),
+    qualityProfiles: v.optional(v.array(v.string())),
+    drmEnabled: v.optional(v.boolean()),
+    watermarkEnabled: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const { uploadId, ...fields } = args;
+    const updates: Record<string, any> = {};
+    (Object.keys(fields) as (keyof typeof fields)[]).forEach(k => {
+      if (fields[k] !== undefined) updates[k] = fields[k];
+    });
+    await ctx.db.patch(uploadId, updates as any);
+    return uploadId;
+  },
+});
+
+/**
+ * List content uploads by storage provider (capacity/usage per provider).
+ */
+export const listUploadsByProvider = query({
+  args: { storageProvider: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    try {
+      const all = await ctx.db.query("lmsContentUploads").collect();
+      const filtered = args.storageProvider
+        ? all.filter((u: any) => (u as any).storageProvider === args.storageProvider)
+        : all;
+      const byProvider: Record<string, { count: number; totalBytes: number }> = {};
+      for (const u of filtered) {
+        const provider = (u as any).storageProvider || "unassigned";
+        if (!byProvider[provider]) byProvider[provider] = { count: 0, totalBytes: 0 };
+        byProvider[provider].count++;
+        byProvider[provider].totalBytes += (u as any).fileSize || 0;
+      }
+      return { total: filtered.length, byProvider };
+    } catch {
+      return { total: 0, byProvider: {} };
+    }
+  },
+});
+
 // ─── Enrollment & Progress SDK — lmsPlatform + lmsStudentEngine ─────────
 
 export const enrollStudent = mutation({

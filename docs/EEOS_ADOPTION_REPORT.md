@@ -1,6 +1,52 @@
-# EEOS Runtime Adoption Report — PATCH-PLATFORM-001 (Code-Derived)
+# EEOS Runtime Adoption Report — PATCH-ENTERPRISE-020 (Code-Derived)
 
-Generated from the actual codebase at the end of PATCH-PLATFORM-001 (Enterprise Operations, LMS, Integration & AI Convergence). No estimates.
+Generated from the actual codebase at the end of PATCH-ENTERPRISE-020 (Vertical Business Completion). No estimates.
+
+---
+
+## 0. PATCH-ENTERPRISE-020 — Vertical Business Completion (Code-Derived)
+
+### Priority 1 — Enterprise Attendance (ONE runtime)
+
+| Change | File | Code-derived evidence |
+|---|---|---|
+| Schema: shift/duty/verification/OT fields + new modes (selfie, otp, api, webhook) + indexes (by_shift, by_duty) | `schema/metadata.ts` | `attendanceRecords` extended |
+| Shift engine + duty types + visitor/vendor modes | `attendanceSdk.ts` | `ATTENDANCE_SHIFT_TYPES` (8), `ATTENDANCE_DUTY_TYPES` (9), `VISITOR_ATTENDANCE_MODES`, `VENDOR_ATTENDANCE_DUTIES` |
+| `getShiftRoster` — shift/duty breakdown, OT minutes, geofence-verified count | `attendanceSdk.ts` | new query |
+| `getPayrollImpact` — LWP/OT/allowance calc via Rule Runtime | `attendanceSdk.ts` → `ruleRuntimeEngine.calculatePayslipImpact` | new query |
+| Enterprise attendance policies (+16): weeklyOffDays, sandwichLeavePolicy, compOffEnabled/HoursPerOT, nightAllowance, shiftAllowance, maxBreakMinutes, otThresholdMinutes, wfh/hybrid, ip/device restriction, lwpAfterAbsentDays | `ruleRuntimeEngine.ts` | **31 attendance policies / 69 total rules** (was 15 / 53) |
+| Payroll integration — payslip impact (per-day salary, LWP deduction, net OT pay, allowances, comp-off accrual) | `ruleRuntimeEngine.calculatePayslipImpact` | new query |
+
+### Priority 2–3 — Fee lifecycle + Enterprise PDC
+
+| Change | File | Code-derived evidence |
+|---|---|---|
+| **Fixed real runtime bug**: `pdcLegalEngine` patched `legalStatus`/`settlementAmount`/status `"settled"|"closed"` onto `chequeEntries` whose schema rejected them | `schema/finance.ts` | status union extended (`settled|closed|blacklisted`), legal fields added, indexes (`legalStatus`, `courtStatus`, `riskLevel`) |
+| Enterprise PDC lifecycle: `registerNACH`, `assignLawyer`, `updateCourtStatus`, `computeRiskScore`, `blacklistStudentCheques`, `recordSettlement`, `writeOffCheque` + `getRecoveryDashboard` | `pdcLegalEngine.ts` | **12 exports** (was 4) |
+| PDC SDK wiring (+8): all lifecycle methods consumable via `PlatformSDK.finance.*` | `financeSdk.ts` | **78 exports** (was 70) |
+
+### Priority 4 — LMS (media stays external, metadata only)
+
+| Change | File | Code-derived evidence |
+|---|---|---|
+| Video metadata schema: storageProvider (13 providers), bucket, objectKey, playbackUrl, duration, thumbnail, captions, transcript, chapters, qualityProfiles, drm, watermark | `schema/lms.ts` | `lmsContentUploads` extended |
+| `updateVideoMetadata` + `listUploadsByProvider` (capacity per provider) | `lmsSdk.ts` | **45 exports** (was 43) |
+
+### Priority 10 — Operations Center (live command center)
+
+| Change | File | Code-derived evidence |
+|---|---|---|
+| Migrated direct `api.schedulingSdk.*` → `PlatformSDK.scheduling.*` + added `PlatformSDK.health.operationsDashboard` live widget row (queues, workflow failures, pending refunds, scheduling conflicts, bounced PDC, SLA breaches, scope violations, health score) | `OperationsCenter.tsx` | **0 direct api. calls** (was 3), **5 PlatformSDK refs** |
+
+### P-020 Validation
+
+| Check | Result |
+|---|:--:|
+| `bunx tsc --noEmit` | ✅ 0 errors |
+| `convex deploy --typecheck=disable` | ✅ Deployed — schema validation passed (new fields + indexes live) |
+| Dead engines | 31 / 256 (no new engines created — all work wired existing infrastructure) |
+
+---
 
 ---
 
