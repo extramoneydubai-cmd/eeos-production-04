@@ -13,7 +13,7 @@
  */
 
 import { v } from "convex/values";
-import { query } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 
 // ─── 360° View Types ───────────────────────────────────────
@@ -447,5 +447,95 @@ export const get360Summary = query({
       totalSections: view.sections.length,
       sections: view.sections.map((s) => ({ module: s.module, label: s.label, count: s.count, summary: s.summary })),
     };
+  },
+});
+
+// ─── Person↔Person Relationship Links ────────────────────────
+
+/**
+ * Link two persons with a relationship type (e.g. family, guardian, colleague).
+ */
+export const linkPersons = mutation({
+  args: {
+    personA: v.id("personMaster"),
+    personB: v.id("personMaster"),
+    relationshipType: v.string(),
+    notes: v.optional(v.string()),
+    createdBy: v.optional(v.id("users")),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const a = await ctx.db.get(args.personA);
+    const b = await ctx.db.get(args.personB);
+    if (!a || a.status === "archived" || !b || b.status === "archived") {
+      throw new Error("One or both persons not found or archived");
+    }
+    // Prevent duplicates
+    const existing = await ctx.db
+      .query("relationships")
+      .filter((q) =>
+        (q.eq(q.field("personA"), args.personA) && q.eq(q.field("personB"), args.personB)) ||
+        (q.eq(q.field("personA"), args.personB) && q.eq(q.field("personB"), args.personA))
+      )
+      .first();
+    if (existing) {
+      if (!existing.isActive) {
+        await ctx.db.patch(existing._id, { isActive: true, updatedAt: now });
+      }
+      return existing._id;
+    }
+    return ctx.db.insert("relationships", {
+      personA: args.personA,
+      personB: args.personB,
+      relationshipType: args.relationshipType,
+      notes: args.notes,
+      isActive: true,
+      createdBy: args.createdBy,
+      createdAt: now,
+      updatedAt: now,
+    });
+  },
+});
+
+/**
+ * Unlink a person relationship (soft-remove by setting isActive = false).
+ */
+export const unlinkPersons = mutation({
+  args: { relationshipId: v.id("relationships") },
+  handler: async (ctx, args) => {
+    const rel = await ctx.db.get(args.relationshipId);
+    if (!rel) throw new Error("Relationship not found");
+    await ctx.db.patch(args.relationshipId, { isActive: false, updatedAt: Date.now() });
+    return args.relationshipId;
+  },
+});
+
+/**
+ * Get all relationships for a person (both directions), joined with display names.
+ */
+export const getPersonRelationships = query({
+  args: { personId: v.id("personMaster") },
+  handler: async (ctx, args) => {
+    const rels = await ctx.db
+      .query("relationships")
+      .filter((q) =>
+        q.eq(q.field("personA"), args.personId) || q.eq(q.field("personB"), args.personId)
+      )
+      .filter((q) => q.eq(q.field("isActive"), true))
+      .collect();
+
+    const results: any[] = [];
+    for (const rel of rels) {
+      const otherId = rel.personA === args.personId ? rel.personB : rel.personA;
+      const other = await ctx.db.get(otherId);
+      results.push({
+        ...rel,
+        otherPersonId: otherId,
+        otherPersonName: other
+          ? other.displayName || `${other.firstName} ${other.lastName || ""}`.trim()
+          : "Unknown",
+      });
+    }
+    return results;
   },
 });

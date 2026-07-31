@@ -20,6 +20,19 @@ export const peopleTables = {
     .index("documentType", ["documentType"])
     .index("by_created", ["createdAt"])
     .index("by_updated", ["updatedAt"]),
+  relationships: defineTable({
+    personA: v.id("personMaster"),
+    personB: v.id("personMaster"),
+    relationshipType: v.string(),
+    notes: v.optional(v.string()),
+    isActive: v.boolean(),
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("personA", ["personA"])
+    .index("personB", ["personB"])
+    .index("by_created", ["createdAt"]),
   personMaster: defineTable({
     firstName: v.string(),
     middleName: v.optional(v.string()),
