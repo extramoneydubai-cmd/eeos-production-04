@@ -19,7 +19,7 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
 // ─── Helper ──────────────────────────────────────────────
 
 async function createTimelineEvent(
-  ctx: { db: { insert: (table: string, doc: any) => Promise<any> } },
+  ctx: any,
   studentId: Id<"studentMaster">,
   eventType: string,
   title: string,
@@ -39,9 +39,7 @@ async function createTimelineEvent(
 }
 
 async function transitionStatus(
-  ctx: {
-    db: { get: (id: Id<"studentMaster">) => Promise<Doc<"studentMaster"> | null>; patch: (id: Id<"studentMaster">, updates: Record<string, any>) => Promise<void>; insert: (table: string, doc: any) => Promise<any> };
-  },
+  ctx: any,
   studentId: Id<"studentMaster">,
   toStatus: string,
   performedBy: Id<"users">,

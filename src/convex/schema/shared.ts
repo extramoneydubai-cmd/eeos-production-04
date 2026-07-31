@@ -1035,12 +1035,14 @@ export const sharedTables = {
     schedule: v.number(),
     mode: v.union(
       v.literal("online"), v.literal("offline"),
-      v.literal("phone"),
+      v.literal("phone"), v.literal("video"),
+      v.literal("in_person"),
     ),
     duration: v.optional(v.number()),
     result: v.optional(v.union(
       v.literal("pending"), v.literal("passed"),
       v.literal("failed"), v.literal("rescheduled"),
+      v.literal("scheduled"), v.literal("completed"),
     )),
     score: v.optional(v.number()),
     remarks: v.optional(v.string()),

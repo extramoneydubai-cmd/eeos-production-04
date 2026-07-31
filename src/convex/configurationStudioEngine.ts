@@ -185,7 +185,7 @@ export const initializeDefaultConfigs = mutation({
       key: string;
       value: any;
       valueType: "string" | "number" | "boolean" | "json" | "array";
-      label: string;
+      label?: string;
     }> = [
       // Finance defaults
       { module: "finance", key: "currency", value: "INR", valueType: "string" },
