@@ -316,3 +316,159 @@ export const getOfferStats = query({
     return getOfferStats.handler(ctx, args);
   },
 });
+
+// ─── Leave SDK — wires leaveEngine ───────────────────────────────────────
+
+/**
+ * Create a new leave type (policy definition).
+ */
+export const createLeaveType = mutation({
+  args: {
+    name: v.string(),
+    code: v.string(),
+    description: v.optional(v.string()),
+    annualAllowance: v.number(),
+    carryForward: v.optional(v.boolean()),
+    maxCarryForward: v.optional(v.number()),
+    requiresApproval: v.optional(v.boolean()),
+    genderSpecific: v.optional(v.union(v.literal("male"), v.literal("female"))),
+  },
+  handler: async (ctx, args) => {
+    const { createLeaveType } = await import("../../convex/leaveEngine");
+    return createLeaveType.handler(ctx, args);
+  },
+});
+
+/**
+ * List all leave types.
+ */
+export const listLeaveTypes = query({
+  handler: async (ctx) => {
+    const { listLeaveTypes } = await import("../../convex/leaveEngine");
+    return listLeaveTypes.handler(ctx, {});
+  },
+});
+
+/**
+ * Apply for leave.
+ */
+export const applyLeave = mutation({
+  args: {
+    employeeId: v.id("users"),
+    leaveTypeId: v.id("leaveTypes"),
+    startDate: v.number(),
+    endDate: v.number(),
+    reason: v.string(),
+    halfDay: v.optional(v.boolean()),
+    contactDuringLeave: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { applyLeave } = await import("../../convex/leaveEngine");
+    return applyLeave.handler(ctx, args);
+  },
+});
+
+/**
+ * Approve or reject a leave application.
+ */
+export const approveLeave = mutation({
+  args: {
+    id: v.id("leaveApplications"),
+    approve: v.boolean(),
+    comments: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { approveLeave } = await import("../../convex/leaveEngine");
+    return approveLeave.handler(ctx, args);
+  },
+});
+
+/**
+ * List leave applications with filters.
+ */
+export const listLeaveApplications = query({
+  args: {
+    employeeId: v.optional(v.id("users")),
+    status: v.optional(v.union(v.literal("pending"), v.literal("approved"), v.literal("rejected"), v.literal("cancelled"))),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const { listLeaveApplications } = await import("../../convex/leaveEngine");
+    return listLeaveApplications.handler(ctx, args);
+  },
+});
+
+/**
+ * Get leave balance for an employee.
+ */
+export const getLeaveBalance = query({
+  args: { employeeId: v.id("users") },
+  handler: async (ctx, args) => {
+    const { getLeaveBalance } = await import("../../convex/leaveEngine");
+    return getLeaveBalance.handler(ctx, args);
+  },
+});
+
+// ─── Payroll SDK — wires payrollEngine ───────────────────────────────────
+
+/**
+ * Create a salary structure for an employee.
+ */
+export const createSalaryStructure = mutation({
+  args: {
+    employeeId: v.id("users"),
+    basicSalary: v.number(),
+    hra: v.optional(v.number()),
+    allowances: v.optional(v.array(v.object({ name: v.string(), amount: v.number() }))),
+    deductions: v.optional(v.array(v.object({ name: v.string(), amount: v.number() }))),
+    effectiveFrom: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const { createSalaryStructure } = await import("../../convex/payrollEngine");
+    return createSalaryStructure.handler(ctx, args);
+  },
+});
+
+/**
+ * Process a pay run for the given month/year (auto attendance-based deductions).
+ */
+export const processPayRun = mutation({
+  args: {
+    month: v.number(),
+    year: v.number(),
+    employeeIds: v.array(v.id("users")),
+    processedBy: v.optional(v.id("users")),
+  },
+  handler: async (ctx, args) => {
+    const { processPayRun } = await import("../../convex/payrollEngine");
+    return processPayRun.handler(ctx, args);
+  },
+});
+
+/**
+ * Approve generated payslips.
+ */
+export const approvePayRun = mutation({
+  args: { payslipIds: v.array(v.id("payslips")) },
+  handler: async (ctx, args) => {
+    const { approvePayRun } = await import("../../convex/payrollEngine");
+    return approvePayRun.handler(ctx, args);
+  },
+});
+
+/**
+ * List payslips with filters.
+ */
+export const listPayslips = query({
+  args: {
+    employeeId: v.optional(v.id("users")),
+    month: v.optional(v.number()),
+    year: v.optional(v.number()),
+    status: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { listPayslips } = await import("../../convex/payrollEngine");
+    return listPayslips.handler(ctx, args);
+  },
+});

@@ -1,12 +1,12 @@
 /**
  * FinanceReports — Enterprise Financial Reports Center
  *
- * Consumes financePlatform report queries for live financial reports.
+ * Consumes financePlatform report queries via PlatformSDK for live financial reports.
  * Supports PDF, Excel, CSV export (future-ready).
  * No standalone reporting engine — uses Report Studio patterns.
  */
 import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { PlatformSDK } from "@/platform/sdk";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -79,11 +79,11 @@ function ReportCard({ title, description, icon: Icon, color, stats, onClick, loa
 export default function FinanceReports() {
   const { navigate } = useAppNavigate();
 
-  const revenueReport = useQuery(api.financePlatform.getRevenueReport, {});
-  const collectionReport = useQuery(api.financePlatform.getCollectionReport, {});
-  const expenseReport = useQuery(api.financePlatform.getExpenseReport, {});
-  const outstandingReport = useQuery(api.financePlatform.getOutstandingReport, {});
-  const dashboard = useQuery(api.financeReports.getFinanceDashboard);
+  const revenueReport = useQuery(PlatformSDK.finance.getRevenueReport, {});
+  const collectionReport = useQuery(PlatformSDK.finance.getCollectionReport, {});
+  const expenseReport = useQuery(PlatformSDK.finance.getExpenseReport, {});
+  const outstandingReport = useQuery(PlatformSDK.finance.getOutstandingReport, {});
+  const dashboard = useQuery(PlatformSDK.finance.getFinanceDashboard);
 
   const reports = [
     {

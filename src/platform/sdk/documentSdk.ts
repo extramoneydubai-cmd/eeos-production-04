@@ -196,3 +196,112 @@ export const getBatch = query({
     return result;
   },
 });
+
+// ─── Certificate SDK — wires certificateEngine ───────────────────────────
+
+/**
+ * List certificates with optional filters.
+ */
+export const listCertificates = query({
+  args: {
+    studentId: v.optional(v.id("personMaster")),
+    examSessionId: v.optional(v.id("examSessions")),
+    certificateType: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { listCertificates } = await import("../convex/certificateEngine");
+    return listCertificates.handler(ctx, args);
+  },
+});
+
+/**
+ * Get a certificate by ID (enriched with student name).
+ */
+export const getCertificate = query({
+  args: { id: v.id("examCertificates") },
+  handler: async (ctx, args) => {
+    const { getCertificate } = await import("../convex/certificateEngine");
+    return getCertificate.handler(ctx, args);
+  },
+});
+
+/**
+ * Verify a certificate via its digital verification ID.
+ */
+export const verifyCertificate = query({
+  args: { verificationId: v.string() },
+  handler: async (ctx, args) => {
+    const { verifyCertificate } = await import("../convex/certificateEngine");
+    return verifyCertificate.handler(ctx, args);
+  },
+});
+
+/**
+ * Get all certificates for a student (with session names).
+ */
+export const getStudentCertificates = query({
+  args: { studentId: v.id("personMaster") },
+  handler: async (ctx, args) => {
+    const { getStudentCertificates } = await import("../convex/certificateEngine");
+    return getStudentCertificates.handler(ctx, args);
+  },
+});
+
+/**
+ * Issue a single certificate with digital verification ID.
+ */
+export const issueCertificate = mutation({
+  args: {
+    studentId: v.id("personMaster"),
+    examSessionId: v.id("examSessions"),
+    certificateType: v.union(
+      v.literal("marksheet"), v.literal("passing_certificate"),
+      v.literal("merit_certificate"), v.literal("rank_certificate"),
+      v.literal("participation"), v.literal("custom"),
+    ),
+    title: v.string(),
+    description: v.optional(v.string()),
+    fileUrl: v.optional(v.string()),
+    qrCodeUrl: v.optional(v.string()),
+    metadata: v.optional(v.string()),
+    expiryDate: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const { issueCertificate } = await import("../convex/certificateEngine");
+    return issueCertificate.handler(ctx, args);
+  },
+});
+
+/**
+ * Bulk-issue certificates to an exam session (optionally only passed/ranked).
+ */
+export const bulkIssueCertificates = mutation({
+  args: {
+    examSessionId: v.id("examSessions"),
+    certificateType: v.union(
+      v.literal("marksheet"), v.literal("passing_certificate"),
+      v.literal("merit_certificate"), v.literal("rank_certificate"),
+      v.literal("participation"), v.literal("custom"),
+    ),
+    title: v.string(),
+    onlyPassedStudents: v.optional(v.boolean()),
+    limitToRank: v.optional(v.number()),
+    description: v.optional(v.string()),
+    metadata: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { bulkIssueCertificates } = await import("../convex/certificateEngine");
+    return bulkIssueCertificates.handler(ctx, args);
+  },
+});
+
+/**
+ * Record a certificate download (increments download count).
+ */
+export const recordCertificateDownload = mutation({
+  args: { id: v.id("examCertificates") },
+  handler: async (ctx, args) => {
+    const { recordCertificateDownload } = await import("../convex/certificateEngine");
+    return recordCertificateDownload.handler(ctx, args);
+  },
+});

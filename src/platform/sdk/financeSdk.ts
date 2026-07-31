@@ -677,3 +677,361 @@ export const collectPenalty = mutation({
     return collectPenalty.handler(ctx, args);
   },
 });
+
+// ─── GST Compliance SDK — wires gstComplianceEngine ─────────────────────
+
+/**
+ * Create a GST debit note.
+ */
+export const createDebitNote = mutation({
+  args: {
+    invoiceId: v.optional(v.id("feeInvoices")),
+    studentId: v.id("studentMaster"),
+    amount: v.number(),
+    gstRate: v.optional(v.number()),
+    reason: v.string(),
+    reasonCategory: v.union(v.literal("rate_difference"), v.literal("omission"), v.literal("correction"), v.literal("other")),
+    originalInvoiceNumber: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { createDebitNote } = await import("../../convex/gstComplianceEngine");
+    return createDebitNote.handler(ctx, args);
+  },
+});
+
+/**
+ * Issue a draft debit note.
+ */
+export const issueDebitNote = mutation({
+  args: { id: v.id("debitNotes") },
+  handler: async (ctx, args) => {
+    const { issueDebitNote } = await import("../../convex/gstComplianceEngine");
+    return issueDebitNote.handler(ctx, args);
+  },
+});
+
+/**
+ * List GST debit notes.
+ */
+export const listDebitNotes = query({
+  args: {
+    status: v.optional(v.union(v.literal("draft"), v.literal("issued"), v.literal("applied"), v.literal("cancelled"))),
+    studentId: v.optional(v.id("studentMaster")),
+  },
+  handler: async (ctx, args) => {
+    const { listDebitNotes } = await import("../../convex/gstComplianceEngine");
+    return listDebitNotes.handler(ctx, args);
+  },
+});
+
+/**
+ * List GST credit note register (enriched with student names).
+ */
+export const listCreditNoteRegister = query({
+  args: {
+    status: v.optional(v.union(v.literal("draft"), v.literal("issued"), v.literal("applied"), v.literal("cancelled"))),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const { listCreditNoteRegister } = await import("../../convex/gstComplianceEngine");
+    return listCreditNoteRegister.handler(ctx, args);
+  },
+});
+
+/**
+ * Export GSTR-1 return data.
+ */
+export const exportGSTR1 = query({
+  args: { startDate: v.number(), endDate: v.number() },
+  handler: async (ctx, args) => {
+    const { exportGSTR1 } = await import("../../convex/gstComplianceEngine");
+    return exportGSTR1.handler(ctx, args);
+  },
+});
+
+/**
+ * Export GSTR-3B return data.
+ */
+export const exportGSTR3B = query({
+  args: { startDate: v.number(), endDate: v.number() },
+  handler: async (ctx, args) => {
+    const { exportGSTR3B } = await import("../../convex/gstComplianceEngine");
+    return exportGSTR3B.handler(ctx, args);
+  },
+});
+
+/**
+ * Get GST compliance dashboard.
+ */
+export const getComplianceDashboard = query({
+  handler: async (ctx) => {
+    const { getComplianceDashboard } = await import("../../convex/gstComplianceEngine");
+    return getComplianceDashboard.handler(ctx, {});
+  },
+});
+
+// ─── Bank Reconciliation SDK — wires bankReconciliationEngine ────────────
+
+/**
+ * Import a bank statement with entries.
+ */
+export const importBankStatement = mutation({
+  args: {
+    bankName: v.string(),
+    accountNumber: v.string(),
+    statementPeriod: v.string(),
+    entries: v.array(v.object({
+      transactionDate: v.number(),
+      description: v.string(),
+      debit: v.optional(v.number()),
+      credit: v.optional(v.number()),
+      reference: v.optional(v.string()),
+    })),
+  },
+  handler: async (ctx, args) => {
+    const { importBankStatement } = await import("../../convex/bankReconciliationEngine");
+    return importBankStatement.handler(ctx, args);
+  },
+});
+
+/**
+ * Match a bank statement entry to an internal transaction.
+ */
+export const matchBankEntry = mutation({
+  args: {
+    bankEntryId: v.id("bankStatementEntries"),
+    transactionId: v.id("paymentTransactions"),
+  },
+  handler: async (ctx, args) => {
+    const { matchBankEntry } = await import("../../convex/bankReconciliationEngine");
+    return matchBankEntry.handler(ctx, args);
+  },
+});
+
+/**
+ * Reconcile a bank statement.
+ */
+export const reconcileStatement = mutation({
+  args: { statementId: v.id("bankStatements") },
+  handler: async (ctx, args) => {
+    const { reconcileStatement } = await import("../../convex/bankReconciliationEngine");
+    return reconcileStatement.handler(ctx, args);
+  },
+});
+
+/**
+ * List bank statements.
+ */
+export const listBankStatements = query({
+  args: { status: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const { listBankStatements } = await import("../../convex/bankReconciliationEngine");
+    return listBankStatements.handler(ctx, args);
+  },
+});
+
+/**
+ * Get a bank statement with its entries.
+ */
+export const getBankStatement = query({
+  args: { id: v.id("bankStatements") },
+  handler: async (ctx, args) => {
+    const { getBankStatement } = await import("../../convex/bankReconciliationEngine");
+    return getBankStatement.handler(ctx, args);
+  },
+});
+
+/**
+ * Get bank reconciliation summary.
+ */
+export const getReconciliationSummary = query({
+  handler: async (ctx) => {
+    const { getReconciliationSummary } = await import("../../convex/bankReconciliationEngine");
+    return getReconciliationSummary.handler(ctx, {});
+  },
+});
+
+// ─── PDC Legal SDK — wires pdcLegalEngine ────────────────────────────────
+
+/**
+ * Update the legal status of a cheque (notice, follow-up, settlement, closed).
+ */
+export const updatePDCLegalStatus = mutation({
+  args: {
+    chequeId: v.id("chequeEntries"),
+    legalStatus: v.union(v.literal("none"), v.literal("notice_sent"), v.literal("follow_up"), v.literal("legal_notice"), v.literal("settlement"), v.literal("closed")),
+    legalNotes: v.optional(v.string()),
+    settlementAmount: v.optional(v.number()),
+    settlementDate: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const { updatePDCLegalStatus } = await import("../../convex/pdcLegalEngine");
+    return updatePDCLegalStatus.handler(ctx, args);
+  },
+});
+
+/**
+ * Restrict/allow future cheques for a student after bounce.
+ */
+export const restrictFutureCheques = mutation({
+  args: {
+    studentId: v.id("studentMaster"),
+    restricted: v.boolean(),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { restrictFutureCheques } = await import("../../convex/pdcLegalEngine");
+    return restrictFutureCheques.handler(ctx, args);
+  },
+});
+
+/**
+ * Get bounce notice data for a cheque (student + address + phone).
+ */
+export const getBounceNoticeData = query({
+  args: { chequeId: v.id("chequeEntries") },
+  handler: async (ctx, args) => {
+    const { getBounceNoticeData } = await import("../../convex/pdcLegalEngine");
+    return getBounceNoticeData.handler(ctx, args);
+  },
+});
+
+/**
+ * Get PDC legal dashboard (cases by stage).
+ */
+export const getLegalDashboard = query({
+  handler: async (ctx) => {
+    const { getLegalDashboard } = await import("../../convex/pdcLegalEngine");
+    return getLegalDashboard.handler(ctx, {});
+  },
+});
+
+// ─── Finance Report SDK — wires financePlatform + financeReports ─────────
+
+/**
+ * Get revenue report (total revenue, collection rate, overdue).
+ */
+export const getRevenueReport = query({
+  args: {
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+    branchId: v.optional(v.id("branches")),
+  },
+  handler: async (ctx, args) => {
+    const { getRevenueReport } = await import("../../convex/financePlatform");
+    return getRevenueReport.handler(ctx, args);
+  },
+});
+
+/**
+ * Get collection report (by payment method, totals, pending).
+ */
+export const getCollectionReport = query({
+  args: {
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+    groupBy: v.optional(v.union(v.literal("day"), v.literal("week"), v.literal("month"))),
+  },
+  handler: async (ctx, args) => {
+    const { getCollectionReport } = await import("../../convex/financePlatform");
+    return getCollectionReport.handler(ctx, args);
+  },
+});
+
+/**
+ * Get expense report (by category, approved totals).
+ */
+export const getExpenseReport = query({
+  args: {
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+    branchId: v.optional(v.id("branches")),
+  },
+  handler: async (ctx, args) => {
+    const { getExpenseReport } = await import("../../convex/financePlatform");
+    return getExpenseReport.handler(ctx, args);
+  },
+});
+
+/**
+ * Get outstanding report (total outstanding, active accounts, overdue).
+ */
+export const getOutstandingReport = query({
+  args: { asOfDate: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const { getOutstandingReport } = await import("../../convex/financeReports");
+    return getOutstandingReport.handler(ctx, args);
+  },
+});
+
+/**
+ * Get finance dashboard KPIs (revenue, profit, cash in/out).
+ */
+export const getFinanceDashboard = query({
+  handler: async (ctx) => {
+    const { getFinanceDashboard } = await import("../../convex/financeReports");
+    return getFinanceDashboard.handler(ctx, {});
+  },
+});
+
+/**
+ * Get finance dashboard KPIs from financePlatform (lightweight aggregate).
+ */
+export const getFinanceDashboardKPIs = query({
+  handler: async (ctx) => {
+    const { getFinanceDashboardKPIs } = await import("../../convex/financePlatform");
+    return getFinanceDashboardKPIs.handler(ctx, {});
+  },
+});
+
+/**
+ * Get daily collection report.
+ */
+export const getDailyCollectionReport = query({
+  args: { date: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const { getDailyCollectionReport } = await import("../../convex/financeReports");
+    return getDailyCollectionReport.handler(ctx, args);
+  },
+});
+
+/**
+ * Get profit summary.
+ */
+export const getProfitSummary = query({
+  args: {
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const { getProfitSummary } = await import("../../convex/financeReports");
+    return getProfitSummary.handler(ctx, args);
+  },
+});
+
+/**
+ * Get student fee ledger.
+ */
+export const getStudentLedger = query({
+  args: { studentId: v.id("studentMaster") },
+  handler: async (ctx, args) => {
+    const { getStudentLedger } = await import("../../convex/financeReports");
+    return getStudentLedger.handler(ctx, args);
+  },
+});
+
+/**
+ * Get branch collection report.
+ */
+export const getBranchCollectionReport = query({
+  args: {
+    branchId: v.id("branches"),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const { getBranchCollectionReport } = await import("../../convex/financeReports");
+    return getBranchCollectionReport.handler(ctx, args);
+  },
+});

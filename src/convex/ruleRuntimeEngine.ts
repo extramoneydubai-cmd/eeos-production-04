@@ -166,6 +166,56 @@ export const RULE_DEFINITIONS: Record<string, RuleDefinition> = {
     description: "Minutes after class start to mark as late instead of present",
     valueType: "number", defaultValue: 5, companyOverridable: true, branchOverridable: true, category: "academic",
   },
+  "attendance.gracePeriod": {
+    domain: "attendance", key: "gracePeriod", label: "Grace Period (min)",
+    description: "Minutes of tolerance after shift/class start before late is applied",
+    valueType: "number", defaultValue: 0, companyOverridable: true, branchOverridable: true, category: "academic",
+  },
+  "attendance.halfDayAfter": {
+    domain: "attendance", key: "halfDayAfter", label: "Half Day After (min)",
+    description: "Minutes late after which attendance is marked as half-day",
+    valueType: "number", defaultValue: 60, companyOverridable: true, branchOverridable: true, category: "academic",
+  },
+  "attendance.absentAfter": {
+    domain: "attendance", key: "absentAfter", label: "Absent After (min)",
+    description: "Minutes late after which attendance is marked as absent",
+    valueType: "number", defaultValue: 120, companyOverridable: true, branchOverridable: true, category: "academic",
+  },
+  "attendance.overtimeEnabled": {
+    domain: "attendance", key: "overtimeEnabled", label: "Overtime Enabled",
+    description: "Enable overtime calculation for extra working hours",
+    valueType: "boolean", defaultValue: true, companyOverridable: true, branchOverridable: true, category: "hr",
+  },
+  "attendance.overtimeRateMultiplier": {
+    domain: "attendance", key: "overtimeRateMultiplier", label: "Overtime Rate Multiplier",
+    description: "Salary multiplier applied to overtime hours",
+    valueType: "number", defaultValue: 1.5, companyOverridable: true, branchOverridable: true, category: "hr",
+  },
+  "attendance.weekendPolicy": {
+    domain: "attendance", key: "weekendPolicy", label: "Weekend Policy",
+    description: "How weekend days are treated: working / holiday / half_day",
+    valueType: "string", defaultValue: "holiday", companyOverridable: true, branchOverridable: true, category: "operations",
+  },
+  "attendance.holidayMarking": {
+    domain: "attendance", key: "holidayMarking", label: "Holiday Marking",
+    description: "How holidays are recorded: present / holiday / not_recorded",
+    valueType: "string", defaultValue: "holiday", companyOverridable: true, branchOverridable: true, category: "operations",
+  },
+  "attendance.multipleShifts": {
+    domain: "attendance", key: "multipleShifts", label: "Multiple Shifts",
+    description: "Allow multiple shifts and rotational rosters per user",
+    valueType: "boolean", defaultValue: false, companyOverridable: true, branchOverridable: true, category: "operations",
+  },
+  "attendance.autoDefaulterNotify": {
+    domain: "attendance", key: "autoDefaulterNotify", label: "Auto Notify Defaulters",
+    description: "Automatically notify parents/guardians of attendance defaulters",
+    valueType: "boolean", defaultValue: true, companyOverridable: true, branchOverridable: true, category: "academic",
+  },
+  "attendance.geofenceRadius": {
+    domain: "attendance", key: "geofenceRadius", label: "Geofence Radius (m)",
+    description: "Maximum distance in meters from branch for GPS check-in",
+    valueType: "number", defaultValue: 500, companyOverridable: true, branchOverridable: true, category: "operations",
+  },
   "cheque.maxBounceCount": {
     domain: "cheque", key: "maxBounceCount", label: "Max Bounce Count",
     description: "Maximum number of bounced cheques before restriction",
@@ -447,5 +497,80 @@ export const evaluateEligibility = query({
       results.push({ rule: condition.field, passed, reason: reason || undefined });
     }
     return { domain: args.domain, allPassed: results.every(r => r.passed), results };
+  },
+});
+
+/**
+ * Classify an attendance event against the configured attendance policies.
+ * Pure rule-runtime evaluation — no hardcoded thresholds.
+ */
+export const classifyAttendance = query({
+  args: {
+    minutesLate: v.number(),
+    isHoliday: v.optional(v.boolean()),
+    isWeekend: v.optional(v.boolean()),
+    companyId: v.optional(v.id("companies")),
+    branchId: v.optional(v.id("branches")),
+  },
+  handler: async (ctx, args) => {
+    const domainRules = await getDomainRules.handler(ctx, { domain: "attendance", companyId: args.companyId, branchId: args.branchId });
+    const ruleMap: Record<string, any> = {};
+    for (const r of domainRules) ruleMap[r.key] = r.value;
+
+    const gracePeriod = ruleMap.gracePeriod ?? 0;
+    const considerLateAfter = ruleMap.considerLateAfter ?? 5;
+    const halfDayAfter = ruleMap.halfDayAfter ?? 60;
+    const absentAfter = ruleMap.absentAfter ?? 120;
+    const weekendPolicy = ruleMap.weekendPolicy ?? "holiday";
+    const holidayMarking = ruleMap.holidayMarking ?? "holiday";
+
+    // Holiday / weekend classification wins first
+    if (args.isHoliday && holidayMarking === "holiday") {
+      return { status: "holiday", minutesLate: args.minutesLate, policy: ruleMap };
+    }
+    if (args.isWeekend && weekendPolicy !== "working") {
+      return {
+        status: weekendPolicy === "half_day" ? "half_day" : "holiday",
+        minutesLate: args.minutesLate,
+        policy: ruleMap,
+      };
+    }
+
+    const effectiveLate = Math.max(0, args.minutesLate - gracePeriod);
+    let status: string = "present";
+    if (effectiveLate > absentAfter) status = "absent";
+    else if (effectiveLate > halfDayAfter) status = "half_day";
+    else if (effectiveLate > considerLateAfter) status = "late";
+
+    return { status, minutesLate: args.minutesLate, effectiveLate, gracePeriod, considerLateAfter, halfDayAfter, absentAfter, policy: ruleMap };
+  },
+});
+
+/**
+ * Calculate overtime hours against configured overtime policy.
+ */
+export const calculateOvertime = query({
+  args: {
+    workedHours: v.number(),
+    requiredHours: v.number(),
+    companyId: v.optional(v.id("companies")),
+    branchId: v.optional(v.id("branches")),
+  },
+  handler: async (ctx, args) => {
+    const domainRules = await getDomainRules.handler(ctx, { domain: "attendance", companyId: args.companyId, branchId: args.branchId });
+    const ruleMap: Record<string, any> = {};
+    for (const r of domainRules) ruleMap[r.key] = r.value;
+
+    const enabled = ruleMap.overtimeEnabled ?? true;
+    const multiplier = ruleMap.overtimeRateMultiplier ?? 1.5;
+    const overtimeHours = Math.max(0, args.workedHours - args.requiredHours);
+
+    return {
+      enabled,
+      multiplier,
+      overtimeHours,
+      eligible: enabled && overtimeHours > 0,
+      paidHours: enabled ? overtimeHours * multiplier : 0,
+    };
   },
 });

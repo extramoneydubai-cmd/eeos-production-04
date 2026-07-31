@@ -203,3 +203,52 @@ export const correct = mutation({
     return { count: args.recordIds.length, status: args.newStatus };
   },
 });
+
+// ─── Attendance Policy SDK — wires ruleRuntimeEngine ─────────────────────
+
+/**
+ * Get configured attendance policy rules (grace, late, half-day, absent thresholds).
+ */
+export const getAttendancePolicy = query({
+  args: {
+    companyId: v.optional(v.id("companies")),
+    branchId: v.optional(v.id("branches")),
+  },
+  handler: async (ctx, args) => {
+    const { getDomainRules } = await import("../../convex/ruleRuntimeEngine");
+    return getDomainRules.handler(ctx, { domain: "attendance", companyId: args.companyId, branchId: args.branchId });
+  },
+});
+
+/**
+ * Classify a check-in against configured policies (present/late/half_day/absent).
+ */
+export const classifyAttendance = query({
+  args: {
+    minutesLate: v.number(),
+    isHoliday: v.optional(v.boolean()),
+    isWeekend: v.optional(v.boolean()),
+    companyId: v.optional(v.id("companies")),
+    branchId: v.optional(v.id("branches")),
+  },
+  handler: async (ctx, args) => {
+    const { classifyAttendance } = await import("../../convex/ruleRuntimeEngine");
+    return classifyAttendance.handler(ctx, args);
+  },
+});
+
+/**
+ * Calculate overtime against configured policy.
+ */
+export const calculateOvertime = query({
+  args: {
+    workedHours: v.number(),
+    requiredHours: v.number(),
+    companyId: v.optional(v.id("companies")),
+    branchId: v.optional(v.id("branches")),
+  },
+  handler: async (ctx, args) => {
+    const { calculateOvertime } = await import("../../convex/ruleRuntimeEngine");
+    return calculateOvertime.handler(ctx, args);
+  },
+});
