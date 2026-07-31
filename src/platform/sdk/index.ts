@@ -13,6 +13,7 @@
 import * as academic from "./academicSdk";
 import * as attendance from "./attendanceSdk";
 import * as audit from "./auditSdk";
+import * as automation from "./automationSdk";
 import * as calendar from "./calendarSdk";
 import * as communication from "./communicationSdk";
 import * as crm from "./crmSdk";
@@ -20,6 +21,7 @@ import * as dashboard from "./dashboardSdk";
 import * as documents from "./documentSdk";
 import * as events from "./eventSdk";
 import * as finance from "./financeSdk";
+import * as grid from "./gridSdk";
 import * as hr from "./hrSdk";
 import * as integration from "./integrationSdk";
 import * as lms from "./lmsSdk";
@@ -32,10 +34,12 @@ import * as procurement from "./procurementSdk";
 import * as production from "./productionSdk";
 import * as reports from "./reportSdk";
 import * as scheduling from "./schedulingSdk";
+import * as search from "./searchSdk";
 import * as students from "./studentSdk";
 import * as tasks from "./taskSdk";
 import * as timeline from "./timelineSdk";
 import * as visibility from "./visibilitySdk";
+import * as whiteLabel from "./whiteLabelSdk";
 import * as workflow from "./workflowSdk";
 import * as ai from "./aiSdk";
 
@@ -43,6 +47,7 @@ export const PlatformSDK = {
   academic,
   attendance,
   audit,
+  automation,
   calendar,
   communication,
   crm,
@@ -50,6 +55,7 @@ export const PlatformSDK = {
   documents,
   events,
   finance,
+  grid,
   hr,
   integration,
   lms,
@@ -62,10 +68,12 @@ export const PlatformSDK = {
   production,
   reports,
   scheduling,
+  search,
   students,
   tasks,
   timeline,
   visibility,
+  whiteLabel,
   workflow,
   ai,
 } as const;
