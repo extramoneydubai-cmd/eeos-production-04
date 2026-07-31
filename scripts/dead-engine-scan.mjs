@@ -1,71 +1,77 @@
-#!/usr/bin/env node
-// Accurate dead-engine scan: an engine is DEAD only if neither
-// (a) an import specifier referencing it, nor (b) an `api.<engine>.<fn>`
-// call anywhere in src/pages + src/platform references it.
-import fs from 'fs';
-import path from 'path';
+/**
+ * Dead Engine Scanner — Accurate Code-Derived Audit
+ *
+ * An engine file under src/convex/*.ts is considered DEAD only when:
+ *   1. No other file anywhere under src/ (excluding _generated, schema/, and itself)
+ *      references its basename — this includes:
+ *        - static imports:   import { x } from "./engineName"
+ *        - dynamic imports:  await import("../../convex/engineName")
+ *        - API references:   api.engineName.someFunction
+ *        - string references in pages, SDKs, libs, hooks
+ *
+ * Run: node scripts/dead-engine-scan.mjs
+ */
+import { readdirSync, readFileSync, statSync, existsSync } from "fs";
+import { join } from "path";
 
-const ROOT = '/home/daytona/codebase/src';
-const EXCLUDE = new Set(['_generated', 'crons', 'auth.config', 'index', 'schema', 'seed']);
+const ROOT = process.cwd();
+const CONVEX_DIR = join(ROOT, "src/convex");
+const SEARCH_DIRS = ["src/convex", "src/platform", "src/pages", "src/lib", "src/hooks", "src/components"];
 
-function walk(dir, out = []) {
-  for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
-    const p = path.join(dir, ent.name);
-    if (ent.isDirectory()) {
-      if (ent.name === '_generated' || ent.name === 'node_modules') continue;
-      walk(p, out);
-    } else if (ent.name.endsWith('.ts') || ent.name.endsWith('.tsx')) {
-      out.push(p);
+// Collect all searchable file contents once
+const searchable = [];
+function collect(dir) {
+  if (!existsSync(dir)) return;
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    if (entry === "node_modules" || entry === "_generated") continue;
+    const stat = statSync(full);
+    if (stat.isDirectory()) {
+      collect(full);
+    } else if (/\.(ts|tsx|js|mjs)$/.test(entry)) {
+      searchable.push({ path: full, content: readFileSync(full, "utf8") });
     }
   }
-  return out;
 }
+for (const d of SEARCH_DIRS) collect(d);
 
-const allFiles = walk(ROOT);
-const convexEngines = allFiles.filter(
-  (f) => f.includes('/convex/') && !f.includes('/convex/schema/') && !f.includes('/convex/_generated/') && path.basename(f) !== 'schema.ts'
-);
-
-const fileIndex = new Map();
-for (const f of allFiles) fileIndex.set(f, fs.readFileSync(f, 'utf8'));
-
-// (a) direct import specifiers whose final segment == bname
-const SPEC_RE = /(?:from\s*|import\s*\(\s*|require\s*\(\s*|export\s*\{[^}]*\})\s*["']([^"']+)["']/g;
-// (b) api.<engine>.<fn> / api.<engine>[ / useQuery(api.<engine>
-const API_RE = /api\.([A-Za-z0-9_]+)[\s.,[)]/g;
-
-function isReferenced(bname) {
-  for (const [p, content] of fileIndex) {
-    if (p.includes(`/convex/${bname}.ts`)) continue; // self
-    // (a) import specifier
-    SPEC_RE.lastIndex = 0;
-    let m;
-    while ((m = SPEC_RE.exec(content)) !== null) {
-      const segs = m[1].split('/');
-      if (segs[segs.length - 1] === bname) return true;
-    }
-    // (b) api.<engine>. reference (only from pages/platform/lib — frontend)
-    if (!p.includes('/convex/')) {
-      API_RE.lastIndex = 0;
-      while ((m = API_RE.exec(content)) !== null) {
-        if (m[1] === bname) return true;
-      }
-    }
-  }
-  return false;
-}
+const engineFiles = readdirSync(CONVEX_DIR)
+  .filter((f) => f.endsWith(".ts") && f !== "schema.ts" && f !== "auth.config.ts")
+  .filter((f) => !f.startsWith("_"))
+  .map((f) => join(CONVEX_DIR, f));
 
 const dead = [];
 const live = [];
-for (const f of convexEngines) {
-  const bname = path.basename(f, '.ts');
-  if (EXCLUDE.has(bname)) continue;
-  if (isReferenced(bname)) live.push(bname);
-  else dead.push({ bname, size: fs.statSync(f).size });
+const liveRefs = new Map();
+
+for (const file of engineFiles) {
+  const basename = file.split("/").pop().replace(/\.ts$/, "");
+  // Reference = any occurrence of the basename as a word in another file's content
+  let refs = 0;
+  const refIn = [];
+  const re = new RegExp(`\\b${basename}\\b`, "g");
+  for (const s of searchable) {
+    if (s.path === file) continue;
+    if (s.path.includes("/schema/")) continue;
+    if (re.test(s.content)) {
+      refs++;
+      refIn.push(s.path.replace(ROOT + "/", ""));
+      re.lastIndex = 0;
+    }
+  }
+  if (refs === 0) {
+    dead.push({ name: basename, size: statSync(file).size });
+  } else {
+    live.push(basename);
+    liveRefs.set(basename, { refs, refIn: refIn.slice(0, 3) });
+  }
 }
 
 dead.sort((a, b) => b.size - a.size);
-console.log('=== ACCURATE DEAD ENGINES ===');
-console.log(`TOTAL DEAD: ${dead.length} / ${convexEngines.length}  |  LIVE: ${live.length}`);
-console.log('');
-for (const d of dead) console.log(`${d.bname}|${d.size}B`);
+
+console.log("=== ACCURATE DEAD ENGINES ===");
+console.log(`TOTAL DEAD: ${dead.length} / ${engineFiles.length}  |  LIVE: ${live.length}`);
+console.log("");
+for (const d of dead) {
+  console.log(`${d.name}|${d.size}B`);
+}

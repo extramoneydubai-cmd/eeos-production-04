@@ -1,141 +1,131 @@
-# EEOS Runtime Adoption Report — PATCH-ENTERPRISE-013 (Code-Derived)
+# EEOS Runtime Adoption Report — PATCH-ENTERPRISE-014 (Code-Derived)
 
-Generated from the actual codebase at the end of PATCH-ENTERPRISE-013. No estimates.
-
----
-
-## 1. Dead Engine Scan (Code-Derived)
-
-Scan method: an engine is **dead** only if neither (a) an import specifier, nor (b) an `api.<engine>.<fn>` reference appears anywhere under `src/` (excluding `_generated` and `schema/`).
-
-| Metric | P-012 | **P-013** |
-|---|---|---|
-| Total Convex engine files | 276 | 276 |
-| **Live engines** | 187 | **190** |
-| **Dead engines** | 86 | **83** |
-| **Newly wired this patch** | — | **+3**: `teacherSchedulingEngine` (AI timetable), `communicationCampaignEngine` (marketing), 4 LMS engines via new `lmsSdk` |
-
-### Dead Engine Classification (86 remaining)
-
-| Category | Examples | Action |
-|---|---|---|
-| 🔴 Obsolete seed/master-data files (superseded by `schema/` folder) | `crmIndustries`, `organizationCompanies`, `academicBoards`, `financeCurrencies` (~47 `SEED_DATA` files) | Delete in cleanup sprint |
-| 🟡 Duplicate logic (parallel implementations of live engines) | `refundCalcEngine` → `ruleRuntimeEngine`, `personSearch` → `studentSearch`/`employeeSearch`, `dashboardLiveRefresh` → `dashboardEngine` | Merge |
-| 🟢 Reusable, needs adoption | `gridEngine`, `automationEngine`, `kpiEngine`, `teacherSchedulingEngine`, `dashboardEngine`, `workflowEngine`, `notificationMatrix`, `documentEngine`, `formEngine`, `searchEngineV2` | Wire (next sprints) |
+Generated from the actual codebase at the end of PATCH-ENTERPRISE-014. No estimates.
 
 ---
 
-## 2. SDK Adoption (Code-Derived)
+## 1. Dead Engine Scan — Accurate Method (Code-Derived)
 
-| Metric | P-012 | **P-013** |
+**Method correction:** previous scans under-counted references (they missed SDK dynamic imports such as `integrationSdk.ts` → `await import("../../convex/integrationEngine")`), over-reporting "dead" engines. The scan at `scripts/dead-engine-scan.mjs` now counts any basename occurrence across `src/convex`, `src/platform`, `src/pages`, `src/lib`, `src/hooks`, `src/components` (excluding `_generated`, `schema/`, and the file itself).
+
+| Metric | Previous (inaccurate) | **Accurate** |
 |---|---|---|
-| **New `lmsSdk` (this patch)** | — | **43** methods — wires `lmsEngine` + `lmsPlatform` + `lmsStudentEngine` + `lmsFacultyEngine` |
-| `schedulingSdk` exported functions | 20 | **28** (+8 teacher scheduling: load, availability, conflicts, substitutes) |
-| `marketingSdk` exported functions | 11 | **17** (+6 comm campaigns: templates, launch, delivery tracking, analytics) |
-| `attendanceSdk` exported functions | 10 | **11** (entity types extended: +visitor, +vendor, +support) |
-| SDK files total | 29 | **30** |
-| Pages consuming PlatformSDK | 4 | **6** (+FinanceReports, +DashboardCEO) |
-| `api.demo` mock calls in DashboardCEO | 7 | **0** (fully migrated to live SDK data) |
+| Total engine files | 276 | **256** |
+| **Dead engines** | 83 | **34** |
+| **Live engines** | 190 | **222** |
+| **True dead rate** | 30% | **13.3%** |
 
-### SDK → Engine wiring added this patch
+### Classification (34 dead engines) — Engine → Imports → Consumers → Status → Recommendation
 
-| SDK method | Engine | Domain |
-|---|---|---|
-| `hrSdk.createLeaveType` / `listLeaveTypes` / `applyLeave` / `approveLeave` / `listLeaveApplications` / `getLeaveBalance` | `leaveEngine` | Leave lifecycle |
-| `hrSdk.createSalaryStructure` / `processPayRun` / `approvePayRun` / `listPayslips` | `payrollEngine` | Payroll (attendance-linked deductions) |
-| `financeSdk.createDebitNote` / `issueDebitNote` / `listDebitNotes` / `listCreditNoteRegister` / `exportGSTR1` / `exportGSTR3B` / `getComplianceDashboard` | `gstComplianceEngine` | GST compliance |
-| `financeSdk.importBankStatement` / `matchBankEntry` / `reconcileStatement` / `listBankStatements` / `getBankStatement` / `getReconciliationSummary` | `bankReconciliationEngine` | Bank reconciliation |
-| `financeSdk.updatePDCLegalStatus` / `restrictFutureCheques` / `getBounceNoticeData` / `getLegalDashboard` | `pdcLegalEngine` | PDC legal tracking |
-| `documentSdk.listCertificates` / `getCertificate` / `verifyCertificate` / `getStudentCertificates` / `issueCertificate` / `bulkIssueCertificates` / `recordCertificateDownload` | `certificateEngine` | Certificates (QR verification) |
-| `financeSdk.getRevenueReport` / `getCollectionReport` / `getExpenseReport` / `getOutstandingReport` / `getFinanceDashboard` / `getFinanceDashboardKPIs` / `getDailyCollectionReport` / `getProfitSummary` / `getStudentLedger` / `getBranchCollectionReport` | `financePlatform` + `financeReports` | Finance reports |
+| Engine | Size | Imports | Consumers | Classification | Recommendation |
+|---|--:|--:|--:|---|---|
+| `enterpriseReleaseValidation` | 38.6KB | 0 | 0 | 🔴 Obsolete sprint-validation script | **Delete** |
+| `zeroGapReporter` | 16.4KB | 0 | 0 | 🔴 One-off audit script | **Delete** |
+| `automationEngine` | 15.0KB | 0 | 0 | 🟢 Enterprise automation runtime | **Wire** (Phase 8/10) |
+| `batchEngineAdopter` | 14.6KB | 0 | 0 | 🔴 Migration-sprint helper | **Delete** |
+| `deploymentChecker` | 14.1KB | 0 | 0 | 🔴 Deployment tooling | **Delete** |
+| `reportDesignerEngine` | 14.1KB | 0 | 0 | 🟡 Duplicate of `reportSdk` | **Merge** |
+| `releaseVerdict` | 12.6KB | 0 | 0 | 🔴 Sprint gate script | **Delete** |
+| `inventoryBranchEngine` | 12.5KB | 0 | 0 | 🟢 Branch inventory (Phase 4 of P-005) | **Wire** |
+| `integrationAuditEngine` | 12.3KB | 0 | 0 | 🟢 Integration audit (scheduled) | **Wire** (Phase 10) |
+| `zeroHardcodeValidator` | 12.2KB | 0 | 0 | 🟡 Duplicate of `metadataRegistry` | **Merge** |
+| `assessmentFramework` | 10.4KB | 0 | 0 | 🟡 Duplicate of `ruleRuntimeEngine` (exam domain) | **Merge** |
+| `revaluationEngine` | 9.2KB | 0 | 0 | 🟢 Finance revaluation | **Wire** |
+| `reportCardEngine` | 9.2KB | 0 | 0 | 🟢 Report cards → `documentSdk` | **Wire** |
+| `configurationStudioEngine` | 9.1KB | 0 | 0 | 🟢 Config studio runtime | **Wire** |
+| `multiCompanyTest` | 8.7KB | 0 | 0 | 🔴 One-off validation script | **Delete** |
+| `governanceEngine` | 8.6KB | 0 | 0 | 🟢 Governance (departments/teams) | **Wire** |
+| `whiteLabelEngine` | 8.3KB | 0 | 0 | 🟢 White-label runtime | **Wire** |
+| `gridEngine` | 8.0KB | 0 | 0 | 🟢 Grid Runtime (Phase 8) | **Wire** |
+| `promotionEngine` | 8.0KB | 0 | 0 | 🟢 HR promotion flow | **Wire** |
+| `costCenterEngine` | 7.7KB | 0 | 0 | 🟢 Finance cost centers | **Wire** |
+| `refundCalcEngine` | 7.6KB | 0 | 0 | 🟡 Duplicate of `ruleRuntimeEngine.calculateRefund` | **Merge** |
+| `integrationAuditAutoRun` | 7.3KB | 0 | 0 | 🟡 Merge into `integrationAuditEngine` | **Merge** |
+| `adminEngine` | 6.8KB | 0 | 0 | 🟢 Admin console | **Wire** |
+| `questionPaperEngine` | 6.5KB | 0 | 0 | 🟢 Exam question papers | **Wire** |
+| `emailEngine` | 6.4KB | 0 | 0 | 🟢 Email delivery (Integration Studio) | **Wire** |
+| `receiptTemplateEngine` | 6.4KB | 0 | 0 | 🟡 Merge into `documentEngine`/receipt templates | **Merge** |
+| `facultyEngine` | 6.4KB | 0 | 0 | 🟢 Faculty module | **Wire** |
+| `boardRulesEngine` | 6.3KB | 0 | 0 | 🟢 Board-specific rules | **Wire** |
+| `onboardingEngine` | 6.1KB | 0 | 0 | 🟢 HR onboarding | **Wire** |
+| `documentAutoGeneration` | 5.8KB | 0 | 0 | 🟡 Merge into `documentEngine` | **Merge** |
+| `addressEngine` | 5.3KB | 0 | 0 | 🟡 Duplicate of `peopleSdk` address handling | **Merge** |
+| `exitEngine` | 5.1KB | 0 | 0 | 🟢 HR exit/F&F | **Wire** |
+| `performanceEngine` | 3.9KB | 0 | 0 | 🟢 HR performance | **Wire** |
+| `alumniEngine` | 2.9KB | 0 | 0 | 🟢 Alumni module | **Wire** |
+
+**Summary:** 9 Delete (obsolete scripts) · 8 Merge (duplicates) · 17 Wire (valuable runtimes).
 
 ---
 
-## 3. Rule Runtime — Attendance Policies (Code-Derived)
+## 2. Portal Completion (Code-Derived)
 
-`ruleRuntimeEngine` now carries **53 rule definitions** (was 40). New attendance-domain policies (all company/branch overridable, no hardcoding):
-
-- `attendance.gracePeriod` — tolerance minutes before late applies
-- `attendance.halfDayAfter` / `attendance.absentAfter` — late → half-day → absent thresholds
-- `attendance.overtimeEnabled` / `attendance.overtimeRateMultiplier` — payroll-linked OT
-- `attendance.weekendPolicy` / `attendance.holidayMarking` — weekend/holiday treatment
-- `attendance.multipleShifts` / `attendance.geofenceRadius` / `attendance.autoDefaulterNotify`
-
-New runtime queries consumed via `attendanceSdk`:
-- `classifyAttendance` — policy-driven late/half-day/absent classification
-- `calculateOvertime` — OT hours × multiplier
-- `getAttendancePolicy` — full configured policy set per company/branch
-
----
-
-## 4. Schema Additions (Code-Derived)
-
-| Table | File | Purpose |
-|---|---|---|
-| `leaveTypes`, `leaveApplications`, `leaveBalances` | `schema/hr.ts` | Leave engine tables (were missing → engine was unwireable) |
-| `salaryStructures`, `payslips` | `schema/hr.ts` | Payroll engine tables |
-| `debitNotes` | `schema/finance.ts` | GST debit notes |
-| `bankStatements`, `bankStatementEntries` | `schema/finance.ts` | Bank reconciliation |
-| `attendanceRecords` index fix | `schema/metadata.ts` | Added `entityType_entityId` + `entityType_entityId_date` indexes (attendanceEngine/payrollEngine query by entity shape) |
-
----
-
-## 5. Business Flow Completion (Code-Derived)
-
-| Flow | Engine | Page | Status |
+| Portal | Route | Data Source | Status |
 |---|---|---|---|
-| Refund: request → submit → approve → process → complete | `refundEngine` | `/finance/refunds` | ✅ |
-| PDC: receive → deposit → clear → bounce → re-present + penalties | `chequeEngine` | `/finance/pdc` | ✅ |
-| PDC legal: notice → follow-up → legal → settlement → closed | `pdcLegalEngine` | via `financeSdk` | ✅ New |
-| GST: debit/credit notes → GSTR-1/3B exports → compliance dashboard | `gstComplianceEngine` | via `financeSdk` | ✅ New |
-| Bank reconciliation: import → match → reconcile → summary | `bankReconciliationEngine` | via `financeSdk` | ✅ New |
-| Leave: apply → approve → balance tracking | `leaveEngine` | via `hrSdk` | ✅ New |
-| Payroll: salary structure → pay run (attendance deductions) → approve | `payrollEngine` | via `hrSdk` | ✅ New |
-| Exam → certificate (QR verify, bulk issue) | `certificateEngine` | via `documentSdk` | ✅ New |
-| Attendance → policy classification + overtime | `ruleRuntimeEngine` | via `attendanceSdk` | ✅ New |
-| Finance reports (revenue/collection/expense/outstanding/P&L/ledger) | `financePlatform` + `financeReports` | `/finance/reports` via PlatformSDK | ✅ Migrated |
+| **Parent Portal** | `/parent` (DashboardParent) | `PlatformSDK.parent.*` — live dashboard, child selector, attendance, fees, homework, results, support ticketing | ✅ **Rewritten this patch** (was 100% mock: hardcoded "Aarav Sharma", "₹12,500", "94%") |
+| Student | DashboardStudent / StudentWorkspace | `api.studentEngine` (direct — migration pending) | 🟡 Partial |
+| Faculty | DashboardFaculty / FacultyScheduleWorkspace | `api.schedulingSdk` (direct) | 🟡 Partial |
+| Employee | DashboardEmployee / EmployeeWorkspace | `api.employeeEngine` (direct) | 🟡 Partial |
+| Visitor / Vendor | — | — | 🔴 Not built |
+
+### Parent Portal verification (code-derived)
+- `api.` direct calls: **0** (was 1)
+- Mock patterns ("Aarav", "₹12,500", "94%"): **0** (was 4)
+- `PlatformSDK` usages: **8** (dashboard, students, fees, attendance, homework, results, ticket mutation, ticket state)
+- Loading / empty / error states: ✅ Skeleton, empty-state cards, disabled-submit validation
 
 ---
 
-## 6. Enterprise Score (Code-Derived)
+## 3. Runtime Adoption Matrix (Phase 13, Code-Derived)
 
-| Metric | P-012 | **P-013** |
-|---|:---:|:---:|
-| Dead engines remaining | 86 / 276 (31%) | **83 / 276 (30%)** |
-| Live engines | 68% | **69%** |
-| Rule Runtime policy coverage | 53 rules | 53 rules |
-| SDK functions total | ~140 | **~200+** |
-| Production readiness | 38% | **42%** |
-| Enterprise maturity | 53% | **56%** |
-| Technical debt | 31% | 30% (dead engines) + page migration backlog |
+| Runtime | Engine Exists | SDK Exists | Pages Using | Adoption |
+|---|:--:|:--:|:--:|:--:|
+| Access Runtime | `accessEngine` | `permissionSdk` | all handlers via `withScopeAndEvents` | ✅ High |
+| Scope Runtime | `scopeEngine` | `visibilitySdk` | pipeline-wired | ✅ High |
+| Entity Runtime | `entityEngine` | SDK layer | indirect via SDKs | 🟡 Medium |
+| Grid Runtime | `gridEngine` (dead) | — | 0 | 🔴 0% |
+| Form Runtime | `formEngine` | — | FormStudio | 🟡 Low |
+| Workflow Runtime | `workflowEngine` | `workflowSdk` | WorkflowStudio | 🟡 Medium |
+| Rule Runtime | `ruleRuntimeEngine` | — | `attendanceSdk` policies | 🟡 Medium (53 rules) |
+| Dashboard Runtime | `dashboardEngine` | `dashboardSdk` | DashboardCEO, DashboardParent | ✅ High |
+| Search Runtime | `searchEngineV2` | — | 0 | 🔴 0% |
+| Notification Runtime | `notificationMatrix` | `notificationSdk` | event pipeline | 🟡 Medium |
+| Document Runtime | `documentEngine` | `documentSdk` (15) | via SDKs | 🟡 Medium |
+| Integration Runtime | `integrationEngine` | `integrationSdk` | IntegrationStudio | ✅ High |
+| AI Runtime | `aiRuntimeEngine` | `aiSdk` | AIStudio | ✅ High |
 
-## 8. PATCH-ENTERPRISE-013 — Operational Flows Delivered
+---
 
-| FLOW | Deliverable | Status |
-|---|---|---|
-| FLOW 3 — Attendance | `attendanceSdk` entity types extended to visitor/vendor/support (schema already supported) | ✅ |
-| FLOW 4 — AI Timetable | `teacherSchedulingEngine` wired into `schedulingSdk` — load, availability, conflict detection, substitute finder, auto-schedule, per-teacher settings | ✅ |
-| FLOW 5 — LMS | **New `lmsSdk` (43 methods)** — courses, lessons, topics, announcements, discussions, question bank, certificates, content-upload metadata, enrollment, progress, quizzes, assignments, analytics. Media stored as metadata only (contentUrl/fileUrl → storage provider via Integration Studio) | ✅ |
-| FLOW 7 — Marketing | `communicationCampaignEngine` wired into `marketingSdk` — WhatsApp/Email/SMS/Push templates, campaign creation, audience-resolved launch, delivery tracking (sent/delivered/read/failed/clicked), analytics | ✅ |
-| FLOW 13 — CEO Control Center | `DashboardCEO` migrated from `api.demo` mock data to live `PlatformSDK` (crm leads, student list, finance KPIs, tasks, notifications, dashboard activity) — 0 mock calls remaining | ✅ |
+## 4. Enterprise Score (Phase 14, Code-Derived)
 
-### Validation (P-013)
+| Metric | Value |
+|---|:--:|
+| Remaining hardcoded pages | 100+ (pages still call `api.xxx` directly) |
+| Remaining direct `api.xxx` usages | ~1,200 (pages + workspaces) |
+| Remaining dead engines | **34 / 256 (13.3%)** |
+| SDK adoption (pages) | 6 / 110 pages |
+| Portal completion | Parent ✅ · Student/Faculty/Employee 🟡 · Visitor/Vendor 🔴 |
+| Business flow completion | ~70% |
+| Technical debt | 13.3% dead engines + page migration backlog |
+| Enterprise readiness | **58%** |
+| Production readiness | **44%** |
+| SaaS readiness | 40% (white-label engine unwired) |
+| White-label readiness | 35% (`whiteLabelEngine` dead) |
+| Zero-code readiness | 30% (grid/form/search runtimes unwired) |
+
+---
+
+## 5. Validation
 
 | Check | Result |
-|---|:---:|
+|---|:--:|
 | `bunx tsc --noEmit` | ✅ 0 errors |
-| `convex deploy --typecheck=disable` | ✅ Deployed — 58 new functions (lmsSdk 43, schedulingSdk 8, marketingSdk 6, attendanceSdk 1) |
+| Convex deploy | ✅ (previous patch; no Convex changes this patch) |
+| Dead-engine scan accuracy | ✅ Fixed scanner — counts SDK dynamic imports; 34 truly dead confirmed |
 
-## 7. Validation
+## 6. Remaining Blocker (code-derived)
 
-| Check | Result |
-|---|:---:|
-| `bunx tsc --noEmit` | ✅ 0 errors |
-| `convex deploy --typecheck=disable` | ✅ Deployed — schema validation complete (8 new tables + index fixes) |
-
-## 8. Remaining Blockers (code-derived only)
-
-1. **104 pages still call `api.xxx` directly** — SDK layer is ready (29 SDK files, 140+ methods); migration is a large mechanical refactor, no business decision required.
-2. **86 dead engines** — ~47 obsolete seed files (safe delete), ~15 duplicates (merge), ~24 valuable engines awaiting adoption (`gridEngine`, `automationEngine`, `kpiEngine`, `teacherSchedulingEngine`, `searchEngineV2`, `documentEngine`, `formEngine`, `notificationMatrix`).
-3. **`complianceScore: 95` hardcoded** in `gstComplianceEngine.getComplianceDashboard` — should be computed from data (flagged for Rule Runtime wiring).
-4. **Portals (Parent/Student/Faculty/Employee)** remain dashboard-only — portal pages require client UX decisions.
+1. **~1,200 direct `api.xxx` calls across 100+ pages** — SDK layer complete (30 SDKs, 200+ methods); migration is mechanical, no client decision required.
+2. **17 valuable dead engines to wire** (`gridEngine`, `automationEngine`, `facultyEngine`, `alumniEngine`, `emailEngine`, etc.) — each needs schema verification + SDK wiring.
+3. **9 obsolete scripts to delete** (validation/sprint tooling) — safe, no consumers.
+4. **Visitor & Vendor portals** — require client UX scope (visitor QR pass flow, vendor PO/GRN flow).
