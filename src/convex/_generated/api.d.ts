@@ -43,7 +43,6 @@ import type * as authHelpers from "../authHelpers.js";
 import type * as autoSearchIndexer from "../autoSearchIndexer.js";
 import type * as automationEngine from "../automationEngine.js";
 import type * as bankReconciliationEngine from "../bankReconciliationEngine.js";
-import type * as batchEngineAdopter from "../batchEngineAdopter.js";
 import type * as billingEngine from "../billingEngine.js";
 import type * as boardRulesEngine from "../boardRulesEngine.js";
 import type * as boostEnterpriseSimulation from "../boostEnterpriseSimulation.js";
@@ -64,7 +63,6 @@ import type * as configurationStudioEngine from "../configurationStudioEngine.js
 import type * as consentEngine from "../consentEngine.js";
 import type * as contactEngine from "../contactEngine.js";
 import type * as costCenterEngine from "../costCenterEngine.js";
-import type * as coverageMatrix from "../coverageMatrix.js";
 import type * as crm from "../crm.js";
 import type * as crmActivity from "../crmActivity.js";
 import type * as crmApprovals from "../crmApprovals.js";
@@ -109,7 +107,6 @@ import type * as demo_auth from "../demo/auth.js";
 import type * as demo_data from "../demo/data.js";
 import type * as demo_queries from "../demo/queries.js";
 import type * as demo_seed from "../demo/seed.js";
-import type * as deploymentChecker from "../deploymentChecker.js";
 import type * as documentAutoGeneration from "../documentAutoGeneration.js";
 import type * as documentEngine from "../documentEngine.js";
 import type * as documentTemplateEngine from "../documentTemplateEngine.js";
@@ -128,7 +125,6 @@ import type * as engines_seedEngine from "../engines/seedEngine.js";
 import type * as engines_sequenceEngine from "../engines/sequenceEngine.js";
 import type * as engines_timelineEngine from "../engines/timelineEngine.js";
 import type * as enrollmentEngine from "../enrollmentEngine.js";
-import type * as enterpriseReleaseValidation from "../enterpriseReleaseValidation.js";
 import type * as enterpriseSimulation from "../enterpriseSimulation.js";
 import type * as enterpriseValidation from "../enterpriseValidation.js";
 import type * as entityEngine from "../entityEngine.js";
@@ -172,8 +168,6 @@ import type * as hrSkills from "../hrSkills.js";
 import type * as hrWorkLocations from "../hrWorkLocations.js";
 import type * as http from "../http.js";
 import type * as intakeEngine from "../intakeEngine.js";
-import type * as integrationAuditAutoRun from "../integrationAuditAutoRun.js";
-import type * as integrationAuditEngine from "../integrationAuditEngine.js";
 import type * as integrationEngine from "../integrationEngine.js";
 import type * as integrations_github from "../integrations/github.js";
 import type * as interviewEngine from "../interviewEngine.js";
@@ -198,7 +192,6 @@ import type * as menuEngine from "../menuEngine.js";
 import type * as messenger from "../messenger.js";
 import type * as metadataRegistry from "../metadataRegistry.js";
 import type * as moduleActivationEngine from "../moduleActivationEngine.js";
-import type * as multiCompanyTest from "../multiCompanyTest.js";
 import type * as notificationMatrix from "../notificationMatrix.js";
 import type * as notifications from "../notifications.js";
 import type * as offerEngine from "../offerEngine.js";
@@ -237,7 +230,6 @@ import type * as recruitmentEngine from "../recruitmentEngine.js";
 import type * as refundCalcEngine from "../refundCalcEngine.js";
 import type * as refundEngine from "../refundEngine.js";
 import type * as relationshipEngine from "../relationshipEngine.js";
-import type * as releaseVerdict from "../releaseVerdict.js";
 import type * as reportCardEngine from "../reportCardEngine.js";
 import type * as reportDesignerEngine from "../reportDesignerEngine.js";
 import type * as reportEngine from "../reportEngine.js";
@@ -304,8 +296,6 @@ import type * as whatsappEngine from "../whatsappEngine.js";
 import type * as whiteLabelEngine from "../whiteLabelEngine.js";
 import type * as withScopeAndEvents from "../withScopeAndEvents.js";
 import type * as workflowEngine from "../workflowEngine.js";
-import type * as zeroGapReporter from "../zeroGapReporter.js";
-import type * as zeroHardcodeValidator from "../zeroHardcodeValidator.js";
 
 import type {
   ApiFromModules,
@@ -349,7 +339,6 @@ declare const fullApi: ApiFromModules<{
   autoSearchIndexer: typeof autoSearchIndexer;
   automationEngine: typeof automationEngine;
   bankReconciliationEngine: typeof bankReconciliationEngine;
-  batchEngineAdopter: typeof batchEngineAdopter;
   billingEngine: typeof billingEngine;
   boardRulesEngine: typeof boardRulesEngine;
   boostEnterpriseSimulation: typeof boostEnterpriseSimulation;
@@ -370,7 +359,6 @@ declare const fullApi: ApiFromModules<{
   consentEngine: typeof consentEngine;
   contactEngine: typeof contactEngine;
   costCenterEngine: typeof costCenterEngine;
-  coverageMatrix: typeof coverageMatrix;
   crm: typeof crm;
   crmActivity: typeof crmActivity;
   crmApprovals: typeof crmApprovals;
@@ -415,7 +403,6 @@ declare const fullApi: ApiFromModules<{
   "demo/data": typeof demo_data;
   "demo/queries": typeof demo_queries;
   "demo/seed": typeof demo_seed;
-  deploymentChecker: typeof deploymentChecker;
   documentAutoGeneration: typeof documentAutoGeneration;
   documentEngine: typeof documentEngine;
   documentTemplateEngine: typeof documentTemplateEngine;
@@ -434,7 +421,6 @@ declare const fullApi: ApiFromModules<{
   "engines/sequenceEngine": typeof engines_sequenceEngine;
   "engines/timelineEngine": typeof engines_timelineEngine;
   enrollmentEngine: typeof enrollmentEngine;
-  enterpriseReleaseValidation: typeof enterpriseReleaseValidation;
   enterpriseSimulation: typeof enterpriseSimulation;
   enterpriseValidation: typeof enterpriseValidation;
   entityEngine: typeof entityEngine;
@@ -478,8 +464,6 @@ declare const fullApi: ApiFromModules<{
   hrWorkLocations: typeof hrWorkLocations;
   http: typeof http;
   intakeEngine: typeof intakeEngine;
-  integrationAuditAutoRun: typeof integrationAuditAutoRun;
-  integrationAuditEngine: typeof integrationAuditEngine;
   integrationEngine: typeof integrationEngine;
   "integrations/github": typeof integrations_github;
   interviewEngine: typeof interviewEngine;
@@ -504,7 +488,6 @@ declare const fullApi: ApiFromModules<{
   messenger: typeof messenger;
   metadataRegistry: typeof metadataRegistry;
   moduleActivationEngine: typeof moduleActivationEngine;
-  multiCompanyTest: typeof multiCompanyTest;
   notificationMatrix: typeof notificationMatrix;
   notifications: typeof notifications;
   offerEngine: typeof offerEngine;
@@ -543,7 +526,6 @@ declare const fullApi: ApiFromModules<{
   refundCalcEngine: typeof refundCalcEngine;
   refundEngine: typeof refundEngine;
   relationshipEngine: typeof relationshipEngine;
-  releaseVerdict: typeof releaseVerdict;
   reportCardEngine: typeof reportCardEngine;
   reportDesignerEngine: typeof reportDesignerEngine;
   reportEngine: typeof reportEngine;
@@ -610,8 +592,6 @@ declare const fullApi: ApiFromModules<{
   whiteLabelEngine: typeof whiteLabelEngine;
   withScopeAndEvents: typeof withScopeAndEvents;
   workflowEngine: typeof workflowEngine;
-  zeroGapReporter: typeof zeroGapReporter;
-  zeroHardcodeValidator: typeof zeroHardcodeValidator;
 }>;
 
 /**
