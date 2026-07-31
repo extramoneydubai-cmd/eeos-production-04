@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { Doc } from "./_generated/dataModel";
 import { getCurrentUser } from "./users";
 
 // ============================
@@ -156,6 +157,50 @@ export const unpinMessage = mutation({
   args: { messageId: v.id("messages") },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.messageId, { isPinned: false });
+  },
+});
+
+// ============================
+// ANNOUNCEMENTS
+// ============================
+
+/** List recent organization-wide announcements across announcement channels. */
+export const listAnnouncements = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 5;
+    const announcementChannels = await ctx.db
+      .query("channels")
+      .filter((q) =>
+        q.or(
+          q.eq(q.field("type"), "announcement"),
+          q.eq(q.field("name"), "Announcements")
+        )
+      )
+      .collect();
+
+    const allMessages: Array<Doc<"messages">> = [];
+    for (const channel of announcementChannels) {
+      const messages = await ctx.db
+        .query("messages")
+        .withIndex("channelId_createdAt", (q) => q.eq("channelId", channel._id))
+        .collect();
+      allMessages.push(...messages);
+    }
+    allMessages.sort((a, b) => b.createdAt - a.createdAt);
+
+    const recent = allMessages.slice(0, limit);
+    const users = await ctx.db.query("users").collect();
+    const userMap = new Map(users.map((u) => [u._id, u]));
+
+    return recent.map((m) => ({
+      _id: m._id,
+      content: m.content,
+      createdAt: m.createdAt,
+      senderId: m.senderId,
+      senderName: userMap.get(m.senderId)?.name ?? "Unknown",
+      channelId: m.channelId,
+    }));
   },
 });
 
