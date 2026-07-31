@@ -90,7 +90,7 @@ export const getCompanyModuleActivations = query({
     const results: ModuleActivationResult[] = [];
 
     for (const module of ALL_MODULES) {
-      const result = await isModuleEnabled.handler(ctx, {
+      const result = await (isModuleEnabled as any)(ctx, {
         module,
         companyId: args.companyId,
         branchId: args.branchId,

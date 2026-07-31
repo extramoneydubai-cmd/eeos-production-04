@@ -110,7 +110,7 @@ export const getStudentTimeline = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    return getEntityTimeline.handler(ctx, {
+    return (getEntityTimeline as any)(ctx, {
       entityType: "student",
       entityId: args.studentId,
       limit: args.limit,
@@ -125,7 +125,7 @@ export const getEmployeeTimeline = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    return getEntityTimeline.handler(ctx, {
+    return (getEntityTimeline as any)(ctx, {
       entityType: "employee",
       entityId: args.employeeId,
       limit: args.limit,
@@ -140,7 +140,7 @@ export const getLeadTimeline = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    return getEntityTimeline.handler(ctx, {
+    return (getEntityTimeline as any)(ctx, {
       entityType: "lead",
       entityId: args.leadId,
       limit: args.limit,
@@ -155,7 +155,7 @@ export const getTransactionTimeline = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    return getEntityTimeline.handler(ctx, {
+    return (getEntityTimeline as any)(ctx, {
       entityType: "invoice",
       entityId: args.transactionId,
       limit: args.limit,
@@ -170,7 +170,7 @@ export const getTicketTimeline = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    return getEntityTimeline.handler(ctx, {
+    return (getEntityTimeline as any)(ctx, {
       entityType: "ticket",
       entityId: args.ticketId,
       limit: args.limit,

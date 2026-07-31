@@ -178,7 +178,7 @@ export const createCalculatedRefund = mutation({
     if (!userId) throw new Error("Not authenticated");
 
     // Calculate refund
-    const calculation = await calculateRefund.handler(ctx, {
+    const calculation = await (calculateRefund as any)(ctx, {
       studentId: args.studentId,
       withdrawalDate: args.withdrawalDate,
       reasonCategory: args.reasonCategory,

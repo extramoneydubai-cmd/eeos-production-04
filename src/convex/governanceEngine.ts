@@ -67,7 +67,7 @@ export const canAccessEntity = query({
     requiredRole: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const scope = await resolveUserScope.handler(ctx, { userId: args.userId });
+    const scope = await (resolveUserScope as any)(ctx, { userId: args.userId });
     if (!scope) return { allowed: false, reason: "User not found" };
 
     // Super admin can access everything
@@ -112,7 +112,7 @@ export const canAccessEntity = query({
 export const listUsersByScope = query({
   args: { viewerUserId: v.id("users") },
   handler: async (ctx, args) => {
-    const scope = await resolveUserScope.handler(ctx, { userId: args.viewerUserId });
+    const scope = await (resolveUserScope as any)(ctx, { userId: args.viewerUserId });
     if (!scope) return [];
 
     const allUsers = await ctx.db.query("users").collect();
@@ -131,7 +131,7 @@ export const listUsersByScope = query({
 export const listBranchesByScope = query({
   args: { viewerUserId: v.id("users"), companyId: v.optional(v.id("companies")) },
   handler: async (ctx, args) => {
-    const scope = await resolveUserScope.handler(ctx, { userId: args.viewerUserId });
+    const scope = await (resolveUserScope as any)(ctx, { userId: args.viewerUserId });
     if (!scope) return [];
 
     const allBranches = await ctx.db.query("branches").collect();

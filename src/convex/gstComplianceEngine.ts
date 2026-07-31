@@ -198,7 +198,7 @@ export const exportGSTR3B = query({
     endDate: v.number(),
   },
   handler: async (ctx, args) => {
-    const gstr1 = await exportGSTR1.handler(ctx, args);
+    const gstr1 = await (exportGSTR1 as any)(ctx, args);
 
     return {
       gstr3b: {

@@ -439,7 +439,7 @@ export const calculateRefund = query({
     branchId: v.optional(v.id("branches")),
   },
   handler: async (ctx, args) => {
-    const domainRules = await getDomainRules.handler(ctx, { domain: "refund", companyId: args.companyId, branchId: args.branchId });
+    const domainRules = await (getDomainRules as any)(ctx, { domain: "refund", companyId: args.companyId, branchId: args.branchId });
     const ruleMap: Record<string, any> = {};
     for (const r of domainRules) ruleMap[r.key] = r.value;
 
@@ -478,7 +478,7 @@ export const calculateLateFee = query({
     branchId: v.optional(v.id("branches")),
   },
   handler: async (ctx, args) => {
-    const domainRules = await getDomainRules.handler(ctx, { domain: "late_fee", companyId: args.companyId, branchId: args.branchId });
+    const domainRules = await (getDomainRules as any)(ctx, { domain: "late_fee", companyId: args.companyId, branchId: args.branchId });
     const ruleMap: Record<string, any> = {};
     for (const r of domainRules) ruleMap[r.key] = r.value;
 
@@ -509,7 +509,7 @@ export const calculateGST = query({
     branchId: v.optional(v.id("branches")),
   },
   handler: async (ctx, args) => {
-    const domainRules = await getDomainRules.handler(ctx, { domain: "gst", companyId: args.companyId, branchId: args.branchId });
+    const domainRules = await (getDomainRules as any)(ctx, { domain: "gst", companyId: args.companyId, branchId: args.branchId });
     const ruleMap: Record<string, any> = {};
     for (const r of domainRules) ruleMap[r.key] = r.value;
 
@@ -531,7 +531,7 @@ export const calculateChequePenalty = query({
     branchId: v.optional(v.id("branches")),
   },
   handler: async (ctx, args) => {
-    const domainRules = await getDomainRules.handler(ctx, { domain: "cheque", companyId: args.companyId, branchId: args.branchId });
+    const domainRules = await (getDomainRules as any)(ctx, { domain: "cheque", companyId: args.companyId, branchId: args.branchId });
     const ruleMap: Record<string, any> = {};
     for (const r of domainRules) ruleMap[r.key] = r.value;
 
@@ -589,7 +589,7 @@ export const classifyAttendance = query({
     branchId: v.optional(v.id("branches")),
   },
   handler: async (ctx, args) => {
-    const domainRules = await getDomainRules.handler(ctx, { domain: "attendance", companyId: args.companyId, branchId: args.branchId });
+    const domainRules = await (getDomainRules as any)(ctx, { domain: "attendance", companyId: args.companyId, branchId: args.branchId });
     const ruleMap: Record<string, any> = {};
     for (const r of domainRules) ruleMap[r.key] = r.value;
 
@@ -633,7 +633,7 @@ export const calculateOvertime = query({
     branchId: v.optional(v.id("branches")),
   },
   handler: async (ctx, args) => {
-    const domainRules = await getDomainRules.handler(ctx, { domain: "attendance", companyId: args.companyId, branchId: args.branchId });
+    const domainRules = await (getDomainRules as any)(ctx, { domain: "attendance", companyId: args.companyId, branchId: args.branchId });
     const ruleMap: Record<string, any> = {};
     for (const r of domainRules) ruleMap[r.key] = r.value;
 
@@ -670,7 +670,7 @@ export const calculatePayslipImpact = query({
     branchId: v.optional(v.id("branches")),
   },
   handler: async (ctx, args) => {
-    const domainRules = await getDomainRules.handler(ctx, { domain: "attendance", companyId: args.companyId, branchId: args.branchId });
+    const domainRules = await (getDomainRules as any)(ctx, { domain: "attendance", companyId: args.companyId, branchId: args.branchId });
     const ruleMap: Record<string, any> = {};
     for (const r of domainRules) ruleMap[r.key] = r.value;
 

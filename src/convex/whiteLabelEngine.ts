@@ -224,7 +224,7 @@ export const setWhiteLabelConfig = mutation({
 export const getPublicBranding = query({
   args: { companyId: v.optional(v.id("companies")) },
   handler: async (ctx, args) => {
-    const config = await getWhiteLabelConfig.handler(ctx, { companyId: args.companyId });
+    const config = await (getWhiteLabelConfig as any)(ctx, { companyId: args.companyId });
 
     return {
       logo: config.logo,

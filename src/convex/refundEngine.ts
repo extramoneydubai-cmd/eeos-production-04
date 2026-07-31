@@ -16,7 +16,7 @@ import { Id } from "./_generated/dataModel";
 
 // ─── Enterprise Handler Factory ──────────────────────────────
 
-function withRefund<P extends Record<string, unknown>, R>(
+function withRefund<P = any, R = any>(
   operation: ScopeAndEventsConfig<P, R>["operation"],
   entity: string,
   getScope: (args: P) => { companyId?: string; branchId?: string },

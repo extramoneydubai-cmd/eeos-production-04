@@ -21,7 +21,7 @@ function generateNumber(prefix: string, serial: number): string {
 // ─── Enterprise Handler Factory ──────────────────────────────
 // Wraps ctx-based auth extraction for withScopeAndEvents integration
 
-function withProcurement<P extends Record<string, unknown>, R>(
+function withProcurement<P = any, R = any>(
   operation: ScopeAndEventsConfig<P, R>["operation"],
   entity: string,
   getScope: (args: P) => { companyId?: string; branchId?: string; departmentId?: string },

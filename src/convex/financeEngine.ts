@@ -20,7 +20,7 @@ function generateEntryNumber(prefix: string, serial: number): string {
 
 // ─── Enterprise Handler Factory ──────────────────────────────
 
-function withFinance<P extends Record<string, unknown>, R>(
+function withFinance<P = any, R = any>(
   operation: ScopeAndEventsConfig<P, R>["operation"],
   entity: string,
   getScope: (args: P) => { companyId?: string; branchId?: string },

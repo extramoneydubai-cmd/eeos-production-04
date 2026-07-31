@@ -115,7 +115,7 @@ export function withScopeAndEvents<P = any, R = any>(
 
     // ── Post-operation enterprise pipeline ─────────────┐
     try {
-      const entityId = extractIdFromResult(result);
+      const entityId = extractIdFromResult(result as any);
       const performedBy = userId;
       const now = Date.now();
       const eventType = config.eventType || `${config.module}.${config.entity}.${config.operation}`;
@@ -306,6 +306,14 @@ export function scopeFromArgs<P extends ScopeArgs>() {
   };
 }
 
+// ─── Auto-Document Config Presets ───────────────────────────
+
+/** Auto-generate a fee receipt after a payment mutation. */
+export const docOnPayment: DocumentType = "fee_receipt";
+
+/** Auto-generate a bounce notice after a PDC bounce mutation. */
+export const docOnBounce: DocumentType = "bounce_notice";
+
 // ─── Scope-Enforcing Query Wrapper ──────────────────────────
 
 export function withScopeCheck<P = any, R = any>(
@@ -314,7 +322,7 @@ export function withScopeCheck<P = any, R = any>(
   handler: (ctx: any, args: P) => Promise<R>,
 ): (ctx: any, args: P) => Promise<R> {
   return async (ctx: any, args: P) => {
-    const userId = args.userId;
+    const userId = (args as any).userId;
     if (userId) {
       const scope = await ScopeEngine.forUser(ctx as any, userId);
       const entityScope = getEntityScope(args);

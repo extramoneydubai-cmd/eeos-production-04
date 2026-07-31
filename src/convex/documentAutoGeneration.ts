@@ -43,7 +43,7 @@ export const processDocumentQueue = internalMutation({
         // Render the document using the template engine
         let rendered = "";
         try {
-          const result = await renderTemplate.handler(ctx, {
+          const result = await (renderTemplate as any)(ctx, {
             documentType: qi.documentType,
             context,
             companyId: qi.companyId,

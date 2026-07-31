@@ -580,7 +580,7 @@ export const getSearchSuggestionsV2 = query({
   args: { query: v.string() },
   handler: async (ctx, args) => {
     if (args.query.length < 2) return [];
-    const result = await globalSearchV2.handler(ctx, { query: args.query, limit: 5 });
+    const result = await (globalSearchV2 as any)(ctx, { query: args.query, limit: 5 });
     return result.suggestions;
   },
 });

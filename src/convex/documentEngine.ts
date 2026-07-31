@@ -17,7 +17,7 @@ import { paginatedQuery, applyStandardFilters, batchGet, type PaginatedResponse 
 
 // ─── Enterprise Handler Factory ──────────────────────────────
 
-function withDoc<P extends Record<string, unknown>, R>(
+function withDoc<P = any, R = any>(
   operation: ScopeAndEventsConfig<P, R>["operation"],
   entity: string,
   getScope: (args: P) => { companyId?: string; branchId?: string },

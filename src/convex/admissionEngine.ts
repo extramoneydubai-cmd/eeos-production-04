@@ -20,7 +20,7 @@ function generateAdmissionNumber(serial: number): string {
 
 // ─── Enterprise Handler Factory ──────────────────────────────
 
-function withAdmission<P extends Record<string, unknown>, R>(
+function withAdmission<P = any, R = any>(
   operation: ScopeAndEventsConfig<P, R>["operation"],
   entity: string,
   getScope: (args: P) => { companyId?: string; branchId?: string },

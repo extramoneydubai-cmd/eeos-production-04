@@ -141,7 +141,7 @@ export const getRule = query({
 export const getRefundRules = query({
   args: { companyId: v.optional(v.id("companies")), branchId: v.optional(v.id("branches")) },
   handler: async (ctx, args) => {
-    const rules = await getRules.handler(ctx, { domain: DOMAINS.REFUND, companyId: args.companyId, branchId: args.branchId });
+    const rules = await (getRules as any)(ctx, { domain: DOMAINS.REFUND, companyId: args.companyId, branchId: args.branchId });
     const ruleMap: Record<string, any> = {};
     for (const r of rules) ruleMap[(r as any).key] = (r as any).value;
     return {
@@ -164,7 +164,7 @@ export const getRefundRules = query({
 export const getApprovalChain = query({
   args: { module: v.string(), companyId: v.optional(v.id("companies")), branchId: v.optional(v.id("branches")) },
   handler: async (ctx, args) => {
-    const rules = await getRules.handler(ctx, {
+    const rules = await (getRules as any)(ctx, {
       domain: DOMAINS.APPROVAL_CHAIN,
       companyId: args.companyId,
       branchId: args.branchId,
@@ -178,7 +178,7 @@ export const getApprovalChain = query({
 export const getReceiptNumberFormat = query({
   args: { companyId: v.optional(v.id("companies")), branchId: v.optional(v.id("branches")) },
   handler: async (ctx, args) => {
-    const rules = await getRules.handler(ctx, { domain: DOMAINS.RECEIPT_NUMBERING, companyId: args.companyId, branchId: args.branchId });
+    const rules = await (getRules as any)(ctx, { domain: DOMAINS.RECEIPT_NUMBERING, companyId: args.companyId, branchId: args.branchId });
     const rule = rules[0];
     return rule ? (rule as any).value : "RCP-{YYYY}-{BRANCH}-{SEQ:6}";
   },

@@ -257,7 +257,7 @@ export const renderTemplate = mutation({
     if (args.templateId) {
       template = await ctx.db.get(args.templateId);
     } else if (args.documentType) {
-      template = await getDefaultTemplate.handler(ctx, {
+      template = await (getDefaultTemplate as any)(ctx, {
         documentType: args.documentType,
         companyId: args.companyId,
         branchId: args.branchId,
@@ -349,7 +349,7 @@ export const generateReceipt = mutation({
       paymentMode: args.paymentMode,
     };
 
-    const result = await renderTemplate.handler(ctx, {
+    const result = await (renderTemplate as any)(ctx, {
       documentType: "fee_receipt",
       context,
       companyId: args.companyId,
@@ -387,7 +387,7 @@ export const generateBounceNotice = mutation({
       penaltyAmount: args.penaltyAmount,
     };
 
-    return renderTemplate.handler(ctx, {
+    return (renderTemplate as any)(ctx, {
       documentType: "bounce_notice",
       context,
       companyId: args.companyId,
@@ -416,7 +416,7 @@ export const generateOfferLetter = mutation({
       salary: args.salary,
     };
 
-    return renderTemplate.handler(ctx, {
+    return (renderTemplate as any)(ctx, {
       documentType: "offer_letter",
       context,
       companyId: args.companyId,
@@ -442,7 +442,7 @@ export const generateConsentForm = mutation({
       ...(args.context || {}),
     };
 
-    return renderTemplate.handler(ctx, {
+    return (renderTemplate as any)(ctx, {
       documentType: args.documentType,
       context,
       companyId: args.companyId,

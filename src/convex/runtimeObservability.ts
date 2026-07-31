@@ -378,14 +378,14 @@ export const getOperationsDashboard = query({
   },
   handler: async (ctx, args) => {
     const [queues, workflow, events, scope, sla, health, finance, scheduling] = await Promise.all([
-      getQueueLengths.handler(ctx),
-      getWorkflowHealth.handler(ctx),
-      getEventPipelineHealth.handler(ctx, { sinceHours: 24 }),
-      getScopeViolations.handler(ctx),
-      getSLABreaches.handler(ctx, { sinceHours: 24 }),
-      getSystemHealth.handler(ctx),
-      getFinanceMetrics.handler(ctx, { companyId: args.companyId, branchId: args.branchId }),
-      getSchedulingMetrics.handler(ctx, { companyId: args.companyId, branchId: args.branchId }),
+      (getQueueLengths as any)(ctx),
+      (getWorkflowHealth as any)(ctx),
+      (getEventPipelineHealth as any)(ctx, { sinceHours: 24 }),
+      (getScopeViolations as any)(ctx),
+      (getSLABreaches as any)(ctx, { sinceHours: 24 }),
+      (getSystemHealth as any)(ctx),
+      (getFinanceMetrics as any)(ctx, { companyId: args.companyId, branchId: args.branchId }),
+      (getSchedulingMetrics as any)(ctx, { companyId: args.companyId, branchId: args.branchId }),
     ]);
 
     return {

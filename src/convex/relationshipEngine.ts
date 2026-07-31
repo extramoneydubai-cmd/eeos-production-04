@@ -440,7 +440,7 @@ export const get360Summary = query({
     entityId: v.string(),
   },
   handler: async (ctx, args) => {
-    const view = await get360View.handler(ctx, args);
+    const view = await (get360View as any)(ctx, args);
     return {
       entityType: args.entityType,
       entityId: args.entityId,

@@ -197,7 +197,7 @@ export const exportGrid = mutation({
     selectedFields: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
-    const data = await getGridData.handler(ctx, {
+    const data = await (getGridData as any)(ctx, {
       entityType: args.entityType,
       filters: args.filters,
       search: args.search,
