@@ -52,8 +52,10 @@ export function GlobalSearchDialog({ open, onOpenChange }: { open: boolean; onOp
     return () => document.removeEventListener("keydown", down);
   }, [open, onOpenChange]);
 
+  if (!open) return null;
+
   return (
-    <div className={`fixed inset-0 z-[100] ${open ? "" : "hidden"}`}>
+    <div className="fixed inset-0 z-[100]">
       <div className="fixed inset-0 bg-black/20" onClick={() => onOpenChange(false)} />
       <div className="fixed top-[20%] left-1/2 -translate-x-1/2 w-full max-w-lg">
         <Command className="rounded-lg border shadow-2xl bg-white overflow-hidden">

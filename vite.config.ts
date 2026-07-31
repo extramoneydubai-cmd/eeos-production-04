@@ -70,6 +70,10 @@ export default defineConfig({
       '@radix-ui/react-tooltip',
       'next-themes',
       'sonner',
+      // cmdk must be pre-bundled with React too — GlobalSearchDialog imports it
+      // from the always-mounted AppLayout; without this it is discovered at runtime,
+      // triggering a mixed module graph and "useRef on null" duplicate-React crashes.
+      'cmdk',
     ],
   },
   // Performance hints
