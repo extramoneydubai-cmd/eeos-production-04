@@ -806,4 +806,49 @@ export const financeTables = {
     .index("employeeId", ["employeeId"])
     .index("status", ["status"])
     .index("by_created", ["createdAt"]),
+
+  // ─── PDC / Cheque Lifecycle ────────────────────────────────────
+  chequeEntries: defineTable({
+    chequeRef: v.string(),
+    studentId: v.optional(v.id("studentMaster")),
+    invoiceId: v.optional(v.id("feeInvoices")),
+    chequeNumber: v.string(),
+    bankName: v.string(),
+    bankBranch: v.optional(v.string()),
+    chequeDate: v.number(),
+    amount: v.number(),
+    depositDate: v.optional(v.number()),
+    status: v.union(v.literal("received"), v.literal("deposited"), v.literal("cleared"), v.literal("bounced")),
+    bounceCount: v.optional(v.number()),
+    bounceReason: v.optional(v.string()),
+    bounceDate: v.optional(v.number()),
+    bounceRecordedBy: v.optional(v.id("users")),
+    clearanceDate: v.optional(v.number()),
+    depositedBy: v.optional(v.id("users")),
+    notes: v.optional(v.string()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("studentId", ["studentId"])
+    .index("status", ["status"])
+    .index("by_created", ["createdAt"])
+    .index("by_updated", ["updatedAt"]),
+
+  penaltyEntries: defineTable({
+    chequeId: v.id("chequeEntries"),
+    studentId: v.optional(v.id("studentMaster")),
+    invoiceId: v.optional(v.id("feeInvoices")),
+    amount: v.number(),
+    reason: v.string(),
+    status: v.union(v.literal("pending"), v.literal("waived"), v.literal("collected")),
+    notes: v.optional(v.string()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("chequeId", ["chequeId"])
+    .index("studentId", ["studentId"])
+    .index("status", ["status"])
+    .index("by_created", ["createdAt"]),
 };

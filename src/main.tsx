@@ -122,6 +122,8 @@ const LessonWorkspace = lazy(() => import("./pages/LessonWorkspace.tsx"));
 const FinanceDashboard = lazy(() => import("./pages/FinanceDashboard.tsx"));
 const FinanceReports = lazy(() => import("./pages/FinanceReports.tsx"));
 const InvoiceWorkspace = lazy(() => import("./pages/InvoiceWorkspace.tsx"));
+const RefundCenter = lazy(() => import("./pages/RefundCenter.tsx"));
+const PdcWorkspace = lazy(() => import("./pages/PdcWorkspace.tsx"));
 const ExpenseWorkspace = lazy(() => import("./pages/ExpenseWorkspace.tsx"));
 const ProcurementDashboard = lazy(() => import("./pages/ProcurementDashboard.tsx"));
 const LMSDashboard = lazy(() => import("./pages/LMSDashboard.tsx"));
@@ -501,6 +503,8 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/lms/lessons/:lessonId" element={<ProtectedRoute><LessonWorkspace /></ProtectedRoute>} />
               <Route path="/finance" element={<ProtectedRoute><FinanceDashboard /></ProtectedRoute>} />
               <Route path="/finance/reports" element={<ProtectedRoute><FinanceReports /></ProtectedRoute>} />
+              <Route path="/finance/refunds" element={<ProtectedRoute><RefundCenter /></ProtectedRoute>} />
+              <Route path="/finance/pdc" element={<ProtectedRoute><PdcWorkspace /></ProtectedRoute>} />
               <Route path="/finance/invoices/:id" element={<ProtectedRoute><InvoiceWorkspace /></ProtectedRoute>} />
               <Route path="/finance/expenses/:id" element={<ProtectedRoute><ExpenseWorkspace /></ProtectedRoute>} />
               <Route path="/procurement" element={<ProtectedRoute><ProcurementDashboard /></ProtectedRoute>} />

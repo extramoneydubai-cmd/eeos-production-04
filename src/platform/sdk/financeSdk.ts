@@ -403,3 +403,277 @@ export const payVendorBill = mutation({
     return payVendorBill.handler(ctx, args as any);
   },
 });
+
+// ─── SDK Queries — Refund Engine ─────────────────────────────────────────
+
+/**
+ * List refund requests with optional status / student filters.
+ */
+export const listRefunds = query({
+  args: {
+    status: v.optional(v.union(v.literal("draft"), v.literal("pending"), v.literal("approved"), v.literal("rejected"), v.literal("processing"), v.literal("completed"))),
+    studentId: v.optional(v.id("studentMaster")),
+  },
+  handler: async (ctx, args) => {
+    const { listRefundRequests } = await import("../../convex/refundEngine");
+    return listRefundRequests.handler(ctx, args);
+  },
+});
+
+/**
+ * Get a single refund request.
+ */
+export const getRefund = query({
+  args: { id: v.id("refundRequests") },
+  handler: async (ctx, args) => {
+    const { getRefundRequest } = await import("../../convex/refundEngine");
+    return getRefundRequest.handler(ctx, args);
+  },
+});
+
+/**
+ * Refund summary KPIs (counts per status).
+ */
+export const getRefundSummary = query({
+  handler: async (ctx) => {
+    const { getRefundSummary } = await import("../../convex/refundEngine");
+    return getRefundSummary.handler(ctx, {});
+  },
+});
+
+// ─── SDK Mutations — Refund Engine ───────────────────────────────────────
+
+/**
+ * Create a refund request.
+ */
+export const createRefundRequest = mutation({
+  args: {
+    studentId: v.optional(v.id("studentMaster")),
+    transactionId: v.optional(v.id("paymentTransactions")),
+    invoiceId: v.optional(v.id("feeInvoices")),
+    amount: v.number(),
+    reason: v.string(),
+    reasonCategory: v.union(v.literal("academic"), v.literal("administrative"), v.literal("financial"), v.literal("withdrawal"), v.literal("other")),
+    notes: v.optional(v.string()),
+    companyId: v.optional(v.id("companies")),
+    branchId: v.optional(v.id("branches")),
+  },
+  handler: async (ctx, args) => {
+    const { createRefundRequest } = await import("../../convex/refundEngine");
+    return createRefundRequest.handler(ctx, args as any);
+  },
+});
+
+/**
+ * Submit a draft refund for approval.
+ */
+export const submitRefundForApproval = mutation({
+  args: {
+    id: v.id("refundRequests"),
+    companyId: v.optional(v.id("companies")),
+    branchId: v.optional(v.id("branches")),
+  },
+  handler: async (ctx, args) => {
+    const { submitRefundForApproval } = await import("../../convex/refundEngine");
+    return submitRefundForApproval.handler(ctx, args);
+  },
+});
+
+/**
+ * Approve or reject a refund.
+ */
+export const approveRefund = mutation({
+  args: {
+    id: v.id("refundRequests"),
+    approve: v.boolean(),
+    notes: v.optional(v.string()),
+    companyId: v.optional(v.id("companies")),
+    branchId: v.optional(v.id("branches")),
+  },
+  handler: async (ctx, args) => {
+    const { approveRefund } = await import("../../convex/refundEngine");
+    return approveRefund.handler(ctx, args as any);
+  },
+});
+
+/**
+ * Process an approved refund (initiate payment).
+ */
+export const processRefund = mutation({
+  args: {
+    id: v.id("refundRequests"),
+    refundMethod: v.string(),
+    refundReference: v.optional(v.string()),
+    companyId: v.optional(v.id("companies")),
+    branchId: v.optional(v.id("branches")),
+  },
+  handler: async (ctx, args) => {
+    const { processRefund } = await import("../../convex/refundEngine");
+    return processRefund.handler(ctx, args);
+  },
+});
+
+/**
+ * Mark a refund as completed.
+ */
+export const completeRefund = mutation({
+  args: {
+    id: v.id("refundRequests"),
+    notes: v.optional(v.string()),
+    companyId: v.optional(v.id("companies")),
+    branchId: v.optional(v.id("branches")),
+  },
+  handler: async (ctx, args) => {
+    const { completeRefund } = await import("../../convex/refundEngine");
+    return completeRefund.handler(ctx, args);
+  },
+});
+
+// ─── SDK Queries — Cheque / PDC Engine ───────────────────────────────────
+
+/**
+ * List cheques with status / student / bank filters.
+ */
+export const listCheques = query({
+  args: {
+    status: v.optional(v.union(v.literal("received"), v.literal("deposited"), v.literal("cleared"), v.literal("bounced"))),
+    studentId: v.optional(v.id("studentMaster")),
+    bankName: v.optional(v.string()),
+    startDate: v.optional(v.number()),
+    endDate: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const { listCheques } = await import("../../convex/chequeEngine");
+    return listCheques.handler(ctx, args);
+  },
+});
+
+/**
+ * Get a single cheque entry.
+ */
+export const getCheque = query({
+  args: { id: v.id("chequeEntries") },
+  handler: async (ctx, args) => {
+    const { getCheque } = await import("../../convex/chequeEngine");
+    return getCheque.handler(ctx, args);
+  },
+});
+
+/**
+ * Cheque dashboard stats (counts + values per status).
+ */
+export const getChequeDashboard = query({
+  handler: async (ctx) => {
+    const { getChequeDashboard } = await import("../../convex/chequeEngine");
+    return getChequeDashboard.handler(ctx, {});
+  },
+});
+
+/**
+ * List penalty entries.
+ */
+export const listPenalties = query({
+  args: {
+    studentId: v.optional(v.id("studentMaster")),
+    status: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { listPenalties } = await import("../../convex/chequeEngine");
+    return listPenalties.handler(ctx, args);
+  },
+});
+
+// ─── SDK Mutations — Cheque / PDC Engine ─────────────────────────────────
+
+/**
+ * Create a new cheque entry (received).
+ */
+export const createChequeEntry = mutation({
+  args: {
+    studentId: v.optional(v.id("studentMaster")),
+    invoiceId: v.optional(v.id("feeInvoices")),
+    chequeNumber: v.string(),
+    bankName: v.string(),
+    bankBranch: v.optional(v.string()),
+    chequeDate: v.number(),
+    amount: v.number(),
+    depositDate: v.optional(v.number()),
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { createChequeEntry } = await import("../../convex/chequeEngine");
+    return createChequeEntry.handler(ctx, args as any);
+  },
+});
+
+/**
+ * Deposit a cheque.
+ */
+export const depositCheque = mutation({
+  args: { id: v.id("chequeEntries"), depositDate: v.number() },
+  handler: async (ctx, args) => {
+    const { depositCheque } = await import("../../convex/chequeEngine");
+    return depositCheque.handler(ctx, args);
+  },
+});
+
+/**
+ * Mark a cheque as cleared.
+ */
+export const clearCheque = mutation({
+  args: { id: v.id("chequeEntries"), clearanceDate: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const { clearCheque } = await import("../../convex/chequeEngine");
+    return clearCheque.handler(ctx, args);
+  },
+});
+
+/**
+ * Record a cheque bounce with optional penalty.
+ */
+export const bounceCheque = mutation({
+  args: {
+    id: v.id("chequeEntries"),
+    bounceReason: v.string(),
+    bounceDate: v.optional(v.number()),
+    penaltyAmount: v.optional(v.number()),
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { bounceCheque } = await import("../../convex/chequeEngine");
+    return bounceCheque.handler(ctx, args as any);
+  },
+});
+
+/**
+ * Re-present a bounced cheque.
+ */
+export const rePresentCheque = mutation({
+  args: { id: v.id("chequeEntries"), newDepositDate: v.number() },
+  handler: async (ctx, args) => {
+    const { rePresentCheque } = await import("../../convex/chequeEngine");
+    return rePresentCheque.handler(ctx, args);
+  },
+});
+
+/**
+ * Waive a penalty.
+ */
+export const waivePenalty = mutation({
+  args: { id: v.id("penaltyEntries"), notes: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const { waivePenalty } = await import("../../convex/chequeEngine");
+    return waivePenalty.handler(ctx, args);
+  },
+});
+
+/**
+ * Collect a penalty.
+ */
+export const collectPenalty = mutation({
+  args: { id: v.id("penaltyEntries") },
+  handler: async (ctx, args) => {
+    const { collectPenalty } = await import("../../convex/chequeEngine");
+    return collectPenalty.handler(ctx, args);
+  },
+});
