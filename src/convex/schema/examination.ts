@@ -33,7 +33,7 @@ export const examinationTables = {
   examSessions: defineTable({
     templateId: v.id("examTemplates"),
     academicSessionId: v.id("academicSessions"),
-    branchId: v.id("orgBranches"),
+    branchId: v.id("branches"),
     courseId: v.optional(v.id("courses")),
     batchId: v.optional(v.id("academicBatches")),
     sectionId: v.optional(v.id("academicSections")),

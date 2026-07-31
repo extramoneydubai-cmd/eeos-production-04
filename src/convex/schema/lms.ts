@@ -118,6 +118,7 @@ export const lmsTables = {
     .index("studentId", ["studentId"])
     .index("courseId", ["courseId"])
     .index("studentId_lessonId", ["studentId", "lessonId"])
+    .index("studentId_courseId", ["studentId", "courseId"])
     .index("by_created", ["createdAt"])
     .index("by_updated", ["updatedAt"]),
   lmsLessons: defineTable({

@@ -247,7 +247,9 @@ export const supportTables = {
   // ─── Knowledge Base ─────────────────────────────────────────
   knowledgeArticles: defineTable({
     title: v.string(),
+    slug: v.optional(v.string()),
     body: v.string(),
+    content: v.optional(v.string()),
     bodyHtml: v.optional(v.string()),
     categoryId: v.optional(v.id("knowledgeCategories")),
     tags: v.optional(v.array(v.string())),
@@ -278,6 +280,7 @@ export const supportTables = {
     order: v.optional(v.number()),
     isActive: v.optional(v.boolean()),
     organizationId: v.optional(v.id("organizations")),
+    articleCount: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
