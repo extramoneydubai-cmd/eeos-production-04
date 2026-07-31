@@ -170,6 +170,7 @@ import type * as http from "../http.js";
 import type * as intakeEngine from "../intakeEngine.js";
 import type * as integrationEngine from "../integrationEngine.js";
 import type * as integrations_github from "../integrations/github.js";
+import type * as integrations_openai from "../integrations/openai.js";
 import type * as interviewEngine from "../interviewEngine.js";
 import type * as inventoryBranchEngine from "../inventoryBranchEngine.js";
 import type * as inventoryEngine from "../inventoryEngine.js";
@@ -466,6 +467,7 @@ declare const fullApi: ApiFromModules<{
   intakeEngine: typeof intakeEngine;
   integrationEngine: typeof integrationEngine;
   "integrations/github": typeof integrations_github;
+  "integrations/openai": typeof integrations_openai;
   interviewEngine: typeof interviewEngine;
   inventoryBranchEngine: typeof inventoryBranchEngine;
   inventoryEngine: typeof inventoryEngine;
