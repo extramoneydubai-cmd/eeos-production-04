@@ -200,4 +200,94 @@ export const hrTables = {
   }).index("sequence", ["sequence"])
     .index("by_created", ["createdAt"])
     .index("by_updated", ["updatedAt"]),
+
+  // ─── Leave Management ──────────────────────────────────────
+  leaveTypes: defineTable({
+    name: v.string(),
+    code: v.string(),
+    description: v.optional(v.string()),
+    annualAllowance: v.number(),
+    carryForward: v.optional(v.boolean()),
+    maxCarryForward: v.optional(v.number()),
+    requiresApproval: v.optional(v.boolean()),
+    genderSpecific: v.optional(v.union(v.literal("male"), v.literal("female"))),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+  }).index("code", ["code"])
+    .index("by_active", ["isActive"]),
+
+  leaveApplications: defineTable({
+    employeeId: v.id("users"),
+    leaveTypeId: v.id("leaveTypes"),
+    startDate: v.number(),
+    endDate: v.number(),
+    days: v.number(),
+    halfDay: v.optional(v.boolean()),
+    reason: v.string(),
+    contactDuringLeave: v.optional(v.string()),
+    status: v.union(v.literal("pending"), v.literal("approved"), v.literal("rejected"), v.literal("cancelled")),
+    approvedBy: v.optional(v.id("users")),
+    approvedAt: v.optional(v.number()),
+    comments: v.optional(v.string()),
+    appliedOn: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("employeeId", ["employeeId"])
+    .index("leaveTypeId", ["leaveTypeId"])
+    .index("status", ["status"])
+    .index("by_applied", ["appliedOn"])
+    .index("by_updated", ["updatedAt"]),
+
+  leaveBalances: defineTable({
+    employeeId: v.id("users"),
+    leaveTypeId: v.id("leaveTypes"),
+    balance: v.number(),
+    used: v.number(),
+    year: v.number(),
+    createdAt: v.number(),
+  })
+    .index("employeeId", ["employeeId"])
+    .index("leaveTypeId", ["leaveTypeId"])
+    .index("employeeId_leaveTypeId", ["employeeId", "leaveTypeId"]),
+
+  // ─── Payroll ───────────────────────────────────────────────
+  salaryStructures: defineTable({
+    employeeId: v.id("users"),
+    basicSalary: v.number(),
+    hra: v.optional(v.number()),
+    allowances: v.optional(v.array(v.object({ name: v.string(), amount: v.number() }))),
+    deductions: v.optional(v.array(v.object({ name: v.string(), amount: v.number() }))),
+    grossSalary: v.number(),
+    totalDeductions: v.number(),
+    netSalary: v.number(),
+    effectiveFrom: v.number(),
+    isActive: v.boolean(),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("employeeId", ["employeeId"])
+    .index("by_active", ["isActive"])
+    .index("by_effective", ["effectiveFrom"]),
+
+  payslips: defineTable({
+    employeeId: v.id("users"),
+    month: v.number(),
+    year: v.number(),
+    grossSalary: v.number(),
+    totalDeductions: v.number(),
+    netPayable: v.number(),
+    absenceDays: v.optional(v.number()),
+    status: v.union(v.literal("processing"), v.literal("approved"), v.literal("paid")),
+    approvedAt: v.optional(v.number()),
+    processedBy: v.optional(v.id("users")),
+    generatedAt: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("employeeId", ["employeeId"])
+    .index("month_year", ["month", "year"])
+    .index("status", ["status"])
+    .index("by_generated", ["generatedAt"]),
 };

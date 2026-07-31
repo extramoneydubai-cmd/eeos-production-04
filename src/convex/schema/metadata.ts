@@ -159,15 +159,35 @@ export const metadataTables = {
     .index("by_created", ["createdAt"]),
 
   // ─── Attendance Records ─────────────────────────────────────
+  // Universal shape: supports student (studentId) AND generic entities
+  // (entityType/entityId) used by attendanceEngine, payrollEngine, attendanceSdk.
   attendanceRecords: defineTable({
-    studentId: v.id("personMaster"),
+    studentId: v.optional(v.id("personMaster")),
     studentName: v.optional(v.string()),
     batchId: v.optional(v.id("academicBatches")),
+    entityType: v.optional(
+      v.union(
+        v.literal("student"), v.literal("employee"), v.literal("faculty"),
+        v.literal("visitor"), v.literal("vendor"), v.literal("support"),
+      ),
+    ),
+    entityId: v.optional(v.string()),
     date: v.number(),
     status: v.union(
       v.literal("present"), v.literal("absent"),
       v.literal("late"), v.literal("half_day"), v.literal("holiday"),
+      v.literal("on_leave"),
     ),
+    checkIn: v.optional(v.number()),
+    checkOut: v.optional(v.number()),
+    mode: v.optional(
+      v.union(
+        v.literal("manual"), v.literal("qr"), v.literal("face_recognition"),
+        v.literal("biometric"), v.literal("gps"), v.literal("nfc"), v.literal("rfid"),
+        v.literal("bulk_import"), v.literal("offline_sync"),
+      ),
+    ),
+    notes: v.optional(v.string()),
     branchId: v.optional(v.id("branches")),
     markedBy: v.optional(v.id("users")),
     remarks: v.optional(v.string()),
@@ -179,5 +199,7 @@ export const metadataTables = {
     .index("by_date", ["date"])
     .index("by_status", ["status"])
     .index("by_branch", ["branchId"])
-    .index("by_batch_date", ["batchId", "date"]),
+    .index("by_batch_date", ["batchId", "date"])
+    .index("entityType_entityId", ["entityType", "entityId"])
+    .index("entityType_entityId_date", ["entityType", "entityId", "date"]),
 };

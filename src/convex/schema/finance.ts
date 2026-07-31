@@ -851,4 +851,62 @@ export const financeTables = {
     .index("studentId", ["studentId"])
     .index("status", ["status"])
     .index("by_created", ["createdAt"]),
+
+  // ─── GST Debit Notes ───────────────────────────────────────
+  debitNotes: defineTable({
+    debitNoteNumber: v.string(),
+    invoiceId: v.optional(v.id("feeInvoices")),
+    studentId: v.id("studentMaster"),
+    amount: v.number(),
+    gstRate: v.optional(v.number()),
+    gstAmount: v.number(),
+    reason: v.string(),
+    reasonCategory: v.union(v.literal("rate_difference"), v.literal("omission"), v.literal("correction"), v.literal("other")),
+    originalInvoiceNumber: v.optional(v.string()),
+    status: v.union(v.literal("draft"), v.literal("issued"), v.literal("applied"), v.literal("cancelled")),
+    issuedAt: v.optional(v.number()),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("studentId", ["studentId"])
+    .index("invoiceId", ["invoiceId"])
+    .index("status", ["status"])
+    .index("by_created", ["createdAt"]),
+
+  // ─── Bank Reconciliation ───────────────────────────────────
+  bankStatements: defineTable({
+    bankName: v.string(),
+    accountNumber: v.string(),
+    statementPeriod: v.string(),
+    importedBy: v.id("users"),
+    status: v.string(),
+    matchingStatus: v.union(v.literal("pending"), v.literal("partial"), v.literal("fully_matched")),
+    matchedCount: v.optional(v.number()),
+    unmatchedCount: v.optional(v.number()),
+    totalMatchedValue: v.optional(v.number()),
+    totalUnmatchedValue: v.optional(v.number()),
+    reconciledAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("bankName", ["bankName"])
+    .index("matchingStatus", ["matchingStatus"])
+    .index("by_created", ["createdAt"]),
+
+  bankStatementEntries: defineTable({
+    statementId: v.id("bankStatements"),
+    transactionDate: v.number(),
+    description: v.string(),
+    debit: v.number(),
+    credit: v.number(),
+    reference: v.optional(v.string()),
+    matched: v.boolean(),
+    matchedTransactionId: v.optional(v.id("paymentTransactions")),
+    matchedAt: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("statementId", ["statementId"])
+    .index("matched", ["matched"])
+    .index("by_date", ["transactionDate"]),
 };
