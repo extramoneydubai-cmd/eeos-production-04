@@ -82,6 +82,9 @@ export const procurementTables = {
     maxStock: v.number(),
     reorderLevel: v.number(),
     currentStock: v.number(),
+    quantity: v.optional(v.number()),
+    reserved: v.optional(v.number()),
+    branchId: v.optional(v.id("branches")),
     warehouseId: v.id("warehouses"),
     barcode: v.optional(v.string()),
     qrCode: v.optional(v.string()),
@@ -93,6 +96,7 @@ export const procurementTables = {
   })
     .index("sku", ["sku"])
     .index("categoryId", ["categoryId"])
+    .index("branchId", ["branchId"])
     .index("warehouseId", ["warehouseId"])
     .index("barcode", ["barcode"])
     .index("currentStock", ["currentStock"])

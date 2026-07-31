@@ -121,6 +121,7 @@ export const financeTables = {
     billingPeriod: v.optional(v.string()),
     gstPercentage: v.optional(v.number()),
     gstAmount: v.optional(v.number()),
+    notes: v.optional(v.string()),
     createdBy: v.id("users"),
   })
     .index("invoiceNumber", ["invoiceNumber"])
@@ -427,6 +428,8 @@ export const financeTables = {
     pdfUrl: v.optional(v.string()),
     emailedAt: v.optional(v.number()),
     whatsappSentAt: v.optional(v.number()),
+    paymentMethod: v.optional(v.string()),
+    generatedBy: v.optional(v.id("users")),
     createdBy: v.id("users"),
   })
     .index("receiptNumber", ["receiptNumber"])
