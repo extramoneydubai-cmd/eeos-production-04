@@ -33,7 +33,8 @@ export const examinationTables = {
   examSessions: defineTable({
     templateId: v.id("examTemplates"),
     academicSessionId: v.id("academicSessions"),
-    branchId: v.id("branches"),
+    // Migration state: legacy rows reference orgBranches, new seed uses branches.
+    branchId: v.union(v.id("branches"), v.id("orgBranches")),
     courseId: v.optional(v.id("courses")),
     batchId: v.optional(v.id("academicBatches")),
     sectionId: v.optional(v.id("academicSections")),
