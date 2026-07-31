@@ -216,6 +216,82 @@ export const RULE_DEFINITIONS: Record<string, RuleDefinition> = {
     description: "Maximum distance in meters from branch for GPS check-in",
     valueType: "number", defaultValue: 500, companyOverridable: true, branchOverridable: true, category: "operations",
   },
+  // ─── Enterprise attendance policies (PATCH-ENTERPRISE-020) ─────
+  "attendance.weeklyOffDays": {
+    domain: "attendance", key: "weeklyOffDays", label: "Weekly Off Days",
+    description: "Comma-separated weekly off days (e.g. sun,sat)",
+    valueType: "string", defaultValue: "sun", companyOverridable: true, branchOverridable: true, category: "operations",
+  },
+  "attendance.sandwichLeavePolicy": {
+    domain: "attendance", key: "sandwichLeavePolicy", label: "Sandwich Leave Policy",
+    description: "How leave between two holidays is treated: count_as_leave / exclude_holidays / disallow",
+    valueType: "string", defaultValue: "count_as_leave", companyOverridable: true, branchOverridable: true, category: "hr",
+  },
+  "attendance.compOffEnabled": {
+    domain: "attendance", key: "compOffEnabled", label: "Comp Off Enabled",
+    description: "Allow compensatory off earned from overtime or holiday work",
+    valueType: "boolean", defaultValue: true, companyOverridable: true, branchOverridable: true, category: "hr",
+  },
+  "attendance.compOffHoursPerOT": {
+    domain: "attendance", key: "compOffHoursPerOT", label: "Comp Off Hours per OT",
+    description: "Hours of comp off earned per hour of overtime worked",
+    valueType: "number", defaultValue: 1, companyOverridable: true, branchOverridable: true, category: "hr",
+  },
+  "attendance.nightAllowanceEnabled": {
+    domain: "attendance", key: "nightAllowanceEnabled", label: "Night Allowance Enabled",
+    description: "Pay night-shift allowance for shifts ending after 10pm",
+    valueType: "boolean", defaultValue: false, companyOverridable: true, branchOverridable: true, category: "hr",
+  },
+  "attendance.nightAllowanceAmount": {
+    domain: "attendance", key: "nightAllowanceAmount", label: "Night Allowance Amount",
+    description: "Fixed allowance per night shift worked",
+    valueType: "number", defaultValue: 0, companyOverridable: true, branchOverridable: true, category: "hr",
+  },
+  "attendance.shiftAllowanceEnabled": {
+    domain: "attendance", key: "shiftAllowanceEnabled", label: "Shift Allowance Enabled",
+    description: "Pay allowance for split or rotational shifts",
+    valueType: "boolean", defaultValue: false, companyOverridable: true, branchOverridable: true, category: "hr",
+  },
+  "attendance.shiftAllowanceAmount": {
+    domain: "attendance", key: "shiftAllowanceAmount", label: "Shift Allowance Amount",
+    description: "Fixed allowance per eligible shift worked",
+    valueType: "number", defaultValue: 0, companyOverridable: true, branchOverridable: true, category: "hr",
+  },
+  "attendance.maxBreakMinutes": {
+    domain: "attendance", key: "maxBreakMinutes", label: "Max Break Minutes",
+    description: "Deductible break allowance per shift before OT is counted",
+    valueType: "number", defaultValue: 45, companyOverridable: true, branchOverridable: true, category: "hr",
+  },
+  "attendance.otThresholdMinutes": {
+    domain: "attendance", key: "otThresholdMinutes", label: "OT Threshold (min)",
+    description: "Extra minutes beyond shift end before overtime starts counting",
+    valueType: "number", defaultValue: 15, companyOverridable: true, branchOverridable: true, category: "hr",
+  },
+  "attendance.wfhEnabled": {
+    domain: "attendance", key: "wfhEnabled", label: "WFH Enabled",
+    description: "Allow work-from-home attendance marking",
+    valueType: "boolean", defaultValue: false, companyOverridable: true, branchOverridable: true, category: "operations",
+  },
+  "attendance.hybridEnabled": {
+    domain: "attendance", key: "hybridEnabled", label: "Hybrid Work Enabled",
+    description: "Allow hybrid office/remote attendance",
+    valueType: "boolean", defaultValue: false, companyOverridable: true, branchOverridable: true, category: "operations",
+  },
+  "attendance.ipRestrictionEnabled": {
+    domain: "attendance", key: "ipRestrictionEnabled", label: "IP Restriction Enabled",
+    description: "Only allow check-in from whitelisted branch IP ranges",
+    valueType: "boolean", defaultValue: false, companyOverridable: true, branchOverridable: true, category: "security",
+  },
+  "attendance.deviceRestrictionEnabled": {
+    domain: "attendance", key: "deviceRestrictionEnabled", label: "Device Restriction Enabled",
+    description: "Only allow check-in from registered device IDs",
+    valueType: "boolean", defaultValue: false, companyOverridable: true, branchOverridable: true, category: "security",
+  },
+  "attendance.lwpAfterAbsentDays": {
+    domain: "attendance", key: "lwpAfterAbsentDays", label: "LWP After Absent Days",
+    description: "Absences beyond this count in a month become loss-of-pay days",
+    valueType: "number", defaultValue: 2, companyOverridable: true, branchOverridable: true, category: "payroll",
+  },
   "cheque.maxBounceCount": {
     domain: "cheque", key: "maxBounceCount", label: "Max Bounce Count",
     description: "Maximum number of bounced cheques before restriction",
@@ -571,6 +647,68 @@ export const calculateOvertime = query({
       overtimeHours,
       eligible: enabled && overtimeHours > 0,
       paidHours: enabled ? overtimeHours * multiplier : 0,
+    };
+  },
+});
+
+/**
+ * Calculate payslip impact from attendance — LWP deduction, OT pay,
+ * night-shift and shift allowances, comp-off accrual — all from
+ * configured Rule Runtime policies (PATCH-ENTERPRISE-020).
+ */
+export const calculatePayslipImpact = query({
+  args: {
+    monthlySalary: v.number(),
+    workingDaysInMonth: v.number(),
+    absentDays: v.number(),
+    halfDays: v.number(),
+    lateDays: v.number(),
+    overtimeHours: v.number(),
+    nightShifts: v.number(),
+    eligibleShifts: v.number(),
+    companyId: v.optional(v.id("companies")),
+    branchId: v.optional(v.id("branches")),
+  },
+  handler: async (ctx, args) => {
+    const domainRules = await getDomainRules.handler(ctx, { domain: "attendance", companyId: args.companyId, branchId: args.branchId });
+    const ruleMap: Record<string, any> = {};
+    for (const r of domainRules) ruleMap[r.key] = r.value;
+
+    const lwpAfter = ruleMap.lwpAfterAbsentDays ?? 2;
+    const otThreshold = ruleMap.otThresholdMinutes ?? 15;
+    const otMultiplier = ruleMap.overtimeRateMultiplier ?? 1.5;
+    const breakMinutes = ruleMap.maxBreakMinutes ?? 45;
+    const nightAllowance = ruleMap.nightAllowanceEnabled ? (ruleMap.nightAllowanceAmount ?? 0) : 0;
+    const shiftAllowance = ruleMap.shiftAllowanceEnabled ? (ruleMap.shiftAllowanceAmount ?? 0) : 0;
+
+    // LWP: absences beyond threshold, plus half-days count as half an absence
+    const lwpDays = Math.max(0, args.absentDays - lwpAfter) + args.halfDays * 0.5;
+    const perDaySalary = args.workingDaysInMonth > 0 ? args.monthlySalary / args.workingDaysInMonth : 0;
+    const lwpDeduction = Math.round(lwpDays * perDaySalary * 100) / 100;
+
+    // Overtime pay (net of break allowance)
+    const netOvertimeHours = Math.max(0, args.overtimeHours - (breakMinutes / 60));
+    const hourlyRate = args.workingDaysInMonth > 0 ? perDaySalary / 8 : 0;
+    const overtimePay = Math.round(netOvertimeHours * hourlyRate * otMultiplier * 100) / 100;
+
+    const nightAllowanceTotal = nightAllowance * args.nightShifts;
+    const shiftAllowanceTotal = shiftAllowance * args.eligibleShifts;
+    const compOffHours = ruleMap.compOffEnabled ? Math.round(netOvertimeHours * (ruleMap.compOffHoursPerOT ?? 1)) : 0;
+
+    const netImpact = Math.round((overtimePay + nightAllowanceTotal + shiftAllowanceTotal - lwpDeduction) * 100) / 100;
+
+    return {
+      inputs: args,
+      policy: ruleMap,
+      lwpDays,
+      lwpDeduction,
+      overtimeHours: netOvertimeHours,
+      overtimePay,
+      nightAllowanceTotal,
+      shiftAllowanceTotal,
+      compOffHours,
+      netImpact,
+      perDaySalary: Math.round(perDaySalary * 100) / 100,
     };
   },
 });

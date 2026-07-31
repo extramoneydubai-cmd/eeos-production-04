@@ -184,13 +184,34 @@ export const metadataTables = {
       v.union(
         v.literal("manual"), v.literal("qr"), v.literal("face_recognition"),
         v.literal("biometric"), v.literal("gps"), v.literal("nfc"), v.literal("rfid"),
-        v.literal("bulk_import"), v.literal("offline_sync"),
+        v.literal("bulk_import"), v.literal("offline_sync"), v.literal("selfie"),
+        v.literal("otp"), v.literal("api"), v.literal("webhook"),
       ),
     ),
     notes: v.optional(v.string()),
     branchId: v.optional(v.id("branches")),
     markedBy: v.optional(v.id("users")),
     remarks: v.optional(v.string()),
+    // ─── Enterprise attendance fields (PATCH-ENTERPRISE-020) ─────
+    shiftType: v.optional(v.union(v.literal("morning"), v.literal("evening"), v.literal("night"), v.literal("split"), v.literal("rotational"), v.literal("flexible"), v.literal("wfh"), v.literal("hybrid"))),
+    shiftId: v.optional(v.string()),
+    dutyType: v.optional(v.union(v.literal("office"), v.literal("field"), v.literal("remote"), v.literal("teaching"), v.literal("research"), v.literal("meeting"), v.literal("delivery"), v.literal("installation"), v.literal("repair"))),
+    checkInLocation: v.optional(v.string()),
+    checkOutLocation: v.optional(v.string()),
+    latitude: v.optional(v.number()),
+    longitude: v.optional(v.number()),
+    geofenceVerified: v.optional(v.boolean()),
+    geofenceDistanceM: v.optional(v.number()),
+    deviceId: v.optional(v.string()),
+    ipAddress: v.optional(v.string()),
+    selfieUrl: v.optional(v.string()),
+    otpVerified: v.optional(v.boolean()),
+    hostApprovedBy: v.optional(v.id("users")),
+    gatePassNumber: v.optional(v.string()),
+    overtimeMinutes: v.optional(v.number()),
+    breakMinutes: v.optional(v.number()),
+    lectureTaken: v.optional(v.boolean()),
+    substituteFor: v.optional(v.id("users")),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -199,6 +220,8 @@ export const metadataTables = {
     .index("by_date", ["date"])
     .index("by_status", ["status"])
     .index("by_branch", ["branchId"])
+    .index("by_shift", ["shiftType"])
+    .index("by_duty", ["dutyType"])
     .index("by_batch_date", ["batchId", "date"])
     .index("entityType_entityId", ["entityType", "entityId"])
     .index("entityType_entityId_date", ["entityType", "entityId", "date"]),

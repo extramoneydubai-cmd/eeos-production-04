@@ -265,10 +265,24 @@ export const lmsTables = {
     fileUrl: v.string(),
     uploadedBy: v.id("users"),
     description: v.optional(v.string()),
+    // ─── Video metadata only — media stays external (PATCH-ENTERPRISE-020) ─────
+    storageProvider: v.optional(v.union(v.literal("aws_s3"), v.literal("cloudflare_r2"), v.literal("google_drive"), v.literal("azure_blob"), v.literal("dropbox"), v.literal("onedrive"), v.literal("minio"), v.literal("bunny_cdn"), v.literal("wasabi"), v.literal("vimeo"), v.literal("mux"), v.literal("youtube_private"), v.literal("custom"))),
+    bucket: v.optional(v.string()),
+    objectKey: v.optional(v.string()),
+    playbackUrl: v.optional(v.string()),
+    durationSeconds: v.optional(v.number()),
+    thumbnailUrl: v.optional(v.string()),
+    captionsUrl: v.optional(v.string()),
+    transcriptUrl: v.optional(v.string()),
+    chapters: v.optional(v.array(v.object({ time: v.number(), title: v.string() }))),
+    qualityProfiles: v.optional(v.array(v.string())),
+    drmEnabled: v.optional(v.boolean()),
+    watermarkEnabled: v.optional(v.boolean()),
     createdAt: v.number(),
   })
     .index("courseId", ["courseId"])
     .index("lessonId", ["lessonId"])
     .index("uploadedBy", ["uploadedBy"])
+    .index("storageProvider", ["storageProvider"])
     .index("by_created", ["createdAt"]),
 };

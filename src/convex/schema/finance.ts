@@ -818,7 +818,7 @@ export const financeTables = {
     chequeDate: v.number(),
     amount: v.number(),
     depositDate: v.optional(v.number()),
-    status: v.union(v.literal("received"), v.literal("deposited"), v.literal("cleared"), v.literal("bounced")),
+    status: v.union(v.literal("received"), v.literal("deposited"), v.literal("cleared"), v.literal("bounced"), v.literal("settled"), v.literal("closed"), v.literal("blacklisted")),
     bounceCount: v.optional(v.number()),
     bounceReason: v.optional(v.string()),
     bounceDate: v.optional(v.number()),
@@ -826,12 +826,31 @@ export const financeTables = {
     clearanceDate: v.optional(v.number()),
     depositedBy: v.optional(v.id("users")),
     notes: v.optional(v.string()),
+    // ─── Enterprise PDC fields (PATCH-ENTERPRISE-020) ─────
+    legalStatus: v.optional(v.union(v.literal("none"), v.literal("notice_sent"), v.literal("follow_up"), v.literal("legal_notice"), v.literal("settlement"), v.literal("closed"))),
+    legalNotes: v.optional(v.string()),
+    settlementAmount: v.optional(v.number()),
+    settlementDate: v.optional(v.number()),
+    depositSlipNumber: v.optional(v.string()),
+    bankMapping: v.optional(v.string()),
+    nachRegistered: v.optional(v.boolean()),
+    nachMandateRef: v.optional(v.string()),
+    lawyerId: v.optional(v.id("users")),
+    lawyerName: v.optional(v.string()),
+    courtStatus: v.optional(v.union(v.literal("none"), v.literal("filed"), v.literal("hearing"), v.literal("judgment"), v.literal("decree"), v.literal("execution"))),
+    courtCaseNumber: v.optional(v.string()),
+    recoveryStatus: v.optional(v.union(v.literal("none"), v.literal("demand_letter"), v.literal("negotiation"), v.literal("legal_action"), v.literal("recovered"), v.literal("write_off"))),
+    riskScore: v.optional(v.number()),
+    riskLevel: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("critical"))),
     createdBy: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("studentId", ["studentId"])
     .index("status", ["status"])
+    .index("legalStatus", ["legalStatus"])
+    .index("courtStatus", ["courtStatus"])
+    .index("riskLevel", ["riskLevel"])
     .index("by_created", ["createdAt"])
     .index("by_updated", ["updatedAt"]),
 
