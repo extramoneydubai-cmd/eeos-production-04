@@ -429,6 +429,168 @@ export const getAICapabilities = query({
   },
 });
 
+// ─── Role-Aware AI ────────────────────────────────────────────
+// Phase 4 — Enterprise AI Platform: one runtime, per-role capability
+// profiles (CEO AI, Finance AI, HR AI, Faculty AI, Parent AI, ...).
+// Capabilities are metadata-driven; the same processQuery runtime serves
+// every role, but each role exposes a distinct capability surface.
+
+export interface RoleAIProfile {
+  role: string;
+  label: string;
+  icon: string;
+  color: string;
+  description: string;
+  intents: AIIntent[];
+  entityFocus: string[];
+  quickExamples: string[];
+  guardrails: string[];
+}
+
+export const ROLE_AI_PROFILES: Record<string, RoleAIProfile> = {
+  ceo: {
+    role: "ceo", label: "CEO AI", icon: "Trophy", color: "#F59E0B",
+    description: "Executive intelligence: revenue, growth, risks, and strategy across all companies and branches",
+    intents: ["analytics", "insight", "predict", "recommend", "summarize", "anomaly", "report", "dashboard"],
+    entityFocus: ["company", "branch", "student", "receipt", "refund", "cheque", "campaign", "payroll"],
+    quickExamples: [
+      "Which branches are underperforming this quarter?",
+      "Predict fee defaults for the next quarter",
+      "Summarize today's enterprise operations",
+      "Compare company A and company B growth",
+    ],
+    guardrails: ["Read-only intelligence; no student-level data unless needed", "Financial thresholds require CFO verification"],
+  },
+  cfo: {
+    role: "cfo", label: "Finance AI", icon: "Wallet", color: "#10B981",
+    description: "Financial intelligence: cash flow, GST, PDC risk, refunds, and collection efficiency",
+    intents: ["analytics", "insight", "predict", "anomaly", "report", "rule", "email_draft"],
+    entityFocus: ["receipt", "invoice", "refund", "cheque", "payroll", "purchaseOrder", "vendor"],
+    quickExamples: [
+      "Show collection efficiency by branch",
+      "List high-risk bounced cheques",
+      "Anomalies in GST filings this period",
+      "Draft a fee reminder email",
+    ],
+    guardrails: ["Never expose another company's financials", "Refund approvals require workflow"],
+  },
+  hr: {
+    role: "hr", label: "HR AI", icon: "Users", color: "#8B5CF6",
+    description: "People intelligence: payroll, attendance, leave, attrition risk, and workforce planning",
+    intents: ["analytics", "insight", "predict", "recommend", "report", "document", "email_draft"],
+    entityFocus: ["employee", "faculty", "payroll", "leave", "attendance", "department"],
+    quickExamples: [
+      "Which employees have excess leave balances?",
+      "Predict attrition risk in the faculty team",
+      "Generate an offer letter template",
+      "Attendance trends across departments",
+    ],
+    guardrails: ["Payroll data visible only to HR and finance roles", "Exit data is confidential"],
+  },
+  faculty: {
+    role: "faculty", label: "Faculty AI", icon: "GraduationCap", color: "#3B82F6",
+    description: "Teaching intelligence: classes, students, lesson plans, homework, and performance",
+    intents: ["search", "analytics", "generate", "document", "schedule", "recommend", "email_draft"],
+    entityFocus: ["student", "course", "batch", "attendance", "schedule", "exam", "certificate"],
+    quickExamples: [
+      "Find students below 75% attendance in my batch",
+      "Generate a lesson plan for trigonometry",
+      "Suggest a fair question paper distribution",
+      "Draft a parent update email",
+    ],
+    guardrails: ["Only own batches and subjects", "No access to payroll or other departments"],
+  },
+  parent: {
+    role: "parent", label: "Parent AI", icon: "Heart", color: "#EC4899",
+    description: "Family intelligence: child progress, fees, attendance, and school communication",
+    intents: ["search", "summarize", "recommend", "email_draft", "help"],
+    entityFocus: ["student", "attendance", "receipt", "exam", "certificate", "ticket"],
+    quickExamples: [
+      "How is my child performing this term?",
+      "Which fees are still outstanding?",
+      "Summarize this week's homework",
+      "Help me raise a support ticket",
+    ],
+    guardrails: ["Only linked children's data", "No cross-student visibility"],
+  },
+  student: {
+    role: "student", label: "Student AI", icon: "Backpack", color: "#06B6D4",
+    description: "Learning intelligence: timetable, assignments, results, LMS progress, and career guidance",
+    intents: ["search", "summarize", "recommend", "schedule", "help"],
+    entityFocus: ["course", "batch", "schedule", "exam", "attendance", "certificate"],
+    quickExamples: [
+      "What is my timetable this week?",
+      "How close am I to certificate eligibility?",
+      "Which topics should I revise before exams?",
+      "Where is my transport pickup point?",
+    ],
+    guardrails: ["Only own records", "No fee/refund administration"],
+  },
+  counsellor: {
+    role: "counsellor", label: "Counsellor AI", icon: "MessageCircle", color: "#14B8A6",
+    description: "Admissions intelligence: lead scoring, follow-up scheduling, conversion risk, and pipeline health",
+    intents: ["search", "analytics", "insight", "predict", "recommend", "email_draft"],
+    entityFocus: ["lead", "campaign", "student", "ticket", "schedule"],
+    quickExamples: [
+      "Which leads are at risk of going cold?",
+      "Prioritize my follow-up calls today",
+      "What is my conversion rate this month?",
+      "Draft a follow-up WhatsApp message",
+    ],
+    guardrails: ["Only own lead assignments", "Admission discounts require approval"],
+  },
+  marketing: {
+    role: "marketing", label: "Marketing AI", icon: "Megaphone", color: "#F97316",
+    description: "Growth intelligence: campaign ROI, audience segmentation, funnel leaks, and lead attribution",
+    intents: ["analytics", "insight", "predict", "recommend", "report", "email_draft", "notice"],
+    entityFocus: ["campaign", "lead", "student", "branch", "company"],
+    quickExamples: [
+      "Which campaign produced the best ROI?",
+      "Segment leads by source and conversion",
+      "Predict admission pipeline for next intake",
+      "Draft a festive WhatsApp broadcast",
+    ],
+    guardrails: ["Campaign budgets require approval", "No student financial data"],
+  },
+};
+
+export const getRoleAICapabilities = query({
+  args: { role: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const allRoles = Object.values(ROLE_AI_PROFILES);
+    const profile = args.role ? ROLE_AI_PROFILES[args.role] : undefined;
+    return {
+      role: profile?.role || "generic",
+      profile: profile || null,
+      allRoles: allRoles.map(p => ({
+        role: p.role,
+        label: p.label,
+        icon: p.icon,
+        color: p.color,
+        description: p.description,
+        intentCount: p.intents.length,
+        entityFocus: p.entityFocus,
+      })),
+      supportedIntents: profile?.intents || (Object.values({
+        search: 1, analytics: 1, insight: 1, predict: 1, recommend: 1, summarize: 1,
+        anomaly: 1, workflow: 1, rule: 1, document: 1, dashboard: 1, report: 1,
+        schedule: 1, email_draft: 1, help: 1,
+      }) as AIIntent[]),
+      runtime: "processQuery",
+      timestamp: Date.now(),
+    };
+  },
+});
+
+export const getRoleQuickExamples = query({
+  args: { role: v.string() },
+  handler: async (ctx, args) => {
+    const profile = ROLE_AI_PROFILES[args.role];
+    if (!profile) return { role: args.role, examples: [] };
+    return { role: args.role, label: profile.label, examples: profile.quickExamples, guardrails: profile.guardrails };
+  },
+});
+
 // ─── Quick Examples ───────────────────────────────────────────
 
 export const getQuickExamples = query({

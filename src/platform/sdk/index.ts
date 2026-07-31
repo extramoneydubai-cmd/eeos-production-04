@@ -22,6 +22,7 @@ import * as documents from "./documentSdk";
 import * as events from "./eventSdk";
 import * as finance from "./financeSdk";
 import * as grid from "./gridSdk";
+import * as health from "./healthSdk";
 import * as hr from "./hrSdk";
 import * as integration from "./integrationSdk";
 import * as lms from "./lmsSdk";
@@ -56,6 +57,7 @@ export const PlatformSDK = {
   events,
   finance,
   grid,
+  health,
   hr,
   integration,
   lms,
