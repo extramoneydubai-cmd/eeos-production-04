@@ -74,6 +74,10 @@ export default defineConfig({
       // from the always-mounted AppLayout; without this it is discovered at runtime,
       // triggering a mixed module graph and "useRef on null" duplicate-React crashes.
       'cmdk',
+      // QR/camera attendance flows (AttendancePage) — prebundle to avoid runtime
+      // re-optimization races discovered at first render.
+      'qrcode',
+      'jsqr',
     ],
   },
   // Performance hints

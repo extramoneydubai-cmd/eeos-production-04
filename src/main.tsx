@@ -12,6 +12,7 @@ import "./types/global.d.ts";
 // Lazy load route components
 import LoginPage from "./pages/Login.tsx";
 const Dashboard = lazy(() => import("./pages/Dashboard.tsx"));
+const AttendancePage = lazy(() => import("./pages/AttendancePage.tsx"));
 const OrganizationStudio = lazy(() => import("./pages/OrganizationStudio.tsx"));
 const UsersPage = lazy(() => import("./pages/UsersPage.tsx"));
 const AccessControl = lazy(() => import("./pages/AccessControl.tsx"));
@@ -513,6 +514,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/procurement/inventory" element={<ProtectedRoute><InventoryDatabase /></ProtectedRoute>} />
               <Route path="/procurement/inventory/:itemId" element={<ProtectedRoute><InventoryWorkspace /></ProtectedRoute>} />
               <Route path="/procurement/assets" element={<ProtectedRoute><AssetWorkspace /></ProtectedRoute>} />
+              <Route path="/attendance" element={<ProtectedRoute><AttendancePage /></ProtectedRoute>} />
               <Route path="/analytics" element={<ProtectedRoute><AnalyticsDashboard /></ProtectedRoute>} />
               <Route path="/studio/dashboards" element={<ProtectedRoute><DashboardStudio /></ProtectedRoute>} />
               <Route path="/documents" element={<ProtectedRoute><DocumentManagement /></ProtectedRoute>} />
