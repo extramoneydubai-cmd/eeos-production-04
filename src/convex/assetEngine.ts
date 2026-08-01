@@ -299,3 +299,43 @@ export const getAssetDashboard = query({
     };
   },
 });
+
+/** Assets allocated/assigned to a specific employee. */
+export const listEmployeeAssets = query({
+  args: { employeeId: v.id("employeeMaster") },
+  handler: async (ctx, args) => {
+    const employee = await ctx.db.get(args.employeeId);
+    if (!employee) return [];
+    const person = employee.personId ? await ctx.db.get(employee.personId) : null;
+    const allUsers = await ctx.db.query("users").collect();
+    const linkedUser = allUsers.find(
+      (u: any) => u.personId === (person?._id as any) || u.employeeId === (args.employeeId as any),
+    );
+    const userId = (linkedUser as any)?._id;
+    const allocations = await ctx.db.query("assetAllocations").collect();
+    const assets = allocations
+      .filter(
+        (a: any) => a.allocatedTo === userId || a.allocatedTo === (args.employeeId as any),
+      )
+      .map((a: any) => ({
+        _id: a._id,
+        assetName: a.assetName,
+        assetType: "allocated",
+        assetTag: a.assetTag,
+        status: a.status === "allocated" ? "assigned" : a.status,
+      }));
+    const fixed = await ctx.db.query("fixedAssets").collect();
+    const fixedAssets = fixed
+      .filter(
+        (f: any) => f.assignedTo === userId || f.assignedTo === (args.employeeId as any),
+      )
+      .map((f: any) => ({
+        _id: f._id,
+        assetName: f.name,
+        assetType: "fixed",
+        assetTag: f.assetCode,
+        status: "assigned",
+      }));
+    return [...assets, ...fixedAssets];
+  },
+});

@@ -386,7 +386,7 @@ function EmployeeTrainingTab({ entityType, entityId, entity }: WorkspaceTabProps
 // TAB: Assets
 // ══════════════════════════════════════════════════════════════════
 function EmployeeAssetsTab({ entityType, entityId, entity }: WorkspaceTabProps) {
-  const assets = useQuery(api.hrEngine.listEmployeeAssets, entityId ? { employeeId: entityId as Id<"employeeMaster"> } : "skip");
+  const assets = useQuery(api.assetEngine.listEmployeeAssets, entityId ? { employeeId: entityId as Id<"employeeMaster"> } : "skip");
 
   return (
     <Card className="border-border/60 shadow-sm">

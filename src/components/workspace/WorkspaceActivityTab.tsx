@@ -21,7 +21,7 @@ export function WorkspaceActivityTab({
   entity,
 }: WorkspaceTabProps) {
   const activities = useQuery(
-    api.platform.queries.getEntityActivity,
+    api.engines.activityEngine.getEntityTimeline,
     entityId ? { entityType, entityId, limit: 50 } : "skip",
   );
 

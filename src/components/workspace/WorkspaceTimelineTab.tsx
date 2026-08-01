@@ -34,7 +34,7 @@ export function WorkspaceTimelineTab({
 
   // Fetch timeline events via timelineSdk
   const timelineData = useQuery(
-    api.platform.queries.getEntityTimeline,
+    api.engines.timelineEngine.getEntityTimeline,
     entityId ? { entityType, entityId } : "skip",
   );
 

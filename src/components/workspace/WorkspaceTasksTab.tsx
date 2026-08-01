@@ -8,6 +8,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -111,13 +112,15 @@ function TaskRow({
 export function WorkspaceTasksTab({ entityType, entityId, entity }: WorkspaceTabProps) {
   const [newTitle, setNewTitle] = useState("");
 
+  const { user } = useAuth();
+
   const tasks = useQuery(
-    api.tasks.listByEntity,
+    api.tasks.listTasks,
     entityId ? { entityType, entityId } : "skip",
   );
-  const createTask = useMutation(api.tasks.create);
-  const updateTask = useMutation(api.tasks.update);
-  const deleteTask = useMutation(api.tasks.delete);
+  const createTask = useMutation(api.tasks.createTask);
+  const updateTask = useMutation(api.tasks.updateTask);
+  const deleteTask = useMutation(api.tasks.deleteTask);
 
   const taskList = (tasks as any[]) || [];
   const pendingTasks = taskList.filter((t) => t.status !== "done");
@@ -129,6 +132,9 @@ export function WorkspaceTasksTab({ entityType, entityId, entity }: WorkspaceTab
       title: newTitle.trim(),
       entityType,
       entityId,
+      status: "todo",
+      priority: "medium",
+      ownerId: user?._id as any,
     });
     setNewTitle("");
   };

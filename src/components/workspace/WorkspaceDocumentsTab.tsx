@@ -22,22 +22,38 @@ export function WorkspaceDocumentsTab({
   entity,
 }: WorkspaceTabProps) {
   const attachments = useQuery(
-    api.documentEngine.listEntityAttachments,
+    api.engines.attachmentEngine.listByEntity,
     entityId ? { entityType, entityId } : "skip",
   );
 
-  const uploadAttachment = useMutation(api.documentEngine.upload);
-  const deleteAttachment = useMutation(api.documentEngine.delete);
-  const restoreAttachment = useMutation(api.documentEngine.restore);
+  const generateUploadUrl = useMutation(api.engines.attachmentEngine.generateUploadUrl);
+  const uploadAttachment = useMutation(api.engines.attachmentEngine.upload);
+  const deleteAttachment = useMutation(api.engines.attachmentEngine.remove);
+  const restoreAttachment = useMutation(api.engines.attachmentEngine.restore);
 
   const handleUpload = async (files: File[]) => {
     for (const file of files) {
+      const uploadUrl = await generateUploadUrl();
+      const res = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      if (!res.ok) throw new Error("Upload failed");
+      const json: any = await res.json();
+      const storageId = json.storageId as string;
+      const ext = file.name.split(".").pop() || "";
       await uploadAttachment({
+        fileName: file.name,
+        originalName: file.name,
+        size: file.size,
+        extension: ext,
+        mimeType: file.type,
+        storageId,
+        storageProvider: "local",
+        category: "general",
         entityType,
         entityId,
-        fileName: file.name,
-        fileType: file.type,
-        fileSize: file.size,
       });
     }
   };

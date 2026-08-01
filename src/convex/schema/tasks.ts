@@ -46,6 +46,8 @@ export const tasksTables = {
     departmentId: v.optional(v.id("departments")),
     teamId: v.optional(v.id("teams")),
     dueDate: v.optional(v.number()),
+    entityType: v.optional(v.string()),
+    entityId: v.optional(v.string()),
     order: v.number(),
     approvalRequired: v.optional(v.boolean()),
     approvalStatus: v.optional(approvalStatusValidator),

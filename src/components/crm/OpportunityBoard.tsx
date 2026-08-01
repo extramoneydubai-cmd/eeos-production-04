@@ -18,7 +18,7 @@ interface OpportunityBoardProps {
 }
 
 export default function OpportunityBoard({ leadId, userId }: OpportunityBoardProps) {
-  const stages = useQuery(api.salesOpportunityStages.list, {});
+  const stages = useQuery(api.salesOpportunityStages.listOpportunityStages, {});
   const opportunities = useQuery(api.opportunities.list, {
     ...(leadId ? { leadId } : {}),
     ...(userId ? { ownerId: userId } : {}),

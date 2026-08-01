@@ -13,6 +13,8 @@ export const listTasks = query({
     teamId: v.optional(v.id("teams")),
     assignedTo: v.optional(v.id("users")),
     ownerId: v.optional(v.id("users")),
+    entityType: v.optional(v.string()),
+    entityId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     let tasks;
@@ -33,6 +35,12 @@ export const listTasks = query({
     }
     if (args.ownerId) {
       tasks = tasks.filter((t) => t.ownerId === args.ownerId);
+    }
+    if (args.entityType) {
+      tasks = tasks.filter((t) => (t as any).entityType === args.entityType);
+    }
+    if (args.entityId) {
+      tasks = tasks.filter((t) => (t as any).entityId === args.entityId);
     }
 
     return tasks.filter((t) => !t.isArchived).sort((a, b) => a.order - b.order);
@@ -58,6 +66,8 @@ export const createTask = mutation({
     teamId: v.optional(v.id("teams")),
     dueDate: v.optional(v.number()),
     approvalRequired: v.optional(v.boolean()),
+    entityType: v.optional(v.string()),
+    entityId: v.optional(v.string()),
   },
   handler: withEventPipeline(
     {
@@ -84,6 +94,8 @@ export const createTask = mutation({
         teamId: args.teamId,
         dueDate: args.dueDate,
         approvalRequired: args.approvalRequired,
+        entityType: args.entityType,
+        entityId: args.entityId,
         order: maxOrder + 1,
         createdAt: now,
         updatedAt: now,

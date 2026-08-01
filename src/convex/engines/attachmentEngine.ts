@@ -466,3 +466,13 @@ export const getStats = query({
     };
   },
 });
+
+/** Get a storage upload URL for a client-side file upload. */
+export const generateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    return ctx.storage.generateUploadUrl();
+  },
+});

@@ -238,3 +238,42 @@ export const getCampaignAnalytics = query({
     };
   },
 });
+
+/** Change a campaign's lifecycle status (draft → active → paused …). */
+export const updateCampaignStatus = mutation({
+  args: {
+    id: v.id("commCampaigns"),
+    status: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const campaign = await ctx.db.get(args.id);
+    if (!campaign) throw new Error("Campaign not found");
+    await ctx.db.patch(args.id, { status: args.status, updatedAt: Date.now() });
+    return args.id;
+  },
+});
+
+/** KPI dashboard for marketing analytics. */
+export const getMarketingDashboard = query({
+  args: {},
+  handler: async (ctx) => {
+    const campaigns = await ctx.db.query("commCampaigns").collect();
+    const leads = await ctx.db.query("leadMaster").collect();
+    const totalCampaigns = campaigns.length;
+    const activeCampaigns = campaigns.filter((c: any) => c.status === "active").length;
+    const totalLeads = leads.length;
+    const convertedLeads = leads.filter((l: any) => l.status === "converted").length;
+    const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
+    const totalBudget = campaigns.reduce((sum: number, c: any) => sum + (Number(c.budget) || 0), 0);
+    const activeJourneys = campaigns.filter((c: any) => c.status === "active" && c.journeyId).length;
+    return {
+      totalCampaigns,
+      activeCampaigns,
+      totalLeads,
+      convertedLeads,
+      conversionRate,
+      totalBudget,
+      activeJourneys,
+    };
+  },
+});

@@ -618,3 +618,81 @@ export const getCollectionCenter = query({
     });
   },
 });
+
+/** Move a payment commitment through its lifecycle. */
+export const updateCommitmentStatus = mutation({
+  args: {
+    commitmentId: v.id("payment_commitments"),
+    status: v.union(
+      v.literal("active"),
+      v.literal("completed"),
+      v.literal("expired"),
+      v.literal("cancelled"),
+    ),
+    userId: v.optional(v.id("users")),
+  },
+  handler: async (ctx, args) => {
+    const commitment = await ctx.db.get(args.commitmentId);
+    if (!commitment) throw new Error("Commitment not found");
+    await ctx.db.patch(args.commitmentId, {
+      status: args.status,
+      updatedAt: Date.now(),
+    });
+    return args.commitmentId;
+  },
+});
+
+/** Run the daily collection automation: overdue installments + PDC reminders. */
+export const dailyCollectionAutomation = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    const dayMs = 86400000;
+    const installments = await ctx.db.query("payment_installments").collect();
+    let overdueInstallments = 0;
+    let installmentsWarned = 0;
+    const warnedLeads = new Set<string>();
+    for (const inst of installments) {
+      if ((inst.status === "due" || inst.status === "planned") && inst.dueDate < now - dayMs) {
+        await ctx.db.patch(inst._id, { status: "overdue", updatedAt: now });
+        overdueInstallments++;
+        if (!warnedLeads.has(inst.leadId)) {
+          warnedLeads.add(inst.leadId);
+          const lead = await ctx.db.get(inst.leadId);
+          const leadUserId = (lead as any)?.userId;
+          if (leadUserId) {
+            await ctx.db.insert("notifications", {
+              userId: leadUserId,
+              type: "collection",
+              title: "Installment overdue",
+              message: `Installment #${inst.installmentNumber} of ${inst.amount} is overdue.`,
+              referenceId: inst._id,
+              referenceType: "installment",
+              isRead: false,
+              createdAt: now,
+            });
+            installmentsWarned++;
+          }
+        }
+      }
+    }
+    const pdcs = await ctx.db.query("payment_pdcs").collect();
+    let pdcRemindersSent = 0;
+    for (const p of pdcs) {
+      if (p.status === "scheduled" && p.chequeDate && p.chequeDate > now && p.chequeDate - now <= 3 * dayMs) {
+        await ctx.db.insert("notifications", {
+          userId: p.createdBy,
+          type: "payment",
+          title: "PDC reminder",
+          message: `${p.bank} #${p.chequeNumber} — ${p.amount} — Cheque Date: ${new Date(p.chequeDate).toLocaleDateString()}`,
+          referenceId: p._id,
+          referenceType: "pdc",
+          isRead: false,
+          createdAt: now,
+        });
+        pdcRemindersSent++;
+      }
+    }
+    return { overdueInstallments, installmentsWarned, pdcRemindersSent };
+  },
+});

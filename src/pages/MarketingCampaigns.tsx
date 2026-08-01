@@ -20,8 +20,8 @@ const statusColors: Record<string, string> = {
 
 export default function MarketingCampaigns() {
   const [search, setSearch] = useState("");
-  const campaigns = useQuery(api.marketingSdk.listCampaigns, {});
-  const updateStatus = useMutation(api.marketingSdk.updateCampaignStatus);
+  const campaigns = useQuery(api.communicationCampaignEngine.listCampaigns, {});
+  const updateStatus = useMutation(api.communicationCampaignEngine.updateCampaignStatus);
 
   const filtered = (campaigns || []).filter((c: any) =>
     !search || c.name.toLowerCase().includes(search.toLowerCase())

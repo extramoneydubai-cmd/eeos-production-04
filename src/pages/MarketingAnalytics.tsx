@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Megaphone, Users, TrendingUp, DollarSign, BarChart3, Activity } from "lucide-react";
 
 export default function MarketingAnalytics() {
-  const dashboard = useQuery(api.marketingSdk.getMarketingDashboard);
+  const dashboard = useQuery(api.communicationCampaignEngine.getMarketingDashboard);
 
   const stats = dashboard || {
     totalCampaigns: 0, activeCampaigns: 0, totalLeads: 0,

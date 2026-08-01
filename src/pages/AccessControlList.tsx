@@ -856,7 +856,7 @@ function DynamicMenuBuilder() {
 // ─── MODULE ACTIVATION ────────────────────────────────────────
 
 function ModuleActivationTab() {
-  const companies = useQuery(api.organizationBranches.listCompanies, {} as any);
+  const companies = useQuery(api.organizationCompanies.listCompanies, {} as any);
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const activations = useQuery(
     selectedCompany ? api.moduleActivationEngine.getCompanyModuleActivations : "skip",

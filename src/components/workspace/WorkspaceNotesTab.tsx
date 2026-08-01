@@ -21,23 +21,23 @@ export function WorkspaceNotesTab({
   entity,
 }: WorkspaceTabProps) {
   const comments = useQuery(
-    api.commentEngine.list,
+    api.engines.commentEngine.listByEntity,
     entityId ? { entityType, entityId } : "skip",
   );
 
-  const addComment = useMutation(api.commentEngine.create);
-  const deleteComment = useMutation(api.commentEngine.delete);
-  const resolveComment = useMutation(api.commentEngine.resolve);
-  const pinComment = useMutation(api.commentEngine.pin);
-  const reactToComment = useMutation(api.commentEngine.react);
+  const addComment = useMutation(api.engines.commentEngine.create);
+  const replyComment = useMutation(api.engines.commentEngine.reply);
+  const deleteComment = useMutation(api.engines.commentEngine.remove);
+  const resolveComment = useMutation(api.engines.commentEngine.resolve);
+  const pinComment = useMutation(api.engines.commentEngine.pin);
+  const reactToComment = useMutation(api.engines.commentEngine.toggleReaction);
 
   const handleSubmit = async (body: string, parentId?: string) => {
-    await addComment({
-      entityType,
-      entityId,
-      body,
-      parentId: parentId as any,
-    });
+    if (parentId) {
+      await replyComment({ body, parentId: parentId as any });
+    } else {
+      await addComment({ body, entityType, entityId });
+    }
   };
 
   const handleDelete = async (commentId: string) => {
