@@ -16,22 +16,17 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import { useParams, useNavigate } from "react-router";
-import { motion } from "framer-motion";
 import {
   Calendar, Clock, BookOpen, FileCheck, Users,
-  MapPin, AlertTriangle, CheckCircle, Loader2,
-  ArrowLeft, BarChart3, Sun, Star, Coffee,
-  Briefcase, GraduationCap, Bell,
+  AlertTriangle, ArrowLeft, BarChart3, GraduationCap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 import SchedulingPlanner from "@/components/scheduling/SchedulingPlanner";
 
 // ─── Config ───────────────────────────────────────────────────────
@@ -187,20 +182,21 @@ export default function FacultyScheduleWorkspace() {
   const navigate = useNavigate();
   const [viewType, setViewType] = useState("all");
 
-  // Fetch faculty's schedules (using entityType=faculty or by userId)
-  const schedules = useQuery(api.schedulingSdk.getByDateRange as any, {
-    start: Date.now(),
-    end: Date.now() + 7 * 24 * 60 * 60 * 1000,
-    limit: 200,
-  }) as any[] | undefined;
+  // Fetch the faculty's own schedules, scoped by the route facultyId
+  // (PATCH-ERP-002: was fetching ALL schedules via getByDateRange; now uses
+  //  facultyEngine.getFacultySchedule which filters schedules.owner).
+  const schedules = useQuery(
+    api.facultyEngine.getFacultySchedule,
+    facultyId
+      ? {
+          facultyId: facultyId as Id<"users">,
+          startDate: Date.now() - 24 * 60 * 60 * 1000,
+          endDate: Date.now() + 7 * 24 * 60 * 60 * 1000,
+        }
+      : "skip",
+  ) as any[] | undefined;
 
   const allSchedules = schedules || [];
-
-  // Filter by type
-  const filteredSchedules = useMemo(() => {
-    if (viewType === "all") return allSchedules;
-    return allSchedules.filter((s: any) => s.scheduleType === viewType);
-  }, [allSchedules, viewType]);
 
   // Schedule type breakdown
   const typeBreakdown = useMemo(() => {
