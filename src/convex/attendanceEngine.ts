@@ -5,6 +5,8 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withEventPipeline, entityIdFromResult } from "../platform/eventPipeline";
+import { Events } from "./eventRegistry";
 
 export const markAttendance = mutation({
   args: {
@@ -17,7 +19,17 @@ export const markAttendance = mutation({
     notes: v.optional(v.string()),
     markedBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withEventPipeline(
+    {
+      module: "hr",
+      entity: "attendance",
+      action: "mark",
+      eventType: Events.HR.ATTENDANCE_MARKED,
+      title: "Attendance marked",
+      getEntityId: entityIdFromResult(),
+      getUserId: (a) => (a as any).markedBy,
+    },
+    async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
@@ -50,7 +62,8 @@ export const markAttendance = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+    },
+  ),
 });
 
 export const bulkMarkAttendance = mutation({

@@ -1,5 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withEventPipeline, entityIdFromArg, userIdFromArg } from "../platform/eventPipeline";
+import { Events } from "./eventRegistry";
 
 // ============================
 // APPROVAL TEMPLATES
@@ -139,7 +141,17 @@ export const approveRequest = mutation({
     phaseIndex: v.number(),
     comment: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withEventPipeline(
+    {
+      module: "workflow",
+      entity: "approval",
+      action: "approve",
+      eventType: Events.WORKFLOW.APPROVAL_COMPLETED,
+      title: "Approval completed",
+      getEntityId: entityIdFromArg("requestId"),
+      getUserId: userIdFromArg("userId"),
+    },
+    async (ctx, args) => {
     const request = await ctx.db.get(args.requestId);
     if (!request) throw new Error("Approval request not found");
 
@@ -184,7 +196,8 @@ export const approveRequest = mutation({
         updatedAt: now,
       });
     }
-  },
+    },
+  ),
 });
 
 export const rejectRequest = mutation({
@@ -194,7 +207,17 @@ export const rejectRequest = mutation({
     phaseIndex: v.number(),
     comment: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withEventPipeline(
+    {
+      module: "workflow",
+      entity: "approval",
+      action: "reject",
+      eventType: Events.WORKFLOW.APPROVAL_REJECTED,
+      title: "Approval rejected",
+      getEntityId: entityIdFromArg("requestId"),
+      getUserId: userIdFromArg("userId"),
+    },
+    async (ctx, args) => {
     const request = await ctx.db.get(args.requestId);
     if (!request) throw new Error("Approval request not found");
 
@@ -221,7 +244,8 @@ export const rejectRequest = mutation({
         updatedAt: now,
       });
     }
-  },
+    },
+  ),
 });
 
 export const getRequestApprovers = query({

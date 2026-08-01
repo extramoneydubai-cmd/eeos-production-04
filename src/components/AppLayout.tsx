@@ -18,6 +18,7 @@ import {
   Layers,
   BookOpenText,
   ClipboardCheck,
+  Activity,
   Banknote,
   Database,
   FileText,
@@ -49,6 +50,7 @@ const navigation = [
   { name: "User Management", href: "/users", icon: Users },
   { name: "Access Control", href: "/access", icon: ShieldCheck },
   { name: "Task Management", href: "/tasks", icon: ClipboardList },
+  { name: "Command Center", href: "/command-center", icon: Activity },
   { name: "Approval Center", href: "/approvals", icon: CheckSquare, badgeQuery: "pendingApprovalCount" },
 ];
 

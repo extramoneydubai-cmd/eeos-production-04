@@ -8,6 +8,8 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withEventPipeline, entityIdFromResult, entityIdFromArg } from "../platform/eventPipeline";
+import { Events } from "./eventRegistry";
 
 function generateChequeRef(prefix: string, serial: number): string {
   return `${prefix}-${String(serial).padStart(6, "0")}`;
@@ -27,7 +29,17 @@ export const createChequeEntry = mutation({
     depositDate: v.optional(v.number()),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withEventPipeline(
+    {
+      module: "finance",
+      entity: "cheque",
+      action: "create",
+      eventType: Events.FINANCE.CHEQUE_RECEIVED,
+      title: "Cheque received",
+      getEntityId: entityIdFromResult(),
+      getUserId: () => undefined,
+    },
+    async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
@@ -50,7 +62,8 @@ export const createChequeEntry = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+    },
+  ),
 });
 
 // ─── Deposit Cheque ──────────────────────────────────────────
@@ -122,7 +135,17 @@ export const bounceCheque = mutation({
     penaltyAmount: v.optional(v.number()),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withEventPipeline(
+    {
+      module: "finance",
+      entity: "cheque",
+      action: "bounce",
+      eventType: Events.FINANCE.CHEQUE_BOUNCED,
+      title: "Cheque bounced",
+      getEntityId: entityIdFromArg("id"),
+      getUserId: () => undefined,
+    },
+    async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
@@ -155,7 +178,8 @@ export const bounceCheque = mutation({
     }
 
     return args.id;
-  },
+    },
+  ),
 });
 
 // ─── Re-present Cheque ───────────────────────────────────────

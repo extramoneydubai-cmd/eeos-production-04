@@ -317,6 +317,7 @@ function RouteSyncer() {
 const AppLayout = lazy(() => import("./components/AppLayout.tsx").then(m => ({ default: m.AppLayout })));
 const ReleaseHealthDashboard = lazy(() => import("./pages/ReleaseHealthDashboard.tsx"));
 const OperationsCenter = lazy(() => import("./pages/OperationsCenter.tsx"));
+const OperationsCommandCenter = lazy(() => import("./pages/OperationsCommandCenter.tsx"));
 const SecurityCenter = lazy(() => import("./pages/SecurityCenter.tsx"));
 const AuditCenter = lazy(() => import("./pages/AuditCenter.tsx"));
 const DeploymentCenter = lazy(() => import("./pages/DeploymentCenter.tsx"));
@@ -535,6 +536,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/security" element={<ProtectedRoute><SecurityCenter /></ProtectedRoute>} />
               <Route path="/audit" element={<ProtectedRoute><AuditCenter /></ProtectedRoute>} />
               <Route path="/operations" element={<ProtectedRoute><OperationsCenter /></ProtectedRoute>} />
+              <Route path="/command-center" element={<ProtectedRoute><OperationsCommandCenter /></ProtectedRoute>} />
               <Route path="/deployment" element={<ProtectedRoute><DeploymentCenter /></ProtectedRoute>} />
               <Route path="/scheduling" element={<ProtectedRoute><SchedulingDashboard /></ProtectedRoute>} />
               <Route path="/scheduling/:scheduleId" element={<ProtectedRoute><ScheduleWorkspace /></ProtectedRoute>} />
