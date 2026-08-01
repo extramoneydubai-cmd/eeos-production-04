@@ -5,9 +5,15 @@
  * used by ProductionDashboard. Backed by the existing `productionTasks`
  * table (schema/metadata.ts). Task statuses (assigned/in_progress/review/
  * approved/published/rejected) map onto the dashboard's pipeline stages.
+ *
+ * PATCH-ERP-001 (Phase 9): added listProductionTasks / createProductionTask /
+ * updateProductionTaskStatus so the Production module can be operated end to
+ * end from the UI. No new schema — reuses the existing `productionTasks`
+ * table and its indexes (by_status, by_task_type, by_assigned, by_created).
  */
 import { v } from "convex/values";
-import { query } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
+import { getAuthUserId } from "@convex-dev/auth/server";
 
 /** Production pipeline KPIs for the dashboard. */
 export const getProductionDashboard = query({
@@ -24,5 +30,81 @@ export const getProductionDashboard = query({
       published: by("published"),
       rejected: by("rejected"),
     };
+  },
+});
+
+/** List production tasks with optional status / type / assignee filters. */
+export const listProductionTasks = query({
+  args: {
+    status: v.optional(v.string()),
+    taskType: v.optional(v.string()),
+    assignedTo: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    let q = ctx.db.query("productionTasks") as any;
+    if (args.status) q = q.filter((f: any) => f.eq(f.field("status"), args.status));
+    if (args.taskType) q = q.filter((f: any) => f.eq(f.field("taskType"), args.taskType));
+    if (args.assignedTo) q = q.filter((f: any) => f.eq(f.field("assignedTo"), args.assignedTo));
+    return q.order("desc").collect();
+  },
+});
+
+/** Create a production task in the existing productionTasks table. */
+export const createProductionTask = mutation({
+  args: {
+    title: v.string(),
+    taskType: v.union(
+      v.literal("content_writing"), v.literal("video_production"),
+      v.literal("graphic_design"), v.literal("question_bank"),
+      v.literal("review"), v.literal("publishing"),
+      v.literal("recording"), v.literal("editing"),
+    ),
+    status: v.optional(v.union(
+      v.literal("assigned"), v.literal("in_progress"),
+      v.literal("review"), v.literal("approved"),
+      v.literal("published"), v.literal("rejected"),
+    )),
+    assignedTo: v.optional(v.string()),
+    courseId: v.optional(v.id("courses")),
+    dueDate: v.optional(v.number()),
+    priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"))),
+    description: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const now = Date.now();
+    return await ctx.db.insert("productionTasks", {
+      title: args.title,
+      taskType: args.taskType,
+      status: args.status || "assigned",
+      assignedTo: args.assignedTo,
+      courseId: args.courseId,
+      dueDate: args.dueDate,
+      priority: args.priority,
+      description: args.description,
+      createdAt: now,
+      updatedAt: now,
+    });
+  },
+});
+
+/** Advance (or move) a production task to another pipeline stage. */
+export const updateProductionTaskStatus = mutation({
+  args: {
+    taskId: v.id("productionTasks"),
+    status: v.union(
+      v.literal("assigned"), v.literal("in_progress"),
+      v.literal("review"), v.literal("approved"),
+      v.literal("published"), v.literal("rejected"),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+    const task = await ctx.db.get(args.taskId);
+    if (!task) throw new Error("Production task not found");
+    await ctx.db.patch(args.taskId, { status: args.status, updatedAt: Date.now() });
+    return args.taskId;
   },
 });
