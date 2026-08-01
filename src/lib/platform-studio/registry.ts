@@ -472,7 +472,7 @@ export const MODULE_REGISTRY: ModuleDef[] = [
       { type: "note", text: "Consumes RuntimeSupervisor, HealthMonitor, ProductionReadinessManager" },
       { type: "note", text: "No duplicated monitoring — everything sourced from existing engines" },
     ],
-    pages: ["PAGE-OPS-001"],
+    pages: ["PAGE-OPS-001", "PAGE-OPS-002"],
   },
   {
     id: "MOD-SECURITY",

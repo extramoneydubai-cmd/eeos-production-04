@@ -85,7 +85,7 @@ export default function OperationsCommandCenter() {
     { module: "Production", href: "/production", icon: Factory, value: String(runningWorkflows), sub: `${failedWorkflows} failed · ${widget?.workflows?.completed ?? 0} completed`, tone: failedWorkflows > 0 ? "red" : "blue" },
     { module: "Inventory", href: "/inventory", icon: Package, value: String(inventory?.totalItems ?? 0), sub: `${lowStock} low · ${inventory?.outOfStockCount ?? 0} out of stock`, tone: lowStock > 0 ? "amber" : "green" },
     { module: "Transport", href: "/scheduling", icon: Truck, value: String(ops?.schedulingMetrics?.totalSchedules ?? 0), sub: `${ops?.schedulingMetrics?.conflictRate ?? 0}% conflict rate`, tone: "blue" },
-    { module: "HR", href: "/employees", icon: Users, value: String(hr?.activeUsers ?? overview?.activeUsers ?? 0), sub: `${hr?.onLeaveToday ?? 0} on leave · ${hr?.pendingReviews ?? 0} reviews`, tone: "blue" },
+    { module: "HR", href: "/employees", icon: Users, value: String(hr?.activeEmployees ?? overview?.activeUsers ?? 0), sub: `${hr?.totalEmployees ?? 0} total · ${hr?.disabledEmployees ?? 0} disabled · ${hr?.anniversaryThisMonth ?? 0} anniversaries`, tone: "blue" },
   ];
 
   const healthChecks = ops?.systemHealth?.checks as Record<string, { status: string; message: string }> | undefined;
