@@ -350,6 +350,30 @@ export const updateStudent = mutation({
   ),
 });
 
+// ─── Parent Linkage (Student ↔ Parent Portal) ──────────────────────
+
+/**
+ * Assign, change, or clear the linked parent account for a student.
+ * Pass `parentUserId: undefined` to remove the existing link (Convex
+ * `patch` deletes fields set to `undefined`).
+ */
+export const setParentUser = mutation({
+  args: {
+    studentId: v.id("studentMaster"),
+    performedBy: v.id("users"),
+    parentUserId: v.optional(v.id("users")),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db.get(args.studentId);
+    if (!existing) throw new Error("Student not found");
+    await ctx.db.patch(args.studentId, {
+      parentUserId: args.parentUserId as any,
+      updatedAt: Date.now(),
+    });
+    return args.studentId;
+  },
+});
+
 // ─── Archive Student (Enterprise-Integrated) ───────────────
 
 export const archiveStudent = mutation({

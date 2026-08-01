@@ -15,7 +15,7 @@
  * Promote, Transfer, Suspend, Archive, QR Code, Certificate
  */
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -27,7 +27,7 @@ import {
   MessageSquare, Activity, Target, ArrowUpRight,
   Ban, Archive, QrCode, Award, ExternalLink, Calendar,
   Percent, BarChart3, Clock, CreditCard, Zap, Star,
-  CalendarRange,
+  CalendarRange, UserCheck, Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -87,6 +87,129 @@ function ConfirmActionDialog({
           <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
           <Button variant={variant || "destructive"} size="sm" onClick={() => { onConfirm(); onClose(); }}>
             {confirmLabel || "Confirm"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Link Parent Dialog ─────────────────────────────────────────────
+function LinkParentDialog({
+  open,
+  onClose,
+  currentParentUserId,
+  onConfirm,
+}: {
+  open: boolean;
+  onClose: () => void;
+  currentParentUserId?: string;
+  onConfirm: (parentUserId?: string) => void;
+}) {
+  const [search, setSearch] = useState("");
+  const [selectedId, setSelectedId] = useState<string | undefined>(currentParentUserId);
+  const [submitting, setSubmitting] = useState(false);
+
+  const users = useQuery(
+    api.users.listActiveUsers,
+    search.trim().length > 0 ? { search: search.trim() } : "skip"
+  );
+  const currentParent = useQuery(
+    api.users.getUserById,
+    currentParentUserId ? { userId: currentParentUserId as Id<"users"> } : "skip"
+  );
+
+  // Reset selection whenever the dialog opens
+  useEffect(() => {
+    if (open) {
+      setSelectedId(currentParentUserId);
+      setSearch("");
+    }
+  }, [open, currentParentUserId]);
+
+  const handleConfirm = async () => {
+    setSubmitting(true);
+    try {
+      await onConfirm(selectedId);
+      onClose();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-sm">Link Parent Account</DialogTitle>
+          <DialogDescription className="text-xs">
+            Assign the parent portal account that can view this student. Search users, then
+            select one to link.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          {/* Currently linked parent */}
+          {currentParentUserId && (
+            <div className="flex items-center justify-between rounded-lg bg-muted/40 p-2.5">
+              <div className="flex items-center gap-2 min-w-0">
+                <UserCheck className="h-4 w-4 text-blue-600 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs font-medium truncate">
+                    {currentParent?.name || currentParent?.username || "Linked parent"}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    {currentParent?.email || currentParentUserId}
+                  </p>
+                </div>
+              </div>
+              <Button variant="ghost" size="sm" className="h-7 text-[11px]" onClick={() => setSelectedId(undefined)}>
+                Remove
+              </Button>
+            </div>
+          )}
+
+          {/* User search */}
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name or email…"
+              className="h-9 pl-8 text-xs"
+            />
+          </div>
+
+          {/* Search results */}
+          <div className="max-h-56 space-y-1 overflow-y-auto rounded-lg border">
+            {!users ? (
+              <p className="p-3 text-[11px] text-muted-foreground text-center">Type to search users…</p>
+            ) : users.length === 0 ? (
+              <p className="p-3 text-[11px] text-muted-foreground text-center">No matching users</p>
+            ) : (
+              users.map((u: any) => (
+                <button
+                  key={u._id}
+                  type="button"
+                  onClick={() => setSelectedId(u._id)}
+                  className={cn(
+                    "w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-muted/50 transition-colors",
+                    selectedId === u._id && "bg-blue-50 dark:bg-blue-950/40"
+                  )}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium truncate">{u.name || u.username || "User"}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{u.email || u._id}</p>
+                  </div>
+                  {selectedId === u._id && <UserCheck className="h-3.5 w-3.5 text-blue-600 shrink-0" />}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+        <DialogFooter className="gap-2 pt-2">
+          <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
+          <Button size="sm" onClick={handleConfirm} disabled={submitting}>
+            {selectedId ? "Link Parent" : "Remove Link"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -587,6 +710,7 @@ export default function StudentWorkspace() {
   const suspendStudent = useMutation(api.studentLifecycle.suspendStudent);
   const transferStudent = useMutation(api.studentLifecycle.transferStudent);
   const promoteStudent = useMutation(api.studentLifecycle.promoteStudent);
+  const setParentUser = useMutation(api.studentEngine.setParentUser);
 
   const student = studentData?.student as any;
   const person = studentData?.person as any;
@@ -596,6 +720,7 @@ export default function StudentWorkspace() {
   const [showTransferDialog, setShowTransferDialog] = useState(false);
   const [showSuspendDialog, setShowSuspendDialog] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
+  const [showLinkParentDialog, setShowLinkParentDialog] = useState(false);
 
   // Action handlers
   const handlePromote = useCallback(async () => {
@@ -638,10 +763,30 @@ export default function StudentWorkspace() {
     }
   }, [studentId, user, archiveStudent, toast]);
 
+  const handleLinkParent = useCallback(async (parentUserId?: string) => {
+    if (!studentId || !user?._id) return;
+    try {
+      await setParentUser({
+        studentId: studentId as Id<"studentMaster">,
+        performedBy: user._id as Id<"users">,
+        parentUserId: parentUserId as Id<"users"> | undefined,
+      });
+      toast({
+        title: parentUserId ? "Parent linked" : "Parent link removed",
+        description: parentUserId
+          ? "The parent portal account can now view this student"
+          : "This student is no longer linked to a parent account",
+      });
+    } catch (err: any) {
+      toast({ title: "Could not update parent link", description: err.message || "An error occurred", variant: "destructive" });
+    }
+  }, [studentId, user, setParentUser, toast]);
+
   // Actions
   const actions: WorkspaceAction[] = useMemo(() => [
     { id: "promote", label: "Promote", icon: ArrowUpRight, onClick: () => setShowPromoteDialog(true), variant: "outline", tooltip: "Promote to next academic year" },
     { id: "transfer", label: "Transfer", icon: ExternalLink, onClick: () => setShowTransferDialog(true), variant: "outline", tooltip: "Transfer to another branch/company" },
+    { id: "linkParent", label: "Link Parent", icon: UserCheck, onClick: () => setShowLinkParentDialog(true), variant: "outline", tooltip: "Assign or change the linked parent account" },
     { id: "suspend", label: "Suspend", icon: Ban, onClick: () => setShowSuspendDialog(true), variant: "outline", tooltip: "Suspend student enrollment" },
     { id: "archive", label: "Archive", icon: Archive, onClick: () => setShowArchiveDialog(true), variant: "destructive", tooltip: "Archive this student record" },
     { id: "qr", label: "QR Code", icon: QrCode, onClick: () => {}, variant: "ghost", tooltip: "Generate student QR code" },
@@ -746,6 +891,14 @@ export default function StudentWorkspace() {
         description={`Archive ${person?.displayName || title}? The student record will be preserved but marked as cancelled.`}
         confirmLabel="Archive"
         variant="destructive"
+      />
+
+      {/* Link Parent Dialog */}
+      <LinkParentDialog
+        open={showLinkParentDialog}
+        onClose={() => setShowLinkParentDialog(false)}
+        currentParentUserId={student?.parentUserId as string | undefined}
+        onConfirm={handleLinkParent}
       />
     </>
   );
