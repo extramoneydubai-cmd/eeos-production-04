@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { WorkspaceShell } from "@/components/WorkspaceShell";
+import { WorkspaceShell } from "@/components/workspace/WorkspaceShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,8 +31,7 @@ export default function KnowledgeBase() {
 
   return (
     <WorkspaceShell title="Knowledge Base" subtitle="Wiki, SOPs, articles, FAQ & policies"
-      tabs={[{ id: "all", label: "All" }, { id: "wiki", label: "Wiki" }, { id: "sop", label: "SOPs" }, { id: "faq", label: "FAQ" }, { id: "policy", label: "Policies" }]}
-      actions={<Button className="gap-2"><Plus className="h-4 w-4" /> New Article</Button>}
+      actionBar={<Button className="gap-2"><Plus className="h-4 w-4" /> New Article</Button>}
     >
       <div className="flex items-center gap-3 mb-6">
         <div className="relative flex-1 max-w-md">

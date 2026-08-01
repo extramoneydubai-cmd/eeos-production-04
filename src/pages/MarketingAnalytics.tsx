@@ -1,6 +1,6 @@
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { WorkspaceShell } from "@/components/WorkspaceShell";
+import { WorkspaceShell } from "@/components/workspace/WorkspaceShell";
 import { Card } from "@/components/ui/card";
 import { Megaphone, Users, TrendingUp, DollarSign, BarChart3, Activity } from "lucide-react";
 

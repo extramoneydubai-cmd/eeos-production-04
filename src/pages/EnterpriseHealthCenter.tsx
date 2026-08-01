@@ -4,7 +4,7 @@ import {
   HardDrive, Users, Zap, BarChart3, RefreshCw, Search, Workflow, Shield, Bell,
   ChevronDown, ChevronRight, AlertCircle, Info, HelpCircle,
 } from "lucide-react";
-import WorkspaceShell from "@/components/WorkspaceShell";
+import { WorkspaceShell } from "@/components/workspace/WorkspaceShell";
 
 type HealthStatus = "healthy" | "warning" | "critical" | "unknown";
 

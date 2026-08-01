@@ -156,18 +156,18 @@ export interface WorkspaceBodyField {
 
 /** Complete props for the WorkspaceShell */
 export interface WorkspaceShellProps {
-  /** The entity type */
-  entityType: WorkspaceEntityType;
-  /** Entity ID */
-  entityId: string;
+  /** The entity type (entity/tab mode). Optional in container mode. */
+  entityType?: WorkspaceEntityType;
+  /** Entity ID (entity/tab mode). Optional in container mode. */
+  entityId?: string;
   /** Raw entity data (can be null/undefined while loading) */
-  entity: Record<string, unknown> | null | undefined;
+  entity?: Record<string, unknown> | null | undefined;
   /** Is the entity currently loading? */
   isLoading?: boolean;
   /** Error state */
   error?: string | null;
-  /** Title shown in the header */
-  title: string;
+  /** Title shown in the header (optional in container mode) */
+  title?: string;
   /** Subtitle shown below the title */
   subtitle?: string;
   /** Badge/label for the entity (e.g. stage, status) */
@@ -188,14 +188,26 @@ export interface WorkspaceShellProps {
     currentStageIndex: number;
     maxStages?: number;
   };
-  /** Tab definitions */
-  tabs: WorkspaceTabDefinition[];
+  /** Tab definitions (entity mode). Omit in container mode. */
+  tabs?: WorkspaceTabDefinition[];
   /** Currently active tab (controlled or default) */
   defaultTab?: string;
   /** Callback when tab changes */
   onTabChange?: (tabId: string) => void;
-  /** Action bar items */
+  /** Action bar items (entity mode) — rendered via SmartActionBar */
   actions?: WorkspaceAction[];
+  /** Raw action bar node (container mode) — rendered in the header right slot */
+  actionBar?: ReactNode;
+  /** Container mode body — rendered when provided instead of the tab system */
+  children?: ReactNode;
+  /** KPI strip rendered below the header (container mode) */
+  kpiStrip?: ReactNode;
+  /** Filter bar rendered below the header (container mode) */
+  filterBar?: ReactNode;
+  /** Right context panel (container mode) — hidden below xl */
+  contextPanel?: ReactNode;
+  /** Bottom timeline panel (container mode) */
+  bottomTimeline?: ReactNode;
   /** Module name for permission checks */
   module?: string;
   /** If true, the permission checks are skipped (CEO-override) */
