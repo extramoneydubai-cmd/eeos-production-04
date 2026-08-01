@@ -12,8 +12,8 @@ export default function AIStudio() {
   const [query, setQuery] = useState("");
   const [activeTab, setActiveTab] = useState("query");
 
-  const capabilities = useQuery(api.platform.sdk.aiSdk.getCapabilities, {});
-  const examples = useQuery(api.platform.sdk.aiSdk.getQuickExamples, {});
+  const capabilities = useQuery(api.aiRuntimeEngine.getAICapabilities, {});
+  const examples = useQuery(api.aiRuntimeEngine.getQuickExamples, {});
 
   // Render intent icon
   const intentIcons: Record<string, React.ReactNode> = {

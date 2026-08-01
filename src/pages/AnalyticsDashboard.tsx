@@ -488,7 +488,7 @@ export default function AnalyticsDashboard() {
   const dataSources = useQuery(api.reportEngine.getAvailableDataSources);
   const schedules = useQuery(api.reportScheduleEngine.listSchedules);
   const exportHistory = useQuery(api.reportExportEngine.getExportHistory);
-  const recentActivity = useQuery(api.eventSdk.getRecentEvents, { limit: 20 });
+  const recentActivity = useQuery(api.engines.activityEngine.getGlobalFeed, { limit: 20 });
 
   // ─── Mutations ─────────────────────────────────────────────
   const executeReport = useMutation(api.reportEngine.executeReport);

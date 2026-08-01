@@ -138,7 +138,7 @@ function ChartWidget({ title, type }: { title: string; type: string }) {
 }
 
 function ActivityWidget({ title }: { title: string }) {
-  const recentActivity = useQuery(api.eventSdk.getRecentEvents, { limit: 8 });
+  const recentActivity = useQuery(api.engines.activityEngine.getGlobalFeed, { limit: 8 });
   return (
     <Card className="border-[#e8eaed] shadow-sm bg-white h-full">
       <CardHeader className="pb-2 pt-2.5 px-3">

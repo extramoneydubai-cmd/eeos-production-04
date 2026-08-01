@@ -1,4 +1,5 @@
 import { useQuery } from "convex/react";
+import { useAuth } from "@/hooks/use-auth";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -49,11 +50,13 @@ function ComplianceGauge({ score, label, size = "md" }: { score: number; label: 
 
 export default function GovernanceDashboard() {
   const [timeframe, setTimeframe] = useState<"24h" | "7d" | "30d">("24h");
+  const { user, isDemoMode } = useAuth();
+  const skipDb = !user || isDemoMode;
 
   // Compute simulated governance metrics from existing data
-  const permissionsCount = useQuery(api.engines.accessControlEngine.getStats, {});
-  const analytics = useQuery(api.accessEngine.getAccessAnalytics, {});
-  const conflicts = useQuery(api.accessEngine.detectConflicts, { userId: "" as any });
+  const permissionsCount = useQuery(api.engines.accessControlEngine.getStats, skipDb ? "skip" : {});
+  const analytics = useQuery(api.accessEngine.getAccessAnalytics, skipDb ? "skip" : {});
+  const conflicts = useQuery(api.accessEngine.detectConflicts, skipDb ? "skip" : { userId: "" as any });
 
   const complianceScore = 82;
   const securityScore = 91;

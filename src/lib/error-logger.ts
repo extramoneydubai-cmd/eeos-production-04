@@ -210,6 +210,16 @@ class ErrorRingBuffer {
     return this.entries;
   }
 
+  /** Alias for getAll() — used by SecurityCenter / SecurityEngine consumers. */
+  getEntries(): ErrorLogEntry[] {
+    return this.entries;
+  }
+
+  /** Convenience: log an informational entry. */
+  info(message: string, metadata?: ErrorMetadata): ErrorLogEntry {
+    return this.push({ message, stack: "", source: "sdk", severity: "info", metadata });
+  }
+
   /** Return only entries matching a source. */
   getBySource(source: ErrorSource): ErrorLogEntry[] {
     return this.entries.filter((e) => e.source === source);
@@ -347,6 +357,15 @@ class ErrorRingBuffer {
 
 /** Singleton instance, shared across the whole app. */
 export const errorLog = new ErrorRingBuffer();
+
+/**
+ * Backwards-compatible alias used by SecurityEngine / AuditAggregator / SecurityCenter.
+ * Same singleton instance as `errorLog`.
+ */
+export const errorLogger = errorLog;
+
+/** Backwards-compatible alias for the log entry type. */
+export type LogEntry = ErrorLogEntry;
 
 // ─── Helper: extract readable stack from various error shapes ────────
 

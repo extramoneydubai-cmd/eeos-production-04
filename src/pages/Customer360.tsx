@@ -15,7 +15,7 @@ export default function Customer360() {
 
   const students = useQuery(api.studentEngine.listStudents);
   const selectedData = selectedStudent ? {
-    fees: useQuery(api.financeSdk.calculateOutstanding as any, { studentId: selectedStudent }),
+    fees: useQuery(api.feeEngine.calculateOutstanding as any, { studentId: selectedStudent }),
     attendance: useQuery(api.attendanceEngine.getAttendanceSummary as any, {
       entityType: "student", entityId: selectedStudent,
       startDate: Date.now() - 90 * 86400000, endDate: Date.now(),

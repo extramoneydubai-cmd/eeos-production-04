@@ -89,16 +89,16 @@ function fmt(n?: number) {
 
 export default function RefundCenter() {
   // ─── SDK-backed data (via financeSdk) ────────────────────────────
-  const summary = useQuery(api.platform.sdk.financeSdk.getRefundSummary) as
+  const summary = useQuery(api.refundEngine.getRefundSummary) as
     | Record<string, number>
     | undefined;
-  const refunds = useQuery(api.platform.sdk.financeSdk.listRefunds, {}) as RefundRow[] | undefined;
+  const refunds = useQuery(api.refundEngine.listRefundRequests, {}) as RefundRow[] | undefined;
 
-  const createRefund = useMutation(api.platform.sdk.financeSdk.createRefundRequest);
-  const submitRefund = useMutation(api.platform.sdk.financeSdk.submitRefundForApproval);
-  const decideRefund = useMutation(api.platform.sdk.financeSdk.approveRefund);
-  const processRefund = useMutation(api.platform.sdk.financeSdk.processRefund);
-  const completeRefund = useMutation(api.platform.sdk.financeSdk.completeRefund);
+  const createRefund = useMutation(api.refundEngine.createRefundRequest);
+  const submitRefund = useMutation(api.refundEngine.submitRefundForApproval);
+  const decideRefund = useMutation(api.refundEngine.approveRefund);
+  const processRefund = useMutation(api.refundEngine.processRefund);
+  const completeRefund = useMutation(api.refundEngine.completeRefund);
 
   // ─── UI state ────────────────────────────────────────────────────
   const [statusFilter, setStatusFilter] = useState<string>("all");

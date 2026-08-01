@@ -40,10 +40,10 @@ const CONNECTOR_COLORS: Record<string, string> = {
 export default function IntegrationStudio() {
   const [tab, setTab] = useState("overview");
 
-  const connectors = useQuery(api.platform.sdk.integrationSdk.list, {}) as
-    { instances: any[]; total: number } | undefined;
-  const health = useQuery(api.platform.sdk.integrationSdk.getHealth, {}) as
-    { total: number; active: number; inactive: number; errored: number } | undefined;
+  const connectors = useQuery(api.integrationEngine.listConnectorInstances, {}) as
+    any[] | undefined;
+  const health = useQuery(api.integrationEngine.getIntegrationDashboard, {}) as
+    { totalConnectors: number; activeConnectors: number; inactiveConnectors: number } | undefined;
 
   return (
     <div className="space-y-6 p-6">
@@ -59,19 +59,19 @@ export default function IntegrationStudio() {
       <div className="grid grid-cols-4 gap-4">
         <Card><CardContent className="p-4 flex items-center gap-3">
           <div className="rounded-full bg-blue-100 p-2"><Plug className="h-5 w-5 text-blue-600" /></div>
-          <div><p className="text-xs text-muted-foreground">Total</p><p className="text-2xl font-bold">{health?.total || 0}</p></div>
+          <div><p className="text-xs text-muted-foreground">Total</p><p className="text-2xl font-bold">{health?.totalConnectors || 0}</p></div>
         </CardContent></Card>
         <Card className="border-green-200"><CardContent className="p-4 flex items-center gap-3">
           <div className="rounded-full bg-green-100 p-2"><Play className="h-5 w-5 text-green-600" /></div>
-          <div><p className="text-xs text-muted-foreground">Active</p><p className="text-2xl font-bold text-green-600">{health?.active || 0}</p></div>
+          <div><p className="text-xs text-muted-foreground">Active</p><p className="text-2xl font-bold text-green-600">{health?.activeConnectors || 0}</p></div>
         </CardContent></Card>
         <Card className="border-amber-200"><CardContent className="p-4 flex items-center gap-3">
           <div className="rounded-full bg-amber-100 p-2"><Settings className="h-5 w-5 text-amber-600" /></div>
-          <div><p className="text-xs text-muted-foreground">Errored</p><p className="text-2xl font-bold text-amber-600">{health?.errored || 0}</p></div>
+          <div><p className="text-xs text-muted-foreground">Errored</p><p className="text-2xl font-bold text-amber-600">{0}</p></div>
         </CardContent></Card>
         <Card className="border-red-200"><CardContent className="p-4 flex items-center gap-3">
           <div className="rounded-full bg-red-100 p-2"><Trash2 className="h-5 w-5 text-red-600" /></div>
-          <div><p className="text-xs text-muted-foreground">Inactive</p><p className="text-2xl font-bold text-red-600">{health?.inactive || 0}</p></div>
+          <div><p className="text-xs text-muted-foreground">Inactive</p><p className="text-2xl font-bold text-red-600">{health?.inactiveConnectors || 0}</p></div>
         </CardContent></Card>
       </div>
 
@@ -84,7 +84,7 @@ export default function IntegrationStudio() {
 
         <TabsContent value="overview" className="mt-4">
           <div className="grid grid-cols-3 gap-4">
-            {(connectors?.instances || []).length === 0 ? (
+            {(connectors || []).length === 0 ? (
               <>
                 {/* Placeholder connector cards for empty state */}
                 {["WhatsApp Business", "Email Service", "SMS Gateway", "Payment Gateway", "REST API", "Webhook"].map((name, i) => (
@@ -101,7 +101,7 @@ export default function IntegrationStudio() {
                 ))}
               </>
             ) : (
-              connectors!.instances.map((conn: any, idx: number) => (
+              connectors!.map((conn: any, idx: number) => (
                 <Card key={idx}>
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-3">

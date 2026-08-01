@@ -100,19 +100,19 @@ function fmt(n?: number) {
 
 export default function PdcWorkspace() {
   // ─── SDK-backed data (via financeSdk → chequeEngine) ─────────────
-  const dashboard = useQuery(api.platform.sdk.financeSdk.getChequeDashboard) as
+  const dashboard = useQuery(api.chequeEngine.getChequeDashboard) as
     | ChequeDashboard
     | undefined;
-  const cheques = useQuery(api.platform.sdk.financeSdk.listCheques, {}) as ChequeRow[] | undefined;
-  const penalties = useQuery(api.platform.sdk.financeSdk.listPenalties, {}) as PenaltyRow[] | undefined;
+  const cheques = useQuery(api.chequeEngine.listCheques, {}) as ChequeRow[] | undefined;
+  const penalties = useQuery(api.chequeEngine.listPenalties, {}) as PenaltyRow[] | undefined;
 
-  const createCheque = useMutation(api.platform.sdk.financeSdk.createChequeEntry);
-  const depositCheque = useMutation(api.platform.sdk.financeSdk.depositCheque);
-  const clearCheque = useMutation(api.platform.sdk.financeSdk.clearCheque);
-  const bounceCheque = useMutation(api.platform.sdk.financeSdk.bounceCheque);
-  const rePresentCheque = useMutation(api.platform.sdk.financeSdk.rePresentCheque);
-  const waivePenalty = useMutation(api.platform.sdk.financeSdk.waivePenalty);
-  const collectPenalty = useMutation(api.platform.sdk.financeSdk.collectPenalty);
+  const createCheque = useMutation(api.chequeEngine.createChequeEntry);
+  const depositCheque = useMutation(api.chequeEngine.depositCheque);
+  const clearCheque = useMutation(api.chequeEngine.clearCheque);
+  const bounceCheque = useMutation(api.chequeEngine.bounceCheque);
+  const rePresentCheque = useMutation(api.chequeEngine.rePresentCheque);
+  const waivePenalty = useMutation(api.chequeEngine.waivePenalty);
+  const collectPenalty = useMutation(api.chequeEngine.collectPenalty);
 
   // ─── UI state ────────────────────────────────────────────────────
   const [tab, setTab] = useState("cheques");

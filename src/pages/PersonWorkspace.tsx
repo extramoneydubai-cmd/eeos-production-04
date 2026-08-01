@@ -384,9 +384,9 @@ function RelationshipsTab({ entityId, entity }: WorkspaceTabProps) {
 // ─── QR Tab ────────────────────────────────────────────────────────────
 
 function QRTab({ entityId }: WorkspaceTabProps) {
-  const generateQr = useMutation(api.personQRCode.generateQrCode as any);
-  const regenerateQr = useMutation(api.personQRCode.regenerateQrCode as any);
-  const qrData = useQuery(api.personQRCode.getPersonQrCode as any, { personId: entityId as any });
+  const generateQr = useMutation(api.personQRCode.generateQRCode as any);
+  const regenerateQr = useMutation(api.personQRCode.regenerateQRCode as any);
+  const qrData = useQuery(api.personQRCode.getPersonQRCode as any, { personId: entityId as any });
 
   return (
     <div className="space-y-3">
