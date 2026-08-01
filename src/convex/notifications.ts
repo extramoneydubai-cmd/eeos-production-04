@@ -80,3 +80,13 @@ export const deleteNotification = mutation({
     await ctx.db.delete(args.notificationId);
   },
 });
+
+export const clearAllNotifications = mutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const all = await ctx.db.query("notifications").withIndex("userId", (q) => q.eq("userId", args.userId)).collect();
+    for (const n of all) {
+      await ctx.db.delete(n._id);
+    }
+  },
+});
