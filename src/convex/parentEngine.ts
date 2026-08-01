@@ -5,29 +5,49 @@
  * src/platform/sdk/ and were never deployed). Implementations are
  * schema-correct: they only query tables/fields that exist in src/convex/schema.
  *
- * NOTE on parent→student linkage: the schema has no parentUserId on
- * studentMaster; the demo seed links parents via `demoStudents.parentId`,
- * so that table is used here. Fee/attendance/homework/result lookups are
+ * Parent→student linkage: real deployments link students to parents via
+ * `studentMaster.parentUserId` (indexed). For demo/seed data, students are
+ * linked via `demoStudents.parentId` — used as a fallback so the portal
+ * still works out of the box. Fee/attendance/homework/result lookups are
  * defensive (guarded filters) and return empty when nothing matches.
  */
 
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
-/** Students linked to a parent account. */
-export const getStudentByParentId = query({
-  args: { parentId: v.string() },
-  handler: async (ctx, args) => {
-    let students: any[] = [];
+/**
+ * Load a parent's linked students.
+ * Prefers real `studentMaster` rows (parentUserId index); falls back to
+ * `demoStudents` (demo seed) when no real linkage exists.
+ */
+async function loadLinkedStudents(ctx: any, parentId: string): Promise<any[]> {
+  let real: any[] = [];
+  let demo: any[] = [];
+  try {
+    real = await ctx.db
+      .query("studentMaster")
+      .withIndex("parentUserId", (q: any) => q.eq("parentUserId", parentId))
+      .collect();
+  } catch {
+    real = [];
+  }
+  if (real.length === 0) {
     try {
-      students = await ctx.db
+      demo = await ctx.db
         .query("demoStudents")
-        .filter((q) => q.eq(q.field("parentId"), args.parentId as any))
+        .filter((q: any) => q.eq(q.field("parentId"), parentId))
         .collect();
     } catch {
-      students = [];
+      demo = [];
     }
-    return students.map((s: any) => ({
+  }
+  return real.length > 0 ? real : demo;
+}
+
+/** Normalize a student doc to the shape the parent portal consumes. */
+function toStudentView(s: any, isDemo: boolean) {
+  if (isDemo) {
+    return {
       _id: s._id,
       name: s.name,
       grade: s.grade,
@@ -35,7 +55,46 @@ export const getStudentByParentId = query({
       status: s.status,
       admissionNumber: s.admissionNumber,
       student: { id: s._id, name: s.name, admissionNumber: s.admissionNumber },
-    }));
+    };
+  }
+  const name = `${s.firstName || ""} ${s.lastName || ""}`.trim() || "Student";
+  return {
+    _id: s._id,
+    firstName: s.firstName,
+    lastName: s.lastName,
+    admissionNumber: s.admissionNumber,
+    status: s.currentStatus,
+    student: { id: s._id, name, admissionNumber: s.admissionNumber },
+  };
+}
+
+/** Students linked to a parent account. */
+export const getStudentByParentId = query({
+  args: { parentId: v.string() },
+  handler: async (ctx, args) => {
+    let real: any[] = [];
+    let demo: any[] = [];
+    try {
+      real = await ctx.db
+        .query("studentMaster")
+        .withIndex("parentUserId", (q: any) => q.eq("parentUserId", args.parentId))
+        .collect();
+    } catch {
+      real = [];
+    }
+    if (real.length === 0) {
+      try {
+        demo = await ctx.db
+          .query("demoStudents")
+          .filter((q: any) => q.eq(q.field("parentId"), args.parentId))
+          .collect();
+      } catch {
+        demo = [];
+      }
+    }
+    const useDemo = real.length === 0;
+    const students = useDemo ? demo : real;
+    return students.map((s) => toStudentView(s, useDemo));
   },
 });
 
@@ -43,23 +102,16 @@ export const getStudentByParentId = query({
 export const getParentDashboard = query({
   args: { parentId: v.string() },
   handler: async (ctx, args) => {
-    let students: any[] = [];
-    try {
-      students = await ctx.db
-        .query("demoStudents")
-        .filter((q) => q.eq(q.field("parentId"), args.parentId as any))
-        .collect();
-    } catch {
-      students = [];
-    }
+    const students = await loadLinkedStudents(ctx, args.parentId);
+    const useDemo = students.some((s) => s.name !== undefined && s.firstName === undefined);
 
     let unread = 0;
     try {
       unread = (
         await ctx.db
           .query("notifications")
-          .withIndex("userId_isRead", (q) =>
-            q.eq("userId", args.parentId as any).eq("isRead", false)
+          .withIndex("userId_isRead", (q: any) =>
+            q.eq("userId", args.parentId).eq("isRead", false)
           )
           .collect()
       ).length;
@@ -68,8 +120,12 @@ export const getParentDashboard = query({
     }
 
     return {
-      students: students.map((s: any) => ({
-        student: { id: s._id, name: s.name, admissionNumber: s.admissionNumber },
+      students: students.map((s) => ({
+        student: {
+          id: s._id,
+          name: useDemo ? s.name : `${s.firstName || ""} ${s.lastName || ""}`.trim(),
+          admissionNumber: s.admissionNumber,
+        },
         totalFee: 0,
         paid: 0,
       })),
@@ -87,7 +143,7 @@ export const getStudentFees = query({
     try {
       invoices = await ctx.db
         .query("feeInvoices")
-        .filter((q) => q.eq(q.field("studentId"), args.studentId as any))
+        .filter((q: any) => q.eq(q.field("studentId"), args.studentId))
         .collect();
     } catch {
       invoices = [];
@@ -95,7 +151,7 @@ export const getStudentFees = query({
     try {
       receipts = await ctx.db
         .query("receiptHistory")
-        .filter((q) => q.eq(q.field("studentId"), args.studentId as any))
+        .filter((q: any) => q.eq(q.field("studentId"), args.studentId))
         .collect();
     } catch {
       receipts = [];
@@ -125,7 +181,7 @@ export const getStudentAttendance = query({
     try {
       records = await ctx.db
         .query("attendance")
-        .filter((q) => q.eq(q.field("studentId"), args.studentId))
+        .filter((q: any) => q.eq(q.field("studentId"), args.studentId))
         .collect();
     } catch {
       records = [];
@@ -155,7 +211,7 @@ export const getStudentHomework = query({
     try {
       homework = await ctx.db
         .query("homework")
-        .filter((q) => q.eq(q.field("studentId"), args.studentId))
+        .filter((q: any) => q.eq(q.field("studentId"), args.studentId))
         .collect();
     } catch {
       homework = [];
@@ -166,19 +222,29 @@ export const getStudentHomework = query({
   },
 });
 
-/** Exam results for a student (from examResults; the old "marks" table does not exist). */
+/** Exam results for a student. Resolves the student's personId (examResults
+ *  references personMaster ids) and falls back to direct studentId matches. */
 export const getStudentResults = query({
   args: { studentId: v.string() },
   handler: async (ctx, args) => {
     let results: any[] = [];
+    let student: any = null;
     try {
+      student = await ctx.db.get(args.studentId as any);
+    } catch {
+      student = null;
+    }
+
+    try {
+      const personId = student?.personId || args.studentId;
       results = await ctx.db
         .query("examResults")
-        .filter((q) => q.eq(q.field("studentId"), args.studentId as any))
+        .filter((q: any) => q.eq(q.field("studentId"), personId))
         .collect();
     } catch {
       results = [];
     }
+
     return results.map((r: any) => ({
       examName: r.examSessionId,
       subject: r.subject,

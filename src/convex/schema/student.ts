@@ -28,11 +28,13 @@ export const studentTables = {
     branchId: v.optional(v.id("branches")),
     organizationId: v.optional(v.id("organizations")),
     academicYearId: v.optional(v.id("academicSessions")),
+    parentUserId: v.optional(v.id("users")),
     createdBy: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("studentCode", ["studentCode"])
+    .index("parentUserId", ["parentUserId"])
     .index("personId", ["personId"])
     .index("admissionNumber", ["admissionNumber"])
     .index("rollNumber", ["rollNumber"])

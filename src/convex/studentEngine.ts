@@ -51,6 +51,7 @@ export const createStudent = mutation({
     phone: v.string(),
     email: v.optional(v.string()),
     leadId: v.optional(v.id("leadMaster")),
+    parentUserId: v.optional(v.id("users")),
     companyId: v.optional(v.id("companies")),
     branchId: v.optional(v.id("branches")),
     organizationId: v.optional(v.id("organizations")),
@@ -107,7 +108,7 @@ export const createStudent = mutation({
     },
     async (ctx, args) => {
       const now = Date.now();
-      const { academicProfile, academicYearId, leadId, companyId, branchId, organizationId, createdBy, ...personFields } = args;
+      const { academicProfile, academicYearId, leadId, companyId, branchId, organizationId, createdBy, parentUserId, ...personFields } = args;
 
       // Step 1: Create Person in Global People Registry
       const personId = await ctx.db.insert("personMaster", {
@@ -194,6 +195,7 @@ export const createStudent = mutation({
         branchId,
         organizationId,
         academicYearId,
+        parentUserId,
         createdBy,
         createdAt: now,
         updatedAt: now,
@@ -319,6 +321,7 @@ export const updateStudent = mutation({
     organizationId: v.optional(v.id("organizations")),
     academicYearId: v.optional(v.id("academicSessions")),
     rollNumber: v.optional(v.string()),
+    parentUserId: v.optional(v.id("users")),
   },
   handler: withScopeAndEvents(
     {
