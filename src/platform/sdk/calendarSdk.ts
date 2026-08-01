@@ -9,8 +9,8 @@
  */
 
 import { v } from "convex/values";
-import { mutation, query } from "../convex/_generated/server";
-import { Id } from "../convex/_generated/dataModel";
+import { mutation, query } from "../../convex/_generated/server";
+import { Id } from "../../convex/_generated/dataModel";
 
 // ─── SDK Methods ─────────────────────────────────────────────────────────
 

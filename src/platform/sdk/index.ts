@@ -4,10 +4,13 @@
  * Single import for ALL page-consumable SDK methods.
  * Every page MUST import from here instead of calling api.xxx directly.
  *
- * Usage:
- *   import { PlatformSDK } from "@/platform/sdk";
- *   const students = await PlatformSDK.students.list(ctx, { branchId });
- *   const account = await PlatformSDK.finance.getStudentFeeAccount(ctx, { studentId });
+ * NOTE: PlatformSDK handler files under src/platform/sdk/ are NOT registered
+ * Convex modules (only src/convex/ is deployed). Pages must call the generated
+ * api directly, e.g. api.studentEngine.listStudents or api.finance.*.
+ *
+ * Usage (pages):
+ *   import { api } from "@/convex/_generated/api";
+ *   const students = await api.studentEngine.listStudents({ branchId });
  */
 
 import * as academic from "./academicSdk";

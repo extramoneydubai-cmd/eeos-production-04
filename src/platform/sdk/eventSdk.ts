@@ -10,8 +10,8 @@
  */
 
 import { v } from "convex/values";
-import { mutation } from "../convex/_generated/server";
-import { Id } from "../convex/_generated/dataModel";
+import { mutation } from "../../convex/_generated/server";
+import { Id } from "../../convex/_generated/dataModel";
 
 // ─── Types ───────────────────────────────────────────────────────────────
 
