@@ -1,5 +1,5 @@
 import { useQuery } from "convex/react";
-import { PlatformSDK } from "@/platform/sdk";
+import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/hooks/use-auth";
 import { useAppNavigate } from "@/hooks/use-app-navigate";
 import {
@@ -171,12 +171,12 @@ export default function DashboardCEO() {
   const { navigate } = useAppNavigate();
   const userId = user?._id as string | undefined;
 
-  const leads = useQuery(PlatformSDK.crm.listLeads, {});
-  const students = useQuery(PlatformSDK.students.list, {});
-  const financeKpis = useQuery(PlatformSDK.finance.getFinanceDashboardKPIs);
-  const tasks = useQuery(PlatformSDK.tasks.listForUser, userId ? { userId } : "skip");
-  const notifications = useQuery(PlatformSDK.notifications.list, userId ? { userId, limit: 20 } : "skip");
-  const activities = useQuery(PlatformSDK.dashboard.getRecentActivity, { module: "dashboard", limit: 10 });
+  const leads = useQuery(api.crmLeads.listLeads, {})?.items;
+  const students = useQuery(api.studentEngine.listStudents, userId ? { userId: userId as any } : "skip")?.items;
+  const financeKpis = useQuery(api.financePlatform.getFinanceDashboardKPIs);
+  const tasks = useQuery(api.tasks.listTasks, userId ? { assignedTo: userId as any } : "skip");
+  const notifications = useQuery(api.notifications.listNotifications, userId ? { userId: userId as any, limit: 20 } : "skip");
+  const activities = useQuery(api.timelineEngine.getModuleTimeline, { module: "dashboard", limit: 10 });
 
   const isLoading = !leads || !students || !financeKpis;
 

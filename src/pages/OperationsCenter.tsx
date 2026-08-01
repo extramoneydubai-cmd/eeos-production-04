@@ -9,7 +9,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "convex/react";
-import { PlatformSDK } from "@/platform/sdk";
+import { api } from "@/convex/_generated/api";
 import { motion } from "framer-motion";
 import {
   Activity, Server, Shield, Database, HardDrive, Wifi, Cpu,
@@ -436,10 +436,10 @@ function DeploymentTab({ snapshot }: { snapshot: OperationsSnapshot }) {
 // ─── Scheduling Tab ───────────────────────────────────────────
 
 function SchedulingTab() {
-  const schedules = useQuery(PlatformSDK.scheduling.getCounts, {});
-  const todaySchedules = useQuery(PlatformSDK.scheduling.getToday, {}) as any[] | undefined;
-  const resources = useQuery(PlatformSDK.scheduling.listResources, {}) as any[] | undefined;
-  const opsHealth = useQuery(PlatformSDK.health.operationsDashboard, {});
+  const schedules = useQuery(api.schedulingSdk.getCounts, {});
+  const todaySchedules = useQuery(api.schedulingSdk.getToday, {}) as any[] | undefined;
+  const resources = useQuery(api.schedulingSdk.listResources, {}) as any[] | undefined;
+  const opsHealth = useQuery(api.runtimeObservability.getOperationsDashboard, {});
 
   const todayCount = todaySchedules?.length || 0;
   const totalResources = resources?.length || 0;

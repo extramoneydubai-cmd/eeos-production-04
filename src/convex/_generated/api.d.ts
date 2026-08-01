@@ -210,6 +210,7 @@ import type * as organizationCompanies from "../organizationCompanies.js";
 import type * as organizationDepartments from "../organizationDepartments.js";
 import type * as organizationDesignations from "../organizationDesignations.js";
 import type * as organizationTeams from "../organizationTeams.js";
+import type * as parentEngine from "../parentEngine.js";
 import type * as paymentEngine from "../paymentEngine.js";
 import type * as payrollEngine from "../payrollEngine.js";
 import type * as pdcLegalEngine from "../pdcLegalEngine.js";
@@ -511,6 +512,7 @@ declare const fullApi: ApiFromModules<{
   organizationDepartments: typeof organizationDepartments;
   organizationDesignations: typeof organizationDesignations;
   organizationTeams: typeof organizationTeams;
+  parentEngine: typeof parentEngine;
   paymentEngine: typeof paymentEngine;
   payrollEngine: typeof payrollEngine;
   pdcLegalEngine: typeof pdcLegalEngine;

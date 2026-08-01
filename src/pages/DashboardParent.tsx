@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useMutation, useQuery } from "convex/react";
-import { PlatformSDK } from "@/platform/sdk";
+import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -37,14 +37,14 @@ export default function DashboardParent() {
   const parentId = rawUserId && !rawUserId.startsWith("local_") ? rawUserId : undefined;
 
   const dashboard = useQuery(
-    PlatformSDK.parent.getParentDashboard,
+    api.parentEngine.getParentDashboard,
     parentId ? { parentId: parentId as any } : "skip"
   );
   const students = useQuery(
-    PlatformSDK.parent.getStudentByParentId,
+    api.parentEngine.getStudentByParentId,
     parentId ? { parentId: parentId as any } : "skip"
   );
-  const createTicket = useMutation(PlatformSDK.parent.createParentTicket);
+  const createTicket = useMutation(api.parentEngine.createParentTicket);
 
   const [selectedStudentId, setSelectedStudentId] = useState<string | undefined>(undefined);
   const [ticketSubject, setTicketSubject] = useState("");
@@ -56,19 +56,19 @@ export default function DashboardParent() {
   const activeStudentId = selectedStudentId || studentList[0]?.student?.id || studentList[0]?._id;
 
   const studentFees = useQuery(
-    PlatformSDK.parent.getStudentFees,
+    api.parentEngine.getStudentFees,
     activeStudentId ? { studentId: activeStudentId as any } : "skip"
   );
   const studentAttendance = useQuery(
-    PlatformSDK.parent.getStudentAttendance,
+    api.parentEngine.getStudentAttendance,
     activeStudentId ? { studentId: activeStudentId as any, limit: 30 } : "skip"
   );
   const studentHomework = useQuery(
-    PlatformSDK.parent.getStudentHomework,
+    api.parentEngine.getStudentHomework,
     activeStudentId ? { studentId: activeStudentId as any } : "skip"
   );
   const studentResults = useQuery(
-    PlatformSDK.parent.getStudentResults,
+    api.parentEngine.getStudentResults,
     activeStudentId ? { studentId: activeStudentId as any } : "skip"
   );
 
