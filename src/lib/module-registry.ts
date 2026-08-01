@@ -1,8 +1,9 @@
 /**
  * MODULE_REGISTRY — EEOS Single Source of Truth for Navigation (PATCH-UI-001, Phase 2)
  *
+ * Enterprise ERP navigation model (SAP / Oracle Fusion / Dynamics / Salesforce style).
  * Every production module lives here ONCE. From this single array the app generates:
- *   - Sidebar sections          (getSidebarSections)
+ *   - Sidebar sections          (getSidebarSections)  — 13 enterprise groups
  *   - Global search             (searchModules)
  *   - Breadcrumbs               (getBreadcrumbTrail)
  *   - Favorites                 (toggleFavorite / isFavorite)
@@ -68,11 +69,19 @@ import type { LucideIcon } from "lucide-react";
 // ─── Types ──────────────────────────────────────────────────────────────
 
 export type ModuleGroup =
-  | "Overview"
-  | "Studios"
-  | "Business Modules"
-  | "System"
-  | "Tools";
+  | "Home"
+  | "Governance"
+  | "Academics"
+  | "CRM"
+  | "Students"
+  | "Finance"
+  | "HR"
+  | "Operations"
+  | "Communication"
+  | "Reports"
+  | "AI"
+  | "Integrations"
+  | "Platform";
 
 export interface ModuleDefinition {
   /** Stable unique id (used for favorites, breadcrumbs, permissions) */
@@ -97,23 +106,60 @@ export interface ModuleDefinition {
   isPlaceholder?: boolean;
 }
 
-// ─── THE REGISTRY ───────────────────────────────────────────────────────
+// ─── THE REGISTRY (enterprise ERP hierarchy) ────────────────────────────
 
 export const MODULE_REGISTRY: ModuleDefinition[] = [
-  // ── Overview ────────────────────────────────────────────────
+  // ══ HOME ══════════════════════════════════════════════════════════
   {
     id: "dashboard", label: "Dashboard", href: "/dashboard", icon: LayoutDashboard,
-    group: "Overview", keywords: ["home", "overview", "kpi", "widgets"],
+    group: "Home", keywords: ["home", "overview", "kpi", "widgets"],
     description: "Enterprise dashboard with KPIs, tasks, approvals and activity.",
   },
   {
     id: "command-center", label: "Command Center", href: "/command-center", icon: Radar,
-    group: "Overview", keywords: ["operations", "command", "queues", "runtime", "escalations"],
+    group: "Home", keywords: ["operations", "command", "queues", "runtime", "escalations"],
     description: "Converged operations command center — one screen for every queue.",
   },
   {
+    id: "tasks", label: "Tasks", href: "/tasks", icon: ListChecks,
+    group: "Home", keywords: ["my tasks", "kanban", "to do", "checklist", "assignments"],
+    description: "My workspace — tasks, kanban boards and checklists.",
+  },
+  {
+    id: "approvals", label: "Approvals", href: "/approvals", icon: CheckSquare,
+    group: "Home", keywords: ["approvals", "approval requests", "templates", "phases", "my approvals"],
+    description: "Approval requests, templates and phases.",
+  },
+  {
+    id: "notifications", label: "Notifications", href: "/notifications", icon: Bell,
+    group: "Home", keywords: ["notifications", "alerts", "unread", "badge"],
+    description: "Your notifications and alerts.",
+  },
+  {
+    id: "messenger", label: "Messenger", href: "/messenger", icon: MessageSquare,
+    group: "Home", keywords: ["chat", "dm", "channels", "announcements", "messages"],
+    description: "Direct messages, channels and announcements.",
+  },
+  {
+    id: "calendar", label: "Calendar", href: "/calendar", icon: Calendar,
+    group: "Home", keywords: ["calendar", "events", "meetings", "schedule view"],
+    description: "Personal calendar and events.",
+  },
+  {
+    id: "organization-calendar", label: "Organization Calendar", href: "/organization-calendar", icon: Calendar,
+    group: "Home", keywords: ["org calendar", "institution calendar", "events", "holidays"],
+    description: "Organization-wide calendar and events.",
+  },
+  {
+    id: "profile", label: "Profile", href: "/profile", icon: UserCircle,
+    group: "Home", keywords: ["profile", "account", "me", "settings"],
+    description: "Your profile and preferences.",
+  },
+
+  // ══ GOVERNANCE ════════════════════════════════════════════════════
+  {
     id: "executive", label: "Executive Dashboards", href: "/executive/ceo", icon: Crown,
-    group: "Overview", keywords: ["ceo", "cfo", "coo", "cko", "cto", "cmo", "cpo", "chro", "executive"],
+    group: "Governance", keywords: ["ceo", "cfo", "coo", "cko", "cto", "cmo", "cpo", "chro", "executive"],
     description: "Role-specific executive dashboards for the C-suite.",
     children: [
       { label: "CEO Dashboard", href: "/executive/ceo" },
@@ -127,28 +173,14 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     ],
   },
   {
-    id: "student-portal", label: "Student Portal", href: "/student", icon: GraduationCap,
-    group: "Overview", keywords: ["student portal", "my dashboard", "self service"],
-    description: "Student self-service dashboard.",
-    roles: ["student"],
+    id: "control", label: "CEO Control Center", href: "/control", icon: Crown,
+    group: "Governance", keywords: ["admin", "control", "broadcast", "reset password"],
+    description: "CEO operations control.",
+    roles: ["super_admin"],
   },
-  {
-    id: "parent-portal", label: "Parent Portal", href: "/parent", icon: UsersRound,
-    group: "Overview", keywords: ["parent portal", "my child", "fee status"],
-    description: "Parent self-service dashboard.",
-    roles: ["parent"],
-  },
-  {
-    id: "faculty-portal", label: "Faculty Portal", href: "/faculty", icon: BookOpen,
-    group: "Overview", keywords: ["faculty portal", "my classes", "my schedule"],
-    description: "Faculty self-service dashboard.",
-    roles: ["faculty"],
-  },
-
-  // ── Studios ──────────────────────────────────────────────────
   {
     id: "org", label: "Organization Studio", href: "/org", icon: Building2,
-    group: "Studios", keywords: ["org", "departments", "branches", "companies", "teams", "verticals"],
+    group: "Governance", keywords: ["org", "departments", "branches", "companies", "teams", "verticals"],
     description: "Organization structure: departments, companies, branches, teams.",
     children: [
       { label: "Companies", href: "/studios/master-data/organization/companies" },
@@ -159,48 +191,108 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     ],
   },
   {
-    id: "master-data", label: "Master Data Studio", href: "/studios/master-data", icon: Database,
-    group: "Studios", keywords: ["masters", "config", "settings", "reference"],
-    description: "Central configuration repository for every module.",
-  },
-  {
     id: "access", label: "Access Studio", href: "/access", icon: Shield,
-    group: "Studios", keywords: ["access control", "roles", "permissions", "scopes", "acl"],
+    group: "Governance", keywords: ["access control", "roles", "permissions", "scopes", "acl", "effective access"],
     description: "Access control, effective access and role visibility.",
     roles: ["super_admin", "admin"],
   },
   {
-    id: "workflow", label: "Workflow Studio", href: "/studios/workflows", icon: Workflow,
-    group: "Studios", keywords: ["workflows", "automation", "triggers", "nodes"],
-    description: "Design and monitor enterprise workflows.",
-    children: [{ label: "Workflow Monitor", href: "/workflow-monitor" }],
+    id: "users", label: "User Management", href: "/users", icon: Users,
+    group: "Governance", keywords: ["users", "accounts", "login", "sessions", "reset password"],
+    description: "Create, manage and secure user accounts.",
+    roles: ["super_admin", "admin"],
   },
   {
-    id: "workflow-monitor", label: "Workflow Monitor", href: "/workflow-monitor", icon: Activity, parent: "workflow",
-    group: "Studios", keywords: ["workflow monitor", "executions", "runs", "monitor"],
-    description: "Monitor live workflow executions and runs.",
+    id: "configuration", label: "Configuration Studio", href: "/configuration", icon: Settings,
+    group: "Governance", keywords: ["configuration", "config", "settings", "feature flags", "platform config"],
+    description: "Platform configuration and feature controls.",
   },
   {
-    id: "forms", label: "Form Studio", href: "/studios/forms", icon: ClipboardList,
-    group: "Studios", keywords: ["forms", "builder", "dynamic forms"],
-    description: "Build and publish dynamic forms.",
+    id: "governance", label: "Governance Dashboard", href: "/governance", icon: Shield,
+    group: "Governance", keywords: ["governance", "policies", "compliance", "oversight"],
+    description: "Governance, policy and compliance dashboard.",
   },
   {
-    id: "dashboards", label: "Dashboard Studio", href: "/studio/dashboards", icon: BarChart3,
-    group: "Studios", keywords: ["dashboard studio", "widgets", "layouts", "kpis"],
-    description: "Design custom dashboards and widget layouts.",
+    id: "audit", label: "Audit Center", href: "/audit", icon: FileText,
+    group: "Governance", keywords: ["audit", "logs", "trail", "compliance", "activity"],
+    description: "Audit trail and compliance.",
   },
   {
-    id: "platform-studio", label: "Platform Studio", href: "/platform-studio", icon: Sparkles,
-    group: "Studios", keywords: ["platform", "registry", "pages", "engines"],
-    description: "Platform page and engine registry explorer.",
+    id: "security", label: "Security Center", href: "/security", icon: Shield,
+    group: "Governance", keywords: ["security", "risk", "threats", "hardening"],
+    description: "Enterprise security center.",
+  },
+  {
+    id: "admin-console", label: "Admin Console", href: "/admin", icon: Settings,
+    group: "Governance", keywords: ["admin console", "system admin", "platform"],
+    description: "Platform administration console.",
+  },
+  {
+    id: "administration", label: "Administration", href: "/administration", icon: Building,
+    group: "Governance", keywords: ["admin", "operations", "facilities"],
+    description: "Administration dashboard.",
   },
 
-  // ── Business Modules ─────────────────────────────────────────
+  // ══ ACADEMICS ═════════════════════════════════════════════════════
   {
-    id: "crm", label: "CRM", href: "/crm", icon: Target,
-    group: "Business Modules", keywords: ["leads", "customers", "opportunities", "pipeline", "follow up"],
-    description: "Lead and customer relationship management.",
+    id: "academic", label: "Academic Structure", href: "/academic", icon: BookOpen,
+    group: "Academics", keywords: ["courses", "programs", "subjects", "batches", "academic", "classes", "faculty allocation"],
+    description: "Academic structure: programs, subjects, batches, faculty allocation.",
+    children: [
+      { label: "Course Library", href: "/courses" },
+      { label: "Academic Master Data", href: "/studios/master-data/academic" },
+    ],
+  },
+  {
+    id: "courses", label: "Courses", href: "/courses", icon: BookOpen,
+    group: "Academics", keywords: ["courses", "course library", "curriculum"],
+    description: "Course library and curriculum.",
+  },
+  {
+    id: "scheduling", label: "Timetable", href: "/scheduling", icon: Calendar,
+    group: "Academics", keywords: ["timetable", "schedule", "classes", "resources", "conflicts"],
+    description: "Timetable, scheduling and resource booking.",
+    children: [
+      { label: "Scheduler Dashboard", href: "/scheduler" },
+      { label: "Schedule Approvals", href: "/scheduling/approvals" },
+      { label: "Scheduling Reports", href: "/scheduling/reports" },
+    ],
+  },
+  {
+    id: "scheduler", label: "Scheduler", href: "/scheduler", icon: Calendar, parent: "scheduling",
+    group: "Academics", keywords: ["scheduler", "scheduler dashboard", "resources"],
+    description: "Scheduler workspace and resource allocation.",
+  },
+  {
+    id: "attendance", label: "Attendance", href: "/attendance", icon: CheckSquare,
+    group: "Academics", keywords: ["attendance", "mark", "shift", "duty", "qr", "gps", "face", "present", "absent", "late"],
+    description: "Attendance marking with QR, GPS and face verification.",
+  },
+  {
+    id: "lms", label: "LMS", href: "/lms", icon: BookOpen,
+    group: "Academics", keywords: ["learning", "courses", "lessons", "e-learning", "content", "lesson planner"],
+    description: "Learning management system.",
+    children: [
+      { label: "Course Studio", href: "/lms/courses" },
+    ],
+  },
+  {
+    id: "examinations", label: "Exams", href: "/examinations", icon: FileCheck,
+    group: "Academics", keywords: ["exams", "hall ticket", "results", "evaluation", "revaluation", "question bank", "assignments"],
+    description: "Examination planning, results and revaluation.",
+  },
+  {
+    id: "faculty-portal", label: "Faculty Portal", href: "/faculty", icon: BookOpen,
+    group: "Academics", keywords: ["faculty portal", "my classes", "my schedule"],
+    description: "Faculty self-service dashboard.",
+    roles: ["faculty"],
+  },
+
+  // ══ CRM ═══════════════════════════════════════════════════════════
+  {
+    id: "crm", label: "Lead Center", href: "/crm", icon: Target,
+    group: "CRM", keywords: ["leads", "customers", "opportunities", "pipeline", "follow up", "counselling"],
+    description: "Lead, customer and opportunity pipeline.",
     children: [
       { label: "Leads", href: "/crm/leads" },
       { label: "Sales Center", href: "/crm/sales" },
@@ -214,55 +306,56 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     ],
   },
   {
-    id: "customer360", label: "Customer 360", href: "/customer360", icon: ContactRound, parent: "crm",
-    group: "Business Modules", keywords: ["customer 360", "customer profile", "crm", "360"],
-    description: "Unified 360° customer profile.",
-  },
-  {
-    id: "collection-center", label: "Collection Center", href: "/crm/sales/collections", icon: Banknote, parent: "crm",
-    group: "Business Modules", keywords: ["collections", "crm collections", "sales collections"],
-    description: "Collections within the CRM sales pipeline.",
-  },
-  {
     id: "admissions", label: "Admissions", href: "/admissions", icon: UserPlus,
-    group: "Business Modules", keywords: ["intake", "enquiry", "lead conversion", "enrollment"],
+    group: "CRM", keywords: ["intake", "enquiry", "lead conversion", "enrollment", "enquiry forms"],
     description: "Admissions, intake and enrollment pipeline.",
     children: [{ label: "Intake Studio", href: "/studios/intake" }],
   },
   {
     id: "intake", label: "Intake Studio", href: "/studios/intake", icon: UserPlus, parent: "admissions",
-    group: "Business Modules", keywords: ["intake", "admissions intake", "intake dashboard"],
+    group: "CRM", keywords: ["intake", "admissions intake", "intake dashboard"],
     description: "Admissions intake and pipeline dashboard.",
   },
   {
-    id: "students", label: "Students", href: "/students", icon: GraduationCap,
-    group: "Business Modules", keywords: ["student database", "enrollment", "student records"],
-    description: "Student database and records.",
+    id: "customer360", label: "Customer 360", href: "/customer360", icon: ContactRound, parent: "crm",
+    group: "CRM", keywords: ["customer 360", "customer profile", "crm", "360"],
+    description: "Unified 360° customer profile.",
   },
   {
-    id: "academic", label: "Academic", href: "/academic", icon: BookOpen,
-    group: "Business Modules", keywords: ["courses", "batches", "academic", "classes"],
-    description: "Academic structure: courses, batches, sessions.",
-    children: [
-      { label: "Course Library", href: "/courses" },
-      { label: "Academic Master Data", href: "/studios/master-data/academic" },
-    ],
+    id: "collection-center", label: "Collection Center", href: "/crm/sales/collections", icon: Banknote, parent: "crm",
+    group: "CRM", keywords: ["collections", "crm collections", "sales collections"],
+    description: "Collections within the CRM sales pipeline.",
+  },
+
+  // ══ STUDENTS ══════════════════════════════════════════════════════
+  {
+    id: "students", label: "Student Registry", href: "/students", icon: GraduationCap,
+    group: "Students", keywords: ["student database", "enrollment", "student records", "parents"],
+    description: "Student registry, records and enrollment.",
   },
   {
-    id: "collections", label: "Collections", href: "/collections", icon: Banknote, parent: "finance",
-    group: "Business Modules", keywords: ["collections", "fee collection", "payments", "receipts"],
-    description: "Fee collections and payment receipts.",
-    children: [{ label: "Collections Executive", href: "/collections-executive" }],
+    id: "student-portal", label: "Student Portal", href: "/student", icon: GraduationCap,
+    group: "Students", keywords: ["student portal", "my dashboard", "self service", "homework", "progress"],
+    description: "Student self-service dashboard.",
+    roles: ["student"],
   },
   {
-    id: "collections-executive", label: "Collections Executive", href: "/collections-executive", icon: BarChart3, parent: "collections",
-    group: "Business Modules", keywords: ["collections executive", "collections kpi", "executive"],
-    description: "Executive view of collections performance.",
+    id: "parent-portal", label: "Parent Portal", href: "/parent", icon: UsersRound,
+    group: "Students", keywords: ["parent portal", "my child", "fee status", "attendance"],
+    description: "Parent self-service dashboard.",
+    roles: ["parent"],
   },
   {
-    id: "finance", label: "Finance", href: "/finance", icon: PiggyBank,
-    group: "Business Modules", keywords: ["fees", "invoices", "payments", "collections", "revenue", "accounting"],
-    description: "Finance, fees, invoices and collections.",
+    id: "documents", label: "Documents", href: "/documents", icon: FolderOpen,
+    group: "Students", keywords: ["files", "documents", "attachments", "certificates", "id cards"],
+    description: "Document management and certificates.",
+  },
+
+  // ══ FINANCE ═══════════════════════════════════════════════════════
+  {
+    id: "finance", label: "Fee Center", href: "/finance", icon: PiggyBank,
+    group: "Finance", keywords: ["fees", "invoices", "receipts", "payments", "collections", "revenue", "accounting", "gst", "payroll"],
+    description: "Finance, fees, invoices, receipts and accounting.",
     children: [
       { label: "Collections", href: "/collections" },
       { label: "Finance Reports", href: "/finance/reports" },
@@ -270,8 +363,19 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     ],
   },
   {
+    id: "collections", label: "Collections", href: "/collections", icon: Banknote, parent: "finance",
+    group: "Finance", keywords: ["collections", "fee collection", "payments", "receipts"],
+    description: "Fee collections and payment receipts.",
+    children: [{ label: "Collections Executive", href: "/collections-executive" }],
+  },
+  {
+    id: "collections-executive", label: "Collections Executive", href: "/collections-executive", icon: BarChart3, parent: "collections",
+    group: "Finance", keywords: ["collections executive", "collections kpi", "executive"],
+    description: "Executive view of collections performance.",
+  },
+  {
     id: "refund", label: "Refunds", href: "/finance/refunds", icon: Undo2, parent: "finance",
-    group: "Business Modules", keywords: ["refund center", "refund rules", "refund reports", "refund dashboard", "refund workflow", "refund analytics", "refund requests", "refund approval"],
+    group: "Finance", keywords: ["refund center", "refund rules", "refund reports", "refund dashboard", "refund workflow", "refund analytics", "refund requests", "refund approval"],
     description: "Refund requests, approvals and processing.",
     children: [
       { label: "Refund Center", href: "/finance/refunds" },
@@ -281,47 +385,41 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
   },
   {
     id: "pdc", label: "PDC & Cheques", href: "/finance/pdc", icon: Banknote, parent: "finance",
-    group: "Business Modules", keywords: ["pdc", "cheques", "post dated", "bounce", "penalty", "reconciliation"],
+    group: "Finance", keywords: ["pdc", "cheques", "post dated", "bounce", "penalty", "reconciliation", "cheque management"],
     description: "Post-dated cheques, deposits, bounces and penalties.",
   },
+
+  // ══ HR ════════════════════════════════════════════════════════════
   {
-    id: "people", label: "People", href: "/people", icon: CircleUser,
-    group: "Business Modules", keywords: ["people registry", "contacts", "persons"],
-    description: "Unified people registry.",
+    id: "employees", label: "Employee Registry", href: "/employees", icon: UsersRound,
+    group: "HR", keywords: ["hr", "staff", "employee records", "onboarding", "exit"],
+    description: "Employee registry and lifecycle.",
   },
   {
-    id: "employees", label: "Employees", href: "/employees", icon: UsersRound,
-    group: "Business Modules", keywords: ["hr", "staff", "employee records", "onboarding"],
-    description: "Employee database and lifecycle.",
+    id: "recruiting", label: "Recruitment", href: "/recruiting", icon: UserPlus,
+    group: "HR", keywords: ["recruiting", "hiring", "candidates", "jobs"],
+    description: "Recruitment and hiring.",
   },
   {
-    id: "hr", label: "HR", href: "/hr", icon: Users,
-    group: "Business Modules", keywords: ["human resources", "payroll", "leave", "attendance", "recruiting"],
-    description: "HR, payroll, leave and recruiting.",
+    id: "hr", label: "HR Analytics", href: "/hr", icon: Users,
+    group: "HR", keywords: ["human resources", "payroll", "leave", "attendance", "performance"],
+    description: "HR analytics, payroll, leave and performance.",
     children: [
       { label: "Recruiting", href: "/recruiting" },
       { label: "HR Master Data", href: "/studios/master-data/hr" },
     ],
   },
   {
-    id: "marketing", label: "Marketing", href: "/communication-marketing", icon: Megaphone,
-    group: "Business Modules", keywords: ["campaigns", "communication", "email", "sms", "whatsapp"],
-    description: "Marketing campaigns and communications.",
-    children: [
-      { label: "Campaigns", href: "/marketing/campaigns" },
-      { label: "Marketing Analytics", href: "/marketing/analytics" },
-      { label: "Communication Master Data", href: "/studios/master-data/communication" },
-    ],
+    id: "people", label: "People", href: "/people", icon: CircleUser,
+    group: "HR", keywords: ["people registry", "contacts", "persons"],
+    description: "Unified people registry.",
   },
-  {
-    id: "administration", label: "Administration", href: "/administration", icon: Building,
-    group: "Business Modules", keywords: ["admin", "operations"],
-    description: "Administration dashboard.",
-  },
+
+  // ══ OPERATIONS ════════════════════════════════════════════════════
   {
     id: "procurement", label: "Procurement", href: "/procurement", icon: ShoppingCart,
-    group: "Business Modules", keywords: ["vendors", "purchase", "requisition", "suppliers"],
-    description: "Procurement and vendor management.",
+    group: "Operations", keywords: ["vendors", "purchase", "requisition", "suppliers", "purchase orders", "grn"],
+    description: "Procurement, purchase orders and vendor management.",
     children: [
       { label: "Vendors", href: "/procurement/vendors" },
       { label: "Assets", href: "/procurement/assets" },
@@ -329,55 +427,17 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
   },
   {
     id: "inventory", label: "Inventory", href: "/procurement/inventory", icon: Boxes, parent: "procurement",
-    group: "Business Modules", keywords: ["stock", "warehouse", "items", "low stock"],
+    group: "Operations", keywords: ["stock", "warehouse", "items", "low stock"],
     description: "Inventory and stock management.",
   },
   {
     id: "production", label: "Production", href: "/production", icon: Factory,
-    group: "Business Modules", keywords: ["production tasks", "content", "manufacturing", "pipeline"],
+    group: "Operations", keywords: ["production tasks", "content", "manufacturing", "pipeline", "printing", "digital asset"],
     description: "Production task management.",
   },
   {
-    id: "lms", label: "LMS", href: "/lms", icon: BookOpen,
-    group: "Business Modules", keywords: ["learning", "courses", "lessons", "e-learning", "content"],
-    description: "Learning management system.",
-    children: [
-      { label: "Course Studio", href: "/lms/courses" },
-    ],
-  },
-  {
-    id: "attendance", label: "Attendance", href: "/attendance", icon: CheckSquare,
-    group: "Business Modules", keywords: ["attendance", "mark", "shift", "duty", "qr", "gps", "face", "present", "absent", "late"],
-    description: "Attendance marking with QR, GPS and face verification.",
-  },
-  {
-    id: "examinations", label: "Examinations", href: "/examinations", icon: FileCheck,
-    group: "Business Modules", keywords: ["exams", "hall ticket", "results", "evaluation", "revaluation"],
-    description: "Examination planning, results and revaluation.",
-  },
-  {
-    id: "transport", label: "Transport", href: "/scheduling", icon: Truck,
-    group: "Business Modules", keywords: ["transport", "routes", "vehicles", "fleet"],
-    description: "Transport scheduling and fleet.",
-  },
-  {
-    id: "scheduling", label: "Scheduling", href: "/scheduling", icon: Calendar,
-    group: "Business Modules", keywords: ["schedule", "timetable", "classes", "resources", "conflicts"],
-    description: "Scheduling, timetable and resource booking.",
-    children: [
-      { label: "Scheduler Dashboard", href: "/scheduler" },
-      { label: "Schedule Approvals", href: "/scheduling/approvals" },
-      { label: "Scheduling Reports", href: "/scheduling/reports" },
-    ],
-  },
-  {
-    id: "scheduler", label: "Scheduler", href: "/scheduler", icon: Calendar, parent: "scheduling",
-    group: "Business Modules", keywords: ["scheduler", "scheduler dashboard", "resources"],
-    description: "Scheduler workspace and resource allocation.",
-  },
-  {
     id: "support", label: "Support", href: "/support", icon: Headphones,
-    group: "Business Modules", keywords: ["tickets", "helpdesk", "sla", "knowledge base"],
+    group: "Operations", keywords: ["tickets", "helpdesk", "sla", "knowledge base"],
     description: "Support, tickets and knowledge base.",
     children: [
       { label: "Tickets", href: "/tickets" },
@@ -386,98 +446,121 @@ export const MODULE_REGISTRY: ModuleDefinition[] = [
     ],
   },
   {
+    id: "tickets", label: "Tickets", href: "/tickets", icon: Ticket, parent: "support",
+    group: "Operations", keywords: ["tickets", "helpdesk", "sla", "issues"],
+    description: "Support tickets and SLA tracking.",
+  },
+  {
+    id: "knowledge", label: "Knowledge Base", href: "/knowledge", icon: Newspaper, parent: "support",
+    group: "Operations", keywords: ["knowledge", "kb", "articles", "docs"],
+    description: "Knowledge base and articles.",
+  },
+  {
+    id: "transport", label: "Transport", href: "/scheduling", icon: Truck,
+    group: "Operations", keywords: ["transport", "routes", "vehicles", "fleet", "visitor"],
+    description: "Transport scheduling and fleet.",
+  },
+  {
+    id: "operations", label: "Operations Center", href: "/operations", icon: Activity,
+    group: "Operations", keywords: ["operations", "observability", "runtime", "monitoring"],
+    description: "Operations observability platform.",
+  },
+
+  // ══ COMMUNICATION ═════════════════════════════════════════════════
+  {
+    id: "marketing", label: "Communication & Marketing", href: "/communication-marketing", icon: Megaphone,
+    group: "Communication", keywords: ["campaigns", "communication", "email", "sms", "whatsapp", "announcements", "templates"],
+    description: "Marketing campaigns, announcements and communications.",
+    children: [
+      { label: "Campaigns", href: "/marketing/campaigns" },
+      { label: "Marketing Analytics", href: "/marketing/analytics" },
+      { label: "Communication Master Data", href: "/studios/master-data/communication" },
+    ],
+  },
+
+  // ══ REPORTS ═══════════════════════════════════════════════════════
+  {
     id: "analytics", label: "Reports & Analytics", href: "/analytics", icon: BarChart3,
-    group: "Business Modules", keywords: ["reports", "analytics", "charts", "dashboard", "insights"],
-    description: "Reports, analytics and insights.",
+    group: "Reports", keywords: ["reports", "analytics", "charts", "dashboard", "insights", "bi", "kpi", "forecasting"],
+    description: "Reports, analytics, BI and insights.",
     children: [
       { label: "Analytics", href: "/analytics" },
       { label: "Finance Reports", href: "/finance/reports" },
     ],
   },
   {
-    id: "documents", label: "Documents", href: "/documents", icon: FolderOpen,
-    group: "Business Modules", keywords: ["files", "documents", "attachments", "certificates"],
-    description: "Document management and certificates.",
+    id: "dashboards", label: "Dashboard Builder", href: "/studio/dashboards", icon: BarChart3,
+    group: "Reports", keywords: ["dashboard studio", "widgets", "layouts", "kpis", "builder", "report designer"],
+    description: "Design custom dashboards and report layouts.",
   },
 
-  // ── System ───────────────────────────────────────────────────
+  // ══ AI ════════════════════════════════════════════════════════════
+  // (No AI studio pages exist yet — aiRuntimeEngine is backend-only. See audit.)
+
+  // ══ INTEGRATIONS ══════════════════════════════════════════════════
+  // (No integration studio pages exist yet — integrationEngine is backend-only. See audit.)
+
+  // ══ PLATFORM ══════════════════════════════════════════════════════
   {
-    id: "users", label: "User Management", href: "/users", icon: Users,
-    group: "System", keywords: ["users", "accounts", "login", "sessions"],
-    description: "Create, manage and secure user accounts.",
-    roles: ["super_admin", "admin"],
+    id: "platform-studio", label: "Platform Studio", href: "/platform-studio", icon: Sparkles,
+    group: "Platform", keywords: ["platform", "registry", "pages", "engines", "modules"],
+    description: "Platform page and engine registry explorer.",
   },
   {
-    id: "approvals", label: "Approval Center", href: "/approvals", icon: CheckSquare,
-    group: "System", keywords: ["approvals", "approval requests", "templates", "phases"],
-    description: "Approval requests, templates and phases.",
+    id: "master-data", label: "Master Data Studio", href: "/studios/master-data", icon: Database,
+    group: "Platform", keywords: ["masters", "config", "settings", "reference", "module activation"],
+    description: "Central configuration repository for every module.",
   },
   {
-    id: "notifications", label: "Notifications", href: "/notifications", icon: Bell,
-    group: "Tools", keywords: ["notifications", "alerts", "unread"],
-    description: "Your notifications and alerts.",
+    id: "workflow", label: "Workflow Studio", href: "/studios/workflows", icon: Workflow,
+    group: "Platform", keywords: ["workflows", "automation", "triggers", "nodes"],
+    description: "Design and monitor enterprise workflows.",
+    children: [{ label: "Workflow Monitor", href: "/workflow-monitor" }],
   },
   {
-    id: "calendar", label: "Calendar", href: "/calendar", icon: Calendar,
-    group: "Tools", keywords: ["calendar", "events", "meetings", "schedule view"],
-    description: "Personal calendar and events.",
+    id: "workflow-monitor", label: "Workflow Monitor", href: "/workflow-monitor", icon: Activity, parent: "workflow",
+    group: "Platform", keywords: ["workflow monitor", "executions", "runs", "monitor"],
+    description: "Monitor live workflow executions and runs.",
   },
   {
-    id: "organization-calendar", label: "Organization Calendar", href: "/organization-calendar", icon: Calendar,
-    group: "Tools", keywords: ["org calendar", "institution calendar", "events", "holidays"],
-    description: "Organization-wide calendar and events.",
-  },
-  {
-    id: "messenger", label: "Messenger", href: "/messenger", icon: MessageSquare,
-    group: "Tools", keywords: ["chat", "dm", "channels", "announcements", "messages"],
-    description: "Direct messages, channels and announcements.",
-  },
-  {
-    id: "control", label: "Control Center", href: "/control", icon: Crown,
-    group: "System", keywords: ["admin", "control", "broadcast", "reset password"],
-    description: "CEO operations control.",
-    roles: ["super_admin"],
-  },
-  {
-    id: "security", label: "Security Center", href: "/security", icon: Shield,
-    group: "System", keywords: ["security", "risk", "threats", "hardening"],
-    description: "Enterprise security center.",
-  },
-  {
-    id: "audit", label: "Audit Center", href: "/audit", icon: FileText,
-    group: "System", keywords: ["audit", "logs", "trail", "compliance"],
-    description: "Audit trail and compliance.",
-  },
-  {
-    id: "admin-console", label: "Admin Console", href: "/admin", icon: Settings,
-    group: "System", keywords: ["admin console", "system admin", "platform"],
-    description: "Platform administration console.",
+    id: "forms", label: "Form Studio", href: "/studios/forms", icon: ClipboardList,
+    group: "Platform", keywords: ["forms", "builder", "dynamic forms", "enquiry forms"],
+    description: "Build and publish dynamic forms.",
   },
   {
     id: "deployment", label: "Deployment Center", href: "/deployment", icon: Monitor,
-    group: "System", keywords: ["deployment", "releases", "environments", "ci cd"],
+    group: "Platform", keywords: ["deployment", "releases", "environments", "ci cd", "backups", "logs"],
     description: "Deployment, releases and environments.",
   },
   {
-    id: "operations", label: "Operations", href: "/operations", icon: Activity,
-    group: "System", keywords: ["operations", "observability", "runtime", "monitoring"],
-    description: "Operations observability platform.",
-  },
-  {
     id: "release-health", label: "Release Health", href: "/release-health", icon: Activity,
-    group: "System", keywords: ["release", "health", "readiness", "deployment"],
+    group: "Platform", keywords: ["release", "health", "readiness", "deployment"],
     description: "Release health and readiness.",
   },
   {
-    id: "profile", label: "Profile", href: "/profile", icon: UserCircle,
-    group: "System", keywords: ["profile", "account", "me"],
-    description: "Your profile and preferences.",
+    id: "enterprise-health", label: "Platform Health", href: "/enterprise-health", icon: Activity,
+    group: "Platform", keywords: ["enterprise health", "platform health", "runtime health", "health center"],
+    description: "Enterprise platform and runtime health.",
   },
 ];
 
 // ─── Helpers: sections (sidebar / mobile nav / studio launcher) ────────
 
-export const MODULE_GROUPS: ModuleGroup[] = ["Overview", "Studios", "Business Modules", "System", "Tools"];
+export const MODULE_GROUPS: ModuleGroup[] = [
+  "Home",
+  "Governance",
+  "Academics",
+  "CRM",
+  "Students",
+  "Finance",
+  "HR",
+  "Operations",
+  "Communication",
+  "Reports",
+  "AI",
+  "Integrations",
+  "Platform",
+];
 
 export function getModulesByGroup(group: ModuleGroup): ModuleDefinition[] {
   return MODULE_REGISTRY.filter((m) => m.group === group && !m.isPlaceholder);
@@ -521,7 +604,7 @@ export function searchModulePages(query: string, limit = 8): { label: string; hr
   return hits.slice(0, limit);
 }
 
-// ─── Helpers: breadcrumbs (Phase 7 — automatic, no manual breadcrumbs) ─
+// ─── Helpers: breadcrumbs (automatic, no manual breadcrumbs) ───────────
 
 export function getBreadcrumbTrail(pathname: string): { label: string; href?: string }[] {
   // Exact module match first
@@ -562,7 +645,7 @@ export function getBreadcrumbTrail(pathname: string): { label: string; href?: st
   return trail;
 }
 
-// ─── Helpers: favorites (Phase 6 — localStorage pinned modules) ────────
+// ─── Helpers: favorites (localStorage pinned modules) ──────────────────
 
 const FAVORITES_KEY = "eeos_favorite_modules";
 
@@ -595,7 +678,7 @@ export function getFavoriteModules(): ModuleDefinition[] {
   return MODULE_REGISTRY.filter((m) => favs.includes(m.id));
 }
 
-// ─── Helpers: quick actions (Phase 4 — permission-aware FAB) ───────────
+// ─── Helpers: quick actions (permission-aware FAB) ─────────────────────
 
 export interface QuickAction {
   id: string;
@@ -627,11 +710,11 @@ export function getQuickActionsForRole(role?: string): QuickAction[] {
   return QUICK_ACTIONS.filter((a) => !a.roles || (role && a.roles.includes(role)));
 }
 
-// ─── Helpers: dashboard shortcuts (Phase 3) ─────────────────────────────
+// ─── Helpers: dashboard shortcuts ───────────────────────────────────────
 
 export function getDashboardShortcuts(role?: string): ModuleDefinition[] {
   return MODULE_REGISTRY
-    .filter((m) => m.group !== "Tools" && !m.isPlaceholder && (!m.roles || (role && m.roles.includes(role))))
+    .filter((m) => m.group !== "Home" && !m.isPlaceholder && (!m.roles || (role && m.roles.includes(role))))
     .slice(0, 12);
 }
 

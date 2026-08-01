@@ -152,6 +152,9 @@ const AdministrationDashboard = lazy(() => import("./pages/AdministrationDashboa
 const CommunicationMarketingDashboard = lazy(() => import("./pages/CommunicationMarketingDashboard.tsx"));
 const CEOExecutiveDashboard = lazy(() => import("./pages/executive/CEOExecutiveDashboard.tsx"));
 const RoleDashboard = lazy(() => import("./pages/executive/RoleDashboard.tsx"));
+const GovernanceDashboard = lazy(() => import("./pages/GovernanceDashboard.tsx"));
+const ConfigurationStudio = lazy(() => import("./pages/ConfigurationStudio.tsx"));
+const EnterpriseHealthCenter = lazy(() => import("./pages/EnterpriseHealthCenter.tsx"));
 const NotFound = lazy(() => import("./pages/NotFound.tsx"));
 import { RouteErrorBoundary } from "@/components/ui/route-error-boundary";
 import { InstrumentationProvider } from "@/instrumentation";
@@ -561,6 +564,9 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/collections-executive" element={<ProtectedRoute><CollectionsExecutiveDashboard /></ProtectedRoute>} />
               <Route path="/knowledge" element={<ProtectedRoute><KnowledgeBase /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute><AdminConsole /></ProtectedRoute>} />
+              <Route path="/governance" element={<ProtectedRoute><GovernanceDashboard /></ProtectedRoute>} />
+              <Route path="/configuration" element={<ProtectedRoute><ConfigurationStudio /></ProtectedRoute>} />
+              <Route path="/enterprise-health" element={<ProtectedRoute><EnterpriseHealthCenter /></ProtectedRoute>} />
               <Route path="/parent" element={<ProtectedRoute><DashboardParent /></ProtectedRoute>} />
               <Route path="/student" element={<ProtectedRoute><DashboardStudent /></ProtectedRoute>} />
               <Route path="/faculty" element={<ProtectedRoute><DashboardFaculty /></ProtectedRoute>} />
