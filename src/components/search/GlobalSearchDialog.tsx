@@ -3,8 +3,9 @@ import { Command } from "cmdk";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useNavigate } from "react-router";
-import { Search, GraduationCap, Users, FileText, BookOpen, Ticket, DollarSign, Loader2, User } from "lucide-react";
+import { Search, GraduationCap, Users, FileText, BookOpen, Ticket, DollarSign, Loader2, User, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { searchModules, searchModulePages } from "@/lib/module-registry";
 
 const entityIcons: Record<string, any> = {
   student: GraduationCap,
@@ -93,16 +94,58 @@ export function GlobalSearchDialog({ open, onOpenChange }: { open: boolean; onOp
             </div>
           )}
 
-          <Command.List className="max-h-72 overflow-y-auto">
+          <Command.List className="max-h-96 overflow-y-auto">
             {query.length < 2 ? (
               <div className="py-8 text-center text-sm text-gray-400">
                 <Search className="h-8 w-8 mx-auto mb-2 opacity-30" />
                 Type at least 2 characters to search
               </div>
-            ) : !results ? (
+            ) : (
+              /* Module navigation results (Phase 5) — from MODULE_REGISTRY */
+              <>
+                {searchModules(query).map((m) => (
+                  <Command.Item
+                    key={`module-${m.id}`}
+                    onSelect={() => handleSelect(m.href)}
+                    className="flex items-center gap-3 px-3 py-2.5 text-sm cursor-pointer hover:bg-gray-50 border-b last:border-0 data-[selected]:bg-blue-50"
+                  >
+                    <div className="p-1.5 rounded-md bg-[#f1f3f4] text-[#1a73e8]">
+                      <Navigation className="h-3.5 w-3.5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-gray-800 truncate">{m.label}</div>
+                      <div className="text-xs text-gray-400 truncate">{m.description}</div>
+                    </div>
+                    <div className="text-[10px] text-gray-300 capitalize shrink-0">{m.group}</div>
+                  </Command.Item>
+                ))}
+                {searchModulePages(query).map((p, i) => (
+                  <Command.Item
+                    key={`modpage-${p.href}-${i}`}
+                    onSelect={() => handleSelect(p.href)}
+                    className="flex items-center gap-3 px-3 py-2.5 text-sm cursor-pointer hover:bg-gray-50 border-b last:border-0 data-[selected]:bg-blue-50"
+                  >
+                    <div className="p-1.5 rounded-md bg-blue-50 text-[#1a73e8]">
+                      <Navigation className="h-3.5 w-3.5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-gray-800 truncate">{p.label}</div>
+                      <div className="text-xs text-gray-400 truncate">{p.module} page</div>
+                    </div>
+                    <div className="text-[10px] text-gray-300 shrink-0">page</div>
+                  </Command.Item>
+                ))}
+              </>
+            )}
+            {query.length >= 2 && !results ? (
               <div className="py-8 text-center text-sm text-gray-400">
                 <Loader2 className="h-6 w-6 mx-auto animate-spin mb-2" />
                 Searching...
+              </div>
+            ) : (query.length >= 2 && (filteredResults?.length ?? 0) === 0 && searchModules(query).length === 0 && searchModulePages(query).length === 0) ? (
+              <div className="py-8 text-center text-sm text-gray-400">
+                <Search className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                No results found for "{query}"
               </div>
             ) : filteredResults && filteredResults.length > 0 ? (
               filteredResults.map((result: any) => {

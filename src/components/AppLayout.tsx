@@ -1,11 +1,6 @@
 import { cn } from "@/lib/utils";
 import {
-  LayoutDashboard,
-  Building2,
-  Users,
-  ShieldCheck,  ClipboardList, CheckSquare, Bell, MessageSquare, BarChart3,
   Settings,
-  UserCircle,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -14,18 +9,12 @@ import {
   Search,
   Loader2,
   Sparkles,
-  Target,
-  Layers,
-  BookOpenText,
+  Star,
+  Bell,
   ClipboardCheck,
-  Activity,
-  Banknote,
-  Database,
-  FileText,
-  Inbox,
-  Workflow,
+  Plus,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Link, useLocation } from "react-router";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback } from "./ui/avatar";
@@ -39,42 +28,15 @@ import { api } from "@/convex/_generated/api";
 import { Separator } from "./ui/separator";
 import { ENABLE_COLLECTIONS_PAGE } from "@/featureFlags";
 import { GlobalSearchButton } from "@/components/search/GlobalSearchDialog";
-
-const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "CRM Lite", href: "/crm", icon: Target },
-  { name: "Sales Center", href: "/crm/sales", icon: BarChart3 },
-  { name: "Course Studio", href: "/courses", icon: BookOpenText },
-  ...(ENABLE_COLLECTIONS_PAGE ? [{ name: "Collections", href: "/collections", icon: Banknote as React.ElementType }] : []),
-  { name: "Organization Studio", href: "/org", icon: Building2 },
-  { name: "User Management", href: "/users", icon: Users },
-  { name: "Access Control", href: "/access", icon: ShieldCheck },
-  { name: "Task Management", href: "/tasks", icon: ClipboardList },
-  { name: "Command Center", href: "/command-center", icon: Activity },
-  { name: "Approval Center", href: "/approvals", icon: CheckSquare, badgeQuery: "pendingApprovalCount" },
-];
-
-const studiosNav = [
-  { name: "Master Data Studio", href: "/studios/master-data", icon: Database },
-  { name: "Form Studio", href: "/studios/forms", icon: FileText },
-  { name: "Intake Dashboard", href: "/studios/intake", icon: Inbox },
-  { name: "Workflow Studio", href: "/studios/workflows", icon: Workflow },
-  { name: "Platform Studio", href: "/platform-studio", icon: BookOpenText },
-];
-
-const crmSettingsItems = [
-  { name: "Lead Stages", href: "/crm/settings/stages", icon: Layers },
-];
-
-const secondaryNav = [
-  { name: "Notifications", href: "/notifications", icon: Bell },
-  { name: "Messenger", href: "/messenger", icon: MessageSquare },
-];
-
-const bottomNav = [
-  { name: "Control Center", href: "/control", icon: Settings },
-  { name: "Profile", href: "/profile", icon: UserCircle },
-];
+import {
+  getSidebarSections,
+  getBreadcrumbTrail,
+  getFavorites,
+  toggleFavorite,
+  getFavoriteModules,
+  getQuickActionsForRole,
+  type ModuleDefinition,
+} from "@/lib/module-registry";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -84,6 +46,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [crmSettingsOpen, setCrmSettingsOpen] = useState(true);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>(() => getFavorites());
   const location = useLocation();
   const { navigate } = useAppNavigate();
   const { user, logout, isDemoMode } = useAuth();
@@ -117,10 +80,6 @@ export function AppLayout({ children }: AppLayoutProps) {
   const badgeTextColor =
     pendingApprovalCount <= 9 ? "text-[#1a1a2e]" : "text-white";
 
-  const approvalTooltipContent = approvalCounts
-    ? `Requests: ${approvalCounts.requests}\nCRM: ${approvalCounts.crm}\nVerification: ${approvalCounts.verification}\nTotal: ${approvalCounts.total}`
-    : "Loading...";
-
   const handleLogout = () => {
     logout();
     navigate("/");
@@ -128,6 +87,32 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   const isActive = (href: string) => location.pathname === href || location.pathname.startsWith(href + "/");
 
+  const handleToggleFavorite = useCallback((id: string) => {
+    const next = toggleFavorite(id);
+    setFavoriteIds(next);
+  }, []);
+
+  // ── Registry-driven sections (single source of truth) ──────────
+  const sections = getSidebarSections(user?.role)
+    .map((s) => ({
+      ...s,
+      items: s.items.filter((i) => i.id !== "collections" || ENABLE_COLLECTIONS_PAGE),
+    }))
+    .filter((s) => s.items.length > 0);
+
+  // Bottom anchors (Control Center for CEO + Profile) come from the registry
+  const controlItem = user?.role === "super_admin"
+    ? sections.flatMap((s) => s.items).find((i) => i.id === "control")
+    : undefined;
+  const profileItem = sections.flatMap((s) => s.items).find((i) => i.id === "profile");
+
+  // Remove bottom anchors from grouped sections to avoid duplication
+  const groupedSections = sections
+    .map((s) => ({ ...s, items: s.items.filter((i) => i.id !== "control" && i.id !== "profile") }))
+    .filter((s) => s.items.length > 0);
+
+  const favoriteModules = getFavoriteModules().filter((m) => favoriteIds.includes(m.id));
+  const breadcrumbs = getBreadcrumbTrail(location.pathname);
   const initials = user?.name
     ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "U";
@@ -196,69 +181,62 @@ export function AppLayout({ children }: AppLayoutProps) {
           <ChevronLeft className="h-3.5 w-3.5" />
         </Button>
 
-        {/* Navigation */}
+        {/* Navigation — generated from MODULE_REGISTRY */}
         <ScrollArea className="flex-1 px-2 py-3">
-          <nav className="space-y-0.5">
-            {navigation.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.href);
-              const showApprovalBadge = item.name === "Approval Center" && (pendingApprovalCount ?? 0) > 0;
-              return (
-                <TooltipProvider key={item.name} delayDuration={0}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link
-                        to={item.href}
-                        className={cn(
-                          "flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium transition-all duration-150",
-                          active
-                            ? "bg-[#f1f3f4] text-[#1a1a2e]"
-                            : "text-[#5f6368] hover:bg-[#f1f3f4] hover:text-[#1a1a2e]",
-                          sidebarCollapsed && "justify-center px-2"
-                        )}
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <div className="relative">
-                          <Icon className={cn("h-4 w-4 shrink-0", active && "text-[#1a1a2e]")} />
-                          {showApprovalBadge && (
-                            <span className={`absolute -top-1 -right-1 w-2 h-2 ${badgeDotColor} rounded-full`} />
-                          )}
-                        </div>
-                        {!sidebarCollapsed && (
-                          <div className="flex items-center justify-between flex-1">
-                            <span>{item.name}</span>
-                            {showApprovalBadge && (
-                              <Badge className={`h-4 min-w-[18px] px-1 text-[10px] ${badgeColor} ${badgeTextColor} rounded-full flex items-center justify-center`}>
-                                {pendingApprovalCount}
-                              </Badge>
-                            )}
-                          </div>
-                        )}
-                      </Link>
-                    </TooltipTrigger>
-                    {sidebarCollapsed && item.name === "Approval Center" ? (
-                      <TooltipContent side="right" className="text-xs">
-                        <div className="font-medium text-[12px]">Approval Center</div>
-                        <div className="text-[10px] text-[#9aa0a6] mt-0.5 space-y-0.5">
-                          <div>Requests: {approvalCounts?.requests ?? 0}</div>
-                          <div>CRM: {approvalCounts?.crm ?? 0}</div>
-                          <div>Verification: {approvalCounts?.verification ?? 0}</div>
-                          <div className="font-medium text-[#1a1a2e]">Total: {approvalCounts?.total ?? 0}</div>
-                        </div>
-                      </TooltipContent>
-                    ) : sidebarCollapsed ? (
-                      <TooltipContent side="right" className="text-xs">{item.name}</TooltipContent>
-                    ) : null}
-                  </Tooltip>
-                </TooltipProvider>
-              );
-            })}
-          </nav>
+          {/* Favorites (Phase 6) */}
+          {favoriteModules.length > 0 && (
+            <>
+              {!sidebarCollapsed && (
+                <div className="text-[11px] font-medium text-[#9aa0a6] uppercase tracking-wider px-3 pt-1 pb-2 flex items-center gap-1.5">
+                  <Star className="h-3 w-3 fill-amber-400 text-amber-400" /> Favorites
+                </div>
+              )}
+              <nav className="space-y-0.5 mb-1">
+                {favoriteModules.map((item) => (
+                  <SidebarLink
+                    key={item.id}
+                    item={item}
+                    collapsed={sidebarCollapsed}
+                    active={isActive(item.href)}
+                    isFavorite
+                    onToggleFavorite={handleToggleFavorite}
+                    onNavigate={() => setMobileMenuOpen(false)}
+                  />
+                ))}
+              </nav>
+            </>
+          )}
+
+          {/* Registry groups */}
+          {groupedSections.map((section) => (
+            <div key={section.group}>
+              {!sidebarCollapsed && (
+                <div className="text-[11px] font-medium text-[#9aa0a6] uppercase tracking-wider px-3 pt-5 pb-2">
+                  {section.group}
+                </div>
+              )}
+              <nav className="space-y-0.5">
+                {section.items.map((item) => (
+                  <SidebarLink
+                    key={item.id}
+                    item={item}
+                    collapsed={sidebarCollapsed}
+                    active={isActive(item.href)}
+                    isFavorite={favoriteIds.includes(item.id)}
+                    badge={getBadgeFor(item.id, pendingApprovalCount, badgeColor, badgeTextColor, unreadNotifCount, unreadDmCount)}
+                    onToggleFavorite={handleToggleFavorite}
+                    onNavigate={() => setMobileMenuOpen(false)}
+                    approvalCounts={item.id === "approvals" ? approvalCounts : undefined}
+                  />
+                ))}
+              </nav>
+            </div>
+          ))}
 
           {/* CRM Settings (Super Admin only) */}
           {user?.role === "super_admin" && !sidebarCollapsed && (
             <>
-              <div className="border-t border-[#e8eaed] my-2" />
+              <div className="border-t border-[#e8eaed] my-3" />
               <div>
                 <button
                   onClick={() => setCrmSettingsOpen(!crmSettingsOpen)}
@@ -276,35 +254,13 @@ export function AppLayout({ children }: AppLayoutProps) {
                 </button>
                 {crmSettingsOpen && (
                   <nav className="space-y-0.5 mt-0.5">
-                    {crmSettingsItems.map((item) => {
-                      const Icon = item.icon;
-                      const active = isActive(item.href);
-                      return (
-                        <TooltipProvider key={item.name} delayDuration={0}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Link
-                                to={item.href}
-                                className={cn(
-                                  "flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium transition-all duration-150",
-                                  active
-                                    ? "bg-[#f1f3f4] text-[#1a1a2e]"
-                                    : "text-[#5f6368] hover:bg-[#f1f3f4] hover:text-[#1a1a2e]",
-                                  sidebarCollapsed && "justify-center px-2"
-                                )}
-                                onClick={() => setMobileMenuOpen(false)}
-                              >
-                                <Icon className={cn("h-4 w-4 shrink-0", active && "text-[#1a1a2e]")} />
-                                {!sidebarCollapsed && <span>{item.name}</span>}
-                              </Link>
-                            </TooltipTrigger>
-                            {sidebarCollapsed && (
-                              <TooltipContent side="right" className="text-xs">{item.name}</TooltipContent>
-                            )}
-                          </Tooltip>
-                        </TooltipProvider>
-                      );
-                    })}
+                    <SidebarLink
+                      item={{ id: "lead-stages", label: "Lead Stages", href: "/crm/settings/stages", icon: Settings as any, group: "System", keywords: [], description: "" }}
+                      collapsed={false}
+                      active={isActive("/crm/settings/stages")}
+                      onToggleFavorite={handleToggleFavorite}
+                      onNavigate={() => setMobileMenuOpen(false)}
+                    />
                   </nav>
                 )}
               </div>
@@ -315,174 +271,31 @@ export function AppLayout({ children }: AppLayoutProps) {
           {user?.role === "super_admin" && sidebarCollapsed && (
             <div className="border-t border-[#e8eaed] my-2" />
           )}
-
-          {!sidebarCollapsed && (
-            <div className="text-[11px] font-medium text-[#9aa0a6] uppercase tracking-wider px-3 pt-6 pb-2">
-              Tools
-            </div>
-          )}
-
-          {/* Studios section */}
-          {!sidebarCollapsed && (
-            <div className="text-[11px] font-medium text-[#9aa0a6] uppercase tracking-wider px-3 pt-6 pb-2">
-              Studios
-            </div>
-          )}
-
-          <nav className="space-y-0.5">
-            {studiosNav.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.href);
-              return (
-                <TooltipProvider key={item.name} delayDuration={0}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link
-                        to={item.href}
-                        className={cn(
-                          "flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium transition-all duration-150",
-                          active
-                            ? "bg-[#f1f3f4] text-[#1a1a2e]"
-                            : "text-[#5f6368] hover:bg-[#f1f3f4] hover:text-[#1a1a2e]",
-                          sidebarCollapsed && "justify-center px-2"
-                        )}
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <Icon className={cn("h-4 w-4 shrink-0", active && "text-[#1a1a2e]")} />
-                        {!sidebarCollapsed && <span>{item.name}</span>}
-                      </Link>
-                    </TooltipTrigger>
-                    {sidebarCollapsed && (
-                      <TooltipContent side="right" className="text-xs">{item.name}</TooltipContent>
-                    )}
-                  </Tooltip>
-                </TooltipProvider>
-              );
-            })}
-          </nav>
-
-          {!sidebarCollapsed && (
-            <div className="text-[11px] font-medium text-[#9aa0a6] uppercase tracking-wider px-3 pt-6 pb-2">
-              Tools
-            </div>
-          )}
-
-          <nav className="space-y-0.5">
-            {secondaryNav.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.href);
-              const showBadge = item.name === "Notifications" && (unreadNotifCount ?? 0) > 0;
-              const showDmBadge = item.name === "Messenger" && (unreadDmCount ?? 0) > 0;
-              return (
-                <TooltipProvider key={item.name} delayDuration={0}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link
-                        to={item.href}
-                        className={cn(
-                          "flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium transition-all duration-150",
-                          active
-                            ? "bg-[#f1f3f4] text-[#1a1a2e]"
-                            : "text-[#5f6368] hover:bg-[#f1f3f4] hover:text-[#1a1a2e]",
-                          sidebarCollapsed && "justify-center px-2"
-                        )}
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <div className="relative">
-                          <Icon className={cn("h-4 w-4 shrink-0", active && "text-[#1a1a2e]")} />
-                          {showBadge && (
-                            <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#ea4335] rounded-full" />
-                          )}
-                          {showDmBadge && (
-                            <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#1a73e8] rounded-full" />
-                          )}
-                        </div>
-                        {!sidebarCollapsed && (
-                          <div className="flex items-center justify-between flex-1">
-                            <span>{item.name}</span>
-                            {showBadge && (
-                              <Badge className="h-4 min-w-[18px] px-1 text-[10px] bg-[#ea4335] rounded-full flex items-center justify-center">
-                                {unreadNotifCount}
-                              </Badge>
-                            )}
-                          </div>
-                        )}
-                      </Link>
-                    </TooltipTrigger>
-                    {sidebarCollapsed && (
-                      <TooltipContent side="right" className="text-xs">{item.name}</TooltipContent>
-                    )}
-                  </Tooltip>
-                </TooltipProvider>
-              );
-            })}
-          </nav>
-
-          {/* CRM Settings subitems in collapsed mode */}
-          {user?.role === "super_admin" && sidebarCollapsed && (
-            <nav className="space-y-0.5 mt-1">
-              {crmSettingsItems.map((item) => {
-                const Icon = item.icon;
-                const active = isActive(item.href);
-                return (
-                  <TooltipProvider key={item.name} delayDuration={0}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Link
-                          to={item.href}
-                          className={cn(
-                            "flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium transition-all duration-150",
-                            active
-                              ? "bg-[#f1f3f4] text-[#1a1a2e]"
-                              : "text-[#5f6368] hover:bg-[#f1f3f4] hover:text-[#1a1a2e]",
-                            "justify-center px-2"
-                          )}
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          <Icon className={cn("h-4 w-4 shrink-0", active && "text-[#1a1a2e]")} />
-                        </Link>
-                      </TooltipTrigger>
-                      <TooltipContent side="right" className="text-xs">{item.name}</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                );
-              })}
-            </nav>
-          )}
         </ScrollArea>
 
         {/* Bottom section */}
         <div className="border-t border-[#e8eaed] p-2">
-          {bottomNav.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.href);
-            const isCEO = user?.role === "super_admin";
-            if (item.name === "Control Center" && !isCEO) return null;
-            return (
-              <TooltipProvider key={item.name} delayDuration={0}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to={item.href}
-                      className={cn(
-                        "flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium transition-all duration-150 mb-0.5",
-                        active
-                          ? "bg-[#f1f3f4] text-[#1a1a2e]"
-                          : "text-[#5f6368] hover:bg-[#f1f3f4] hover:text-[#1a1a2e]",
-                        sidebarCollapsed && "justify-center px-2"
-                      )}
-                    >
-                      <Icon className={cn("h-4 w-4 shrink-0", active && "text-[#1a1a2e]")} />
-                      {!sidebarCollapsed && <span>{item.name}</span>}
-                    </Link>
-                  </TooltipTrigger>
-                  {sidebarCollapsed && (
-                    <TooltipContent side="right" className="text-xs">{item.name}</TooltipContent>
-                  )}
-                </Tooltip>
-              </TooltipProvider>
-            );
-          })}
+          {controlItem && (
+            <SidebarLink
+              item={controlItem}
+              collapsed={sidebarCollapsed}
+              active={isActive(controlItem.href)}
+              isFavorite={favoriteIds.includes(controlItem.id)}
+              onToggleFavorite={handleToggleFavorite}
+              onNavigate={() => setMobileMenuOpen(false)}
+              className="mb-0.5"
+            />
+          )}
+          {profileItem && (
+            <SidebarLink
+              item={profileItem}
+              collapsed={sidebarCollapsed}
+              active={isActive(profileItem.href)}
+              isFavorite={favoriteIds.includes(profileItem.id)}
+              onToggleFavorite={handleToggleFavorite}
+              onNavigate={() => setMobileMenuOpen(false)}
+            />
+          )}
 
           <Separator className="my-1.5" />
 
@@ -538,23 +351,38 @@ export function AppLayout({ children }: AppLayoutProps) {
       )}>
         {/* Top bar */}
         <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-sm border-b border-[#e8eaed] h-14 px-4 md:px-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-[#5f6368] md:hidden"
+              className="h-8 w-8 text-[#5f6368] md:hidden shrink-0"
               onClick={() => setMobileMenuOpen(true)}
             >
               <Menu className="h-4 w-4" />
             </Button>
-            <div className="hidden md:flex items-center gap-2 text-sm text-[#5f6368]">
-              <span className="text-[#1a1a2e] font-medium">EEOS Lite</span>
-              <span className="text-[#9aa0a6]">/</span>
-              <span className="capitalize">{location.pathname.replace("/", "").replace("-", " ") || "Dashboard"}</span>
+            {/* Breadcrumb runtime (Phase 7) — generated, no manual breadcrumbs */}
+            <div className="hidden md:flex items-center gap-1.5 text-[12px] text-[#5f6368] min-w-0">
+              {breadcrumbs.map((crumb, i) => (
+                <span key={i} className="flex items-center gap-1.5 min-w-0">
+                  {i > 0 && <ChevronRight className="h-3 w-3 text-[#9aa0a6] shrink-0" />}
+                  {crumb.href && i < breadcrumbs.length - 1 ? (
+                    <Link to={crumb.href} className="hover:text-[#1a73e8] transition-colors whitespace-nowrap">
+                      {crumb.label}
+                    </Link>
+                  ) : (
+                    <span className={cn(
+                      "whitespace-nowrap truncate",
+                      i === breadcrumbs.length - 1 ? "text-[#1a1a2e] font-medium" : ""
+                    )}>
+                      {crumb.label}
+                    </span>
+                  )}
+                </span>
+              ))}
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             <GlobalSearchButton />
             {user?.role === "super_admin" && (
               <Badge variant="outline" className="text-[10px] font-medium text-[#5f6368] border-[#e8eaed]">
@@ -599,6 +427,166 @@ export function AppLayout({ children }: AppLayoutProps) {
           {children}
         </main>
       </div>
+
+      {/* Quick Actions FAB (Phase 4) */}
+      <QuickActionsFab role={user?.role} />
     </div>
+  );
+}
+
+// ─── Sidebar link (registry-driven) ────────────────────────────────────
+
+interface SidebarLinkProps {
+  item: ModuleDefinition;
+  collapsed: boolean;
+  active: boolean;
+  isFavorite?: boolean;
+  badge?: { count: number; color: string; text: string } | null;
+  approvalCounts?: any;
+  onToggleFavorite: (id: string) => void;
+  onNavigate: () => void;
+  className?: string;
+}
+
+function SidebarLink({ item, collapsed, active, isFavorite, badge, approvalCounts, onToggleFavorite, onNavigate, className }: SidebarLinkProps) {
+  const Icon = item.icon;
+  return (
+    <TooltipProvider key={item.id} delayDuration={0}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div
+            className={cn(
+              "group flex items-center gap-1 rounded-md transition-all duration-150",
+              active ? "bg-[#f1f3f4]" : "hover:bg-[#f1f3f4]",
+              collapsed ? "justify-center px-2" : "px-0",
+              className
+            )}
+          >
+            <Link
+              to={item.href}
+              className={cn(
+                "flex items-center gap-3 py-2 rounded-md text-[13px] font-medium transition-all duration-150 flex-1 min-w-0",
+                active ? "text-[#1a1a2e]" : "text-[#5f6368] hover:text-[#1a1a2e]",
+                collapsed ? "justify-center px-2" : "px-3"
+              )}
+              onClick={onNavigate}
+            >
+              <div className="relative shrink-0">
+                <Icon className={cn("h-4 w-4", active && "text-[#1a1a2e]")} />
+                {badge && badge.count > 0 && (
+                  <span className={`absolute -top-1 -right-1 w-2 h-2 ${badge.color} rounded-full`} />
+                )}
+              </div>
+              {!collapsed && (
+                <div className="flex items-center justify-between flex-1 min-w-0">
+                  <span className="truncate">{item.label}</span>
+                  {badge && badge.count > 0 && (
+                    <Badge className={`h-4 min-w-[18px] px-1 text-[10px] ${badge.color} ${badge.text} rounded-full flex items-center justify-center`}>
+                      {badge.count}
+                    </Badge>
+                  )}
+                </div>
+              )}
+            </Link>
+            {!collapsed && (
+              <button
+                onClick={() => onToggleFavorite(item.id)}
+                className={cn(
+                  "p-1.5 rounded-md transition-all duration-150",
+                  isFavorite ? "text-amber-400" : "text-[#d0d3d6] opacity-0 group-hover:opacity-100 hover:text-amber-400"
+                )}
+                title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+              >
+                <Star className={cn("h-3 w-3", isFavorite && "fill-amber-400")} />
+              </button>
+            )}
+          </div>
+        </TooltipTrigger>
+        {collapsed ? (
+          item.id === "approvals" && approvalCounts ? (
+            <TooltipContent side="right" className="text-xs">
+              <div className="font-medium text-[12px]">Approval Center</div>
+              <div className="text-[10px] text-[#9aa0a6] mt-0.5 space-y-0.5">
+                <div>Requests: {approvalCounts?.requests ?? 0}</div>
+                <div>CRM: {approvalCounts?.crm ?? 0}</div>
+                <div>Verification: {approvalCounts?.verification ?? 0}</div>
+                <div className="font-medium text-[#1a1a2e]">Total: {approvalCounts?.total ?? 0}</div>
+              </div>
+            </TooltipContent>
+          ) : (
+            <TooltipContent side="right" className="text-xs">{item.label}</TooltipContent>
+          )
+        ) : null}
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+// ─── Badge lookup (approvals / notifications / messenger) ──────────────
+
+function getBadgeFor(
+  id: string,
+  pendingApprovalCount: number,
+  badgeColor: string,
+  badgeTextColor: string,
+  unreadNotifCount?: number,
+  unreadDmCount?: number,
+): { count: number; color: string; text: string } | null {
+  if (id === "approvals" && pendingApprovalCount > 0) {
+    return { count: pendingApprovalCount, color: badgeColor, text: badgeTextColor };
+  }
+  if (id === "notifications" && (unreadNotifCount ?? 0) > 0) {
+    return { count: unreadNotifCount ?? 0, color: "bg-[#ea4335]", text: "text-white" };
+  }
+  if (id === "messenger" && (unreadDmCount ?? 0) > 0) {
+    return { count: unreadDmCount ?? 0, color: "bg-[#1a73e8]", text: "text-white" };
+  }
+  return null;
+}
+
+// ─── Quick Actions FAB (Phase 4) ───────────────────────────────────────
+
+function QuickActionsFab({ role }: { role?: string }) {
+  const [open, setOpen] = useState(false);
+  const { navigate } = useAppNavigate();
+  const actions = getQuickActionsForRole(role);
+
+  return (
+    <>
+      {open && (
+        <div className="fixed inset-0 z-[90]" onClick={() => setOpen(false)} />
+      )}
+      <div className="fixed bottom-5 right-5 z-[95]">
+        {open && (
+          <div className="absolute bottom-14 right-0 w-64 bg-white rounded-xl border border-[#e8eaed] shadow-2xl overflow-hidden">
+            <div className="px-3 py-2.5 bg-[#fafafa] border-b border-[#e8eaed] flex items-center justify-between">
+              <span className="text-[12px] font-semibold text-[#1a1a2e]">Quick Actions</span>
+              <button onClick={() => setOpen(false)} className="text-[#9aa0a6] hover:text-[#1a1a2e] text-[14px] leading-none">×</button>
+            </div>
+            <div className="max-h-80 overflow-y-auto p-1.5">
+              {actions.map((a) => (
+                <button
+                  key={a.id}
+                  onClick={() => { setOpen(false); navigate(a.href); }}
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[12px] font-medium text-[#1a1a2e] hover:bg-[#f1f3f4] transition-colors text-left"
+                >
+                  <span className={cn("w-7 h-7 rounded-md flex items-center justify-center shrink-0", a.accent)}>
+                    <a.icon className="h-3.5 w-3.5" />
+                  </span>
+                  {a.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        <Button
+          onClick={() => setOpen(!open)}
+          className="h-12 w-12 rounded-full shadow-lg bg-[#1a1a2e] hover:bg-[#1a73e8] text-white transition-all duration-200 hover:scale-105"
+          size="icon"
+        >
+          <Plus className={cn("h-5 w-5 transition-transform duration-200", open && "rotate-45")} />
+        </Button>
+      </div>
+    </>
   );
 }
