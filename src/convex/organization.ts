@@ -371,6 +371,16 @@ export const listTeams = query({
   },
 });
 
+export const listDepartmentsByBranch = query({
+  args: { branchId: v.id("branches") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("departments")
+      .withIndex("by_branch", (q) => q.eq("branchId", args.branchId))
+      .collect();
+  },
+});
+
 export const listTeamsByDepartment = query({
   args: { departmentId: v.id("departments") },
   handler: async (ctx, args) => {
