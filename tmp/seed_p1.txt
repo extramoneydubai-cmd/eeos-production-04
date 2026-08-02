@@ -1,0 +1,560 @@
+import { v } from "convex/values";
+import { mutation } from "./_generated/server";
+
+const day = 86400000;
+const hour = 3600000;
+
+export const seed = mutation({
+  args: {},
+  handler: async (ctx) => {
+    // Check if already seeded
+    const existingUsers = await ctx.db.query("users").take(1);
+    if (existingUsers.length > 0) return { seeded: false, message: "Already seeded" };
+
+    const now = Date.now();
+
+    // Create Group (Organization)
+    await ctx.db.insert("organizations", {
+      name: "Veda EdTech",
+      code: "VEDA",
+      description: "Enterprise Education Technology Group",
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Create Designations
+    const ceoDesigId = await ctx.db.insert("designations", {
+      name: "CEO",
+      code: "CEO",
+      status: "active",
+      description: "Chief Executive Officer",
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const cooDesigId = await ctx.db.insert("designations", {
+      name: "COO",
+      code: "COO",
+      reportsTo: ceoDesigId,
+      status: "active",
+      description: "Chief Operating Officer",
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const cfoDesigId = await ctx.db.insert("designations", {
+      name: "CFO",
+      code: "CFO",
+      reportsTo: ceoDesigId,
+      status: "active",
+      description: "Chief Financial Officer",
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const ckoDesigId = await ctx.db.insert("designations", {
+      name: "CKO",
+      code: "CKO",
+      reportsTo: ceoDesigId,
+      status: "active",
+      description: "Chief Knowledge Officer",
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const ctoDesigId = await ctx.db.insert("designations", {
+      name: "CTO",
+      code: "CTO",
+      reportsTo: ceoDesigId,
+      status: "active",
+      description: "Chief Technology Officer",
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const caoDesigId = await ctx.db.insert("designations", {
+      name: "CAO",
+      code: "CAO",
+      reportsTo: ceoDesigId,
+      status: "active",
+      description: "Chief Administrative Officer",
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const managerDesigId = await ctx.db.insert("designations", {
+      name: "Manager",
+      code: "MGR",
+      reportsTo: cooDesigId,
+      status: "active",
+      description: "Department Manager",
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const staffDesigId = await ctx.db.insert("designations", {
+      name: "Staff",
+      code: "STF",
+      reportsTo: managerDesigId,
+      status: "active",
+      description: "Staff Member",
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Create Branches
+    const npBranchId = await ctx.db.insert("branches", {
+      name: "NP",
+      code: "NP",
+      description: "North Province Branch",
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const opBranchId = await ctx.db.insert("branches", {
+      name: "OP",
+      code: "OP",
+      description: "Online Platform Branch",
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const klBranchId = await ctx.db.insert("branches", {
+      name: "KL",
+      code: "KL",
+      description: "Kerala Branch",
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const plBranchId = await ctx.db.insert("branches", {
+      name: "PL",
+      code: "PL",
+      description: "Punjab Branch",
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+
+
+    // Create Departments
+    const financeDeptId = await ctx.db.insert("departments", {
+      name: "Finance",
+      code: "FIN",
+      branchId: npBranchId,
+      description: "Financial Management",
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const knowledgeDeptId = await ctx.db.insert("departments", {
+      name: "Knowledge",
+      code: "KNW",
+      branchId: npBranchId,
+      description: "Knowledge Management",
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const technologyDeptId = await ctx.db.insert("departments", {
+      name: "Technology",
+      code: "TECH",
+      branchId: npBranchId,
+      description: "Technology & IT",
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const marketingDeptId = await ctx.db.insert("departments", {
+      name: "Marketing",
+      code: "MKT",
+      branchId: npBranchId,
+      description: "Marketing & Communications",
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const productionDeptId = await ctx.db.insert("departments", {
+      name: "Production",
+      code: "PROD",
+      branchId: npBranchId,
+      description: "Content Production",
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const adminDeptId = await ctx.db.insert("departments", {
+      name: "Administration",
+      code: "ADM",
+      branchId: npBranchId,
+      description: "Administration",
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const hrDeptId = await ctx.db.insert("departments", {
+      name: "HR & Culture",
+      code: "HR",
+      branchId: npBranchId,
+      description: "Human Resources & Culture",
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Create Verticals
+    const schoolVerticalId = await ctx.db.insert("verticals", {
+      name: "School",
+      code: "SCH",
+      description: "School Education Vertical",
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const collegeVerticalId = await ctx.db.insert("verticals", {
+      name: "College",
+      code: "COL",
+      description: "College Education Vertical",
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const competitiveVerticalId = await ctx.db.insert("verticals", {
+      name: "Competitive",
+      code: "CMP",
+      description: "Competitive Exam Preparation Vertical",
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const professionalVerticalId = await ctx.db.insert("verticals", {
+      name: "Professional",
+      code: "PRO",
+      description: "Professional Development Vertical",
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Create Teams under departments
+    const financeTeamId = await ctx.db.insert("teams", {
+      name: "Finance Operations",
+      code: "FIN-OPS",
+      departmentId: financeDeptId,
+      description: "Finance Operations Team",
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const techTeamId = await ctx.db.insert("teams", {
+      name: "Engineering",
+      code: "TECH-ENG",
+      departmentId: technologyDeptId,
+      description: "Software Engineering Team",
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const techInfraId = await ctx.db.insert("teams", {
+      name: "Infrastructure",
+      code: "TECH-INFRA",
+      departmentId: technologyDeptId,
+      description: "Infrastructure & DevOps Team",
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const marketingTeamId = await ctx.db.insert("teams", {
+      name: "Brand & Communications",
+      code: "MKT-BRAND",
+      departmentId: marketingDeptId,
+      description: "Brand & Communications Team",
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const hrTeamId = await ctx.db.insert("teams", {
+      name: "Talent Acquisition",
+      code: "HR-TA",
+      departmentId: hrDeptId,
+      description: "Talent Acquisition Team",
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const knowledgeTeamId = await ctx.db.insert("teams", {
+      name: "Content Development",
+      code: "KNW-CONTENT",
+      departmentId: knowledgeDeptId,
+      description: "Content Development Team",
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Create Users
+    const ceoUser = await ctx.db.insert("users", {
+      name: "CEO Veda",
+      email: "ceo@vedaedtech.com",
+      username: "ceo",
+      role: "super_admin",
+      isDisabled: false,
+      designationId: ceoDesigId,
+      departmentId: technologyDeptId,
+      branchId: npBranchId,
+      employeeCode: "EMP-001",
+      employeeId: "EMP-00001",
+      employmentType: "Permanent",
+      employmentStatus: "active",
+      profileCompletion: 65,
+      joiningDate: now - 365 * 86400000,
+    });
+
+    const ctoUser = await ctx.db.insert("users", {
+      name: "CTO Veda",
+      email: "cto@vedaedtech.com",
+      username: "cto",
+      role: "admin",
+      isDisabled: false,
+      designationId: ctoDesigId,
+      departmentId: technologyDeptId,
+      branchId: npBranchId,
+      employeeCode: "EMP-002",
+      employeeId: "EMP-00002",
+      employmentType: "Permanent",
+      employmentStatus: "active",
+      profileCompletion: 55,
+      joiningDate: now - 270 * 86400000,
+      reportingManagerId: ceoUser,
+      teamIds: [techTeamId, techInfraId],
+    });
+
+    const cfoUser = await ctx.db.insert("users", {
+      name: "CFO Veda",
+      email: "cfo@vedaedtech.com",
+      username: "cfo",
+      role: "admin",
+      isDisabled: false,
+      designationId: cfoDesigId,
+      departmentId: financeDeptId,
+      branchId: npBranchId,
+      employeeCode: "EMP-003",
+      employeeId: "EMP-00003",
+      employmentType: "Permanent",
+      employmentStatus: "active",
+      profileCompletion: 50,
+      joiningDate: now - 200 * 86400000,
+      reportingManagerId: ceoUser,
+      teamIds: [financeTeamId],
+    });
+
+    const hrHead = await ctx.db.insert("users", {
+      name: "HR Head Veda",
+      email: "hr@vedaedtech.com",
+      username: "hrhead",
+      role: "admin",
+      isDisabled: false,
+      designationId: caoDesigId,
+      departmentId: hrDeptId,
+      branchId: npBranchId,
+      employeeCode: "EMP-004",
+      employeeId: "EMP-00004",
+      employmentType: "Permanent",
+      employmentStatus: "active",
+      profileCompletion: 45,
+      joiningDate: now - 180 * 86400000,
+      reportingManagerId: ceoUser,
+      teamIds: [hrTeamId],
+    });
+
+    const staff1 = await ctx.db.insert("users", {
+      name: "Arun Kumar",
+      email: "arun@vedaedtech.com",
+      username: "arun",
+      role: "staff",
+      isDisabled: false,
+      designationId: staffDesigId,
+      departmentId: technologyDeptId,
+      branchId: npBranchId,
+      employeeCode: "EMP-005",
+      employeeId: "EMP-00005",
+      employmentType: "Permanent",
+      employmentStatus: "active",
+      profileCompletion: 40,
+      joiningDate: now - 120 * 86400000,
+      reportingManagerId: ctoUser,
+      teamIds: [techTeamId],
+    });
+
+    const staff2 = await ctx.db.insert("users", {
+      name: "Priya Sharma",
+      email: "priya@vedaedtech.com",
+      username: "priya",
+      role: "staff",
+      isDisabled: false,
+      designationId: staffDesigId,
+      departmentId: marketingDeptId,
+      branchId: opBranchId,
+      employeeCode: "EMP-006",
+      employeeId: "EMP-00006",
+      employmentType: "Permanent",
+      employmentStatus: "active",
+      profileCompletion: 35,
+      joiningDate: now - 90 * 86400000,
+      reportingManagerId: hrHead,
+      teamIds: [marketingTeamId],
+    });
+
+    const staff3 = await ctx.db.insert("users", {
+      name: "Rajesh Patel",
+      email: "rajesh@vedaedtech.com",
+      username: "rajesh",
+      role: "staff",
+      isDisabled: false,
+      designationId: staffDesigId,
+      departmentId: financeDeptId,
+      branchId: npBranchId,
+      employeeCode: "EMP-007",
+      employeeId: "EMP-00007",
+      employmentType: "Contract",
+      employmentStatus: "active",
+      profileCompletion: 30,
+      joiningDate: now - 60 * 86400000,
+      reportingManagerId: cfoUser,
+      teamIds: [financeTeamId],
+    });
+
+    const staff4 = await ctx.db.insert("users", {
+      name: "Sneha Gupta",
+      email: "sneha@vedaedtech.com",
+      username: "sneha",
+      role: "manager",
+      isDisabled: false,
+      designationId: managerDesigId,
+      departmentId: knowledgeDeptId,
+      branchId: klBranchId,
+      employeeCode: "EMP-008",
+      employeeId: "EMP-00008",
+      employmentType: "Permanent",
+      employmentStatus: "active",
+      profileCompletion: 50,
+      joiningDate: now - 150 * 86400000,
+      reportingManagerId: ctoUser,
+      teamIds: [knowledgeTeamId],
+    });
+
+    // Set team leads
+    await ctx.db.patch(techTeamId, { leadId: ctoUser });
+    await ctx.db.patch(financeTeamId, { leadId: cfoUser });
+    await ctx.db.patch(hrTeamId, { leadId: hrHead });
+    await ctx.db.patch(knowledgeTeamId, { leadId: staff4 });
+
+    // Create scopes
+    const allUserIds = [ceoUser, ctoUser, cfoUser, hrHead, staff1, staff2, staff3, staff4];
+    for (const uid of allUserIds) {
+      await ctx.db.insert("userScopes", {
+        userId: uid,
+        canAccessDashboard: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    // Create channels
+    const generalChannelId = await ctx.db.insert("channels", {
+      name: "General",
+      description: "General discussion",
+      type: "channel",
+      createdBy: ceoUser,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const announcementsChannelId = await ctx.db.insert("channels", {
+      name: "Announcements",
+      description: "Company announcements",
+      type: "announcement",
+      createdBy: ceoUser,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const techChannelId = await ctx.db.insert("channels", {
+      name: "Technology",
+      description: "Tech team discussions",
+      type: "channel",
+      createdBy: ctoUser,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Add members to channels
+    for (const uid of allUserIds) {
+      await ctx.db.insert("channelMembers", {
+        channelId: generalChannelId,
+        userId: uid,
+        joinedAt: now,
+        lastReadAt: now,
+      });
+      await ctx.db.insert("channelMembers", {
+        channelId: announcementsChannelId,
+        userId: uid,
+        joinedAt: now,
+        lastReadAt: now,
+      });
+    }
+
+    for (const uid of [ctoUser, staff1]) {
+      await ctx.db.insert("channelMembers", {
+        channelId: techChannelId,
+        userId: uid,
+        joinedAt: now,
+        lastReadAt: now,
+      });
+    }
+
+    // Create welcome announcement
+    await ctx.db.insert("messages", {
+      channelId: announcementsChannelId,
+      senderId: ceoUser,
+      content: "Welcome to EEOS Lite! This is the official announcement channel for Veda EdTech.",
+      isPinned: true,
+      createdAt: now,
+    });
+
+    await ctx.db.insert("messages", {
+      channelId: generalChannelId,
+      senderId: ceoUser,
+      content: "Hello team! Welcome to EEOS Lite - our Executive Enterprise Operating System.",
+      createdAt: now + 1000,
+    });
+
+    await ctx.db.insert("messages", {
+      channelId: generalChannelId,
+      senderId: ctoUser,
+      content: "Great to be here! Looking forward to building amazing things.",
+      createdAt: now + 2000,
+    });
+
+    // Create sample task
+    const sampleTaskId = await ctx.db.insert("tasks", {
+      title: "Set up development environment",
+      description: "Initialize the development environment for all team members",
+      status: "in_progress",
+      priority: "high",
+      ownerId: ctoUser,
+      assignedTo: staff1,
+      departmentId: technologyDeptId,
+      teamId: techTeamId,
+      dueDate: now + 7 * 24 * 60 * 60 * 1000,
+      order: 0,
+      createdAt: now,

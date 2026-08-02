@@ -492,7 +492,7 @@ export const getEffectivePermissions = query({
       const fieldPerms = await ctx.db
         .query("fieldPermissions")
         .withIndex("designationId_module", (q) =>
-          q.eq("designationId", user.designationId!).eq("module", args.module)
+          q.eq("designationId", user.designationId!).eq("module", args.module!)
         )
         .collect();
       result.fields[args.module] = fieldPerms.map((fp) => ({
@@ -506,7 +506,7 @@ export const getEffectivePermissions = query({
       const sectionPerms = await ctx.db
         .query("sectionPermissions")
         .withIndex("designationId_module", (q) =>
-          q.eq("designationId", user.designationId!).eq("module", args.module)
+          q.eq("designationId", user.designationId!).eq("module", args.module!)
         )
         .collect();
       result.sections = sectionPerms.filter((sp) => sp.visible).map((sp) => sp.sectionName);
@@ -515,7 +515,7 @@ export const getEffectivePermissions = query({
       const actionPerms = await ctx.db
         .query("actionPermissions")
         .withIndex("designationId_module_action", (q) =>
-          q.eq("designationId", user.designationId!).eq("module", args.module)
+          q.eq("designationId", user.designationId!).eq("module", args.module!)
         )
         .collect();
       result.actions = actionPerms.filter((ap) => ap.allowed).map((ap) => ap.action);

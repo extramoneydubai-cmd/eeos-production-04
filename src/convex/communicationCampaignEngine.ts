@@ -157,7 +157,7 @@ export const launchCampaign = mutation({
           channel,
           recipientAddress: recipient.address,
           recipientName: recipient.name,
-          campaignId: args.campaignId,
+          campaignId: args.campaignId as any,
           templateId: campaign.templateId,
           subject: (template as any).subject || "",
           body: (template as any).body || "",

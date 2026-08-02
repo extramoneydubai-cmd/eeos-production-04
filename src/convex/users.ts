@@ -1,8 +1,14 @@
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { query, QueryCtx } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
 import { paginatedQuery, applyStandardFilters, type PaginatedResponse } from "./queryHelpers";
+
+// Custom auth (authHelpers.ts) authenticates via a sessions table and never
+// issues Convex Auth JWTs, so no Convex Auth identity is attached to requests.
+const getAuthUserId = async (
+  _ctx: QueryCtx,
+): Promise<Id<"users"> | null> => null;
 
 export const currentUser = query({
   args: {},

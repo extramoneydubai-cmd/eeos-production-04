@@ -1662,7 +1662,7 @@ export const seedAll = internalMutation({
 
     for (const mod of modules) {
       try {
-        const result = await (mod.fn as any).handler(ctx, {} as any);
+        const result = await mod.fn.handler(ctx, {} as any);
         results[mod.name] = result;
       } catch (err: any) {
         results[mod.name] = { seeded: false, message: err.message };

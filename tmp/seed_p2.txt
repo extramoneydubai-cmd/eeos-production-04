@@ -1,0 +1,560 @@
+      updatedAt: now,
+    });
+
+    await ctx.db.insert("taskParticipants", {
+      taskId: sampleTaskId,
+      userId: ctoUser,
+      role: "owner",
+      createdAt: now,
+    });
+
+    await ctx.db.insert("taskParticipants", {
+      taskId: sampleTaskId,
+      userId: staff1,
+      role: "assignee",
+      createdAt: now,
+    });
+
+    await ctx.db.insert("taskChecklistItems", {
+      taskId: sampleTaskId,
+      text: "Install Node.js and package manager",
+      completed: true,
+      completedBy: staff1,
+      completedAt: now + 3600000,
+      order: 0,
+      createdAt: now,
+    });
+
+    await ctx.db.insert("taskChecklistItems", {
+      taskId: sampleTaskId,
+      text: "Clone the repository",
+      completed: true,
+      completedBy: staff1,
+      completedAt: now + 7200000,
+      order: 1,
+      createdAt: now,
+    });
+
+    await ctx.db.insert("taskChecklistItems", {
+      taskId: sampleTaskId,
+      text: "Run the application locally",
+      completed: false,
+      order: 2,
+      createdAt: now,
+    });
+
+    await ctx.db.insert("taskComments", {
+      taskId: sampleTaskId,
+      userId: staff1,
+      content: "I've completed the installation. Moving to clone the repo.",
+      createdAt: now + 3600000,
+    });
+
+    await ctx.db.insert("taskComments", {
+      taskId: sampleTaskId,
+      userId: ctoUser,
+      content: "Great progress! Let me know if you face any issues.",
+      createdAt: now + 7200000,
+    });
+
+    // Create sample notifications
+    await ctx.db.insert("notifications", {
+      userId: staff1,
+      type: "task",
+      title: "Task Assigned",
+      message: "You have been assigned: 'Set up development environment'",
+      referenceId: sampleTaskId,
+      referenceType: "task",
+      isRead: false,
+      createdAt: now,
+    });
+
+    await ctx.db.insert("notifications", {
+      userId: ctoUser,
+      type: "message",
+      title: "New Message",
+      message: "New message in General from CEO",
+      referenceId: generalChannelId,
+      referenceType: "channel",
+      isRead: false,
+      createdAt: now + 1000,
+    });
+
+    // Create approval templates
+    await ctx.db.insert("approvalTemplates", {
+      name: "Standard Approval",
+      description: "Two-phase sequential approval process",
+      mode: "sequential",
+      phases: [
+        { name: "Manager Review", order: 0, requiredApprovers: 1 },
+        { name: "Director Approval", order: 1, requiredApprovers: 1 },
+      ],
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await ctx.db.insert("approvalTemplates", {
+      name: "Quick Approval",
+      description: "Single-phase parallel approval",
+      mode: "parallel",
+      phases: [
+        { name: "Approver Decision", order: 0, requiredApprovers: 2 },
+      ],
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return {
+      seeded: true,
+      message: "EEOS Lite seeded successfully",
+      users: allUserIds.length,
+    };
+  },
+});
+
+export const seedPasswords = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const allUsers = await ctx.db.query("users").collect();
+    const ceo = allUsers.find((u) => u.username === "ceo");
+    if (ceo?.passwordHash) return { seeded: false };
+
+    const users = await ctx.db.query("users").collect();
+    const passwordMap: Record<string, string> = {
+      ceo: "admin123",
+      cto: "cto123",
+      cfo: "cfo123",
+      hrhead: "hr123",
+      arun: "staff123",
+      priya: "staff123",
+      rajesh: "staff123",
+      sneha: "sneha123",
+    };
+
+    for (const user of users) {
+      const pw = passwordMap[user.username || ""];
+      if (pw) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(pw);
+        const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+        await ctx.db.patch(user._id, { passwordHash: hash });
+      }
+    }
+
+    return { seeded: true };
+  },
+});
+
+export const seedCrm = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const existingLeads = await ctx.db.query("leadMaster").take(1);
+    if (existingLeads.length > 0) return { seeded: false, message: "CRM already seeded" };
+
+    const users = await ctx.db.query("users").collect();
+    const ceo = users.find((u) => u.username === "ceo")!;
+    const arun = users.find((u) => u.username === "arun")!;
+    const priya = users.find((u) => u.username === "priya")!;
+    const sneha = users.find((u) => u.username === "sneha")!;
+
+    const branches = await ctx.db.query("branches").collect();
+    const verticals = await ctx.db.query("verticals").collect();
+    const npBranch = branches.find((b) => b.code === "NP")!;
+    const klBranch = branches.find((b) => b.code === "KL")!;
+    const plBranch = branches.find((b) => b.code === "PL")!;
+    const opBranch = branches.find((b) => b.code === "OP")!;
+    const schoolV = verticals.find((v) => v.code === "SCH")!;
+    const collegeV = verticals.find((v) => v.code === "COL")!;
+    const compV = verticals.find((v) => v.code === "CMP")!;
+
+    const now = Date.now();
+    const day = 86400000;
+    const owners = [arun._id, priya._id, sneha._id];
+    const stages = ["new", "attempted", "connected", "qualified", "counselling", "interested", "follow_up", "negotiation", "converted", "lost"];
+
+    const leadData = [
+      { f: "Aarav", l: "Sharma", ph: "9876543210", em: "aarav.s@email.com", loc: "Delhi", src: "Website", b: npBranch._id, v: schoolV._id, st: "interested", p: "high", rev: 50000, act: "Send brochure", actD: now + 2*day, o: owners[0] },
+      { f: "Bhavya", l: "Patel", ph: "9876543211", em: "bhavya.p@email.com", loc: "Mumbai", src: "Referral", b: npBranch._id, v: collegeV._id, st: "qualified", p: "medium", rev: 75000, act: "Schedule counseling", actD: now + 1*day, o: owners[0] },
+      { f: "Chirag", l: "Verma", ph: "9876543212", em: "chirag.v@email.com", loc: "Bangalore", src: "Social Media", b: opBranch._id, v: compV._id, st: "new", p: "low", rev: 30000, o: owners[1] },
+      { f: "Divya", l: "Reddy", ph: "9876543213", em: "divya.r@email.com", loc: "Hyderabad", src: "Phone Inquiry", b: klBranch._id, v: collegeV._id, st: "counselling", p: "high", rev: 85000, act: "Follow up on course details", actD: now + 3*day, o: owners[1] },
+      { f: "Ekta", l: "Singh", ph: "9876543214", em: "ekta.s@email.com", loc: "Chandigarh", src: "Website", b: plBranch._id, v: schoolV._id, st: "attempted", p: "medium", rev: 40000, o: owners[2] },
+      { f: "Farhan", l: "Khan", ph: "9876543215", em: "farhan.k@email.com", loc: "Lucknow", src: "Event", b: npBranch._id, v: compV._id, st: "negotiation", p: "critical", rev: 120000, act: "Send offer letter", actD: now + 1*day, o: owners[0] },
+      { f: "Gauri", l: "Joshi", ph: "9876543216", em: "gauri.j@email.com", loc: "Pune", src: "Referral", b: opBranch._id, v: collegeV._id, st: "follow_up", p: "medium", rev: 65000, act: "Send reminders", actD: now + 4*day, o: owners[1] },
+      { f: "Harsh", l: "Mehta", ph: "9876543217", em: "harsh.m@email.com", loc: "Ahmedabad", src: "Social Media", b: klBranch._id, v: schoolV._id, st: "connected", p: "low", rev: 35000, o: owners[2] },
+      { f: "Isha", l: "Agarwal", ph: "9876543218", em: "isha.a@email.com", loc: "Jaipur", src: "Email Campaign", b: plBranch._id, v: collegeV._id, st: "qualified", p: "high", rev: 90000, act: "Share testimonials", actD: now + 2*day, o: owners[0] },
+      { f: "Jay", l: "Desai", ph: "9876543219", em: "jay.d@email.com", loc: "Surat", src: "Walk-in", b: npBranch._id, v: compV._id, st: "counselling", p: "medium", rev: 55000, act: "Demo class", actD: now + 5*day, o: owners[1] },
+      { f: "Kavya", l: "Nair", ph: "9876543220", em: "kavya.n@email.com", loc: "Kochi", src: "Website", b: klBranch._id, v: schoolV._id, st: "interested", p: "high", rev: 45000, act: "Call to confirm", actD: now + 1*day, o: owners[2] },
+      { f: "Laksh", l: "Rao", ph: "9876543221", em: "laksh.r@email.com", loc: "Chennai", src: "Partner", b: opBranch._id, v: collegeV._id, st: "follow_up", p: "medium", rev: 70000, act: "Payment plan discussion", actD: now + 3*day, o: owners[0] },
+      { f: "Maya", l: "Kaur", ph: "9876543222", em: "maya.k@email.com", loc: "Amritsar", src: "Phone Inquiry", b: plBranch._id, v: compV._id, st: "new", p: "low", rev: 25000, o: owners[1] },
+      { f: "Nikhil", l: "Bose", ph: "9876543223", em: "nikhil.b@email.com", loc: "Kolkata", src: "Social Media", b: npBranch._id, v: schoolV._id, st: "attempted", p: "medium", rev: 38000, o: owners[2] },
+      { f: "Ojas", l: "Chopra", ph: "9876543224", em: "ojas.c@email.com", loc: "Nagpur", src: "Referral", b: klBranch._id, v: collegeV._id, st: "connected", p: "high", rev: 80000, act: "Schedule visit", actD: now + 6*day, o: owners[0] },
+      { f: "Priyanka", l: "Gupta", ph: "9876543225", em: "priyanka.g@email.com", loc: "Indore", src: "Email Campaign", b: opBranch._id, v: compV._id, st: "interested", p: "critical", rev: 110000, act: "Close deal", actD: now + 2*day, o: owners[1], tag: "hot" },
+      { f: "Rohan", l: "Saxena", ph: "9876543226", em: "rohan.s@email.com", loc: "Bhopal", src: "Website", b: npBranch._id, v: collegeV._id, st: "negotiation", p: "high", rev: 95000, act: "Finalize fee", actD: now + 1*day, o: owners[2] },
+      { f: "Sanya", l: "Malik", ph: "9876543227", em: "sanya.m@email.com", loc: "Dehradun", src: "Walk-in", b: plBranch._id, v: schoolV._id, st: "qualified", p: "medium", rev: 42000, act: "Send prospectus", actD: now + 4*day, o: owners[0] },
+      { f: "Tanvi", l: "Shah", ph: "9876543228", em: "tanvi.s@email.com", loc: "Vadodara", src: "Event", b: opBranch._id, v: compV._id, st: "counselling", p: "high", rev: 60000, act: "Mock test followup", actD: now + 3*day, o: owners[1] },
+      { f: "Utkarsh", l: "Pandey", ph: "9876543229", em: "utkarsh.p@email.com", loc: "Patna", src: "Referral", b: npBranch._id, v: collegeV._id, st: "lost", p: "low", rev: 0, o: owners[2], stat: "lost" },
+      { f: "Vandana", l: "Tiwari", ph: "9876543230", em: "vandana.t@email.com", loc: "Ranchi", src: "Phone Inquiry", b: klBranch._id, v: schoolV._id, st: "converted", p: "medium", rev: 50000, o: owners[0], stat: "converted" },
+      { f: "Yash", l: "Arora", ph: "9876543231", em: "yash.a@email.com", loc: "Jalandhar", src: "Social Media", b: plBranch._id, v: compV._id, st: "new", p: "low", rev: 28000, o: owners[1] },
+      { f: "Zara", l: "Qureshi", ph: "9876543232", em: "zara.q@email.com", loc: "Srinagar", src: "Website", b: npBranch._id, v: collegeV._id, st: "follow_up", p: "high", rev: 72000, act: "Reminder call", actD: now + 2*day, o: owners[2] },
+      { f: "Amit", l: "Kohli", ph: "9876543233", em: "amit.k@email.com", loc: "Chandigarh", src: "Partner", b: opBranch._id, v: schoolV._id, st: "negotiation", p: "critical", rev: 130000, act: "Contract signing", actD: now + 1*day, o: owners[0], tag: "vip" },
+      { f: "Neha", l: "Bajaj", ph: "9876543234", em: "neha.b@email.com", loc: "Mumbai", src: "Email Campaign", b: klBranch._id, v: collegeV._id, st: "lost", p: "medium", rev: 0, o: owners[1], stat: "lost" },
+    ];
+
+    for (const d of leadData) {
+      const leadId = await ctx.db.insert("leadMaster", {
+        firstName: d.f,
+        lastName: d.l,
+        phone: d.ph,
+        email: d.em || undefined,
+        location: d.loc || undefined,
+        source: d.src || undefined,
+        branchInterestId: d.b || undefined,
+        verticalId: d.v || undefined,
+        stage: d.st,
+        priority: d.p as any,
+        ownerId: d.o || undefined,
+        expectedRevenue: d.rev || undefined,
+        nextAction: d.act || undefined,
+        nextActionDate: d.actD || undefined,
+        tags: d.tag ? [d.tag] : undefined,
+        status: (d.stat || "active") as "active" | "converted" | "lost" | "archived",
+        createdBy: ceo._id,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      await ctx.db.insert("leadStageHistory", {
+        leadId,
+        fromStage: undefined,
+        toStage: d.st,
+        changedBy: ceo._id,
+        note: "Initial lead creation",
+        createdAt: now,
+      });
+
+      await ctx.db.insert("leadActivity", {
+        leadId,
+        action: "lead_created",
+        description: `Lead ${d.f} ${d.l} created from ${d.src || "unknown source"}`,
+        userId: ceo._id,
+        createdAt: now,
+      });
+
+      // Add a note for some leads
+      if (d.act) {
+        await ctx.db.insert("leadNotes", {
+          leadId,
+          content: `Next action: ${d.act}${d.actD ? ` (by ${new Date(d.actD).toLocaleDateString()})` : ""}`,
+          createdBy: d.o || ceo._id,
+          type: "action",
+          createdAt: now,
+        });
+      }
+
+      // Add tasks for upcoming followups
+      if (d.actD && d.act) {
+        await ctx.db.insert("leadTasks", {
+          leadId,
+          title: d.act,
+          description: `Follow up action for lead ${d.f} ${d.l}`,
+          ownerId: d.o || ceo._id,
+          assignedTo: d.o || undefined,
+          dueDate: d.actD,
+          status: "pending",
+          priority: d.p as any,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+    }
+
+    return { seeded: true, message: "25 CRM leads seeded" };
+  },
+});
+
+export const seedCourses = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const existing = await ctx.db.query("courses").take(1);
+    if (existing.length > 0) return { seeded: false, message: "Courses already seeded" };
+
+    const users = await ctx.db.query("users").collect();
+    const ceo = users.find((u) => u.username === "ceo")!;
+    const verticals = await ctx.db.query("verticals").collect();
+    const schoolV = verticals.find((v) => v.code === "SCH")!;
+    const collegeV = verticals.find((v) => v.code === "COL")!;
+    const compV = verticals.find((v) => v.code === "CMP")!;
+    const profV = verticals.find((v) => v.code === "PRO")!;
+
+    const now = Date.now();
+
+    // School courses
+    await ctx.db.insert("courses", { courseCode: "CBSE-10", courseName: "CBSE Class 10", verticalId: schoolV._id, baseFee: 35000, status: "active", createdBy: ceo._id, createdAt: now, updatedAt: now });
+    await ctx.db.insert("courses", { courseCode: "CBSE-12", courseName: "CBSE Class 12", verticalId: schoolV._id, baseFee: 45000, status: "active", createdBy: ceo._id, createdAt: now, updatedAt: now });
+    await ctx.db.insert("courses", { courseCode: "ICSE-10", courseName: "ICSE Class 10", verticalId: schoolV._id, baseFee: 40000, status: "active", createdBy: ceo._id, createdAt: now, updatedAt: now });
+    await ctx.db.insert("courses", { courseCode: "ICSE-12", courseName: "ICSE Class 12", verticalId: schoolV._id, baseFee: 50000, status: "active", createdBy: ceo._id, createdAt: now, updatedAt: now });
+
+    // College courses
+    await ctx.db.insert("courses", { courseCode: "BSC-MATH", courseName: "B.Sc. Mathematics", verticalId: collegeV._id, baseFee: 60000, status: "active", createdBy: ceo._id, createdAt: now, updatedAt: now });
+    await ctx.db.insert("courses", { courseCode: "BCOM", courseName: "B.Com", verticalId: collegeV._id, baseFee: 55000, status: "active", createdBy: ceo._id, createdAt: now, updatedAt: now });
+    await ctx.db.insert("courses", { courseCode: "BA-ENG", courseName: "B.A. English", verticalId: collegeV._id, baseFee: 50000, status: "active", createdBy: ceo._id, createdAt: now, updatedAt: now });
+
+    // Competitive exam courses
+    await ctx.db.insert("courses", { courseCode: "NEET-26", courseName: "NEET 2026", verticalId: compV._id, baseFee: 70000, status: "active", createdBy: ceo._id, createdAt: now, updatedAt: now });
+    await ctx.db.insert("courses", { courseCode: "JEE-ADV", courseName: "JEE Advanced", verticalId: compV._id, baseFee: 80000, status: "active", createdBy: ceo._id, createdAt: now, updatedAt: now });
+    await ctx.db.insert("courses", { courseCode: "JEE-MAIN", courseName: "JEE Main", verticalId: compV._id, baseFee: 65000, status: "active", createdBy: ceo._id, createdAt: now, updatedAt: now });
+    await ctx.db.insert("courses", { courseCode: "UPSC-CSE", courseName: "UPSC Civil Services", verticalId: compV._id, baseFee: 120000, status: "active", createdBy: ceo._id, createdAt: now, updatedAt: now });
+    await ctx.db.insert("courses", { courseCode: "CA-FOUND", courseName: "CA Foundation", verticalId: compV._id, baseFee: 55000, status: "active", createdBy: ceo._id, createdAt: now, updatedAt: now });
+
+    // Professional courses
+    await ctx.db.insert("courses", { courseCode: "DIGI-MKT", courseName: "Digital Marketing", verticalId: profV._id, baseFee: 40000, status: "active", createdBy: ceo._id, createdAt: now, updatedAt: now });
+    await ctx.db.insert("courses", { courseCode: "DATA-SCI", courseName: "Data Science", verticalId: profV._id, baseFee: 75000, status: "active", createdBy: ceo._id, createdAt: now, updatedAt: now });
+    await ctx.db.insert("courses", { courseCode: "FULL-STACK", courseName: "Full Stack Development", verticalId: profV._id, baseFee: 65000, status: "active", createdBy: ceo._id, createdAt: now, updatedAt: now });
+
+    return { seeded: true, message: "17 sample courses seeded" };
+  },
+});
+
+export const seedRecruitment = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const existingRequisitions = await ctx.db.query("jobRequisitions").take(1);
+    if (existingRequisitions.length > 0) return { seeded: false, message: "Recruitment already seeded" };
+
+    const users = await ctx.db.query("users").collect();
+    const ceo = users.find((u) => u.username === "ceo")!;
+    const cto = users.find((u) => u.username === "cto")!;
+    const cfo = users.find((u) => u.username === "cfo")!;
+    const hrHead = users.find((u) => u.username === "hrhead")!;
+    const sneha = users.find((u) => u.username === "sneha")!;
+
+    const departments = await ctx.db.query("departments").collect();
+    const techDept = departments.find((d) => d.code === "TECH")!;
+    const financeDept = departments.find((d) => d.code === "FIN")!;
+    const marketingDept = departments.find((d) => d.code === "MKT")!;
+    const hrDept = departments.find((d) => d.code === "HR")!;
+
+    const branches = await ctx.db.query("branches").collect();
+    const npBranch = branches.find((b) => b.code === "NP")!;
+    const opBranch = branches.find((b) => b.code === "OP")!;
+    const klBranch = branches.find((b) => b.code === "KL")!;
+
+    const designations = await ctx.db.query("designations").collect();
+    const staffDesig = designations.find((d) => d.code === "STF")!;
+    const mgrDesig = designations.find((d) => d.code === "MGR")!;
+
+    const now = Date.now();
+    const day = 86400000;
+
+    // ─── JOB REQUISITIONS ───
+
+    const req1 = await ctx.db.insert("jobRequisitions", {
+      departmentId: techDept._id as any,
+      designationId: staffDesig._id as any,
+      companyId: undefined,
+      branchId: npBranch._id as any,
+      requestedBy: cto._id,
+      vacancies: 3,
+      employmentType: "permanent",
+      salaryRange: "₹8L - ₹15L",
+      description: "Hiring senior software engineers for the Engineering team to build and maintain our EdTech platform.",
+      status: "approved",
+      createdAt: now - 30 * day,
+      updatedAt: now - 25 * day,
+    });
+
+    const req2 = await ctx.db.insert("jobRequisitions", {
+      departmentId: financeDept._id as any,
+      designationId: staffDesig._id as any,
+      companyId: undefined,
+      branchId: npBranch._id as any,
+      requestedBy: cfo._id,
+      vacancies: 2,
+      employmentType: "permanent",
+      salaryRange: "₹5L - ₹9L",
+      description: "Hiring an Accountant and a Financial Analyst for the Finance Operations team.",
+      status: "approved",
+      createdAt: now - 20 * day,
+      updatedAt: now - 18 * day,
+    });
+
+    const req3 = await ctx.db.insert("jobRequisitions", {
+      departmentId: marketingDept._id as any,
+      designationId: mgrDesig._id as any,
+      companyId: undefined,
+      branchId: opBranch._id as any,
+      requestedBy: hrHead._id,
+      vacancies: 1,
+      employmentType: "permanent",
+      salaryRange: "₹10L - ₹16L",
+      description: "Hiring a Marketing Manager to lead brand strategy and digital marketing initiatives.",
+      status: "pending_approval",
+      createdAt: now - 5 * day,
+      updatedAt: now - 5 * day,
+    });
+
+    const req4 = await ctx.db.insert("jobRequisitions", {
+      departmentId: techDept._id as any,
+      designationId: staffDesig._id as any,
+      companyId: undefined,
+      branchId: npBranch._id as any,
+      requestedBy: cto._id,
+      vacancies: 2,
+      employmentType: "contract",
+      salaryRange: "₹4L - ₹7L",
+      description: "Hiring QA Engineers for a 6-month contract to test the upcoming product release.",
+      status: "draft",
+      createdAt: now - 2 * day,
+      updatedAt: now - 2 * day,
+    });
+
+    // ─── JOB POSTINGS ───
+
+    const posting1 = await ctx.db.insert("jobPostings", {
+      requisitionId: req1,
+      title: "Senior Software Engineer",
+      description: "We are looking for a Senior Software Engineer to join our Engineering team. You will work on building scalable EdTech solutions using React, TypeScript, and Node.js.",
+      skills: ["React", "TypeScript", "Node.js", "PostgreSQL", "AWS"],
+      locations: ["NP - North Province", "OP - Online"],
+      applicationDeadline: now + 15 * day,
+      status: "published",
+      createdAt: now - 25 * day,
+      updatedAt: now - 25 * day,
+    });
+
+    const posting2 = await ctx.db.insert("jobPostings", {
+      requisitionId: req1,
+      title: "Software Engineer (Frontend)",
+      description: "Join our frontend team to build beautiful, responsive user interfaces for our learning management system.",
+      skills: ["React", "TypeScript", "Tailwind CSS", "Next.js"],
+      locations: ["NP - North Province"],
+      applicationDeadline: now + 20 * day,
+      status: "published",
+      createdAt: now - 25 * day,
+      updatedAt: now - 25 * day,
+    });
+
+    const posting3 = await ctx.db.insert("jobPostings", {
+      requisitionId: req2,
+      title: "Accountant",
+      description: "Manage day-to-day accounting operations, GST returns, and financial reporting for the organization.",
+      skills: ["Tally", "GST", "MS Excel", "Financial Reporting"],
+      locations: ["NP - North Province"],
+      applicationDeadline: now + 25 * day,
+      status: "published",
+      createdAt: now - 18 * day,
+      updatedAt: now - 18 * day,
+    });
+
+    // ─── CANDIDATES ───
+
+    const candidateData = [
+      { f: "Ananya", l: "Verma", src: "LinkedIn", pos: "Senior Software Engineer", expSal: 1200000, curSal: 950000, notice: 45, exp: 5, status: "shortlisted" },
+      { f: "Rahul", l: "Sharma", src: "Naukri", pos: "Senior Software Engineer", expSal: 1400000, curSal: 1100000, notice: 60, exp: 6, status: "interview_scheduled" },
+      { f: "Priya", l: "Mehta", src: "Referral", pos: "Software Engineer (Frontend)", expSal: 900000, curSal: 700000, notice: 30, exp: 3, status: "applied" },
+      { f: "Vikram", l: "Singh", src: "LinkedIn", pos: "Software Engineer (Frontend)", expSal: 850000, curSal: 650000, notice: 30, exp: 2.5, status: "screening" },
+      { f: "Neha", l: "Gupta", src: "Company Website", pos: "Accountant", expSal: 600000, curSal: 480000, notice: 30, exp: 4, status: "offer_pending" },
+      { f: "Amit", l: "Joshi", src: "Referral", pos: "Accountant", expSal: 550000, curSal: 420000, notice: 15, exp: 3, status: "interview_completed" },
+      { f: "Deepika", l: "Nair", src: "LinkedIn", pos: "Senior Software Engineer", expSal: 1300000, curSal: 1000000, notice: 90, exp: 7, status: "assessment" },
+      { f: "Karan", l: "Patel", src: "Naukri", pos: "Software Engineer (Frontend)", expSal: 750000, curSal: 550000, notice: 30, exp: 1.5, status: "rejected" },
+    ];
+
+    const candidateIds: any[] = [];
+
+    for (const d of candidateData) {
+      const personId = await ctx.db.insert("personMaster", {
+        firstName: d.f,
+        lastName: d.l,
+        status: "candidate",
+        createdAt: now,
+        updatedAt: now,
+      });
+      const cId = await ctx.db.insert("candidates", {
+        personId,
+        jobPostingId: d.pos.includes("Senior") ? posting1 : d.pos.includes("Frontend") ? posting2 : posting3,
+        source: d.src,
+        appliedPosition: d.pos,
+        expectedSalary: d.expSal,
+        currentSalary: d.curSal,
+        noticePeriod: d.notice,
+        experience: d.exp,
+        resumeUrl: undefined,
+        status: d.status as any,
+        rejectionReason: d.status === "rejected" ? "Skills mismatch for current requirements" : undefined,
+        createdAt: now - (15 + Math.floor(Math.random() * 10)) * day,
+        updatedAt: now - 5 * day,
+      });
+      candidateIds.push(cId);
+
+      // Create timeline events
+      await ctx.db.insert("recruitmentTimeline", {
+        candidateId: cId,
+        eventType: "status_change",
+        previousStatus: "applied",
+        newStatus: d.status,
+        changedBy: hrHead._id,
+        note: `Candidate ${d.status === "rejected" ? "rejected after initial review" : "progressed to " + d.status.replace("_", " ")}`,
+        createdAt: now - 5 * day,
+      });
+    }
+
+    // ─── INTERVIEWS ───
+
+    // Interview for Rahul (Senior SE - shortlisted)
+    const int1 = await ctx.db.insert("interviewRounds", {
+      candidateId: candidateIds[1],
+      roundName: "Technical Round 1",
+      interviewerIds: [cto._id],
+      schedule: now + 3 * day,
+      mode: "video",
+      duration: 60,
+      result: "scheduled",
+      score: undefined,
+      remarks: undefined,
+      createdAt: now - 2 * day,
+      updatedAt: now - 2 * day,
+    });
+
+    // Completed interview for Amit (Accountant)
+    const int2 = await ctx.db.insert("interviewRounds", {
+      candidateId: candidateIds[5],
+      roundName: "Technical Assessment",
+      interviewerIds: [cfo._id],
+      schedule: now - 3 * day,
+      mode: "in_person",
+      duration: 45,
+      result: "completed",
+      score: 82,
+      remarks: "Good understanding of accounting principles. Recommended for next round.",
+      createdAt: now - 10 * day,
+      updatedAt: now - 3 * day,
+    });
+
+    const int3 = await ctx.db.insert("interviewRounds", {
+      candidateId: candidateIds[5],
+      roundName: "HR Round",
+      interviewerIds: [hrHead._id],
+      schedule: now - 1 * day,
+      mode: "video",
+      duration: 30,
+      result: "completed",
+      score: 90,
+      remarks: "Excellent communication. Salary expectations aligned.",
+      createdAt: now - 5 * day,
+      updatedAt: now - 1 * day,
+    });
+
+    // Interview for Ananya (Senior SE - shortlisted)
+    const int4 = await ctx.db.insert("interviewRounds", {
+      candidateId: candidateIds[0],
+      roundName: "Technical Round",
+      interviewerIds: [cto._id, sneha._id],
+      schedule: now - 7 * day,
+      mode: "video",
+      duration: 60,
+      result: "completed",
+      score: 88,
