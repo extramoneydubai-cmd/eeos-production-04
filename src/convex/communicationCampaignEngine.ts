@@ -162,6 +162,7 @@ export const launchCampaign = mutation({
           subject: (template as any).subject || "",
           body: (template as any).body || "",
           status: "queued",
+          priority: "normal",
           scheduledAt: Date.now(),
           retryCount: 0,
           maxRetries: 3,
