@@ -445,7 +445,7 @@ export const get360Summary = query({
       entityType: args.entityType,
       entityId: args.entityId,
       totalSections: view.sections.length,
-      sections: view.sections.map((s) => ({ module: s.module, label: s.label, count: s.count, summary: s.summary })),
+      sections: view.sections.map((s: any) => ({ module: s.module, label: s.label, count: s.count, summary: s.summary })),
     };
   },
 });

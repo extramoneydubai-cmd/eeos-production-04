@@ -1023,8 +1023,15 @@ export const seedRecruitment = mutation({
     const candidateIds: any[] = [];
 
     for (const d of candidateData) {
+      const personId = await ctx.db.insert("personMaster", {
+        firstName: d.f,
+        lastName: d.l,
+        status: "candidate",
+        createdAt: now,
+        updatedAt: now,
+      });
       const cId = await ctx.db.insert("candidates", {
-        personId: undefined,
+        personId,
         jobPostingId: d.pos.includes("Senior") ? posting1 : d.pos.includes("Frontend") ? posting2 : posting3,
         source: d.src,
         appliedPosition: d.pos,
@@ -1344,6 +1351,9 @@ export const seedExams = mutation({
   handler: async (ctx) => {
     const existing = await ctx.db.query("examTemplates").collect();
     if (existing.length > 0) return { seeded: false, message: "Exam data already exists" };
+
+    const day = 86400000;
+    const hour = 3600000;
 
     const users = await ctx.db.query("users").collect();
     const admin = users.find((u: any) => u.role === "super_admin") || users[0];

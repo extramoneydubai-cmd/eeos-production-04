@@ -312,7 +312,7 @@ export function securePaginatedQuery(config: SecureQueryConfig) {
     const result = await paginatedQuery<any>(
       ctx,
       config.table,
-      args,
+      args as any,
       (q) => {
         if (config.buildIndexQuery) {
           return config.buildIndexQuery(ctx, args, sec)(q);

@@ -195,7 +195,6 @@ export const createCalculatedRefund = mutation({
       reason: args.reason,
       reasonCategory: args.reasonCategory,
       notes: args.notes,
-      calculationData: JSON.stringify(calculation),
       status: "draft",
       createdBy: userId,
       createdAt: Date.now(),

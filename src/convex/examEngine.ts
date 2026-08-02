@@ -274,7 +274,7 @@ export const createTimetableEntry = mutation({
   },
   handler: async (ctx, args) => {
     const now = Date.now();
-    const id = await ctx.db.insert("examTimetable", { ...args, createdAt: now, updatedAt: now });
+    const id = await ctx.db.insert("examTimetable", { ...args, subjectId: args.subjectId as any, createdAt: now, updatedAt: now });
 
     await ctx.db.insert("examTimeline", {
       examSessionId: args.examSessionId, eventType: "timetable_updated",

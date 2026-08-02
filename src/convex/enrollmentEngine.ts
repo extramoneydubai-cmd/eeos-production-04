@@ -63,7 +63,6 @@ export const createStudentFromLead = mutation({
       firstName: lead.firstName,
       lastName: lead.lastName,
       phone: lead.phone,
-      email: lead.email,
       leadId: args.leadId,
       admissionNumber,
       verticalId: lead.verticalId,
@@ -150,7 +149,6 @@ export const allocateCourse = mutation({
     await ctx.db.patch(args.studentId, {
       courseId: args.courseId,
       verticalId: args.verticalId || student.verticalId,
-      subVerticalId: args.subVerticalId,
       boardId: args.boardId,
       batchId: args.batchId,
       academicYearId: args.academicYearId,
@@ -406,9 +404,9 @@ export const listStudents = query({
     if (args.search) {
       const q = args.search.toLowerCase();
       results = results.filter((s) =>
-        s.firstName.toLowerCase().includes(q) ||
-        s.lastName.toLowerCase().includes(q) ||
-        s.phone.includes(q) ||
+        (s.firstName || "").toLowerCase().includes(q) ||
+        (s.lastName || "").toLowerCase().includes(q) ||
+        (s.phone || "").includes(q) ||
         s.admissionNumber.toLowerCase().includes(q) ||
         (s.rollNumber && s.rollNumber.toLowerCase().includes(q)),
       );

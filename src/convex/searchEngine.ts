@@ -120,6 +120,6 @@ export const getSearchSuggestions = query({
   handler: async (ctx, args) => {
     if (args.query.length < 2) return [];
     const results = await (globalSearch as any)(ctx, { query: args.query, limit: 5 });
-    return results.map((r) => ({ label: r.title, type: r.entityType, url: r.url }));
+    return results.map((r: any) => ({ label: r.title, type: r.entityType, url: r.url }));
   },
 });

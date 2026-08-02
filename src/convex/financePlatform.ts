@@ -48,7 +48,7 @@ export const resolvePersonFromStudent = query({
     const student = await ctx.db.get(args.studentId);
     if (!student) return null;
     // The studentMaster.personId references the People Registry
-    const personId = (student as any).personId as Id<"people"> | undefined;
+    const personId = (student as any).personId as Id<"personMaster"> | undefined;
     if (personId) return await ctx.db.get(personId);
     // Fallback: return student info directly
     return {

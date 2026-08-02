@@ -70,7 +70,7 @@ export const createCampaign = mutation({
 
     if (args.scheduleDate) {
       await ctx.db.insert("campaignSchedules", {
-        campaignId,
+        campaignId: campaignId as any,
         scheduledAt: args.scheduleDate,
         status: "pending",
         createdAt: Date.now(),
@@ -190,7 +190,7 @@ export const trackDelivery = mutation({
     campaignId: v.optional(v.id("commCampaigns")),
   },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.messageId, { status: args.status, updatedAt: Date.now() });
+    await ctx.db.patch(args.messageId, { status: args.status as any, updatedAt: Date.now() });
 
     if (args.campaignId) {
       const campaign = await ctx.db.get(args.campaignId);

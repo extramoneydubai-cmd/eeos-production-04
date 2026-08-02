@@ -327,7 +327,7 @@ export const seedDefaults = mutation({
           ...tmpl,
           variables: extractVariables(tmpl.body),
           isActive: true,
-          createdBy: userId,
+          createdBy: userId ?? undefined,
           createdAt: Date.now(),
           updatedAt: Date.now(),
         });

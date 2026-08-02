@@ -280,17 +280,17 @@ export const RULE_DEFINITIONS: Record<string, RuleDefinition> = {
   "attendance.ipRestrictionEnabled": {
     domain: "attendance", key: "ipRestrictionEnabled", label: "IP Restriction Enabled",
     description: "Only allow check-in from whitelisted branch IP ranges",
-    valueType: "boolean", defaultValue: false, companyOverridable: true, branchOverridable: true, category: "security",
+    valueType: "boolean", defaultValue: false, companyOverridable: true, branchOverridable: true, category: "security" as any,
   },
   "attendance.deviceRestrictionEnabled": {
     domain: "attendance", key: "deviceRestrictionEnabled", label: "Device Restriction Enabled",
     description: "Only allow check-in from registered device IDs",
-    valueType: "boolean", defaultValue: false, companyOverridable: true, branchOverridable: true, category: "security",
+    valueType: "boolean", defaultValue: false, companyOverridable: true, branchOverridable: true, category: "security" as any,
   },
   "attendance.lwpAfterAbsentDays": {
     domain: "attendance", key: "lwpAfterAbsentDays", label: "LWP After Absent Days",
     description: "Absences beyond this count in a month become loss-of-pay days",
-    valueType: "number", defaultValue: 2, companyOverridable: true, branchOverridable: true, category: "payroll",
+    valueType: "number", defaultValue: 2, companyOverridable: true, branchOverridable: true, category: "payroll" as any,
   },
   "cheque.maxBounceCount": {
     domain: "cheque", key: "maxBounceCount", label: "Max Bounce Count",
@@ -537,10 +537,10 @@ export const calculateChequePenalty = query({
 
     const maxBounceCount = ruleMap.maxBounceCount || 2;
     const penaltyPercent = args.bounceCount >= 2 ? (ruleMap.secondBouncePenaltyPercent || 5) : (ruleMap.penaltyPercent || 2);
-    const penalty = chequeAmount * penaltyPercent / 100;
+    const penalty = args.chequeAmount * penaltyPercent / 100;
     const isRestricted = args.bounceCount >= maxBounceCount;
 
-    return { penaltyPercent, penalty, isRestricted, bounceCount: args.bounceCount, maxBounceCount, chequeAmount };
+    return { penaltyPercent, penalty, isRestricted, bounceCount: args.bounceCount, maxBounceCount, chequeAmount: args.chequeAmount };
   },
 });
 

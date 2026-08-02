@@ -92,8 +92,8 @@ export const createTransaction = mutation({
       const now = Date.now();
 
       // Double-entry validation
-      const totalDebit = args.lines.reduce((s, l) => s + l.debit, 0);
-      const totalCredit = args.lines.reduce((s, l) => s + l.credit, 0);
+      const totalDebit = args.lines.reduce((s: number, l: any) => s + l.debit, 0);
+      const totalCredit = args.lines.reduce((s: number, l: any) => s + l.credit, 0);
       validateDoubleEntry(totalDebit, totalCredit);
 
       // Generate voucher number

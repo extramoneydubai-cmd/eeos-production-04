@@ -119,7 +119,7 @@ export const seedSupplemental = mutation({
           bank: banks[i % banks.length],
           chequeDate: now + Math.floor(Math.random() * 90) * 86400000,
           amount: [10000,25000,50000,75000,100000][i % 5],
-          status: ["scheduled","deposited","cleared","bounced"][i % 4],
+          status: (["scheduled","deposited","cleared","bounced"] as const)[i % 4] as "scheduled" | "deposited" | "cleared" | "bounced",
           depositDate: now - Math.floor(Math.random() * 30) * 86400000,
           bounceReason: "", createdBy: uid as any, createdAt: now, updatedAt: now,
         });

@@ -265,7 +265,7 @@ export const getPersonDataSummary = query({
         ctx.db
           .query("relationships")
           .withIndex("personA", (q) => q.eq("personA", args.personId))
-          .filter((q) => q.eq(q.field("active"), true))
+          .filter((q) => q.eq(q.field("isActive"), true))
           .collect(),
         ctx.db
           .query("socialLinks")

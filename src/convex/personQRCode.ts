@@ -128,7 +128,7 @@ export const getPersonByQRToken = query({
     if (!qrCode) return null;
 
     const person = await ctx.db.get(qrCode.personId);
-    if (!person || person.status === "archived") return null;
+    if (!person || (person as any).status === "archived") return null;
 
     const profiles = await ctx.db
       .query("personProfiles")

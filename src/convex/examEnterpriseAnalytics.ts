@@ -165,7 +165,7 @@ export const getFacultyPerformanceAnalytics = query({
       const f = facultyMap.get(fId)!;
       f.subjectsHandled++;
 
-      const subjMarks = marks.filter((m) => m.examSubjectId === entry.subjectId && m.attendance === "present");
+      const subjMarks = marks.filter((m) => (m.examSubjectId as any) === (entry.subjectId as any) && m.attendance === "present");
       const marksValues = subjMarks.map((m) => Math.min((m.marksObtained ?? 0) + (m.graceMarks ?? 0), m.totalMarks));
       f.totalStudents += marksValues.length;
 
@@ -343,7 +343,8 @@ export const getGradeDistribution = query({
 
     const distribution: Record<string, number> = {};
     for (const r of results) {
-      distribution[r.grade] = (distribution[r.grade] ?? 0) + 1;
+      const grade = r.grade ?? "unknown";
+      distribution[grade] = (distribution[grade] ?? 0) + 1;
     }
 
     return {

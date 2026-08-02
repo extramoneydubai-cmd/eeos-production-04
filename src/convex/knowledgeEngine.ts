@@ -26,7 +26,7 @@ export const createArticle = mutation({
     if (!userId) throw new Error("Not authenticated");
     const articleId = await ctx.db.insert("knowledgeArticles", {
       title: args.title, slug: args.slug, content: args.content, categoryId: args.categoryId,
-      articleType: args.articleType, tags: args.tags || [], isPublished: args.isPublished || false,
+      tags: args.tags || [], isPublished: args.isPublished || false,
       relatedArticleIds: args.relatedArticleIds || [], module: args.module, version: 1,
       viewCount: 0, helpfulCount: 0, notHelpfulCount: 0, createdBy: args.createdBy || userId,
       createdAt: Date.now(), updatedAt: Date.now(),
@@ -72,7 +72,7 @@ export const getArticle = query({
   handler: async (ctx, args) => {
     const article = await ctx.db.get(args.id);
     if (!article) return null;
-    await ctx.db.patch(args.id, { viewCount: ((article as any).viewCount || 0) + 1 });
+    await (ctx as any).db.patch(args.id, { viewCount: ((article as any).viewCount || 0) + 1 });
     const relatedIds = (article as any).relatedArticleIds || [];
     const related = await Promise.all(relatedIds.map((rid: string) => ctx.db.get(rid as any)));
     const versions = await ctx.db.query("knowledgeArticleVersions").withIndex("articleId", (q: any) => q.eq("articleId", args.id)).order("desc").collect();

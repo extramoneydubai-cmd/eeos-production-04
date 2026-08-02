@@ -372,8 +372,9 @@ export const getFinanceDashboard = query({
     // Today's range
     const now = Date.now();
     const startOfDay = new Date(now).setHours(0, 0, 0, 0);
-    const startOfMonth = new Date(now).setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
+    const startOfMonth = new Date(now);
+    startOfMonth.setDate(1);
+    const startOfMonthMs = startOfMonth.setHours(0, 0, 0, 0);
 
     // Payments
     const payments = await ctx.db.query("paymentTransactions").collect();
@@ -386,7 +387,7 @@ export const getFinanceDashboard = query({
       .reduce((s: number, p: any) => s + p.amount, 0);
 
     // Monthly revenue
-    const monthPayments = payments.filter((p: any) => p.paymentDate >= startOfMonth);
+    const monthPayments = payments.filter((p: any) => p.paymentDate >= startOfMonthMs);
     const monthlyRevenue = monthPayments
       .filter((p: any) => p.status === "verified" || p.status === "completed")
       .reduce((s: number, p: any) => s + p.amount, 0);
@@ -399,7 +400,7 @@ export const getFinanceDashboard = query({
 
     // Expenses
     const expenses = await ctx.db.query("expenseRecords").collect();
-    const monthExpenses = expenses.filter((e: any) => e.expenseDate >= startOfMonth);
+    const monthExpenses = expenses.filter((e: any) => e.expenseDate >= startOfMonthMs);
     const monthlyExpense = monthExpenses
       .filter((e: any) => e.status === "paid" || e.status === "approved")
       .reduce((s: number, e: any) => s + e.amount, 0);

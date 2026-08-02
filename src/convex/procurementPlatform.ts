@@ -906,6 +906,7 @@ export const createVendorBill = mutation({
       vendorName,
       paidAmount: 0,
       balanceDue: args.totalAmount,
+      dueDate: args.dueDate ?? Date.now() + 30 * 86400000,
       status: "pending",
       createdBy: userId,
       createdAt: Date.now(),

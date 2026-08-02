@@ -421,7 +421,7 @@ export const runEnterpriseSimulation = mutation({
             totalAmount: invAmount,
             paidAmount,
             balanceDue: invAmount - paidAmount,
-            status: invStatus,
+            status: invStatus as any,
             createdBy: usersId,
           });
           inv++;

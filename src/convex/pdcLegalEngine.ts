@@ -39,7 +39,6 @@ export const restrictFutureCheques = mutation({
   handler: async (ctx, args) => {
     await ctx.db.patch(args.studentId, {
       chequeRestricted: args.restricted,
-      chequeRestrictionReason: args.reason,
       updatedAt: Date.now(),
     });
     return args.studentId;

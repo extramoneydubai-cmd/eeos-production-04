@@ -124,7 +124,7 @@ export const approveLeave = mutation({
         await ctx.db.insert("leaveBalances", {
           employeeId: leave.employeeId,
           leaveTypeId: (leave as any).leaveTypeId,
-          balance: (await ctx.db.get((leave as any).leaveTypeId)).annualAllowance - leave.days,
+          balance: (((await ctx.db.get((leave as any).leaveTypeId)) as any)?.annualAllowance ?? 0) - leave.days,
           used: leave.days,
           year: new Date().getFullYear(),
           createdAt: Date.now(),

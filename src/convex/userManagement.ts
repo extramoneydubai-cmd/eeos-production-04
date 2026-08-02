@@ -323,7 +323,7 @@ export const changeReportingManager = mutation({
 
     // Check for circular hierarchy
     if (args.newManagerId) {
-      let current = await ctx.db.get(args.newManagerId);
+      let current: any = await ctx.db.get(args.newManagerId);
       while (current && current.reportingManagerId) {
         if (current.reportingManagerId === args.userId) {
           throw new Error("Circular reporting hierarchy detected");
@@ -394,9 +394,9 @@ export const getEmployeeHierarchy = query({
   args: { userId: v.id("users") },
   handler: async (ctx, args) => {
     const chain: { userId: string; name?: string; designationId?: string }[] = [];
-    let current = await ctx.db.get(args.userId);
+    let current: any = await ctx.db.get(args.userId);
     while (current && current.reportingManagerId) {
-      const manager = await ctx.db.get(current.reportingManagerId);
+      const manager = await ctx.db.get(current.reportingManagerId) as any;
       if (manager) {
         chain.push({
           userId: manager._id,

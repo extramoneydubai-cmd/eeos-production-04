@@ -198,7 +198,7 @@ export const findPersonsByProfile = query({
 
     for (const profile of profiles) {
       const person = await ctx.db.get(profile.personId);
-      if (person && person.status !== "archived") {
+      if (person && (person as any).status !== "archived") {
         results.push({ profile, person });
       }
     }

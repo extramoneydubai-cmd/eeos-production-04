@@ -151,7 +151,7 @@ export const getDivisionDistribution = query({
       second: results.filter((r) => r.division === "second").length,
       third: results.filter((r) => r.division === "third").length,
       fail: results.filter((r) => r.division === "fail").length,
-      supplementary: results.filter((r) => r.division === "supplementary").length,
+      supplementary: results.filter((r) => (r as any).division === "supplementary").length,
     };
   },
 });
