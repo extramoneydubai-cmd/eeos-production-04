@@ -487,7 +487,7 @@ export const getEffectivePermissions = query({
       };
     }
 
-    // Get field permissions
+    // Get field permissions (designationId is required for per-designation rules)
     if (args.module) {
       const fieldPerms = await ctx.db
         .query("fieldPermissions")

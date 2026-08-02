@@ -69,6 +69,7 @@ export const createCampaign = mutation({
     });
 
     if (args.scheduleDate) {
+      // Legacy campaignSchedules.campaignId references messageCampaigns; keep cast for compatibility.
       await ctx.db.insert("campaignSchedules", {
         campaignId: campaignId as any,
         scheduledAt: args.scheduleDate,

@@ -1,6 +1,9 @@
 import { v } from "convex/values";
 import { mutation } from "./_generated/server";
 
+const day = 86400000;
+const hour = 3600000;
+
 export const seed = mutation({
   args: {},
   handler: async (ctx) => {

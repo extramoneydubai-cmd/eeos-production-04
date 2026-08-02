@@ -8,7 +8,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 
 export const createCategory = mutation({
   args: { name: v.string(), slug: v.string(), description: v.optional(v.string()), parentId: v.optional(v.id("knowledgeCategories")), icon: v.optional(v.string()) },
-  handler: async (ctx, args) => ctx.db.insert("knowledgeCategories", { ...args, articleCount: 0, createdAt: Date.now(), updatedAt: Date.now() }),
+  handler: async (ctx, args) => ctx.db.insert("knowledgeCategories", { name: args.name, description: args.description, parentId: args.parentId, icon: args.icon, articleCount: 0, createdAt: Date.now(), updatedAt: Date.now() }),
 });
 
 export const listCategories = query({ handler: async (ctx) => ctx.db.query("knowledgeCategories").collect() });
@@ -25,10 +25,9 @@ export const createArticle = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
     const articleId = await ctx.db.insert("knowledgeArticles", {
-      title: args.title, slug: args.slug, content: args.content, categoryId: args.categoryId,
+      title: args.title, slug: args.slug, body: args.content || "", content: args.content, categoryId: args.categoryId,
       tags: args.tags || [], isPublished: args.isPublished || false,
-      relatedArticleIds: args.relatedArticleIds || [], module: args.module, version: 1,
-      viewCount: 0, helpfulCount: 0, notHelpfulCount: 0, createdBy: args.createdBy || userId,
+      version: 1, views: 0, helpfulCount: 0, notHelpfulCount: 0, authorId: args.createdBy || userId,
       createdAt: Date.now(), updatedAt: Date.now(),
     });
     const cat = await ctx.db.get(args.categoryId);
@@ -46,7 +45,8 @@ export const updateArticle = mutation({
       articleId: args.id, title: article.title, content: article.content, version: (article as any).version || 1,
       updatedBy: await getAuthUserId(ctx), updatedAt: Date.now(),
     });
-    const { id, ...updates } = args;
+    const { id } = args;
+    const updates: Record<string, any> = { title: args.title, content: args.content, tags: args.tags, isPublished: args.isPublished };
     await ctx.db.patch(id, { ...updates, version: ((article as any).version || 1) + 1, updatedAt: Date.now() });
     return id;
   },

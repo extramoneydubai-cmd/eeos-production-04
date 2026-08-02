@@ -60,6 +60,8 @@ export const createStudentFromLead = mutation({
 
     // Create student record from lead data
     const studentId = await ctx.db.insert("studentMaster", {
+      studentCode: `STU-${admissionNumber}`,
+      personId: ((lead as any).personId || ("" as any)) as any,
       firstName: lead.firstName,
       lastName: lead.lastName,
       phone: lead.phone,
@@ -68,6 +70,8 @@ export const createStudentFromLead = mutation({
       verticalId: lead.verticalId,
       branchId: lead.branchInterestId,
       status: "admitted",
+      currentStatus: "admitted",
+      enrollmentDate: now,
       createdBy: args.createdBy,
       createdAt: now,
       updatedAt: now,
@@ -149,7 +153,6 @@ export const allocateCourse = mutation({
     await ctx.db.patch(args.studentId, {
       courseId: args.courseId,
       verticalId: args.verticalId || student.verticalId,
-      boardId: args.boardId,
       batchId: args.batchId,
       academicYearId: args.academicYearId,
       updatedAt: now,
