@@ -15,7 +15,7 @@ import {
   Activity, Server, Shield, Database, HardDrive, Wifi, Cpu,
   CheckCircle, XCircle, AlertTriangle, RefreshCw, Download,
   Globe, Settings, Clock, Layers, Box, Zap, BarChart3, Terminal,
-  Route, Bug, Bell, FileText, Wifi as WifiIcon,
+  Route, Bug, Bell, FileText, Wifi as WifiIcon, Calendar,
   DownloadCloud,
 } from "lucide-react";
 import { observabilityEngine, useObservabilitySnapshot, type OperationsSnapshot } from "@/platform/operations/ObservabilityEngine";

@@ -20,7 +20,7 @@ import {
   Edit3, Trash2, Plus, ArrowLeft, Loader2, Building2,
   FileText, ListChecks, Activity, History, MessageSquare,
   UserCheck, UserX, AlertTriangle, ChevronRight,
-  BookOpen, Briefcase, Coffee, Star, Repeat,
+  BookOpen, Briefcase, Coffee, Star, Repeat, FileCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";

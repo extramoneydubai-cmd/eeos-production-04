@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.page.tsbuildinfo"
+  },
+  "include": ["src/pages/AcademicDatabase.tsx"]
+}
