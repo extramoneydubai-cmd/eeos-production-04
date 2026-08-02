@@ -190,6 +190,7 @@ export const executeReport = mutation({
         executionTime,
         status: "success",
         executedAt: Date.now(),
+        createdAt: Date.now(),
       });
 
       // Update last run on saved report
@@ -210,6 +211,7 @@ export const executeReport = mutation({
         status: "failed",
         errorMessage: err.message,
         executedAt: Date.now(),
+        createdAt: Date.now(),
       });
 
       return { data: null, executionTime: Date.now() - startTime, success: false, error: err.message };

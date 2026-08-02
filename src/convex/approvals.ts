@@ -170,9 +170,9 @@ export const approveRequest = mutation({
 
     // Check if all required approvers for this phase have approved
     const phaseApprovers = await ctx.db.query("approvalRequestApprovers")
-      .withIndex("requestId", (q) => q.eq("requestId", args.requestId))
+      .withIndex("requestId", (q: any) => q.eq("requestId", args.requestId))
       .collect();
-    const currentPhaseApprovers = phaseApprovers.filter((a) => a.phaseIndex === args.phaseIndex && a.status === "approved");
+    const currentPhaseApprovers = phaseApprovers.filter((a: any) => a.phaseIndex === args.phaseIndex && a.status === "approved");
 
     // For now, move to next phase or complete
     const nextPhase = args.phaseIndex + 1;

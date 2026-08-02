@@ -86,7 +86,7 @@ export const createTransaction = mutation({
       getUserId: userIdFromArg(),
       getDescription: (args) => `Transaction: ${args.voucherType} - ${args.description}`,
     },
-    async (ctx, args) => {
+    async (ctx: any, args: any) => {
       const identity = await ctx.auth.getUserIdentity();
       if (!identity) throw new Error("Not authenticated");
       const now = Date.now();

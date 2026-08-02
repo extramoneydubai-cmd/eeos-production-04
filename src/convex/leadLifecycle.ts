@@ -227,7 +227,7 @@ async function calculateHealthScoreInternal(ctx: any, leadId: Id<"leadMaster">) 
   let engagementScore = 10; // base
   const activities = await ctx.db
     .query("leadActivity")
-    .withIndex("leadId", (q) => q.eq("leadId", leadId))
+    .withIndex("leadId", (q: any) => q.eq("leadId", leadId))
     .collect();
   const recentActivity = activities.filter((a: any) => a.createdAt > Date.now() - 7 * 86400000);
   engagementScore += Math.min(recentActivity.length * 3, 15);

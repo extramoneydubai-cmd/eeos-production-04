@@ -181,7 +181,7 @@ export const createRequisition = mutation({
   }), async (ctx, args, userId) => {
     const allReqs = await ctx.db.query("purchaseRequisitions").collect();
     const reqNumber = generateNumber("PR", allReqs.length + 1);
-    const totalEstimated = args.items.reduce((s, i) => s + i.quantity * i.estimatedUnitPrice, 0);
+    const totalEstimated = args.items.reduce((s: number, i: any) => s + i.quantity * i.estimatedUnitPrice, 0);
 
     const reqId = await ctx.db.insert("purchaseRequisitions", {
       requisitionNumber: reqNumber,
@@ -322,7 +322,7 @@ export const createPurchaseOrder = mutation({
   }), async (ctx, args, userId) => {
     const allPOs = await ctx.db.query("purchaseOrders").collect();
     const poNumber = generateNumber("PO", allPOs.length + 1);
-    const subtotal = args.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+    const subtotal = args.items.reduce((s: number, i: any) => s + i.quantity * i.unitPrice, 0);
     const totalAmount = subtotal + args.taxAmount;
 
     const poId = await ctx.db.insert("purchaseOrders", {

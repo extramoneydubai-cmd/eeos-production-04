@@ -221,7 +221,9 @@ export const generateReceipt = mutation({
       amount: args.amount,
       paymentMethod: args.paymentMethod,
       receiptData: args.receiptData,
+      receiptType: "payment",
       generatedBy: userId,
+      createdBy: userId,
     });
 
     await createTimelineEvent(ctx, {
@@ -283,7 +285,9 @@ export const generateCreditNote = mutation({
       amount: -args.amount,
       paymentMethod: "credit_note",
       receiptData: JSON.stringify({ creditNote: true, reason: args.reason, originalInvoiceId: args.invoiceId }),
+      receiptType: "adjustment",
       generatedBy: userId,
+      createdBy: userId,
     });
 
     // Update invoice balance

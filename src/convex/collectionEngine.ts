@@ -134,7 +134,7 @@ export const cancelPaymentPlan = mutation({
     async (ctx, args) => {
       const now = Date.now();
       await ctx.db.patch(args.planId, { status: "cancelled", updatedAt: now } as any);
-      const installments = await ctx.db.query("payment_installments").withIndex("planId", (q) => q.eq("planId", args.planId)).collect();
+      const installments = await ctx.db.query("payment_installments").withIndex("planId", (q: any) => q.eq("planId", args.planId)).collect();
       for (const inst of installments) {
         if (inst.status === "planned" || inst.status === "due") {
           await ctx.db.patch(inst._id, { status: "cancelled", updatedAt: now } as any);

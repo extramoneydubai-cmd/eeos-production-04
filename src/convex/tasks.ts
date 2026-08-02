@@ -80,8 +80,8 @@ export const createTask = mutation({
     },
     async (ctx, args) => {
       const now = Date.now();
-      const existingTasks = await ctx.db.query("tasks").withIndex("status", (q) => q.eq("status", args.status as any)).collect();
-      const maxOrder = existingTasks.reduce((max, t) => Math.max(max, t.order), -1);
+      const existingTasks = await ctx.db.query("tasks").withIndex("status", (q: any) => q.eq("status", args.status as any)).collect();
+      const maxOrder = existingTasks.reduce((max: number, t: any) => Math.max(max, t.order), -1);
 
       const taskId = await ctx.db.insert("tasks", {
         title: args.title,
@@ -173,13 +173,13 @@ export const deleteTask = mutation({
       title: "Task deleted",
     },
     async (ctx, args) => {
-      const participants = await ctx.db.query("taskParticipants").withIndex("taskId", (q) => q.eq("taskId", args.taskId)).collect();
+      const participants = await ctx.db.query("taskParticipants").withIndex("taskId", (q: any) => q.eq("taskId", args.taskId)).collect();
       for (const p of participants) await ctx.db.delete(p._id);
 
-      const checklistItems = await ctx.db.query("taskChecklistItems").withIndex("taskId", (q) => q.eq("taskId", args.taskId)).collect();
+      const checklistItems = await ctx.db.query("taskChecklistItems").withIndex("taskId", (q: any) => q.eq("taskId", args.taskId)).collect();
       for (const c of checklistItems) await ctx.db.delete(c._id);
 
-      const comments = await ctx.db.query("taskComments").withIndex("taskId", (q) => q.eq("taskId", args.taskId)).collect();
+      const comments = await ctx.db.query("taskComments").withIndex("taskId", (q: any) => q.eq("taskId", args.taskId)).collect();
       for (const c of comments) await ctx.db.delete(c._id);
 
       await ctx.db.delete(args.taskId);

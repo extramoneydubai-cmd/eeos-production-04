@@ -898,8 +898,14 @@ export const createVendorBill = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
+    const vendor = await ctx.db.get(args.vendorId);
+    const vendorName = vendor ? (vendor as any).vendorName || (vendor as any).name : "";
+
     const id = await ctx.db.insert("vendorBills", {
       ...args,
+      vendorName,
+      paidAmount: 0,
+      balanceDue: args.totalAmount,
       status: "pending",
       createdBy: userId,
       createdAt: Date.now(),

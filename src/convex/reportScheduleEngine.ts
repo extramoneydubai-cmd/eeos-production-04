@@ -142,6 +142,7 @@ export const executeDueSchedules = mutation({
           executionTime: 0,
           status: "success",
           executedAt: Date.now(),
+          createdAt: Date.now(),
         });
 
         // Update last sent and next run

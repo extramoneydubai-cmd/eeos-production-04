@@ -172,7 +172,7 @@ export const setAutomation = mutation({
       metadata: {
         executionCount: 0,
         lastExecutedAt: undefined,
-        createdBy: userId,
+        createdBy: userId ?? undefined,
       },
     };
 
@@ -404,7 +404,7 @@ async function executeAutomationAction(
 }
 
 function evaluateAutomationCondition(
-  condition: AutomationRule["conditions"][0],
+  condition: NonNullable<AutomationRule["conditions"]>[number],
   actualValue: any,
 ): boolean {
   switch (condition.operator) {

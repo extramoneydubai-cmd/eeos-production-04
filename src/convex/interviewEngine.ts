@@ -135,7 +135,8 @@ export const listInterviews = query({
     }
 
     if (args.interviewerId) {
-      interviews = interviews.filter((i) => i.interviewerIds.includes(args.interviewerId));
+      const interviewerId = args.interviewerId;
+      interviews = interviews.filter((i) => i.interviewerIds.includes(interviewerId));
     }
 
     if (args.upcoming) {

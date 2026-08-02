@@ -75,7 +75,7 @@ export const getEffectiveAccess = query({
     const scope = await ctx.db.query("userScopes").withIndex("userId", (q) => q.eq("userId", args.userId!)).first();
 
     const departments = user.departmentId ? [await ctx.db.get(user.departmentId)] : [];
-    const teams = user.teamIds ? await Promise.all(user.teamIds.map((tid) => ctx.db.get(tid))) : [];
+    const teams = user.teamIds ? await Promise.all(user.teamIds.map((tid: any) => ctx.db.get(tid))) : [];
     const branch = user.branchId ? await ctx.db.get(user.branchId) : null;
     const designation = user.designationId ? await ctx.db.get(user.designationId) : null;
 

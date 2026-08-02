@@ -39,16 +39,16 @@ export const listLeads = query({
       ctx,
       "leadMaster",
       queryArgs,
-      (q) => {
+      (q: any) => {
         // Use most selective index based on primary filter
         if (args.stage) {
-          return q.withIndex("by_stage", (iq) => iq.eq("stage", args.stage!));
+          return q.withIndex("by_stage", (iq: any) => iq.eq("stage", args.stage!));
         }
         if (args.ownerId) {
-          return q.withIndex("by_owner", (iq) => iq.eq("ownerId", args.ownerId!));
+          return q.withIndex("by_owner", (iq: any) => iq.eq("ownerId", args.ownerId!));
         }
         if (args.status && args.status !== "archived") {
-          return q.withIndex("by_status", (iq) => iq.eq("status", args.status!));
+          return q.withIndex("by_status", (iq: any) => iq.eq("status", args.status!));
         }
         // Default: order by createdAt descending
         return q.withIndex("createdAt").order("desc");

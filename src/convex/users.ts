@@ -104,8 +104,8 @@ export const getUsersByDepartment = query({
     paginationOpts: paginationOptsValidator,
   },
   handler: async (ctx, args): Promise<PaginatedResponse<any>> => {
-    const result = await paginatedQuery<any>(ctx, "users", args, (q) =>
-      q.withIndex("by_department", (iq) => iq.eq("departmentId", args.departmentId)),
+    const result = await paginatedQuery<any>(ctx, "users", args, (q: any) =>
+      q.withIndex("by_department", (iq: any) => iq.eq("departmentId", args.departmentId)),
     );
     return {
       items: result.items.filter((u: any) => !u.isDisabled),

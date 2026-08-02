@@ -97,7 +97,7 @@ export function adoptMutation<P extends WithScope & Record<string, any>>(
   ) {
     return mutation({
       args: mutationDef.args,
-      handler: withScopeAndEvents(config, mutationDef.handler as any),
+      handler: withScopeAndEvents(config, mutationDef.handler as any) as any,
     });
   };
 }
