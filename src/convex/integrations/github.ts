@@ -22,16 +22,46 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { mutation, query, action } from "../_generated/server";
 import { api } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
-import { Octokit } from "octokit";
 
 // ─── Helpers ───────────────────────────────────────────────────
 
-function getOctokit(): Octokit {
+/** Minimal GitHub REST client built on fetch — avoids the heavy `octokit`
+ * dependency tree (which is not installed in this workspace). */
+async function githubFetch<T>(path: string): Promise<T> {
   const token = process.env.GITHUB_TOKEN;
   if (!token) {
     throw new Error("GITHUB_TOKEN not configured. Add it in the Keys tab.");
   }
-  return new Octokit({ auth: token });
+  const res = await fetch(`https://api.github.com${path}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+    },
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`GitHub API error ${res.status}: ${body.slice(0, 300)}`);
+  }
+  return (await res.json()) as T;
+}
+
+type GitHubUser = {
+  login: string;
+  id: number;
+  avatar_url?: string;
+  name?: string | null;
+  public_repos?: number;
+};
+
+type GitHubRepo = { full_name?: string; name: string };
+
+async function getAuthenticatedUser(): Promise<GitHubUser> {
+  return githubFetch<GitHubUser>("/user");
+}
+
+async function listReposForAuthenticatedUser(): Promise<GitHubRepo[]> {
+  return githubFetch<GitHubRepo[]>("/user/repos?per_page=5&sort=updated");
 }
 
 // ─── Mutations ─────────────────────────────────────────────────
@@ -118,16 +148,15 @@ export const disconnect = mutation({
 export const verifyToken = action({
   args: {},
   handler: async (ctx) => {
-    const octokit = getOctokit();
     try {
-      const { data: user } = await octokit.rest.users.getAuthenticated();
+      const user = await getAuthenticatedUser();
       return {
         valid: true,
         username: user.login,
         userId: user.id,
         avatarUrl: user.avatar_url,
-        name: user.name,
-        publicRepos: user.public_repos,
+        name: user.name ?? null,
+        publicRepos: user.public_repos ?? 0,
       };
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : "Unknown error";
@@ -191,19 +220,15 @@ export const executeSync = action({
     syncType: v.union(v.literal("push"), v.literal("pull")),
   },
   handler: async (ctx, args) => {
-    const octokit = getOctokit();
     const MAX_RETRIES = 3;
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
         // Verify token by getting authenticated user
-        const { data: user } = await octokit.rest.users.getAuthenticated();
+        const user = await getAuthenticatedUser();
 
         // Example: List repos as a basic sync operation
-        const { data: repos } = await octokit.rest.repos.listForAuthenticatedUser({
-          per_page: 5,
-          sort: "updated",
-        });
+        const repos = await listReposForAuthenticatedUser();
 
         const repoCount = repos.length;
 

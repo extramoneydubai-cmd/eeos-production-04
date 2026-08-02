@@ -206,9 +206,10 @@ export const listCategoryPermissions = query({
   },
   handler: async (ctx, args) => {
     if (args.designationId) {
+      const designationId = args.designationId;
       return await ctx.db
         .query("categoryPermissions")
-        .withIndex("designationId", (q) => q.eq("designationId", args.designationId))
+        .withIndex("designationId", (q) => q.eq("designationId", designationId))
         .collect();
     }
     return await ctx.db.query("categoryPermissions").collect();

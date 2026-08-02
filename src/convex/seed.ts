@@ -910,10 +910,10 @@ export const seedRecruitment = mutation({
     // ─── JOB REQUISITIONS ───
 
     const req1 = await ctx.db.insert("jobRequisitions", {
-      departmentId: techDept._id,
-      designationId: staffDesig._id,
+      departmentId: techDept._id as any,
+      designationId: staffDesig._id as any,
       companyId: undefined,
-      branchId: npBranch._id,
+      branchId: npBranch._id as any,
       requestedBy: cto._id,
       vacancies: 3,
       employmentType: "permanent",
@@ -925,10 +925,10 @@ export const seedRecruitment = mutation({
     });
 
     const req2 = await ctx.db.insert("jobRequisitions", {
-      departmentId: financeDept._id,
-      designationId: staffDesig._id,
+      departmentId: financeDept._id as any,
+      designationId: staffDesig._id as any,
       companyId: undefined,
-      branchId: npBranch._id,
+      branchId: npBranch._id as any,
       requestedBy: cfo._id,
       vacancies: 2,
       employmentType: "permanent",
@@ -940,10 +940,10 @@ export const seedRecruitment = mutation({
     });
 
     const req3 = await ctx.db.insert("jobRequisitions", {
-      departmentId: marketingDept._id,
-      designationId: mgrDesig._id,
+      departmentId: marketingDept._id as any,
+      designationId: mgrDesig._id as any,
       companyId: undefined,
-      branchId: opBranch._id,
+      branchId: opBranch._id as any,
       requestedBy: hrHead._id,
       vacancies: 1,
       employmentType: "permanent",
@@ -955,10 +955,10 @@ export const seedRecruitment = mutation({
     });
 
     const req4 = await ctx.db.insert("jobRequisitions", {
-      departmentId: techDept._id,
-      designationId: staffDesig._id,
+      departmentId: techDept._id as any,
+      designationId: staffDesig._id as any,
       companyId: undefined,
-      branchId: npBranch._id,
+      branchId: npBranch._id as any,
       requestedBy: cto._id,
       vacancies: 2,
       employmentType: "contract",
@@ -1255,6 +1255,8 @@ export const seedFinance = mutation({
     const courses = await ctx.db.query("courses").collect();
     const students = await ctx.db.query("studentMaster").collect();
     const now = Date.now();
+    const day = 86400000;
+    const hour = 3600000;
 
     // Fee Structures
     const tuitionFee = await ctx.db.insert("feeStructures", {

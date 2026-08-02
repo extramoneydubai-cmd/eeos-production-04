@@ -41,7 +41,8 @@ export const createCompany = mutation({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
-    return ctx.db.insert("companies", { ...args, isActive: args.isActive ?? true, createdAt: Date.now(), updatedAt: Date.now() });
+    const { isActive, ...rest } = args;
+    return ctx.db.insert("companies", { ...rest, status: isActive === false ? "inactive" : "active", createdAt: Date.now(), updatedAt: Date.now() });
   },
 });
 

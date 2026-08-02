@@ -152,11 +152,11 @@ export class ScopeEngine {
   }
 
   /** Filter an array of records to only those visible to the user */
-  filterByScope<T extends { companyId?: string; branchId?: string; departmentId?: string }>(records: T[]): T[] {
+  filterByScope<T>(records: T[]): T[] {
     if (!this.scope || this.scope.scopeLevel === "super_admin" || this.scope.scopeLevel === "global") {
       return records;
     }
-    return records.filter((r) => this.canRead(r));
+    return records.filter((r) => this.canRead(r as unknown as { companyId?: string; branchId?: string; departmentId?: string }));
   }
 
   /**
@@ -282,12 +282,17 @@ export const canAccess = query({
   },
   handler: async (ctx, args) => {
     const engine = await ScopeEngine.forUser(ctx, args.userId);
+    const entity = {
+      companyId: args.entityCompanyId ?? undefined,
+      branchId: args.entityBranchId ?? undefined,
+      departmentId: args.entityDepartmentId ?? undefined,
+    };
     return {
-      canRead: engine.canRead(args),
-      canWrite: engine.canWrite(args),
-      canApprove: engine.canApprove(args),
-      canDelete: engine.canDelete(args),
-      accessLevel: engine.accessLevel(args),
+      canRead: engine.canRead(entity),
+      canWrite: engine.canWrite(entity),
+      canApprove: engine.canApprove(entity),
+      canDelete: engine.canDelete(entity),
+      accessLevel: engine.accessLevel(entity),
     };
   },
 });

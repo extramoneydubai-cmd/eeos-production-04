@@ -28,12 +28,17 @@ export const createKpiDefinition = mutation({
     displayOrder: v.number(),
   },
   handler: async (ctx, args) => {
+    const { aggregation, targetValue, ...rest } = args;
     return ctx.db.insert("kpiDefinitions", {
-      ...args,
+      ...rest,
+      category: rest.module,
+      frequency: "daily",
+      formula: aggregation,
+      target: targetValue,
       isActive: true,
       createdAt: Date.now(),
       updatedAt: Date.now(),
-    });
+    } as any);
   },
 });
 
@@ -329,7 +334,7 @@ export const getModuleDashboardData = query({
     ),
   },
   handler: async (ctx, args) => {
-    switch (args.module) {
+    switch (args.module as string) {
       case "crm": {
         const leads = await ctx.db.query("leadMaster").collect();
         return {

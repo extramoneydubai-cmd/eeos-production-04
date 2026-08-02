@@ -571,7 +571,7 @@ export const getRoleAICapabilities = query({
         intentCount: p.intents.length,
         entityFocus: p.entityFocus,
       })),
-      supportedIntents: profile?.intents || (Object.values({
+      supportedIntents: profile?.intents || (Object.keys({
         search: 1, analytics: 1, insight: 1, predict: 1, recommend: 1, summarize: 1,
         anomaly: 1, workflow: 1, rule: 1, document: 1, dashboard: 1, report: 1,
         schedule: 1, email_draft: 1, help: 1,
