@@ -21,7 +21,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { supportEngine, TICKET_TYPES, TICKET_STATUSES, TICKET_PRIORITIES, type Ticket } from "@/platform/support/SupportEngine";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { TICKET_TYPES, TICKET_STATUSES, TICKET_PRIORITIES, type Ticket } from "@/platform/support/SupportEngine";
 
 type ViewMode = "table" | "kanban" | "card";
 
@@ -63,12 +65,14 @@ export default function TicketDatabase() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [selectedTickets, setSelectedTickets] = useState<Set<string>>(new Set());
 
-  const tickets = supportEngine.listTickets({
+  const listResult = useQuery(api.supportEngine.listTickets, {
     search: search || undefined,
     status: statusFilter !== "all" ? statusFilter : undefined,
     priority: priorityFilter !== "all" ? priorityFilter : undefined,
     type: typeFilter !== "all" ? typeFilter : undefined,
-  });
+  }) as any;
+  const tickets = listResult?.tickets ?? [];
+  const counts = listResult?.counts ?? { open: 0 };
 
   // Status-based grouping for kanban
   const kanbanColumns = useMemo(() => {
@@ -95,7 +99,7 @@ export default function TicketDatabase() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-lg font-semibold text-[#1a1a2e]">Tickets</h1>
-            <p className="text-[12px] text-[#5f6368]">{tickets.length} total · {supportEngine.getStatusCounts()?.open || 0} open</p>
+            <p className="text-[12px] text-[#5f6368]">{tickets.length} total · {counts?.open || 0} open</p>
           </div>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline" className="h-8 text-[11px]">

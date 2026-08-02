@@ -20,10 +20,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { supportEngine, TICKET_TYPES, TICKET_STATUSES, TICKET_PRIORITIES } from "@/platform/support/SupportEngine";
-import { ticketEngine } from "@/platform/support/TicketEngine";
-import { slaEngine } from "@/platform/support/SLAEngine";
-import { knowledgeBaseEngine } from "@/platform/support/KnowledgeBaseEngine";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { useAuth } from "@/hooks/use-auth";
+import { TICKET_TYPES, TICKET_STATUSES, TICKET_PRIORITIES } from "@/platform/support/SupportEngine";
 
 type Tab = "overview" | "conversation" | "timeline" | "approvals" | "sla" | "assets" | "knowledge" | "tasks" | "notes" | "documents" | "activity" | "history";
 
@@ -53,14 +53,30 @@ function getStatusColor(status: string): string {
 export default function TicketWorkspace() {
   const { ticketId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [commentText, setCommentText] = useState("");
 
-  const ticket = ticketId ? supportEngine.getTicket(ticketId) : undefined;
-  const comments = ticketId ? ticketEngine.getComments(ticketId) : [];
-  const timeline = ticketId ? ticketEngine.getTimeline(ticketId) : [];
-  const slaStatus = ticketId ? slaEngine.getSLAStatus(ticketId) : undefined;
-  const relatedArticles = ticket ? knowledgeBaseEngine.findRelatedArticles(ticket.type, 5) : [];
+  const detail = useQuery(api.supportEngine.getTicket, ticketId ? { ticketId } : "skip") as any;
+  const updateTicketMut = useMutation(api.supportEngine.updateTicket);
+  const addCommentMut = useMutation(api.supportEngine.addComment);
+
+  const ticket = detail?.ticket;
+  const comments = detail?.comments ?? [];
+  const timeline = detail?.timeline ?? [];
+  const slaStatus = detail?.sla;
+  const relatedArticles = detail?.relatedArticles ?? [];
+
+  if (!ticketId || !detail) {
+    return (
+      <div className="min-h-screen bg-[#f8f9fa] flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="h-8 w-8 text-[#9aa0a6] mx-auto mb-3 animate-spin" />
+          <p className="text-[14px] font-medium text-[#1a1a2e]">Loading ticket…</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!ticket) {
     return (
@@ -103,14 +119,14 @@ export default function TicketWorkspace() {
         <div className="flex items-center gap-2 mb-4">
           <select
             value={ticket.status}
-            onChange={(e) => { supportEngine.transitionStatus(ticket._id!, e.target.value); window.location.reload(); }}
+            onChange={(e) => { updateTicketMut({ ticketId: ticket._id, status: e.target.value }); }}
             className="h-7 text-[11px] px-2 border border-[#e8eaed] rounded-md bg-white"
           >
             {TICKET_STATUSES.map((s) => (<option key={s.id} value={s.id}>{s.label}</option>))}
           </select>
           <select
             value={ticket.priority}
-            onChange={(e) => { supportEngine.updateTicket(ticket._id!, { priority: e.target.value }); window.location.reload(); }}
+            onChange={(e) => { updateTicketMut({ ticketId: ticket._id, priority: e.target.value }); }}
             className="h-7 text-[11px] px-2 border border-[#e8eaed] rounded-md bg-white"
           >
             {TICKET_PRIORITIES.map((p) => (<option key={p.id} value={p.id}>{p.label}</option>))}
@@ -211,7 +227,7 @@ export default function TicketWorkspace() {
                       <input type="checkbox" className="rounded" /> Internal note
                     </label>
                     <Button size="sm" className="h-7 text-[11px]" disabled={!commentText.trim()}
-                      onClick={() => { if (ticket._id) { ticketEngine.addComment({ ticketId: ticket._id, body: commentText, authorName: "Agent" }); setCommentText(""); } }}>
+                      onClick={() => { addCommentMut({ ticketId: ticket._id, body: commentText, authorName: user?.name || "Agent" }); setCommentText(""); }}>
                       <Send className="h-3 w-3 mr-1" /> Send
                     </Button>
                   </div>

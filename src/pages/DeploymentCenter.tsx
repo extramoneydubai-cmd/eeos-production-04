@@ -7,6 +7,7 @@
  *  - Backups — Manual/scheduled backup management
  *  - Environments — Environment configuration overview
  *  - Health — Deployment health check results
+ *  - Infrastructure — Live runtime observability (PATCH-ERP-003 Phase 2)
  *  - Rollback — Rollback management
  *  - Build History — Build verification history
  *  - Provisioning — Customer provisioning
@@ -21,6 +22,8 @@ import {
   FileText, UserPlus, GitBranch, ArrowLeft, ArrowRight,
   RotateCcw,
 } from "lucide-react";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { deploymentHealth, type DeploymentHealthStatus } from "@/platform/deployment/DeploymentHealth";
 import { backupManager } from "@/platform/backup/BackupManager";
 import { recoveryManager } from "@/platform/recovery/RecoveryManager";
@@ -30,7 +33,7 @@ import { provisioningManager } from "@/platform/customer/ProvisioningManager";
 import { buildVersionManager } from "@/platform/release/BuildVersionManager";
 import { runtimeSelfTest } from "@/platform/runtime/RuntimeSelfTest";
 
-type Tab = "deployments" | "releases" | "backups" | "environments" | "health" | "rollback" | "build-history" | "provisioning" | "cicd";
+type Tab = "deployments" | "releases" | "backups" | "environments" | "health" | "infrastructure" | "rollback" | "build-history" | "provisioning" | "cicd";
 
 export default function DeploymentCenter() {
   const [activeTab, setActiveTab] = useState<Tab>("deployments");
@@ -56,6 +59,7 @@ export default function DeploymentCenter() {
     { id: "backups" as Tab, label: "Backups", icon: HardDrive },
     { id: "environments" as Tab, label: "Environments", icon: Settings },
     { id: "health" as Tab, label: "Health", icon: Activity },
+    { id: "infrastructure" as Tab, label: "Infrastructure", icon: Server },
     { id: "rollback" as Tab, label: "Rollback", icon: RotateCcw },
     { id: "build-history" as Tab, label: "Build History", icon: Clock },
     { id: "provisioning" as Tab, label: "Provisioning", icon: UserPlus },
@@ -133,6 +137,7 @@ export default function DeploymentCenter() {
         {activeTab === "health" && (
           <HealthTab status={healthStatus} running={runningChecks} onRecheck={runHealthCheck} />
         )}
+        {activeTab === "infrastructure" && <InfrastructureTab />}
         {activeTab === "rollback" && <RollbackTab />}
         {activeTab === "build-history" && <BuildHistoryTab />}
         {activeTab === "provisioning" && <ProvisioningTab />}
@@ -440,6 +445,260 @@ function HealthTab({ status, running, onRecheck }: {
             {running ? "Running health checks..." : "No health data available"}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Infrastructure Tab (live runtime observability, PATCH-ERP-003) ──
+
+function InfrastructureTab() {
+  const sysHealth = useQuery(api.adminEngine.getSystemHealth, {}) as any;
+  const runtimeHealth = useQuery(api.runtimeObservability.getSystemHealth, {}) as any;
+  const queues = useQuery(api.runtimeObservability.getQueueLengths, {}) as any;
+  const workflow = useQuery(api.runtimeObservability.getWorkflowHealth, {}) as any;
+  const integrations = useQuery(api.integrationEngine.getIntegrationDashboard, {}) as any;
+  const apiKeys = useQuery(api.adminEngine.listApiKeys, {}) as any[];
+  const webhooks = useQuery(api.adminEngine.listWebhooks, {}) as any[];
+  const jobs = useQuery(api.adminEngine.listScheduledJobs, {}) as any[];
+  const audit = useQuery(api.adminEngine.listAuditLogs, { limit: 8 }) as any[];
+
+  const createJob = useMutation(api.adminEngine.createScheduledJob);
+  const toggleJob = useMutation(api.adminEngine.toggleJob);
+  const createApiKey = useMutation(api.adminEngine.createApiKey);
+  const revokeApiKey = useMutation(api.adminEngine.revokeApiKey);
+  const createWebhook = useMutation(api.adminEngine.createWebhook);
+
+  const [showNewJob, setShowNewJob] = useState(false);
+  const [jobName, setJobName] = useState("");
+  const [jobType, setJobType] = useState("report");
+  const [jobSchedule, setJobSchedule] = useState("0 6 * * *");
+  const [newKeyName, setNewKeyName] = useState("");
+  const [newWebhookUrl, setNewWebhookUrl] = useState("");
+
+  const checks = runtimeHealth?.checks
+    ? Object.entries(runtimeHealth.checks as Record<string, { status: string; message: string }>)
+    : [];
+
+  const queueEntries = queues ? Object.entries(queues) : [];
+
+  return (
+    <div className="space-y-4">
+      {/* Runtime KPI strip */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: "Overall", value: runtimeHealth?.overall ?? "—", tone: runtimeHealth?.overall === "CRITICAL" ? "text-red-600" : runtimeHealth?.overall === "WARNING" ? "text-amber-600" : "text-green-600" },
+          { label: "Checks Healthy", value: `${runtimeHealth?.healthyCount ?? 0}/${runtimeHealth?.totalChecks ?? 0}`, tone: "text-[#1a1a2e]" },
+          { label: "Total Users", value: String(sysHealth?.totalUsers ?? 0), tone: "text-[#1a73e8]" },
+          { label: "Uptime", value: sysHealth?.uptime ? `${Math.max(1, Math.floor((sysHealth.uptime ?? 0) / 60))}m` : "—", tone: "text-[#1a1a2e]" },
+        ].map((m) => (
+          <div key={m.label} className="bg-white rounded-lg border border-[#e8eaed] p-3.5">
+            <p className="text-[10px] text-[#9aa0a6] font-medium">{m.label}</p>
+            <p className={`text-[18px] font-semibold mt-0.5 ${m.tone}`}>{m.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Runtime checks + queues */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-white rounded-lg border border-[#e8eaed] p-4">
+          <h3 className="text-[13px] font-semibold text-[#1a1a2e] mb-3 flex items-center gap-1.5">
+            <Activity className="h-3.5 w-3.5 text-[#1a73e8]" /> Runtime Health Checks
+          </h3>
+          <div className="space-y-1.5">
+            {checks.map(([key, check]) => (
+              <div key={key} className="flex items-center gap-2 text-[11px]">
+                {check.status === "HEALTHY" ? <CheckCircle className="h-3.5 w-3.5 text-green-500" /> :
+                 check.status === "WARNING" ? <AlertTriangle className="h-3.5 w-3.5 text-yellow-500" /> :
+                 <XCircle className="h-3.5 w-3.5 text-red-500" />}
+                <span className="text-[#5f6368] capitalize w-24">{key}</span>
+                <span className="text-[#9aa0a6] truncate">{check.message}</span>
+              </div>
+            ))}
+            {checks.length === 0 && <p className="text-[11px] text-[#9aa0a6]">Loading runtime health…</p>}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className="bg-white rounded-lg border border-[#e8eaed] p-4">
+            <h3 className="text-[13px] font-semibold text-[#1a1a2e] mb-3 flex items-center gap-1.5">
+              <Layers className="h-3.5 w-3.5 text-[#1a73e8]" /> Queue Health
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
+              {queueEntries.map(([key, val]) => (
+                <div key={key} className="flex items-center justify-between px-3 py-2 bg-[#fafafa] rounded-lg">
+                  <span className="text-[10px] text-[#5f6368] capitalize">{key.replace(/([A-Z])/g, " $1")}</span>
+                  <span className="text-[12px] font-semibold text-[#1a1a2e]">{String(val)}</span>
+                </div>
+              ))}
+              {queueEntries.length === 0 && <p className="text-[11px] text-[#9aa0a6]">Loading queues…</p>}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg border border-[#e8eaed] p-4">
+            <h3 className="text-[13px] font-semibold text-[#1a1a2e] mb-3 flex items-center gap-1.5">
+              <Zap className="h-3.5 w-3.5 text-[#f59e0b]" /> Workflow Health
+            </h3>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              {[
+                { label: "Running", value: workflow?.running ?? 0, tone: "text-[#1a73e8]" },
+                { label: "Failed", value: workflow?.failed ?? 0, tone: (workflow?.failed ?? 0) > 0 ? "text-red-600" : "text-green-600" },
+                { label: "Success", value: `${workflow?.successRate ?? 100}%`, tone: "text-green-600" },
+              ].map((m) => (
+                <div key={m.label} className="bg-[#fafafa] rounded-lg py-2">
+                  <p className={`text-[14px] font-semibold ${m.tone}`}>{m.value}</p>
+                  <p className="text-[9px] text-[#9aa0a6]">{m.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Integrations */}
+      <div className="bg-white rounded-lg border border-[#e8eaed] p-4">
+        <h3 className="text-[13px] font-semibold text-[#1a1a2e] mb-3 flex items-center gap-1.5">
+          <Shield className="h-3.5 w-3.5 text-[#1a73e8]" /> Integration Logs & Connectors
+        </h3>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="px-2.5 py-1 bg-[#e8f0fe] text-[#1a73e8] text-[11px] font-medium rounded-lg">{integrations?.totalConnectors ?? 0} connectors</span>
+          <span className="px-2.5 py-1 bg-[#e6f4ea] text-[#34a853] text-[11px] font-medium rounded-lg">{integrations?.activeConnectors ?? 0} active</span>
+          <span className="px-2.5 py-1 bg-[#f1f3f4] text-[#5f6368] text-[11px] font-medium rounded-lg">{integrations?.availableTypes ?? 0} available types</span>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          {(integrations?.byType ?? []).slice(0, 8).map((t: any) => (
+            <div key={t.type} className="flex items-center justify-between px-3 py-2 bg-[#fafafa] rounded-lg">
+              <span className="text-[11px] text-[#5f6368]">{t.name}</span>
+              <span className="text-[11px] font-semibold text-[#1a1a2e]">{t.active}/{t.total}</span>
+            </div>
+          ))}
+          {(integrations?.byType ?? []).length === 0 && <p className="text-[11px] text-[#9aa0a6]">No connectors configured yet</p>}
+        </div>
+      </div>
+
+      {/* Scheduled jobs */}
+      <div className="bg-white rounded-lg border border-[#e8eaed] p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-[13px] font-semibold text-[#1a1a2e] flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5 text-[#1a73e8]" /> Scheduled Jobs
+          </h3>
+          <button onClick={() => setShowNewJob(!showNewJob)}
+            className="px-3 py-1.5 bg-[#1a73e8] text-white text-[11px] font-medium rounded-lg hover:bg-[#1765cc] transition-colors">
+            {showNewJob ? "Cancel" : "+ New Job"}
+          </button>
+        </div>
+        {showNewJob && (
+          <div className="flex items-center gap-2 mb-3 p-3 bg-[#fafafa] rounded-lg">
+            <input value={jobName} onChange={(e) => setJobName(e.target.value)} placeholder="Job name"
+              className="h-8 flex-1 text-[11px] px-2.5 border border-[#e8eaed] rounded-md" />
+            <select value={jobType} onChange={(e) => setJobType(e.target.value)}
+              className="h-8 text-[11px] px-2 border border-[#e8eaed] rounded-md bg-white">
+              {["report", "backup", "sync", "cleanup", "notify"].map((t) => <option key={t} value={t}>{t}</option>)}
+            </select>
+            <input value={jobSchedule} onChange={(e) => setJobSchedule(e.target.value)} placeholder="cron"
+              className="h-8 w-28 text-[11px] px-2.5 border border-[#e8eaed] rounded-md font-mono" />
+            <button disabled={!jobName.trim()}
+              onClick={() => { createJob({ name: jobName, jobType, schedule: jobSchedule }); setJobName(""); setShowNewJob(false); }}
+              className="h-8 px-3 bg-[#34a853] text-white text-[11px] font-medium rounded-lg hover:bg-[#2d9249] transition-colors disabled:opacity-50">
+              Create
+            </button>
+          </div>
+        )}
+        <div className="space-y-1.5">
+          {(jobs ?? []).map((j) => (
+            <div key={j._id} className="flex items-center justify-between px-3 py-2 bg-[#fafafa] rounded-lg">
+              <div className="flex items-center gap-2">
+                <span className="text-[12px] font-medium text-[#1a1a2e]">{j.name}</span>
+                <span className="text-[10px] text-[#9aa0a6] font-mono">{j.jobType} · {j.schedule}</span>
+                {j.isActive ? <span className="text-[9px] px-1.5 py-0.5 bg-[#e6f4ea] text-[#34a853] rounded-full">active</span>
+                  : <span className="text-[9px] px-1.5 py-0.5 bg-[#f1f3f4] text-[#9aa0a6] rounded-full">paused</span>}
+              </div>
+              <button onClick={() => toggleJob({ id: j._id, isActive: !j.isActive })}
+                className="text-[10px] px-2 py-1 rounded-lg border border-[#e8eaed] hover:bg-[#f1f3f4] transition-colors">
+                {j.isActive ? "Pause" : "Resume"}
+              </button>
+            </div>
+          ))}
+          {(jobs ?? []).length === 0 && <p className="text-[11px] text-[#9aa0a6]">No scheduled jobs</p>}
+        </div>
+      </div>
+
+      {/* API Keys + Webhooks */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-white rounded-lg border border-[#e8eaed] p-4">
+          <h3 className="text-[13px] font-semibold text-[#1a1a2e] mb-3">API Keys</h3>
+          <div className="space-y-1.5 mb-3">
+            {(apiKeys ?? []).slice(0, 5).map((k) => (
+              <div key={k._id} className="flex items-center justify-between px-3 py-2 bg-[#fafafa] rounded-lg">
+                <div>
+                  <p className="text-[11px] font-medium text-[#1a1a2e]">{k.name}</p>
+                  <p className="text-[9px] text-[#9aa0a6] font-mono">{k.key?.slice(0, 14)}… · {k.scope}</p>
+                </div>
+                <button onClick={() => revokeApiKey({ id: k._id })}
+                  className="text-[9px] px-2 py-1 rounded-lg border border-red-100 text-red-600 hover:bg-red-50 transition-colors">
+                  Revoke
+                </button>
+              </div>
+            ))}
+            {(apiKeys ?? []).length === 0 && <p className="text-[11px] text-[#9aa0a6]">No API keys</p>}
+          </div>
+          <div className="flex gap-2">
+            <input value={newKeyName} onChange={(e) => setNewKeyName(e.target.value)} placeholder="Key name"
+              className="h-8 flex-1 text-[11px] px-2.5 border border-[#e8eaed] rounded-md" />
+            <button disabled={!newKeyName.trim()}
+              onClick={() => { createApiKey({ name: newKeyName, scope: "api" }); setNewKeyName(""); }}
+              className="h-8 px-3 bg-[#1a73e8] text-white text-[11px] font-medium rounded-lg hover:bg-[#1765cc] transition-colors disabled:opacity-50">
+              Generate
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg border border-[#e8eaed] p-4">
+          <h3 className="text-[13px] font-semibold text-[#1a1a2e] mb-3">Webhooks</h3>
+          <div className="space-y-1.5 mb-3">
+            {(webhooks ?? []).slice(0, 5).map((w) => (
+              <div key={w._id} className="flex items-center justify-between px-3 py-2 bg-[#fafafa] rounded-lg">
+                <div>
+                  <p className="text-[11px] font-medium text-[#1a1a2e]">{w.name}</p>
+                  <p className="text-[9px] text-[#9aa0a6] truncate max-w-[240px]">{w.url}</p>
+                </div>
+                <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${w.isActive ? "bg-[#e6f4ea] text-[#34a853]" : "bg-[#f1f3f4] text-[#9aa0a6]"}`}>
+                  {w.isActive ? "active" : "inactive"}
+                </span>
+              </div>
+            ))}
+            {(webhooks ?? []).length === 0 && <p className="text-[11px] text-[#9aa0a6]">No webhooks</p>}
+          </div>
+          <div className="flex gap-2">
+            <input value={newWebhookUrl} onChange={(e) => setNewWebhookUrl(e.target.value)} placeholder="https://…"
+              className="h-8 flex-1 text-[11px] px-2.5 border border-[#e8eaed] rounded-md font-mono" />
+            <button disabled={!newWebhookUrl.trim()}
+              onClick={() => { createWebhook({ name: newWebhookUrl.slice(0, 24), url: newWebhookUrl, events: ["ticket.created"] }); setNewWebhookUrl(""); }}
+              className="h-8 px-3 bg-[#34a853] text-white text-[11px] font-medium rounded-lg hover:bg-[#2d9249] transition-colors disabled:opacity-50">
+              Add
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Audit log */}
+      <div className="bg-white rounded-lg border border-[#e8eaed] p-4">
+        <h3 className="text-[13px] font-semibold text-[#1a1a2e] mb-3 flex items-center gap-1.5">
+          <FileText className="h-3.5 w-3.5 text-[#1a73e8]" /> Recent Audit Logs
+        </h3>
+        <div className="space-y-1">
+          {(audit ?? []).map((a) => (
+            <div key={a._id} className="flex items-center gap-2 text-[11px] py-1.5 border-b border-[#f1f3f4] last:border-0">
+              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
+                a.severity === "error" || a.severity === "critical" ? "bg-red-50 text-red-600" :
+                a.severity === "warn" ? "bg-amber-50 text-amber-600" : "bg-[#e8f0fe] text-[#1a73e8]"
+              }`}>{a.severity || "info"}</span>
+              <span className="text-[#5f6368]">{a.action || a.message || a.module || "—"}</span>
+              <span className="ml-auto text-[9px] text-[#9aa0a6]">{a.createdAt ? new Date(a.createdAt).toLocaleString() : ""}</span>
+            </div>
+          ))}
+          {(audit ?? []).length === 0 && <p className="text-[11px] text-[#9aa0a6]">No audit log entries</p>}
+        </div>
       </div>
     </div>
   );

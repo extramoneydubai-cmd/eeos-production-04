@@ -25,6 +25,7 @@ import {
   Activity, CheckSquare, Clock, AlertTriangle, ShieldAlert, TrendingUp,
   CircleDot, CalendarDays, Banknote, FileClock, BadgeIndianRupee, FileWarning,
   Package, Factory, Truck, Users, RefreshCw, Layers, Zap, BarChart3,
+  Sparkles,
 } from "lucide-react";
 
 type AnyRow = Record<string, any>;
@@ -63,6 +64,8 @@ export default function OperationsCommandCenter() {
   const scopeViolations = ops?.scopeViolations?.totalViolations ?? 0;
   const lowStock = inventory?.lowStockCount ?? 0;
   const attendanceToday = attendance?.total ?? 0;
+  const support = useQuery(api.supportEngine.getSupportDashboard, {}) as AnyRow | undefined;
+  const openTickets = support?.counts?.open ?? 0;
 
   const kpis = [
     { label: "Today", value: String(attendanceToday + (overview?.admissions ?? 0)), sub: `${overview?.activeUsers ?? 0} active users`, icon: CalendarDays, color: "text-blue-600", bg: "bg-blue-50 border-blue-100", live: true },
@@ -81,7 +84,7 @@ export default function OperationsCommandCenter() {
     { module: "Refunds", href: "/refunds", icon: BadgeIndianRupee, value: String(pendingRefunds), sub: `${refunds?.approvedCount ?? 0} approved · ${refunds?.totalCount ?? 0} total`, tone: pendingRefunds > 0 ? "amber" : "green" },
     { module: "Collections", href: "/collections", icon: Banknote, value: `${overview?.collectionRate ?? 0}%`, sub: `₹${(overview?.outstandingFees ?? 0).toLocaleString("en-IN")} outstanding`, tone: "blue" },
     { module: "PDC", href: "/pdc", icon: FileClock, value: String((cheques?.received ?? 0) + (cheques?.deposited ?? 0)), sub: `${bouncedCheques} bounced · ${cheques?.cleared ?? 0} cleared`, tone: bouncedCheques > 0 ? "red" : "green" },
-    { module: "Tickets", href: "/tickets", icon: CircleDot, value: String(openSla), sub: `${ops?.slaBreaches?.byPriority?.critical ?? 0} critical breaches`, tone: openSla > 0 ? "red" : "green" },
+    { module: "Tickets", href: "/tickets", icon: CircleDot, value: String(openTickets), sub: `${support?.counts?.resolved ?? 0} resolved · ${support?.counts?.total ?? 0} total`, tone: openTickets > 0 ? "amber" : "green" },
     { module: "Production", href: "/production", icon: Factory, value: String(runningWorkflows), sub: `${failedWorkflows} failed · ${widget?.workflows?.completed ?? 0} completed`, tone: failedWorkflows > 0 ? "red" : "blue" },
     { module: "Inventory", href: "/inventory", icon: Package, value: String(inventory?.totalItems ?? 0), sub: `${lowStock} low · ${inventory?.outOfStockCount ?? 0} out of stock`, tone: lowStock > 0 ? "amber" : "green" },
     { module: "Transport", href: "/scheduling", icon: Truck, value: String(ops?.schedulingMetrics?.totalSchedules ?? 0), sub: `${ops?.schedulingMetrics?.conflictRate ?? 0}% conflict rate`, tone: "blue" },
@@ -90,6 +93,14 @@ export default function OperationsCommandCenter() {
 
   const healthChecks = ops?.systemHealth?.checks as Record<string, { status: string; message: string }> | undefined;
   const healthEntries = healthChecks ? Object.entries(healthChecks) : [];
+
+  // AI Health Summary — derived live from runtime data (no mock text)
+  const aiSummary = [
+    ops ? `System overall: ${ops.systemHealth?.overall ?? "unknown"} — ${ops.systemHealth?.healthyCount ?? 0}/${ops.systemHealth?.totalChecks ?? 0} checks healthy` : "Loading runtime…",
+    ops ? `${ops.queueLengths?.workflowRunning ?? 0} workflows running · ${ops.queueLengths?.workflowFailed ?? 0} failed · ${ops.slaBreaches?.totalBreaches ?? 0} SLA breaches (24h)` : null,
+    ops ? `${ops.scopeViolations?.totalViolations ?? 0} scope violations · ${bouncedCheques} bounced PDC · ${pendingRefunds} pending refunds · ${openTickets} open tickets` : null,
+    ops ? (ops.systemHealth?.overall === "CRITICAL" ? "Action required: failing checks need attention before they cascade." : ops.systemHealth?.overall === "WARNING" ? "Caution: some subsystems are degrading — review warnings." : "All monitored subsystems are within normal bounds.") : null,
+  ].filter(Boolean) as string[];
 
   return (
     <div className="min-h-screen bg-[#f8f9fa]">
@@ -204,6 +215,22 @@ export default function OperationsCommandCenter() {
                     </div>
                   ))}
                 </div>
+              </div>
+            </section>
+
+            {/* AI Health Summary (computed from live runtime) */}
+            <section>
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles className="h-4 w-4 text-[#a855f7]" />
+                <h2 className="text-[13px] font-semibold text-[#1a1a2e]">AI Health Summary</h2>
+                <span className="text-[10px] text-[#9aa0a6]">computed from runtime data</span>
+              </div>
+              <div className="bg-white rounded-lg border border-[#e8eaed] p-3.5 space-y-1.5">
+                {aiSummary.map((s, i) => (
+                  <p key={i} className="text-[11px] text-[#5f6368] flex items-start gap-1.5">
+                    <span className="w-1 h-1 rounded-full bg-[#a855f7] mt-1.5 shrink-0" /> {s}
+                  </p>
+                ))}
               </div>
             </section>
           </div>

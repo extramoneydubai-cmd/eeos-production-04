@@ -289,6 +289,7 @@ import type * as smsEngine from "../smsEngine.js";
 import type * as studentEngine from "../studentEngine.js";
 import type * as studentLifecycle from "../studentLifecycle.js";
 import type * as studentSearch from "../studentSearch.js";
+import type * as supportEngine from "../supportEngine.js";
 import type * as tasks from "../tasks.js";
 import type * as taxEngine from "../taxEngine.js";
 import type * as teacherSchedulingEngine from "../teacherSchedulingEngine.js";
@@ -591,6 +592,7 @@ declare const fullApi: ApiFromModules<{
   studentEngine: typeof studentEngine;
   studentLifecycle: typeof studentLifecycle;
   studentSearch: typeof studentSearch;
+  supportEngine: typeof supportEngine;
   tasks: typeof tasks;
   taxEngine: typeof taxEngine;
   teacherSchedulingEngine: typeof teacherSchedulingEngine;

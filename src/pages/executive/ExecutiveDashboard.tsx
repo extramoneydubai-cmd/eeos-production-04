@@ -138,7 +138,7 @@ function ChartWidget({ title, type }: { title: string; type: string }) {
 }
 
 function ActivityWidget({ title }: { title: string }) {
-  const recentActivity = useQuery(api.engines.activityEngine.getGlobalFeed, { limit: 8 });
+  const recentActivity = useQuery(api.timelineEngine.getRecentTimeline, { limit: 8 });
   return (
     <Card className="border-[#e8eaed] shadow-sm bg-white h-full">
       <CardHeader className="pb-2 pt-2.5 px-3">
@@ -149,7 +149,7 @@ function ActivityWidget({ title }: { title: string }) {
           <div key={i} className="flex items-start gap-2 py-1.5 border-b border-[#f1f3f4] last:border-0">
             <div className="w-1.5 h-1.5 rounded-full mt-1.5 bg-[#4285f4] shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] text-[#1a1a2e] truncate">{e.action || e.description || "Activity"}</p>
+              <p className="text-[10px] text-[#1a1a2e] truncate">{e.description || e.eventType || e.action || "Activity"}</p>
               <p className="text-[8px] text-[#9aa0a6]">{e.createdAt ? new Date(e.createdAt).toLocaleDateString() : ""}</p>
             </div>
           </div>
@@ -162,8 +162,8 @@ function ActivityWidget({ title }: { title: string }) {
 }
 
 function TasksWidget({ title }: { title: string }) {
-  const tasks = useQuery(api.demo.queries.getAllTasks);
-  const pending = tasks?.filter((t: any) => t.status !== "Completed") || [];
+  const tasks = useQuery(api.tasks.listTasks, {});
+  const pending = tasks?.filter((t: any) => !["done", "completed", "cancelled", "archived"].includes(t.status)) || [];
   return (
     <Card className="border-[#e8eaed] shadow-sm bg-white h-full">
       <CardHeader className="pb-2 pt-2.5 px-3">
@@ -176,7 +176,7 @@ function TasksWidget({ title }: { title: string }) {
         {pending.length > 0 ? pending.slice(0, 6).map((t: any, i: number) => (
           <div key={i} className="flex items-center gap-2 py-1.5 border-b border-[#f1f3f4] last:border-0">
             <div className={`w-2 h-2 rounded-full ${
-              t.status === "In Progress" ? "bg-[#fbbc04]" : "bg-[#dadce0]"
+              ["in_progress", "open", "pending"].includes(t.status) ? "bg-[#fbbc04]" : "bg-[#dadce0]"
             } shrink-0`} />
             <p className="text-[10px] text-[#1a1a2e] flex-1 truncate">{t.title}</p>
             <span className="text-[8px] text-[#9aa0a6] capitalize">{t.status}</span>
@@ -190,7 +190,8 @@ function TasksWidget({ title }: { title: string }) {
 }
 
 function NotificationsWidget({ title }: { title: string }) {
-  const notifications = useQuery(api.demo.queries.getAllNotifications);
+  const { user } = useAuth();
+  const notifications = useQuery(api.notifications.listNotifications, user?._id ? { userId: user._id, limit: 20 } : "skip");
   const unread = notifications?.filter((n: any) => !n.isRead) || [];
   return (
     <Card className="border-[#e8eaed] shadow-sm bg-white h-full">

@@ -41,6 +41,9 @@ function StatCard({ icon: Icon, label, value, sub, color }: {
 }
 
 function LeadRow({ lead }: { lead: any }) {
+  const priority = ["high", "critical"].includes(lead.priority) ? "Hot" : lead.priority === "medium" ? "Warm" : "Cold";
+  const name = lead.name || [lead.firstName, lead.lastName].filter(Boolean).join(" ") || "—";
+  const score = lead.score ?? 0;
   const priorityColors: Record<string, string> = {
     Hot: "text-rose-600 bg-rose-50 border-rose-200",
     Warm: "text-amber-600 bg-amber-50 border-amber-200",
@@ -49,23 +52,27 @@ function LeadRow({ lead }: { lead: any }) {
   return (
     <div className="px-4 py-2.5 flex items-center gap-3 hover:bg-slate-50/50 transition-colors">
       <div className={`w-2 h-2 rounded-full shrink-0 ${
-        lead.priority === "Hot" ? "bg-rose-500" :
-        lead.priority === "Warm" ? "bg-amber-500" : "bg-blue-500"
+        priority === "Hot" ? "bg-rose-500" :
+        priority === "Warm" ? "bg-amber-500" : "bg-blue-500"
       }`} />
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-slate-800 truncate">{lead.name}</p>
-        <p className="text-[10px] text-slate-400 truncate">{lead.source} • Score: {lead.score}</p>
+        <p className="text-xs font-medium text-slate-800 truncate">{name}</p>
+        <p className="text-[10px] text-slate-400 truncate">{lead.source} • Score: {score}</p>
       </div>
       <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full border shrink-0 ${
-        priorityColors[lead.priority] || "text-slate-600 bg-slate-50 border-slate-200"
+        priorityColors[priority] || "text-slate-600 bg-slate-50 border-slate-200"
       }`}>
-        {lead.priority}
+        {priority}
       </span>
     </div>
   );
 }
 
 function TaskRow({ task }: { task: any }) {
+  const statusLabel = ["completed", "done"].includes(task.status) ? "Completed"
+    : ["in_progress", "open"].includes(task.status) ? "In Progress"
+    : ["pending", "new"].includes(task.status) ? "Pending"
+    : task.status;
   const statusColors: Record<string, string> = {
     Pending: "text-amber-600 bg-amber-50 border-amber-200",
     "In Progress": "text-blue-600 bg-blue-50 border-blue-200",
@@ -76,12 +83,12 @@ function TaskRow({ task }: { task: any }) {
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium text-slate-800 truncate">{task.title}</p>
-          <p className="text-[10px] text-slate-400 mt-0.5 capitalize">{task.taskType}</p>
+          <p className="text-[10px] text-slate-400 mt-0.5 capitalize">{task.taskType || task.type}</p>
         </div>
         <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full border shrink-0 ${
-          statusColors[task.status] || "text-slate-600 bg-slate-50 border-slate-200"
+          statusColors[statusLabel] || "text-slate-600 bg-slate-50 border-slate-200"
         }`}>
-          {task.status}
+          {statusLabel}
         </span>
       </div>
     </div>
@@ -89,6 +96,8 @@ function TaskRow({ task }: { task: any }) {
 }
 
 function NotificationItem({ notif }: { notif: any }) {
+  const title = notif.title || notif.body || notif.message || "Notification";
+  const message = notif.message || notif.body || "";
   const typeIcons: Record<string, React.ElementType> = {
     lead: UserPlus, admission: CheckCircle2, task: Clock,
     payment: undefined as any, meeting: Calendar, success: CheckCircle2,
@@ -105,8 +114,8 @@ function NotificationItem({ notif }: { notif: any }) {
         }`} />}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-slate-800">{notif.title}</p>
-        <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-1">{notif.message}</p>
+        <p className="text-xs font-medium text-slate-800">{title}</p>
+        {message && <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-1">{message}</p>}
         <p className="text-[10px] text-slate-400 mt-0.5">{format(new Date(notif.createdAt), "MMM d, h:mm a")}</p>
       </div>
       {!notif.isRead && <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />}
@@ -116,15 +125,18 @@ function NotificationItem({ notif }: { notif: any }) {
 
 export default function DashboardCounselor() {
   const { user } = useAuth();
-  const demoProfile = useQuery(api.demo.queries.getCurrentDemoProfile);
-  const leads = useQuery(api.demo.queries.getLeadsForRole, { role: "Counselor" });
-  const allLeads = useQuery(api.demo.queries.getAllLeads);
-  const tasks = useQuery(api.demo.queries.getTasksForRole, { role: "Counselor" });
-  const notifications = useQuery(api.demo.queries.getNotificationsForRole, { role: "Counselor" });
-  const activities = useQuery(api.demo.queries.getActivities);
-  const admissions = useQuery(api.demo.queries.getAdmissions);
+  const leadsResult = useQuery(api.crmLeads.listLeads, { assignedToMe: true });
+  const allLeadsResult = useQuery(api.crmLeads.listLeads, {});
+  const tasks = useQuery(api.tasks.listTasks, user?._id ? { assignedTo: user._id } : {});
+  const notifications = useQuery(api.notifications.listNotifications, user?._id ? { userId: user._id, limit: 30 } : "skip");
+  const activities = useQuery(api.timelineEngine.getRecentTimeline, { limit: 10 });
+  const admissionsResult = useQuery(api.admissionEngine.listAdmissions, {});
 
-  const isLoading = !demoProfile || !leads || !allLeads || !tasks || !notifications || !activities || !admissions;
+  const leads = (leadsResult as any)?.items ?? [];
+  const allLeads = (allLeadsResult as any)?.items ?? [];
+  const admissions = Array.isArray(admissionsResult) ? admissionsResult : ((admissionsResult as any)?.items ?? []);
+
+  const isLoading = !leadsResult || !allLeadsResult || !tasks || !notifications || !activities || !admissionsResult;
 
   if (isLoading) {
     return (
@@ -134,17 +146,17 @@ export default function DashboardCounselor() {
     );
   }
 
-  const hotLeads = leads.filter((l) => l.priority === "Hot").length;
-  const pendingTasks = tasks.filter((t) => t.status !== "Completed").length;
-  const todayFollowUps = leads.filter((l) => l.status === "New").length;
-  const counselorAdmissions = admissions.filter((a) => a.assignedToRole === "Counselor").length;
+  const hotLeads = leads.filter((l) => ["high", "critical", "Hot"].includes(l.priority)).length;
+  const pendingTasks = tasks.filter((t) => !["Completed", "completed", "done", "cancelled"].includes(t.status)).length;
+  const todayFollowUps = leads.filter((l) => ["New", "new", "fresh"].includes(l.status)).length;
+  const counselorAdmissions = admissions.filter((a) => a.assignedToRole === "Counselor" || a.counselorId === user?._id || a.ownerId === user?._id).length;
 
   const stats = [
     { icon: Target, label: "Assigned Leads", value: leads.length, sub: `${hotLeads} Hot`, color: "bg-gradient-to-br from-violet-600 to-indigo-600" },
     { icon: Phone, label: "Today's Follow-ups", value: todayFollowUps, sub: "Needs attention", color: "bg-gradient-to-br from-cyan-600 to-blue-600" },
-    { icon: TrendingUp, label: "My Admissions", value: counselorAdmissions, sub: `${admissions.filter(a => a.status === "Enrolled" && a.assignedToRole === "Counselor").length} Enrolled`, color: "bg-gradient-to-br from-emerald-600 to-teal-600" },
-    { icon: Clock, label: "Pending Tasks", value: pendingTasks, sub: `${tasks.filter(t => t.status === "In Progress").length} In Progress`, color: "bg-gradient-to-br from-amber-600 to-orange-600" },
-    { icon: Users, label: "Total Pipeline", value: allLeads.length, sub: `${allLeads.filter(l => l.priority === "Hot").length} Hot across all`, color: "bg-gradient-to-br from-rose-600 to-pink-600" },
+    { icon: TrendingUp, label: "My Admissions", value: counselorAdmissions, sub: `${admissions.filter(a => ["Enrolled", "enrolled", "admitted"].includes(a.status) && (a.assignedToRole === "Counselor" || a.counselorId === user?._id || a.ownerId === user?._id)).length} Enrolled`, color: "bg-gradient-to-br from-emerald-600 to-teal-600" },
+    { icon: Clock, label: "Pending Tasks", value: pendingTasks, sub: `${tasks.filter(t => ["In Progress", "in_progress", "open"].includes(t.status)).length} In Progress`, color: "bg-gradient-to-br from-amber-600 to-orange-600" },
+    { icon: Users, label: "Total Pipeline", value: allLeads.length, sub: `${allLeads.filter(l => ["high", "critical", "Hot"].includes(l.priority)).length} Hot across all`, color: "bg-gradient-to-br from-rose-600 to-pink-600" },
     { icon: MessageSquare, label: "New Leads Today", value: leads.filter(l => Date.now() - l.createdAt < 86400000).length, sub: "Last 24 hours", color: "bg-gradient-to-br from-sky-600 to-blue-600" },
   ];
 
@@ -157,7 +169,7 @@ export default function DashboardCounselor() {
             Counselor Dashboard
           </h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            {demoProfile?.fullName || user?.name || "User"} • {demoProfile?.designation}
+            {user?.name || "User"}{user?.designation ? ` • ${user.designation}` : ""}
           </p>
         </div>
       </div>
@@ -194,10 +206,10 @@ export default function DashboardCounselor() {
             <span className="text-[10px] text-slate-400">{pendingTasks} pending</span>
           </div>
           <div className="divide-y divide-slate-100 max-h-[360px] overflow-y-auto">
-            {tasks.filter(t => t.status !== "Completed").slice(0, 8).map((task, i) => (
+            {tasks.filter(t => !["Completed", "completed", "done", "cancelled"].includes(t.status)).slice(0, 8).map((task, i) => (
               <TaskRow key={i} task={task} />
             ))}
-            {tasks.filter(t => t.status !== "Completed").length === 0 && (
+            {tasks.filter(t => !["Completed", "completed", "done", "cancelled"].includes(t.status)).length === 0 && (
               <div className="px-4 py-6 text-center text-xs text-slate-400">No pending tasks</div>
             )}
           </div>

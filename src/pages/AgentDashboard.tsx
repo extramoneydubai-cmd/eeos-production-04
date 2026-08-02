@@ -26,11 +26,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
-import { supportEngine, TICKET_TYPES, TICKET_STATUSES, TICKET_PRIORITIES } from "@/platform/support/SupportEngine";
-import { ticketEngine } from "@/platform/support/TicketEngine";
-import { slaEngine } from "@/platform/support/SLAEngine";
-import { knowledgeBaseEngine } from "@/platform/support/KnowledgeBaseEngine";
-import { calculateMetrics } from "@/platform/support/SupportMetrics";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { TICKET_TYPES, TICKET_STATUSES, TICKET_PRIORITIES } from "@/platform/support/SupportEngine";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Area, AreaChart,
@@ -56,11 +54,15 @@ export default function AgentDashboard() {
   const { user } = useAuth();
   const [viewFilter, setViewFilter] = useState<string>("all");
 
-  // ─── Data ──────────────────────────────────────────────────
-  const currentAgentId = user?._id || user?.id || "current";
-  const tickets = supportEngine.listTickets({ assignedTo: currentAgentId });
-  const allMetrics = calculateMetrics();
-  const kbStats = knowledgeBaseEngine.getStats();
+  // ─── Data (Convex SupportRuntime) ─────────────────────────
+  const currentAgentId = user?._id || "";
+  const listResult = useQuery(api.supportEngine.listTickets, currentAgentId ? { assignedTo: currentAgentId } : "skip") as any;
+  const dashResult = useQuery(api.supportEngine.getSupportDashboard, {}) as any;
+  const tickets = listResult?.tickets ?? [];
+  const allMetrics = dashResult?.metrics ?? {
+    overview: { avgFirstReponseMinutes: 0, avgResolutionHours: 0, avgCsat: null, reopenedRate: 0 },
+    agentWorkloads: [],
+  };
 
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
   const resolvedToday = tickets.filter((t) => t.resolvedAt && t.resolvedAt >= todayStart.getTime());
@@ -69,10 +71,10 @@ export default function AgentDashboard() {
   const filteredTickets = useMemo(() => {
     if (viewFilter === "open") return openTickets;
     if (viewFilter === "today") return tickets.filter((t) => t.createdAt >= todayStart.getTime());
-    if (viewFilter === "sla") return openTickets.filter((t) => {
-      const sla = slaEngine.getSLAStatus(t._id!);
-      return sla && (sla.status === "breached" || sla.status === "approaching");
-    });
+    if (viewFilter === "sla") return openTickets.filter((t) =>
+      t.slaBreached || (t.responseDueAt && t.responseDueAt < Date.now() + 60 * 60 * 1000) ||
+      (t.resolutionDueAt && t.resolutionDueAt < Date.now() + 60 * 60 * 1000)
+    );
     return tickets;
   }, [tickets, viewFilter, openTickets]);
 
@@ -88,10 +90,25 @@ export default function AgentDashboard() {
 
   // My SLA stats
   const mySlaStats = useMemo(() => {
-    const withSla = tickets.filter((t) => { const s = slaEngine.getSLAStatus(t._id!); return s; });
-    const breached = withSla.filter((t) => slaEngine.getSLAStatus(t._id!)?.status === "breached").length;
+    const withSla = tickets.filter((t) => t.slaBreached !== undefined || t.responseDueAt || t.resolutionDueAt);
+    const breached = withSla.filter((t) => t.slaBreached).length;
     return { total: withSla.length, breached, rate: withSla.length > 0 ? Math.round(((withSla.length - breached) / withSla.length) * 100) : 100 };
   }, [tickets]);
+
+  // Real 7-day resolution trend from ticket data (was Math.random mock)
+  const weekResolved = useMemo(() => {
+    const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(); d.setDate(d.getDate() - (6 - i)); d.setHours(0, 0, 0, 0);
+      const start = d.getTime(); const end = start + 86400000;
+      return { day: days[i], resolved: tickets.filter((t) => t.resolvedAt && t.resolvedAt >= start && t.resolvedAt < end).length };
+    });
+  }, [tickets]);
+
+  // Real recent activity (was Math.random mock)
+  const recentActivity = useMemo(() =>
+    tickets.filter((t) => t.resolvedAt).sort((a, b) => b.resolvedAt - a.resolvedAt).slice(0, 3),
+  [tickets]);
 
   return (
     <div className="min-h-screen bg-[#f8f9fa]">
@@ -166,7 +183,7 @@ export default function AgentDashboard() {
               </div>
               <div className="divide-y divide-[#f1f3f4] max-h-[450px] overflow-y-auto">
                 {filteredTickets.slice(0, 15).map((t) => {
-                  const sla = slaEngine.getSLAStatus(t._id!);
+                  const sla = t.slaBreached ? { status: "breached" } : (t.responseDueAt && t.responseDueAt < Date.now() + 60 * 60 * 1000) || (t.resolutionDueAt && t.resolutionDueAt < Date.now() + 60 * 60 * 1000) ? { status: "approaching" } : undefined;
                   return (
                     <div key={t._id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#fafafa] cursor-pointer transition-colors"
                       onClick={() => navigate(`/tickets/${t._id}`)}>
@@ -215,10 +232,7 @@ export default function AgentDashboard() {
                   <TrendingUp className="h-3 w-3 text-[#34a853]" /> My Resolution Trend
                 </h3>
                 <ResponsiveContainer width="100%" height={100}>
-                  <AreaChart data={Array.from({ length: 7 }, (_, i) => ({
-                    day: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][i],
-                    resolved: Math.round(Math.random() * 5 + 1),
-                  }))}>
+                  <AreaChart data={weekResolved}>
                     <defs><linearGradient id="agentGrad" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#a855f7" stopOpacity={0.2} />
                       <stop offset="95%" stopColor="#a855f7" stopOpacity={0.02} />
@@ -326,9 +340,10 @@ export default function AgentDashboard() {
             <Card className="border-[#e8eaed] p-3.5">
               <h3 className="text-[11px] font-semibold text-[#1a1a2e] mb-2">Recent Activity</h3>
               <div className="space-y-1.5 text-[9px] text-[#5f6368]">
-                <p>Resolved <strong>#{Math.floor(Math.random() * 900) + 100}</strong> — 2m ago</p>
-                <p>Updated <strong>#{Math.floor(Math.random() * 900) + 100}</strong> — 15m ago</p>
-                <p>Assigned <strong>#{Math.floor(Math.random() * 900) + 100}</strong> — 1h ago</p>
+                {recentActivity.map((r) => (
+                  <p key={r._id}>Resolved <strong>#{r.ticketNumber.replace("SVC-", "")}</strong> — {timeAgo(r.resolvedAt)} ago</p>
+                ))}
+                {recentActivity.length === 0 && <p>No recent activity</p>}
               </div>
             </Card>
           </div>

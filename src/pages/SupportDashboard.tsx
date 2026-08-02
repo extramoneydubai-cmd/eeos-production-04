@@ -29,11 +29,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { supportEngine, TICKET_TYPES, TICKET_STATUSES, TICKET_PRIORITIES, type Ticket } from "@/platform/support/SupportEngine";
-import { slaEngine } from "@/platform/support/SLAEngine";
-import { escalationEngine } from "@/platform/support/EscalationEngine";
-import { knowledgeBaseEngine } from "@/platform/support/KnowledgeBaseEngine";
-import { calculateMetrics } from "@/platform/support/SupportMetrics";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { TICKET_TYPES, TICKET_STATUSES, TICKET_PRIORITIES } from "@/platform/support/SupportEngine";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, Area, AreaChart,
@@ -60,12 +58,16 @@ function timeAgo(ts: number): string {
 export default function SupportDashboard() {
   const navigate = useNavigate();
 
-  // ─── Data ──────────────────────────────────────────────────
-  const tickets = supportEngine.listTickets();
-  const metrics = calculateMetrics();
-  const slaStats = supportEngine.getSLAStats();
-  const escalationStats = supportEngine.getEscalationStats();
-  const kbStats = knowledgeBaseEngine.getStats();
+  // ─── Data (Convex SupportRuntime) ─────────────────────────
+  const dashboard = useQuery(api.supportEngine.getSupportDashboard, {}) as any;
+  const tickets = dashboard?.tickets ?? [];
+  const metrics = dashboard?.metrics ?? {
+    overview: { avgFirstReponseMinutes: 0, avgResolutionHours: 0, avgCsat: null, reopenedRate: 0 },
+    agentWorkloads: [],
+  };
+  const slaStats = dashboard?.slaStats ?? { complianceRate: 100, withinSLA: 0, breached: 0 };
+  const escalationStats = dashboard?.escalationStats ?? { escalated: 0, escalationRate: "0%" };
+  const kbStats = dashboard?.kbStats ?? { totalArticles: 0, published: 0, totalViews: 0 };
 
   const openTickets = useMemo(() =>
     tickets.filter((t) => ["new", "open", "in_progress", "pending"].includes(t.status)),
