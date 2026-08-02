@@ -22,6 +22,15 @@ interface LocalUser {
   role: string;
   isDisabled: boolean;
   token: string;
+  id?: string;
+  image?: string;
+  designation?: string;
+  designationId?: string;
+  departmentId?: string;
+  companyId?: string;
+  branchId?: string;
+  verticalId?: string;
+  teamIds?: string[];
 }
 
 export function useAuth() {
