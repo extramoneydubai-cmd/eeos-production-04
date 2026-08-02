@@ -33,6 +33,8 @@ export type WorkspaceEntityType =
   | "asset"
   | "document"
   | "invoice"
+  | "schedule"
+  | "schedulingResource"
   | "custom";
 
 // ─── Tab Plugin System ──────────────────────────────────────────
