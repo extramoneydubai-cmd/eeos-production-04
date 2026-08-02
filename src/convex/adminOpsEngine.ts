@@ -6,11 +6,11 @@
  * Persistence is genuinely new (schema/adminOps.ts) — no duplicate engines
  * or schemas. Mutation/query pattern mirrors adminEngine (plain Convex
  * functions; visibility is handled by the platform's AccessEngine at the
- * app-shell level).
+ * app-shell level). Actor ids (createdBy / performedBy) are optional so
+ * demo/local fallback sessions can operate without a real Convex user id.
  */
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
 
 // ─── Visitors ──────────────────────────────────────────────
 
@@ -30,7 +30,7 @@ export const registerVisitor = mutation({
     purpose: v.optional(v.string()),
     hostUserId: v.optional(v.id("users")),
     hostName: v.optional(v.string()),
-    createdBy: v.id("users"),
+    createdBy: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -53,7 +53,7 @@ export const registerVisitor = mutation({
 });
 
 export const approveVisitor = mutation({
-  args: { visitorId: v.id("visitors"), performedBy: v.id("users") },
+  args: { visitorId: v.id("visitors"), performedBy: v.optional(v.id("users")) },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.visitorId, { status: "approved", updatedAt: Date.now() });
     return args.visitorId;
@@ -61,7 +61,7 @@ export const approveVisitor = mutation({
 });
 
 export const denyVisitor = mutation({
-  args: { visitorId: v.id("visitors"), performedBy: v.id("users") },
+  args: { visitorId: v.id("visitors"), performedBy: v.optional(v.id("users")) },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.visitorId, { status: "denied", updatedAt: Date.now() });
     return args.visitorId;
@@ -69,7 +69,7 @@ export const denyVisitor = mutation({
 });
 
 export const checkInVisitor = mutation({
-  args: { visitorId: v.id("visitors"), performedBy: v.id("users") },
+  args: { visitorId: v.id("visitors"), performedBy: v.optional(v.id("users")) },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.visitorId, {
       status: "checked_in",
@@ -81,7 +81,7 @@ export const checkInVisitor = mutation({
 });
 
 export const checkOutVisitor = mutation({
-  args: { visitorId: v.id("visitors"), performedBy: v.id("users") },
+  args: { visitorId: v.id("visitors"), performedBy: v.optional(v.id("users")) },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.visitorId, {
       status: "checked_out",
@@ -105,7 +105,7 @@ export const createMeetingRoom = mutation({
     capacity: v.optional(v.number()),
     location: v.optional(v.string()),
     amenities: v.optional(v.array(v.string())),
-    createdBy: v.id("users"),
+    createdBy: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -150,7 +150,7 @@ export const createOfficeAsset = mutation({
     purchaseDate: v.optional(v.number()),
     value: v.optional(v.number()),
     notes: v.optional(v.string()),
-    createdBy: v.id("users"),
+    createdBy: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -196,7 +196,7 @@ export const createStationery = mutation({
     quantity: v.number(),
     minStock: v.optional(v.number()),
     supplier: v.optional(v.string()),
-    createdBy: v.id("users"),
+    createdBy: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -209,7 +209,7 @@ export const createStationery = mutation({
 });
 
 export const adjustStationery = mutation({
-  args: { itemId: v.id("stationery"), delta: v.number(), createdBy: v.id("users") },
+  args: { itemId: v.id("stationery"), delta: v.number(), createdBy: v.optional(v.id("users")) },
   handler: async (ctx, args) => {
     const item = await ctx.db.get(args.itemId);
     if (!item) throw new Error("Stationery item not found");
@@ -233,7 +233,7 @@ export const createHousekeepingTask = mutation({
     area: v.optional(v.string()),
     assignee: v.optional(v.string()),
     scheduledDate: v.optional(v.number()),
-    createdBy: v.id("users"),
+    createdBy: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -277,7 +277,7 @@ export const createSecurityCheck = mutation({
     checkName: v.string(),
     area: v.optional(v.string()),
     notes: v.optional(v.string()),
-    createdBy: v.id("users"),
+    createdBy: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -329,7 +329,7 @@ export const createUtilityBill = mutation({
     billNumber: v.optional(v.string()),
     amount: v.number(),
     dueDate: v.optional(v.number()),
-    createdBy: v.id("users"),
+    createdBy: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -347,7 +347,7 @@ export const createUtilityBill = mutation({
 });
 
 export const markBillPaid = mutation({
-  args: { billId: v.id("utilityBills"), performedBy: v.id("users") },
+  args: { billId: v.id("utilityBills"), performedBy: v.optional(v.id("users")) },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.billId, { status: "paid", paidDate: Date.now(), updatedAt: Date.now() });
     return args.billId;
@@ -369,7 +369,7 @@ export const createAmcContract = mutation({
     startDate: v.optional(v.number()),
     endDate: v.optional(v.number()),
     notes: v.optional(v.string()),
-    createdBy: v.id("users"),
+    createdBy: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -406,7 +406,7 @@ export const registerVendorVisit = mutation({
     purpose: v.optional(v.string()),
     hostUserId: v.optional(v.id("users")),
     hostName: v.optional(v.string()),
-    createdBy: v.id("users"),
+    createdBy: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -424,7 +424,7 @@ export const registerVendorVisit = mutation({
 });
 
 export const checkInVendorVisit = mutation({
-  args: { visitId: v.id("vendorVisits"), performedBy: v.id("users") },
+  args: { visitId: v.id("vendorVisits"), performedBy: v.optional(v.id("users")) },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.visitId, { status: "checked_in", checkIn: Date.now(), updatedAt: Date.now() });
     return args.visitId;
@@ -432,7 +432,7 @@ export const checkInVendorVisit = mutation({
 });
 
 export const checkOutVendorVisit = mutation({
-  args: { visitId: v.id("vendorVisits"), performedBy: v.id("users") },
+  args: { visitId: v.id("vendorVisits"), performedBy: v.optional(v.id("users")) },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.visitId, { status: "checked_out", checkOut: Date.now(), updatedAt: Date.now() });
     return args.visitId;
@@ -452,7 +452,7 @@ export const createIncident = mutation({
     description: v.string(),
     location: v.optional(v.string()),
     reportedBy: v.optional(v.id("users")),
-    createdBy: v.id("users"),
+    createdBy: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
