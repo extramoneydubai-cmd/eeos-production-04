@@ -11,9 +11,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useQuery, useConvexAuth } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useAuthActions } from "@convex-dev/auth/react";
+import { useAuth } from "@/hooks/use-auth";
 import {
   ChevronDown,
   LogOut,
@@ -63,8 +63,7 @@ function getInitials(name: string): string {
 
 export default function UserSwitcher() {
   const navigate = useNavigate();
-  const { signOut } = useAuthActions();
-  const { isAuthenticated } = useConvexAuth();
+  const { isAuthenticated, logout } = useAuth();
   const currentProfile = useQuery(api.demo.queries.getCurrentDemoProfile);
   const allProfiles = useQuery(api.demo.queries.getAllProfiles);
   const [open, setOpen] = useState(false);
@@ -82,10 +81,10 @@ export default function UserSwitcher() {
     navigate("/auth");
   };
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     setOpen(false);
-    await signOut();
-    navigate("/auth");
+    logout();
+    navigate("/login");
   };
 
   return (
