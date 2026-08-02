@@ -1,6 +1,5 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { authTables } from "@convex-dev/auth/server";
 
 import { sharedTables } from "./schema/shared";
 
@@ -54,7 +53,6 @@ const extendedUsersTable = defineTable(v.any())
 const extendedSessionsTable = defineTable(v.any()).index("token", ["token"]);
 
 const schema = defineSchema({
-    ...authTables,
     ...academicTables,
     ...communicationTables,
     ...crmTables,
