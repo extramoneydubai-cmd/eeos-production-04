@@ -68,15 +68,19 @@ export const runEnterpriseSimulation = mutation({
     const companyId = await ctx.db.insert("orgCompanies", {
       name: "Company A",
       code: "COMPA",
+      color: "#1a73e8",
+      icon: "Building2",
+      legalName: "Company A Private Limited",
       registrationNumber: "CIN-U12345HR2026PTC100001",
+      taxNumber: "06AABCU9603R1Z1",
+      email: "info@companya.com",
+      phone: "+91-124-4567890",
+      website: "https://companya.com",
       address: "123 Business Park, Sector 14",
       city: "Gurugram",
       state: "Haryana",
       country: "India",
-      pincode: "122001",
-      email: "info@companya.com",
-      phone: "+91-124-4567890",
-      gstNumber: "06AABCU9603R1Z1",
+      displayOrder: 1,
       isActive: true,
       createdAt: now,
       updatedAt: now,
@@ -86,7 +90,7 @@ export const runEnterpriseSimulation = mutation({
     const simpleCompanyId = await ctx.db.insert("companies", {
       name: "Company A",
       code: "COMPA",
-      isActive: true,
+      status: "active",
       createdAt: now,
       updatedAt: now,
     });
@@ -104,7 +108,6 @@ export const runEnterpriseSimulation = mutation({
       const bid = await ctx.db.insert("branches", {
         name,
         code: name.slice(0, 4).toUpperCase(),
-        companyId: simpleCompanyId as any,
         isActive: true,
         createdAt: now,
         updatedAt: now,
@@ -116,10 +119,12 @@ export const runEnterpriseSimulation = mutation({
       const obid = await ctx.db.insert("orgBranches", {
         name,
         code: name.slice(0, 4).toUpperCase(),
-        companyId: companyId as any,
+        color: randomPick(COLORS),
+        icon: "Building2",
         city: name.split(" ")[0],
         state: "Various",
         country: "India",
+        displayOrder: branchIds.length,
         isActive: true,
         createdAt: now,
         updatedAt: now,
@@ -132,16 +137,34 @@ export const runEnterpriseSimulation = mutation({
     // ────────────────────────────────────────────────────────────
     const verticals = ["Engineering", "Management", "Medical", "Commerce"];
     const verticalIds: string[] = [];
+    const subVerticalIds: string[] = [];
     for (const name of verticals) {
       const vid = await ctx.db.insert("academicVerticals", {
         name,
         code: name.slice(0, 4).toUpperCase(),
+        color: randomPick(COLORS),
+        icon: "GraduationCap",
+        educationCategory: "degree",
         description: `${name} vertical`,
+        displayOrder: verticalIds.length + 1,
         isActive: true,
         createdAt: now,
         updatedAt: now,
       });
       verticalIds.push(vid);
+      const svid = await ctx.db.insert("academicSubVerticals", {
+        verticalId: vid as any,
+        name: `${name} UG`,
+        code: `${name.slice(0, 4).toUpperCase()}UG`,
+        color: randomPick(COLORS),
+        icon: "BookOpen",
+        description: `${name} undergraduate programs`,
+        displayOrder: 1,
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+      subVerticalIds.push(svid);
     }
 
     const programNames = [
@@ -163,9 +186,14 @@ export const runEnterpriseSimulation = mutation({
       const pid = await ctx.db.insert("academicPrograms", {
         name: p.n,
         code: p.n.slice(0, 4).toUpperCase().replace(/\s/g, ""),
-        verticalId: verticalIds[p.v] as any,
+        subVerticalId: subVerticalIds[p.v] as any,
+        programType: "degree",
         duration: randomPick([3, 4, 5]),
         durationUnit: "years",
+        deliveryMode: "full_time",
+        displayOrder: programIds.length + 1,
+        color: randomPick(COLORS),
+        icon: "BookOpen",
         isActive: true,
         createdAt: now,
         updatedAt: now,
@@ -173,16 +201,48 @@ export const runEnterpriseSimulation = mutation({
       programIds.push(pid);
     }
 
+    const batchTypeId = await ctx.db.insert("academicBatchTypes", {
+      name: "Regular",
+      code: "REG",
+      deliveryMode: "full_time",
+      timingCategory: "day",
+      displayOrder: 1,
+      color: randomPick(COLORS),
+      icon: "Users",
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+    const academicSessionId = await ctx.db.insert("academicSessions", {
+      name: "Academic Year 2026",
+      code: "AY2026",
+      academicYear: "2026",
+      color: randomPick(COLORS),
+      icon: "Calendar",
+      startDate: now,
+      endDate: now + 365 * 86400000,
+      sequence: 1,
+      isCurrent: true,
+      active: true,
+      createdAt: now,
+      updatedAt: now,
+    });
     const batchIds: string[] = [];
+    let bSeq = 0;
     for (const pid of programIds) {
       for (const yr of [2024, 2025, 2026]) {
         const bid = await ctx.db.insert("academicBatches", {
           name: `Batch ${yr}`,
           code: `B${yr}`,
           programId: pid as any,
-          startYear: yr,
-          endYear: yr + (yr === 2024 ? 4 : 3),
-          isActive: true,
+          batchTypeId: batchTypeId as any,
+          academicSessionId: academicSessionId as any,
+          startDate: now - (2026 - yr) * 365 * 86400000,
+          endDate: now + (yr === 2024 ? 4 : 3) * 365 * 86400000,
+          sequence: ++bSeq,
+          color: randomPick(COLORS),
+          icon: "Users",
+          active: true,
           createdAt: now,
           updatedAt: now,
         });
@@ -233,20 +293,21 @@ export const runEnterpriseSimulation = mutation({
       });
       employeeUserIds.push(uid);
 
-      const eid = await ctx.db.insert("employeeMaster", {
-        userId: uid as any,
+      const personId = await ctx.db.insert("personMaster", {
         firstName: fn,
         lastName: ln,
-        email,
-        phone: `+91-98765${String(10000 + i).slice(1)}`,
-        employeeCode: `EMP-${String(i + 1).padStart(4, "0")}`,
-        department: randomPick(["Engineering", "Management", "Sales", "HR", "Finance", "Marketing", "Operations"]),
-        designation: isFaculty ? "Professor" : randomPick(["Manager", "Executive", "Associate", "Coordinator", "Analyst"]),
-        branchId: branchId as any,
-        dateOfJoining: now - randomInt(30, 730) * 86400000,
-        employmentType: "permanent",
         status: "active",
-        isFaculty,
+        createdAt: now,
+        updatedAt: now,
+      });
+      const eid = await ctx.db.insert("employeeMaster", {
+        employeeCode: `EMP-${String(i + 1).padStart(4, "0")}`,
+        personId,
+        branchId: branchId as any,
+        joiningDate: now - randomInt(30, 730) * 86400000,
+        employmentType: "permanent",
+        primaryRole: isFaculty ? "employee" : i < 80 ? "employee" : "manager",
+        status: "active",
         createdAt: now,
         updatedAt: now,
       });
@@ -259,6 +320,7 @@ export const runEnterpriseSimulation = mutation({
     // Phase 4 — Students (2,500) + Admissions
     // ────────────────────────────────────────────────────────────
     const studentIds: string[] = [];
+    const personIds: string[] = [];
     const admissionIds: string[] = [];
     const studentFirstNames = [
       "Aarav", "Vivaan", "Aditya", "Vihaan", "Arjun", "Sai", "Rohit", "Kunal",
@@ -278,17 +340,29 @@ export const runEnterpriseSimulation = mutation({
       const branchId = randomPick(branchIds);
       const batchId = randomPick(batchIds);
 
-      const sid = await ctx.db.insert("studentMaster", {
+      const personId = await ctx.db.insert("personMaster", {
         firstName: fn,
         lastName: ln,
-        email,
-        phone: `+91-98765${String(50000 + i).slice(1)}`,
-        studentCode: `STU-${String(i + 1).padStart(5, "0")}`,
-        dateOfBirth: now - randomInt(18, 25) * 365 * 86400000,
         gender: randomPick(["male", "female"]),
+        dateOfBirth: now - randomInt(18, 25) * 365 * 86400000,
+        status: "active",
+        createdAt: now,
+        updatedAt: now,
+      });
+      personIds.push(personId);
+
+      const sid = await ctx.db.insert("studentMaster", {
+        studentCode: `STU-${String(i + 1).padStart(5, "0")}`,
+        personId,
+        admissionNumber: `ADM-${String(i + 1).padStart(5, "0")}`,
+        firstName: fn,
+        lastName: ln,
+        phone: `+91-98765${String(50000 + i).slice(1)}`,
         branchId: branchId as any,
         batchId: batchId as any,
-        enrollmentStatus: "active",
+        enrollmentDate: now,
+        currentStatus: "active",
+        createdBy: systemUserId,
         createdAt: now,
         updatedAt: now,
       });
@@ -315,19 +389,40 @@ export const runEnterpriseSimulation = mutation({
     let inv = 0, tx = 0, rc = 0, ref = 0;
 
     for (let i = 0; i < 2500 && i < studentIds.length; i++) {
+      let feeAccountId: any = null;
       if (i < 600) {
         try {
+          const invAmount = randomPick([50000, 75000, 100000, 150000, 200000]);
+          const invStatus = randomPick(["paid", "pending", "overdue", "partial"]);
+          const paidAmount = invStatus === "paid" ? invAmount : invStatus === "partial" ? Math.round(invAmount / 2) : 0;
+          feeAccountId = await ctx.db.insert("studentFeeAccounts", {
+            studentId: studentIds[i] as any,
+            totalFee: invAmount,
+            totalPaid: paidAmount,
+            outstandingBalance: invAmount - paidAmount,
+            totalDiscount: 0,
+            totalScholarship: 0,
+            totalWaiver: 0,
+            installmentsCount: 2,
+            installmentFrequency: "half_yearly",
+            status: "active",
+            createdBy: usersId,
+          });
           await ctx.db.insert("feeInvoices", {
             studentId: studentIds[i] as any,
+            feeAccountId,
             invoiceNumber: `INV-${String(inv + 1).padStart(6, "0")}`,
-            amount: randomPick([50000, 75000, 100000, 150000, 200000]),
-            dueDate: now + randomInt(15, 90) * 86400000,
-            status: randomPick(["paid", "pending", "overdue", "partial"]),
             invoiceDate: now - randomInt(1, 180) * 86400000,
-            description: `Fee invoice ${inv + 1}`,
+            dueDate: now + randomInt(15, 90) * 86400000,
+            lineItems: JSON.stringify([{ description: "Tuition Fee", amount: invAmount }]),
+            subtotal: invAmount,
+            discountAmount: 0,
+            taxAmount: 0,
+            totalAmount: invAmount,
+            paidAmount,
+            balanceDue: invAmount - paidAmount,
+            status: invStatus,
             createdBy: usersId,
-            createdAt: now - randomInt(1, 180) * 86400000,
-            updatedAt: now,
           });
           inv++;
         } catch { /* skip */ }
@@ -337,14 +432,13 @@ export const runEnterpriseSimulation = mutation({
         try {
           const txId = await ctx.db.insert("paymentTransactions", {
             studentId: studentIds[i] as any,
+            feeAccountId: feeAccountId as any,
             transactionNumber: `TXN-${String(tx + 1).padStart(6, "0")}`,
             amount: randomPick([25000, 50000, 75000, 100000]),
-            paymentMode: randomPick(["cash", "online", "cheque", "bank_transfer"]),
+            paymentMethod: randomPick(["cash", "online", "cheque", "bank_transfer"]),
+            paymentDate: now - randomInt(1, 90) * 86400000,
             status: "completed",
-            transactionDate: now - randomInt(1, 90) * 86400000,
-            description: `Payment ${tx + 1}`,
             createdBy: usersId,
-            createdAt: now,
           });
           tx++;
 
@@ -370,11 +464,11 @@ export const runEnterpriseSimulation = mutation({
         try {
           await ctx.db.insert("refundRequests", {
             studentId: studentIds[i] as any,
-            refundNumber: `REF-${String(ref + 1).padStart(5, "0")}`,
             amount: randomPick([10000, 25000, 50000, 75000]),
             reason: randomPick(["Course withdrawal", "Duplicate payment", "Scholarship adjustment", "Fee reduction"]),
+            reasonCategory: "withdrawal",
             status: randomPick(["approved", "pending", "processing", "completed"]),
-            requestedBy: usersId,
+            createdBy: usersId,
             approvedBy: ref % 3 === 0 ? usersId : undefined,
             createdAt: now - randomInt(1, 60) * 86400000,
             updatedAt: now,
@@ -388,15 +482,25 @@ export const runEnterpriseSimulation = mutation({
     // ────────────────────────────────────────────────────────────
     // Phase 6 — Academic Operations: Exams, Results, Certificates
     // ────────────────────────────────────────────────────────────
+    const examTemplateId = await ctx.db.insert("examTemplates", {
+      name: "Semester Final",
+      code: "SF",
+      examType: "final_exam",
+      maxMarks: 100,
+      passPercentage: 40,
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    });
     const esids: string[] = [];
     for (let i = 0; i < 10; i++) {
       try {
         const eid = await ctx.db.insert("examSessions", {
-          title: `Semester ${(i % 6) + 1} Final Exam`,
-          examDate: now - randomInt(30, 180) * 86400000,
-          duration: 180,
-          maxMarks: 100,
-          orgBranchId: orgBranchIds[i % orgBranchIds.length] as any,
+          templateId: examTemplateId as any,
+          academicSessionId: academicSessionId as any,
+          branchId: orgBranchIds[i % orgBranchIds.length] as any,
+          name: `Semester ${(i % 6) + 1} Final Exam`,
+          startDate: now - randomInt(30, 180) * 86400000,
           status: "completed",
           createdAt: now,
           updatedAt: now,
@@ -410,14 +514,19 @@ export const runEnterpriseSimulation = mutation({
       for (let j = 0; j < 100 && j < studentIds.length; j++) {
         try {
           await ctx.db.insert("examResults", {
-            examId: eid as any,
-            studentId: studentIds[j] as any,
+            examSessionId: eid as any,
+            studentId: personIds[j] as any,
             marksObtained: randomInt(30, 100),
             totalMarks: 100,
+            percentage: randomInt(30, 100),
             grade: randomPick(["A+", "A", "B+", "B", "C+", "C", "D", "F"]),
-            status: "published",
-            evaluatedBy: usersId,
+            division: randomPick(["distinction", "first", "second", "third", "fail"]),
+            passFail: "pass",
+            calculatedAt: now,
+            publishedAt: now,
+            publishedBy: usersId,
             createdAt: now,
+            updatedAt: now,
           });
           rs++;
         } catch { /* skip */ }
@@ -429,13 +538,15 @@ export const runEnterpriseSimulation = mutation({
     for (let i = 0; i < 100 && i < studentIds.length; i++) {
       try {
         await ctx.db.insert("examCertificates", {
-          studentId: studentIds[i] as any,
+          studentId: personIds[i] as any,
+          examSessionId: esids.length > 0 ? (esids[0] as any) : undefined,
           certificateNumber: `CERT-${String(cert + 1).padStart(6, "0")}`,
-          certificateType: randomPick(["completion", "merit", "participation", "achievement"]),
-          issueDate: now - randomInt(1, 90) * 86400000,
-          status: "issued",
+          certificateType: randomPick(["merit_certificate", "participation", "rank_certificate", "passing_certificate"]),
+          title: "Certificate of Participation",
+          issuedDate: now - randomInt(1, 90) * 86400000,
           issuedBy: usersId,
           createdAt: now,
+          updatedAt: now,
         });
         cert++;
       } catch { /* skip */ }
@@ -449,11 +560,13 @@ export const runEnterpriseSimulation = mutation({
     for (let i = 0; i < 160 && i < studentIds.length; i++) {
       try {
         await ctx.db.insert("ticketMaster", {
+          ticketNumber: `SVC-${String(tix + 1).padStart(4, "0")}`,
           title: randomPick(["Laptop issue", "Fee query", "Attendance correction", "Password reset", "Library fine", "Exam schedule", "Hostel complaint", "Transport issue"]),
           description: `Support ticket ${i + 1}`,
+          type: "support",
           category: randomPick(["hardware", "software", "finance", "academic", "facility"]),
           priority: randomPick(["low", "medium", "high", "critical"]),
-          status: randomPick(["open", "in_progress", "resolved", "closed"]),
+          status: randomPick(["new", "open", "in_progress", "resolved", "closed"]),
           requesterId: employeeUserIds[i % employeeUserIds.length] as any,
           assignedTo: employeeUserIds[(i + 1) % employeeUserIds.length] as any,
           branchId: branchIds[i % branchIds.length] as any,
@@ -501,12 +614,13 @@ export const runEnterpriseSimulation = mutation({
     for (const vname of vendorNames) {
       try {
         const vid = await ctx.db.insert("vendorMaster", {
-          name: vname,
-          code: vname.slice(0, 4).toUpperCase(),
+          vendorName: vname,
+          vendorCode: vname.slice(0, 4).toUpperCase(),
           email: `contact@${vname.toLowerCase().replace(/\s/g, "")}.com`,
           phone: `+91-98100${String(vids.length + 1).padStart(5, "0")}`,
           contactPerson: randomPick(firstNames) + " " + randomPick(lastNames),
           status: "active",
+          createdBy: usersId,
           createdAt: now,
           updatedAt: now,
         });
@@ -522,10 +636,11 @@ export const runEnterpriseSimulation = mutation({
           poNumber: `PO-${String(po + 1).padStart(5, "0")}`,
           orderDate: now - randomInt(1, 90) * 86400000,
           expectedDelivery: now + randomInt(1, 30) * 86400000,
+          subtotal: randomPick([25000, 50000, 100000, 250000]),
+          taxAmount: 0,
           totalAmount: randomPick([25000, 50000, 100000, 250000]),
-          status: randomPick(["draft", "approved", "ordered", "received", "closed"]),
+          status: randomPick(["draft", "approved", "received", "cancelled"]),
           branchId: branchIds[i % branchIds.length] as any,
-          description: `Purchase order ${po + 1}`,
           createdBy: usersId,
           createdAt: now,
           updatedAt: now,
@@ -534,19 +649,33 @@ export const runEnterpriseSimulation = mutation({
       } catch { /* skip */ }
     }
 
+    const warehouseId = await ctx.db.insert("warehouses", {
+      name: "Central Warehouse",
+      code: "WH1",
+      branchId: branchIds[0] as any,
+      location: "Gurugram",
+      type: "warehouse",
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    });
     let it = 0;
     for (const item of ["Projector", "Whiteboard", "Desk", "Chair", "Computer", "Printer", "Scanner", "Server", "Router", "AC Unit", "Fan", "Water Cooler"]) {
       try {
         await ctx.db.insert("inventoryItems", {
           name: item,
           sku: `SKU-${item.slice(0, 4).toUpperCase()}`,
-          category: randomPick(["electronics", "furniture", "supplies", "equipment"]),
-          quantity: randomInt(10, 100),
-          minimumStock: 10,
           unit: "pcs",
           unitPrice: randomPick([500, 1000, 5000, 10000, 50000]),
+          minStock: 10,
+          maxStock: 100,
+          reorderLevel: 10,
+          currentStock: randomInt(10, 100),
+          quantity: randomInt(10, 100),
           branchId: branchIds[0] as any,
-          status: "active",
+          warehouseId,
+          isActive: true,
+          createdBy: usersId,
           createdAt: now,
           updatedAt: now,
         });
