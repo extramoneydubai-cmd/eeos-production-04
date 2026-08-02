@@ -144,7 +144,7 @@ export const launchCampaign = mutation({
     // Queue communications
     const channel = (template as any).channel;
     const batchSize = campaign.batchSize || 100;
-    const batches = [];
+    const batches: Array<Array<{ targetId: string; address: string; name: string }>> = [];
     for (let i = 0; i < recipients.length; i += batchSize) {
       batches.push(recipients.slice(i, i + batchSize));
     }
