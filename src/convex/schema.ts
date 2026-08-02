@@ -35,6 +35,8 @@ import { analyticsTables } from "./schema/analytics";
 import { calendarTables } from "./schema/calendar";
 import { schedulingTables } from "./schema/scheduling";
 import { supportTables } from "./schema/support";
+import { technologyTables } from "./schema/technology";
+import { adminOpsTables } from "./schema/adminOps";
 import { accessControlTables } from "./schema/accessControl";
 import { dynamicMenusTables } from "./schema/dynamicMenus";
 import { metadataTables } from "./schema/metadata";
@@ -76,6 +78,8 @@ const schema = defineSchema({
     ...dynamicMenusTables,
     ...metadataTables,
     ...supportTables,
+    ...technologyTables,
+    ...adminOpsTables,
     ...enterpriseTables,
     // Override authTables tables with our extended definitions
     users: extendedUsersTable,
