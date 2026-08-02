@@ -157,11 +157,11 @@ function collectMetadata(): ErrorMetadata {
 
     // Try to read Convex deployment URL
     if (typeof import.meta !== "undefined") {
-      meta.convexDeployment = (import.meta as Record<string, unknown>).env?.VITE_CONVEX_URL as string | undefined;
+      meta.convexDeployment = (import.meta as any).env?.VITE_CONVEX_URL as string | undefined;
     }
 
     // Memory info (Chrome-only)
-    const perf = (performance as Record<string, unknown>).memory as Record<string, number> | undefined;
+    const perf = (performance as any).memory as Record<string, number> | undefined;
     if (perf) {
       meta.memory = `${Math.round(perf.usedJSHeapSize / 1024 / 1024)}MB / ${Math.round(perf.totalJSHeapSize / 1024 / 1024)}MB`;
     }

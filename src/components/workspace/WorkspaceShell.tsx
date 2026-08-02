@@ -46,6 +46,7 @@ export function WorkspaceShell({
   entity,
   isLoading = false,
   error = null,
+  header,
   title,
   subtitle,
   badge,
@@ -142,6 +143,9 @@ export function WorkspaceShell({
       {/* ── Sticky Header ── */}
       <div className="sticky top-0 z-20 bg-background border-b border-border/60 -mx-6 px-6 pt-2 pb-3 space-y-2">
         <div className="flex items-start justify-between gap-4">
+          {header ? (
+            <div className="min-w-0 flex-1">{header}</div>
+          ) : (
           <div className="flex items-center gap-3 min-w-0">
             {/* Avatar */}
             {avatar || (
@@ -206,6 +210,7 @@ export function WorkspaceShell({
               )}
             </div>
           </div>
+          )}
 
       {/* ── Smart Action Bar (entity mode) ── */}
           {!isContainerMode && actions && actions.length > 0 && (

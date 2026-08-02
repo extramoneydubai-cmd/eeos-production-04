@@ -259,7 +259,7 @@ export const markWithGps = mutation({
     if (!userId) throw new Error("Not authenticated");
 
     const now = Date.now();
-    let geofence = null;
+    let geofence: any = null;
     if (args.branchId) {
       geofence = await ctx.db.query("geofences")
         .withIndex("by_branch", (q: any) => q.eq("branchId", args.branchId))

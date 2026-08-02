@@ -558,3 +558,5 @@ export default function ScheduleWidget({
     </Card>
   );
 }
+
+export { ScheduleWidget };

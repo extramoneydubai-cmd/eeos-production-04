@@ -380,10 +380,10 @@ export default function SchedulerDashboard() {
 
       {/* ── Cross-Module Schedule Widgets ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <ScheduleWidget title="Meeting Schedule" filterTypes={["meeting", "interview", "board_meeting", "vendor_meeting"]} showViewAll path={undefined} />
-        <ScheduleWidget title="Academic Schedule" filterTypes={["lecture", "exam", "training", "counseling"]} showViewAll path={undefined} />
-        <ScheduleWidget title="Operations Schedule" filterTypes={["maintenance", "holiday", "site_visit"]} showViewAll path={undefined} />
-        <ScheduleWidget title="HR Schedule" filterTypes={["interview", "training", "counseling"]} showViewAll path={undefined} />
+        <ScheduleWidget title="Meeting Schedule" filterTypes={["meeting", "interview", "board_meeting", "vendor_meeting"]} showViewAll />
+        <ScheduleWidget title="Academic Schedule" filterTypes={["lecture", "exam", "training", "counseling"]} showViewAll />
+        <ScheduleWidget title="Operations Schedule" filterTypes={["maintenance", "holiday", "site_visit"]} showViewAll />
+        <ScheduleWidget title="HR Schedule" filterTypes={["interview", "training", "counseling"]} showViewAll />
       </div>
     </div>
   );

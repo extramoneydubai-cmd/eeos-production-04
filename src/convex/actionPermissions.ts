@@ -257,7 +257,7 @@ export const simulateUserPermissions = query({
     }
 
     // Check record-level scope
-    let recordScope = null;
+    let recordScope: any = null;
     if (args.recordId) {
       recordScope = await ctx.db
         .query("recordPolicies")

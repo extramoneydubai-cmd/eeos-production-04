@@ -9,6 +9,7 @@
 export type {
   WorkspaceEntityType,
   WorkspaceTabDefinition,
+  WorkspaceTabConfig,
   WorkspaceTabProps,
   WorkspaceAction,
   WorkspaceHeaderField,
@@ -19,6 +20,7 @@ export type {
 
 // ─── Shell ─────────────────────────────────────────────────────
 export { WorkspaceShell } from "./WorkspaceShell";
+export { WorkspaceHeader } from "./WorkspaceHeader";
 export { SmartActionBar } from "./SmartActionBar";
 export { WorkspaceQR } from "./WorkspaceQR";
 

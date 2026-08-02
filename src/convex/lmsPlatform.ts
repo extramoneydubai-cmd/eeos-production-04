@@ -140,7 +140,7 @@ export const importQuestionsFromBank = mutation({
       orderIndex = Math.max(...existing.map((e: any) => e.orderIndex)) + 1;
     }
 
-    const imported = [];
+    const imported: any[] = [];
     for (const qid of args.questionIds) {
       const source = await ctx.db.get(qid);
       if (!source) continue;

@@ -377,3 +377,5 @@ export default function SchedulingPlanner({
     </div>
   );
 }
+
+export { SchedulingPlanner };

@@ -216,7 +216,7 @@ export const processQuery = query({
 
     // ── PREDICT ──
     if (intent === "predict") {
-      const predictions = [];
+      const predictions: { type: string; description: string; factors: string[]; confidence: string }[] = [];
       if (lower.includes("fee") || lower.includes("default") || lower.includes("payment")) {
         predictions.push({
           type: "Fee Default Prediction",
@@ -253,7 +253,7 @@ export const processQuery = query({
 
     // ── HELP ──
     if (intent === "help") {
-      const helpTopics = [];
+      const helpTopics: any[] = [];
       if (entities.length > 0) {
         for (const e of entities) {
           helpTopics.push({
@@ -285,7 +285,7 @@ export const processQuery = query({
 
     // ── RECOMMEND ──
     if (intent === "recommend") {
-      const recommendations = [];
+      const recommendations: { type: string; description: string; approach: string }[] = [];
       if (lower.includes("faculty") || lower.includes("schedule") || lower.includes("timetable")) {
         recommendations.push({
           type: "Faculty Schedule Optimization",
@@ -319,7 +319,7 @@ export const processQuery = query({
 
     // ── GENERATE / DOCUMENT ──
     if (intent === "generate" || intent === "document") {
-      const docTypes = [];
+      const docTypes: { type: string; description: string; templateEntity: string }[] = [];
       if (lower.includes("certificate") || lower.includes("bonafide")) {
         docTypes.push({ type: "Bonafide Certificate", description: "Generate bonafide certificate for a student", templateEntity: "student" });
       }

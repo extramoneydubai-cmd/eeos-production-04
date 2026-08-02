@@ -60,6 +60,9 @@ export interface WorkspaceTabDefinition {
   showOnLoading?: boolean;
 }
 
+/** Backwards-compatible alias for the workspace tab definition type. */
+export type WorkspaceTabConfig = WorkspaceTabDefinition;
+
 /** Props passed to every workspace tab component */
 export interface WorkspaceTabProps {
   /** The entity type (e.g. "lead", "student") */
@@ -166,6 +169,8 @@ export interface WorkspaceShellProps {
   isLoading?: boolean;
   /** Error state */
   error?: string | null;
+  /** Custom header node (legacy pages) — rendered instead of the default title block */
+  header?: ReactNode;
   /** Title shown in the header (optional in container mode) */
   title?: string;
   /** Subtitle shown below the title */

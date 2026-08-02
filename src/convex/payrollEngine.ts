@@ -59,7 +59,7 @@ export const processPayRun = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
-    const payslips = [];
+    const payslips: any[] = [];
     for (const empId of args.employeeIds) {
       const salaryStructure = await ctx.db.query("salaryStructures")
         .withIndex("employeeId", (q: any) => q.eq("employeeId", empId))

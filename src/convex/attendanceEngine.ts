@@ -81,7 +81,7 @@ export const bulkMarkAttendance = mutation({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
-    const ids = [];
+    const ids: any[] = [];
     for (const record of args.records) {
       const existing = await ctx.db.query("attendanceRecords")
         .withIndex("entityType_entityId_date", (q: any) =>
