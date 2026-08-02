@@ -40,7 +40,7 @@ export const adminOpsTables = {
     ),
     checkIn: v.optional(v.number()),
     checkOut: v.optional(v.number()),
-    createdBy: v.id("users"),
+    createdBy: v.optional(v.id("users")),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -59,7 +59,7 @@ export const adminOpsTables = {
       v.literal("booked"),
       v.literal("maintenance")
     ),
-    createdBy: v.id("users"),
+    createdBy: v.optional(v.id("users")),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -80,7 +80,7 @@ export const adminOpsTables = {
     purchaseDate: v.optional(v.number()),
     value: v.optional(v.number()),
     notes: v.optional(v.string()),
-    createdBy: v.id("users"),
+    createdBy: v.optional(v.id("users")),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -94,7 +94,7 @@ export const adminOpsTables = {
     quantity: v.number(),
     minStock: v.optional(v.number()),
     supplier: v.optional(v.string()),
-    createdBy: v.id("users"),
+    createdBy: v.optional(v.id("users")),
     createdAt: v.number(),
     updatedAt: v.number(),
   }),
@@ -110,7 +110,7 @@ export const adminOpsTables = {
     ),
     scheduledDate: v.optional(v.number()),
     completedAt: v.optional(v.number()),
-    createdBy: v.id("users"),
+    createdBy: v.optional(v.id("users")),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -127,7 +127,7 @@ export const adminOpsTables = {
     performedBy: v.optional(v.string()),
     checkedAt: v.optional(v.number()),
     notes: v.optional(v.string()),
-    createdBy: v.id("users"),
+    createdBy: v.optional(v.id("users")),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -150,7 +150,7 @@ export const adminOpsTables = {
       v.literal("paid"),
       v.literal("overdue")
     ),
-    createdBy: v.id("users"),
+    createdBy: v.optional(v.id("users")),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -169,7 +169,7 @@ export const adminOpsTables = {
       v.literal("expired")
     ),
     notes: v.optional(v.string()),
-    createdBy: v.id("users"),
+    createdBy: v.optional(v.id("users")),
     createdAt: v.number(),
     updatedAt: v.number(),
   }),
@@ -187,7 +187,7 @@ export const adminOpsTables = {
       v.literal("checked_out"),
       v.literal("cancelled")
     ),
-    createdBy: v.id("users"),
+    createdBy: v.optional(v.id("users")),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -212,7 +212,7 @@ export const adminOpsTables = {
     ),
     resolution: v.optional(v.string()),
     resolvedAt: v.optional(v.number()),
-    createdBy: v.id("users"),
+    createdBy: v.optional(v.id("users")),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
