@@ -301,7 +301,7 @@ export function extractIdFromResult(result: MutationResult): string | undefined 
     const obj = result as Record<string, unknown>;
     return (obj._id || obj.id || obj.leadId || obj.studentId || obj.invoiceId ||
             obj.taskId || obj.userId || obj.employeeId || obj.documentId ||
-            obj.instanceId || obj.eventId || obj.workflowId) as string | undefined;
+            obj.instanceId || obj.eventId || obj.workflowId || obj.campaignId) as string | undefined;
   }
   return undefined;
 }
