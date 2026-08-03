@@ -14,6 +14,28 @@
 
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
+import { Events } from "./eventRegistry";
+
+// ─── Enterprise Pipeline Config ─────────────────────────────────
+// Every ticket mutation routes through withScopeAndEvents() so tickets
+// emit audit, timeline, event-bus, notification-matrix, workflow,
+// automation, search-index and dashboard-refresh signals.
+//
+// getUserId returns undefined intentionally: ticket mutations are called
+// by support agents and portals that pass performerName strings rather
+// than a reliable Convex user id, so scope enforcement stays a no-op
+// here while the event pipeline is fully wired.
+const ticketPipeline = {
+  module: "support",
+  getUserId: () => undefined,
+  getEntityCompanyId: () => undefined,
+  getEntityBranchId: () => undefined,
+  triggerWorkflow: true,
+  triggerAutomation: true,
+  registerSearch: true,
+  signalDashboard: true,
+} as const;
 
 // ─── Constants ─────────────────────────────────────────────────
 
@@ -246,7 +268,16 @@ export const createTicket = mutation({
     assignedTo: v.optional(v.id("users")),
     performerName: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...ticketPipeline,
+      operation: "create",
+      entity: "ticket",
+      eventType: Events.SUPPORT.TICKET_CREATED,
+      title: "Ticket Created",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => {
     const all = await ctx.db.query("ticketMaster").collect();
     const now = Date.now();
 
@@ -280,7 +311,8 @@ export const createTicket = mutation({
 
     await pushTimeline(ctx, ticketId, "created", "Ticket created", args.performerName);
     return ticketId;
-  },
+    }
+  ),
 });
 
 /** Update status / priority / assignee with transition bookkeeping + timeline. */
@@ -294,7 +326,16 @@ export const updateTicket = mutation({
     description: v.optional(v.string()),
     performerName: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...ticketPipeline,
+      operation: "update",
+      entity: "ticket",
+      eventType: "support.ticket.updated",
+      title: "Ticket Updated",
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
     const ticket = await ctx.db.get(args.ticketId);
     if (!ticket) throw new Error("Ticket not found");
 
@@ -346,7 +387,8 @@ export const updateTicket = mutation({
 
     await ctx.db.patch(args.ticketId, patch);
     return args.ticketId;
-  },
+    }
+  ),
 });
 
 /** Add a comment (or internal note) to a ticket. */
@@ -358,7 +400,18 @@ export const addComment = mutation({
     authorName: v.optional(v.string()),
     authorId: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...ticketPipeline,
+      operation: "create",
+      entity: "ticket_comment",
+      eventType: "support.ticket.commented",
+      title: "Comment Added",
+      notifyViaMatrix: false,
+      registerSearch: false,
+      signalDashboard: false,
+    },
+    async (ctx, args) => {
     const now = Date.now();
     await ctx.db.insert("ticketComments", {
       ticketId: args.ticketId,
@@ -373,7 +426,8 @@ export const addComment = mutation({
     });
     await pushTimeline(ctx, args.ticketId, "commented", args.isInternal ? "Internal note added" : "Comment added", args.authorName);
     return args.ticketId;
-  },
+    }
+  ),
 });
 
 /** Assign a ticket to an agent. */
@@ -383,7 +437,16 @@ export const assignTicket = mutation({
     assignedTo: v.id("users"),
     performerName: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...ticketPipeline,
+      operation: "update",
+      entity: "ticket",
+      eventType: Events.SUPPORT.TICKET_ASSIGNED,
+      title: "Ticket Assigned",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => {
     const now = Date.now();
     await ctx.db.patch(args.ticketId, { assignedTo: args.assignedTo, updatedAt: now });
     await ctx.db.insert("ticketAssignments", {
@@ -395,7 +458,8 @@ export const assignTicket = mutation({
     const user = await ctx.db.get(args.assignedTo);
     await pushTimeline(ctx, args.ticketId, "assigned", `Assigned to ${(user as any)?.name || args.assignedTo}`, args.performerName);
     return args.ticketId;
-  },
+    }
+  ),
 });
 
 /** Escalate a ticket. */
@@ -405,7 +469,16 @@ export const escalateTicket = mutation({
     reason: v.optional(v.string()),
     performerName: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...ticketPipeline,
+      operation: "update",
+      entity: "ticket",
+      eventType: Events.SUPPORT.TICKET_ESCALATED,
+      title: "Ticket Escalated",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => {
     const now = Date.now();
     await ctx.db.patch(args.ticketId, {
       isEscalated: true,
@@ -415,7 +488,8 @@ export const escalateTicket = mutation({
     });
     await pushTimeline(ctx, args.ticketId, "escalated", `Ticket escalated${args.reason ? ` — ${args.reason}` : ""}`, args.performerName);
     return args.ticketId;
-  },
+    }
+  ),
 });
 
 /** Mark a ticket resolved. */
@@ -425,7 +499,16 @@ export const resolveTicket = mutation({
     resolutionSummary: v.optional(v.string()),
     performerName: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...ticketPipeline,
+      operation: "update",
+      entity: "ticket",
+      eventType: Events.SUPPORT.TICKET_RESOLVED,
+      title: "Ticket Resolved",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => {
     const now = Date.now();
     await ctx.db.patch(args.ticketId, {
       status: "resolved",
@@ -435,7 +518,8 @@ export const resolveTicket = mutation({
     });
     await pushTimeline(ctx, args.ticketId, "resolved", "Ticket resolved", args.performerName);
     return args.ticketId;
-  },
+    }
+  ),
 });
 
 /** Reopen a resolved/closed ticket. */
@@ -444,7 +528,16 @@ export const reopenTicket = mutation({
     ticketId: v.id("ticketMaster"),
     performerName: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...ticketPipeline,
+      operation: "update",
+      entity: "ticket",
+      eventType: Events.SUPPORT.TICKET_REOPENED,
+      title: "Ticket Reopened",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => {
     const ticket = await ctx.db.get(args.ticketId);
     if (!ticket) throw new Error("Ticket not found");
     const now = Date.now();
@@ -455,7 +548,8 @@ export const reopenTicket = mutation({
     });
     await pushTimeline(ctx, args.ticketId, "reopened", "Ticket reopened", args.performerName);
     return args.ticketId;
-  },
+    }
+  ),
 });
 
 /** Record customer satisfaction. */
@@ -465,7 +559,18 @@ export const rateTicket = mutation({
     rating: v.number(),
     comment: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...ticketPipeline,
+      operation: "update",
+      entity: "ticket",
+      eventType: "support.ticket.rated",
+      title: "Ticket Rated",
+      notifyViaMatrix: false,
+      registerSearch: false,
+      signalDashboard: false,
+    },
+    async (ctx, args) => {
     const now = Date.now();
     await ctx.db.patch(args.ticketId, {
       satisfactionRating: args.rating,
@@ -475,5 +580,6 @@ export const rateTicket = mutation({
     });
     await pushTimeline(ctx, args.ticketId, "rated", `Satisfaction rated ${args.rating}/5`, "System");
     return args.ticketId;
-  },
+    }
+  ),
 });
