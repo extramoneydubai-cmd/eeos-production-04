@@ -168,7 +168,7 @@ class SecurityEngineClass {
     this.initialized = true;
     this.loadDefaultPolicies();
     this.loadApiKeys();
-    errorLogger.info("SecurityEngine initialized", { source: "SecurityEngine" });
+    errorLogger.info("SecurityEngine initialized", { module: "SecurityEngine" });
   }
 
   private loadDefaultPolicies(): void {

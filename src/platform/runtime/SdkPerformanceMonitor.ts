@@ -15,7 +15,7 @@
  *  - Duplicate call detection
  */
 
-import { RuntimeSupervisor } from "./RuntimeSupervisor";
+import { RuntimeSupervisor, type HealthStatus } from "./RuntimeSupervisor";
 import { errorLog } from "@/lib/error-logger";
 
 interface SdkCallRecord {
@@ -144,7 +144,7 @@ class SdkPerformanceMonitorImpl {
     const stats = this.getStats();
     return {
       name: "SDK",
-      status: stats.failures > 10 ? "warning" : stats.failures > 50 ? "critical" : "healthy",
+      status: (stats.failures > 10 ? "warning" : stats.failures > 50 ? "critical" : "healthy") as HealthStatus,
       lastCheck: Date.now(),
       message: `${stats.totalCalls} calls, ${stats.failures} failures, ${stats.duplicateCount} duplicates`,
       details: { ...stats },

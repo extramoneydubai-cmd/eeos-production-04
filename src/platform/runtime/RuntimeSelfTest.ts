@@ -118,7 +118,7 @@ class RuntimeSelfTestImpl {
     const start = performance.now();
     try {
       // Check if key SDK globals are present
-      const sdkAvailable = typeof (window as Record<string, unknown>).__eeosSdk !== "undefined";
+      const sdkAvailable = typeof (window as unknown as Record<string, unknown>).__eeosSdk !== "undefined";
       return {
         category: "sdk",
         name: "Platform SDK",

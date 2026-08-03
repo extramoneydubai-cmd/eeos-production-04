@@ -12,7 +12,7 @@
  *  - Intervals/timeouts accumulate (>50)
  */
 
-import { RuntimeSupervisor } from "./RuntimeSupervisor";
+import { RuntimeSupervisor, type HealthStatus } from "./RuntimeSupervisor";
 import { errorLog } from "@/lib/error-logger";
 
 interface MemorySnapshot {
@@ -68,7 +68,7 @@ class MemoryLeakDetectorImpl {
     if (!this.enabled) return;
 
     try {
-      const perf = (performance as Record<string, unknown>).memory as Record<string, number> | undefined;
+      const perf = (performance as unknown as Record<string, unknown>).memory as Record<string, number> | undefined;
       const usedHeapMB = perf ? Math.round(perf.usedJSHeapSize / 1024 / 1024) : 0;
       const totalHeapMB = perf ? Math.round(perf.totalJSHeapSize / 1024 / 1024) : 0;
 
@@ -165,7 +165,7 @@ class MemoryLeakDetectorImpl {
   /** RuntimeSupervisor health check */
   private async healthCheck() {
     const latest = this.snapshots[this.snapshots.length - 1];
-    const status = this.consecutiveGrowth >= GROWTH_THRESHOLD
+    const status: HealthStatus = this.consecutiveGrowth >= GROWTH_THRESHOLD
       ? "warning"
       : latest && latest.totalHeapMB > 0 && (latest.usedHeapMB / latest.totalHeapMB) > HEAP_PCT_WARNING
         ? "warning"

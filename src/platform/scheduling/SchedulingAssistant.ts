@@ -16,9 +16,6 @@
  * This is a rule-based engine architected for future AI integration.
  */
 
-import { SchedulingConflictEngine } from "./SchedulingConflictEngine";
-import { AvailabilityEngine } from "./AvailabilityEngine";
-
 // ─── Types ────────────────────────────────────────────────────────
 
 export interface SlotSuggestion {

@@ -112,8 +112,8 @@ class SecurityExporterClass {
     );
     switch (format) {
       case "json": return JSON.stringify(profile, null, 2);
-      case "markdown": return this.permissionToMarkdown(profile);
-      case "csv": return this.permissionsToCsv(profile);
+      case "markdown": return this.permissionToMarkdown(profile as unknown as Record<string, unknown>);
+      case "csv": return this.permissionsToCsv(profile as unknown as Record<string, unknown>);
     }
   }
 

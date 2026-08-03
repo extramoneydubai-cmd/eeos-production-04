@@ -13,7 +13,7 @@
  *  3. If all fails, redirect to login
  */
 
-import { RuntimeSupervisor } from "./RuntimeSupervisor";
+import { RuntimeSupervisor, type HealthStatus } from "./RuntimeSupervisor";
 import { errorLog } from "@/lib/error-logger";
 
 export type SessionState = "valid" | "expired" | "invalid" | "missing-org" | "missing-company" | "recovering";
@@ -136,7 +136,7 @@ class SessionRecoveryImpl {
   private async healthCheck() {
     return {
       name: "Session",
-      status: this._state === "valid" ? "healthy" : this._state === "recovering" ? "warning" : "critical",
+      status: (this._state === "valid" ? "healthy" : this._state === "recovering" ? "warning" : "critical") as HealthStatus,
       lastCheck: Date.now(),
       message: `State: ${this._state}`,
       details: { state: this._state, recoveryAttempts: this.recoveryAttempts },

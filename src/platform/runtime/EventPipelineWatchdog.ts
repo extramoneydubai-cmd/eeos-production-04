@@ -9,7 +9,7 @@
  * Automatically retries failed pipeline events.
  */
 
-import { RuntimeSupervisor } from "./RuntimeSupervisor";
+import { RuntimeSupervisor, type HealthStatus } from "./RuntimeSupervisor";
 import { errorLog } from "@/lib/error-logger";
 
 interface PipelineEvent {
@@ -149,7 +149,7 @@ class EventPipelineWatchdogImpl {
   /** Health check */
   private async healthCheck() {
     const stats = this.getStats();
-    const status = stats.failed > 10 ? "critical" : stats.failed > 3 ? "warning" : "healthy";
+    const status: HealthStatus = stats.failed > 10 ? "critical" : stats.failed > 3 ? "warning" : "healthy";
     return {
       name: "Pipeline",
       status,

@@ -68,8 +68,8 @@ class WorkflowMetricsImpl {
     };
   }
 
-  getCategoryBreakdown(): { category: string; count: number; percentage: number }[] {
-    const defs = workflowEngine.listDefinitions();
+  async getCategoryBreakdown(): Promise<{ category: string; count: number; percentage: number }[]> {
+    const defs = await workflowEngine.listDefinitions();
     const cats: Record<string, number> = {};
     defs.forEach((d) => {
       cats[d.category] = (cats[d.category] || 0) + 1;

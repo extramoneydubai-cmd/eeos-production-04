@@ -203,7 +203,7 @@ class RuntimeMetricsImpl {
     if (!this.enabled) return;
 
     try {
-      const perf = (performance as Record<string, unknown>).memory as Record<string, number> | undefined;
+      const perf = (performance as unknown as Record<string, unknown>).memory as Record<string, number> | undefined;
       if (perf) {
         this._currentMemory = Math.round(perf.usedJSHeapSize / 1024 / 1024);
         this._currentTotalMemory = Math.round(perf.totalJSHeapSize / 1024 / 1024);

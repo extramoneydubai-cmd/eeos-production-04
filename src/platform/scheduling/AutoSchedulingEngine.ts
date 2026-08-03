@@ -16,9 +16,9 @@
  * - SchedulingRules for policy enforcement
  */
 
-import { SchedulingConflictEngine, ConflictCheck } from "./SchedulingConflictEngine";
-import { AvailabilityEngine, TimeSlot, SlotStatus } from "./AvailabilityEngine";
-import { SchedulingRules, SchedulingRule } from "./SchedulingRules";
+import { schedulingConflictEngine, Conflict as ConflictCheck } from "./SchedulingConflictEngine";
+import { availabilityEngine, TimeSlot } from "./AvailabilityEngine";
+import { schedulingRules } from "./SchedulingRules";
 
 // ─── Types ───────────────────────────────────────────────────────
 
@@ -91,14 +91,14 @@ export interface OptimizationScore {
 // ─── AutoSchedulingEngine ─────────────────────────────────────────
 
 export class AutoSchedulingEngine {
-  private conflictEngine: SchedulingConflictEngine;
-  private availabilityEngine: AvailabilityEngine;
-  private rules: SchedulingRules;
+  private conflictEngine: any;
+  private availabilityEngine: any;
+  private rules: any;
 
   constructor() {
-    this.conflictEngine = new SchedulingConflictEngine();
-    this.availabilityEngine = new AvailabilityEngine();
-    this.rules = new SchedulingRules();
+    this.conflictEngine = schedulingConflictEngine;
+    this.availabilityEngine = availabilityEngine;
+    this.rules = schedulingRules;
   }
 
   /**

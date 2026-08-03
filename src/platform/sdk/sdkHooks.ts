@@ -21,7 +21,6 @@
 
 import { useQuery, useMutation } from "convex/react";
 import type { FunctionReference, FunctionReturnType, FunctionArgs } from "convex/server";
-import { safeSdkResult } from "../core/safeQuery";
 
 // ─── Types ───────────────────────────────────────────────────
 

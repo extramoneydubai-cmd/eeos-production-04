@@ -78,6 +78,7 @@ export interface WorkflowExecution {
   priority?: string;
   slaDeadline?: number;
   slaBreached?: boolean;
+  updatedAt?: number;
   initiatedBy?: string;
   assignedTo?: string;
   organizationId?: string;

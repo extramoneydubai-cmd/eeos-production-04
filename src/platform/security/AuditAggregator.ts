@@ -66,7 +66,7 @@ class AuditAggregatorClass {
       this.ingestSecurityEvent(event);
     });
 
-    errorLogger.info("AuditAggregator initialized", { source: "AuditAggregator" });
+    errorLogger.info("AuditAggregator initialized", { module: "AuditAggregator" });
   }
 
   private ingestSecurityEvent(event: SecurityEvent): void {
@@ -146,12 +146,12 @@ class AuditAggregatorClass {
   }
 
   getModules(): string[] {
-    const modules = new Set(this.entries.map((e) => e.module).filter(Boolean));
+    const modules = new Set(this.entries.map((e) => e.module).filter((m): m is string => Boolean(m)));
     return Array.from(modules).sort();
   }
 
   getEntityTypes(): string[] {
-    const types = new Set(this.entries.map((e) => e.entity).filter(Boolean));
+    const types = new Set(this.entries.map((e) => e.entity).filter((t): t is string => Boolean(t)));
     return Array.from(types).sort();
   }
 

@@ -9,7 +9,7 @@
  * Logs all slow operations with route/sdk/entity context.
  */
 
-import { RuntimeSupervisor } from "./RuntimeSupervisor";
+import { RuntimeSupervisor, type HealthStatus } from "./RuntimeSupervisor";
 import { errorLog } from "@/lib/error-logger";
 
 interface SlowOperation {
@@ -125,7 +125,7 @@ class SlowQueryDetectorImpl {
     const stats = this.getStats();
     return {
       name: "SlowQuery",
-      status: stats.criticalCount > 5 ? "warning" : stats.total > 0 ? "healthy" : "healthy",
+      status: (stats.criticalCount > 5 ? "warning" : stats.total > 0 ? "healthy" : "healthy") as HealthStatus,
       lastCheck: Date.now(),
       message: `${stats.total} slow ops, ${stats.criticalCount} critical`,
       details: { ...stats },
