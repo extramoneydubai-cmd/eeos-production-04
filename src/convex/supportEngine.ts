@@ -355,7 +355,7 @@ export const updateTicket = mutation({
       await pushTimeline(ctx, args.ticketId, "status_changed", `Status changed from ${old} to ${args.status}`, args.performerName);
 
       if (args.status === "resolved") {
-        const slaRows = await ctx.db.query("ticketSLA").withIndex("by_ticket", (q) => q.eq("ticketId", args.ticketId)).collect();
+        const slaRows = await ctx.db.query("ticketSLA").withIndex("by_ticket", (q: any) => q.eq("ticketId", args.ticketId)).collect();
         if (slaRows[0]) {
           const sla = slaRows[0] as any;
           await ctx.db.patch(sla._id, {

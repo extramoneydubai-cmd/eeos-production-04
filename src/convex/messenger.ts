@@ -359,7 +359,7 @@ export const markDirectMessagesRead = mutation({
     async (ctx, args) => {
     const messages = await ctx.db.query("directMessages").collect();
     const unreadMessages = messages.filter(
-      (m) => m.senderId === args.senderId && m.receiverId === args.receiverId && !m.isRead
+      (m: Doc<"directMessages">) => m.senderId === args.senderId && m.receiverId === args.receiverId && !m.isRead
     );
     for (const m of unreadMessages) {
       await ctx.db.patch(m._id, { isRead: true });
@@ -399,7 +399,7 @@ export const createAnnouncement = mutation({
     async (ctx, args) => {
     const now = Date.now();
     // Create announcement in the announcements channel
-    const announcementsChannel = await ctx.db.query("channels").filter((q) => q.eq(q.field("name"), "Announcements")).first();
+    const announcementsChannel = await ctx.db.query("channels").filter((q: any) => q.eq(q.field("name"), "Announcements")).first();
     if (announcementsChannel) {
       await ctx.db.insert("messages", {
         channelId: announcementsChannel._id,
@@ -459,8 +459,8 @@ export const markChannelRead = mutation({
       title: "Channel Marked Read",
     },
     async (ctx, args) => {
-    const memberships = await ctx.db.query("channelMembers").withIndex("userId", (q) => q.eq("userId", args.userId!)).collect();
-    const membership = memberships.find((m) => m.channelId === args.channelId);
+    const memberships = await ctx.db.query("channelMembers").withIndex("userId", (q: any) => q.eq("userId", args.userId!)).collect();
+    const membership = memberships.find((m: Doc<"channelMembers">) => m.channelId === args.channelId);
     if (membership) {
       await ctx.db.patch(membership._id, { lastReadAt: Date.now() });
     }
