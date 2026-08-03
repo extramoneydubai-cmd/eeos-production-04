@@ -168,3 +168,36 @@ All live, real-time, no mock values. EnterpriseHealthCenter / OperationsCenter p
 3. **Grid/Search runtimes wired but 0 page consumers** — pages still render bespoke tables/local filters; adopting them is a page-level migration.
 4. **Visitor & Vendor portals** — require client UX scope (QR pass flow, PO/GRN flow).
 5. **Connector marketplace + AI role profiles + Health SDK are wired but not yet consumed by pages** — IntegrationStudio/AIStudio/HealthCenter pages still call `api.xxx` directly; migration is mechanical.
+
+---
+
+## 9. ADDENDUM — PATCH-ENTERPRISE-022+ withScopeAndEvents Adoption (Code-Derived)
+
+**Goal:** close the "~90% pipeline gap" by routing the highest-traffic module mutations through the unified enterprise pipeline (`withScopeAndEvents.ts`). No new engines were built; existing code was reused.
+
+### Adopted engines (4 high-traffic)
+
+| Engine | Module | Mutations wrapped | Wrapper config | Event types emitted (code-derived) |
+|---|---|---:|---|---|
+| `supportEngine.ts` | support | **8/8** (`createTicket`, `updateTicket`, `addComment`, `assignTicket`, `escalateTicket`, `resolveTicket`, `reopenTicket`, `rateTicket`) | `ticketPipeline` spread | `Events.SUPPORT.TICKET_CREATED/TICKET_ASSIGNED/TICKET_ESCALATED/TICKET_RESOLVED/TICKET_REOPENED` + `support.ticket.commented/updated/rated` |
+| `messenger.ts` | messenger | **10/10** (`createChannel`, `addChannelMember`, `removeChannelMember`, `sendMessage`, `pinMessage`, `unpinMessage`, `sendDirectMessage`, `markDirectMessagesRead`, `createAnnouncement`, `markChannelRead`) | `messagePipeline` spread | `messenger.channel.created`, `messenger.channel.member_added/removed`, `messenger.channel.read`, `messenger.direct_message.sent/read`, `messenger.message.sent/pinned/unpinned`, `messenger.announcement.created` |
+| `communicationCampaignEngine.ts` | marketing | **5/5** (`createCommTemplate`, `createCampaign`, `launchCampaign`, `trackDelivery`, `updateCampaignStatus`) | `campaignPipeline` spread | `Events.MARKETING.CAMPAIGN_CREATED/CAMPAIGN_LAUNCHED` + `marketing.campaign.updated`, `marketing.template.created`, `marketing.delivery.updated` |
+| `adminOpsEngine.ts` | admin | **24/24** (visitors: register/approve/deny/check-in/check-out; meeting rooms; office assets; stationery; housekeeping; security checks; utility bills; AMC; vendor visits; incidents) | `adminPipeline` spread | 20+ `admin.*` types (`admin.visitor.approved`, `admin.security_check.completed`, `admin.utility_bill.paid`, `admin.incident.*`, …) |
+
+**Total: 47 mutations newly routed through the unified pipeline.**
+
+### Pipeline stages now active on these mutations
+
+Inserted post-handler by `withScopeAndEvents`: audit log (`auditLogs`), timeline (`timelineEvents`), event bus (`events`), notification-matrix trigger, workflow trigger, automation trigger, search index (`indexEntity` → `autoSearchIndexer`), dashboard refresh signal (`dashboardRefreshSignals`).
+
+### Adoption delta (code-derived, `grep -rl` census of `src/convex`)
+
+| Metric | P-020 | P-022 | Now |
+|---|---|---:|---:|
+| Files using `withEventPipeline`/`withScopeAndEvents`/`withBatchEventPipeline` | 22 | 25 | **30** |
+| Convex modules (`.ts` in `src/convex`) | — | 260 | **267** |
+| Pipeline adoption of convex surface | 8.5% | 9.6% | **11.2%** |
+
+### Known limitation (documented, not a regression)
+
+All four configs set `getUserId: () => undefined` (consistent with the earlier `tasks.ts` / `leaveEngine` adoption) because these mutations carry no reliable performer id. Consequence: the **scope gate is a no-op** on these 47 mutations while audit/timeline/events/notify/workflow/automation/search/dashboard remain fully wired. Scope enforcement stays active on engines that accept `createdBy`/`performedBy` (e.g. `crmLeads`, `feeEngine`).
