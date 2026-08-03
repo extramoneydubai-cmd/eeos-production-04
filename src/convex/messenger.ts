@@ -2,6 +2,30 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc } from "./_generated/dataModel";
 import { getCurrentUser } from "./users";
+import { withScopeAndEvents } from "./withScopeAndEvents";
+
+// ─── Enterprise Pipeline Config ─────────────────────────────────
+// Messenger mutations route through withScopeAndEvents() so every
+// channel/message/announcement emits audit + timeline + event-bus
+// records and dashboard-refresh signals.
+//
+// getUserId returns undefined intentionally: chat is used by every
+// staff role (including team/self scopes who would otherwise be denied
+// writes with an empty entity scope), so scope enforcement stays a
+// no-op here while the event pipeline is fully wired. Search indexing
+// is off for individual messages (chat noise); channels and
+// announcements opt back in individually.
+const messagePipeline = {
+  module: "messenger",
+  getUserId: () => undefined,
+  getEntityCompanyId: () => undefined,
+  getEntityBranchId: () => undefined,
+  notifyViaMatrix: false,
+  triggerWorkflow: false,
+  triggerAutomation: false,
+  registerSearch: false,
+  signalDashboard: true,
+} as const;
 
 // ============================
 // CHANNELS
@@ -28,7 +52,16 @@ export const createChannel = mutation({
     createdBy: v.id("users"),
     memberIds: v.optional(v.array(v.id("users"))),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...messagePipeline,
+      operation: "create",
+      entity: "channel",
+      eventType: "messenger.channel.created",
+      title: "Channel Created",
+      registerSearch: true,
+    },
+    async (ctx, args) => {
     const now = Date.now();
     const channelId = await ctx.db.insert("channels", {
       name: args.name,
@@ -59,7 +92,8 @@ export const createChannel = mutation({
       }
     }
     return channelId;
-  },
+    }
+  ),
 });
 
 export const addChannelMember = mutation({
@@ -67,21 +101,39 @@ export const addChannelMember = mutation({
     channelId: v.id("channels"),
     userId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...messagePipeline,
+      operation: "create",
+      entity: "channel_member",
+      eventType: "messenger.channel.member_added",
+      title: "Channel Member Added",
+    },
+    async (ctx, args) => {
     await ctx.db.insert("channelMembers", {
       channelId: args.channelId,
       userId: args.userId,
       joinedAt: Date.now(),
       lastReadAt: Date.now(),
     });
-  },
+    }
+  ),
 });
 
 export const removeChannelMember = mutation({
   args: { membershipId: v.id("channelMembers") },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...messagePipeline,
+      operation: "delete",
+      entity: "channel_member",
+      eventType: "messenger.channel.member_removed",
+      title: "Channel Member Removed",
+    },
+    async (ctx, args) => {
     await ctx.db.delete(args.membershipId);
-  },
+    }
+  ),
 });
 
 export const getChannelMembers = query({
@@ -116,7 +168,15 @@ export const sendMessage = mutation({
     content: v.string(),
     mentions: v.optional(v.array(v.id("users"))),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...messagePipeline,
+      operation: "create",
+      entity: "message",
+      eventType: "messenger.message.sent",
+      title: "Message Sent",
+    },
+    async (ctx, args) => {
     const now = Date.now();
     const messageId = await ctx.db.insert("messages", {
       channelId: args.channelId,
@@ -143,21 +203,40 @@ export const sendMessage = mutation({
       }
     }
     return messageId;
-  },
+    }
+  ),
 });
 
 export const pinMessage = mutation({
   args: { messageId: v.id("messages") },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...messagePipeline,
+      operation: "update",
+      entity: "message",
+      eventType: "messenger.message.pinned",
+      title: "Message Pinned",
+    },
+    async (ctx, args) => {
     await ctx.db.patch(args.messageId, { isPinned: true });
-  },
+    }
+  ),
 });
 
 export const unpinMessage = mutation({
   args: { messageId: v.id("messages") },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...messagePipeline,
+      operation: "update",
+      entity: "message",
+      eventType: "messenger.message.unpinned",
+      title: "Message Unpinned",
+    },
+    async (ctx, args) => {
     await ctx.db.patch(args.messageId, { isPinned: false });
-  },
+    }
+  ),
 });
 
 // ============================
@@ -232,7 +311,15 @@ export const sendDirectMessage = mutation({
     receiverId: v.id("users"),
     content: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...messagePipeline,
+      operation: "create",
+      entity: "direct_message",
+      eventType: "messenger.direct_message.sent",
+      title: "Direct Message Sent",
+    },
+    async (ctx, args) => {
     const now = Date.now();
     await ctx.db.insert("directMessages", {
       senderId: args.senderId,
@@ -252,7 +339,8 @@ export const sendDirectMessage = mutation({
       isRead: false,
       createdAt: now,
     });
-  },
+    }
+  ),
 });
 
 export const markDirectMessagesRead = mutation({
@@ -260,7 +348,15 @@ export const markDirectMessagesRead = mutation({
     senderId: v.id("users"),
     receiverId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...messagePipeline,
+      operation: "update",
+      entity: "direct_message",
+      eventType: "messenger.direct_message.read",
+      title: "Direct Messages Read",
+    },
+    async (ctx, args) => {
     const messages = await ctx.db.query("directMessages").collect();
     const unreadMessages = messages.filter(
       (m) => m.senderId === args.senderId && m.receiverId === args.receiverId && !m.isRead
@@ -268,7 +364,8 @@ export const markDirectMessagesRead = mutation({
     for (const m of unreadMessages) {
       await ctx.db.patch(m._id, { isRead: true });
     }
-  },
+    }
+  ),
 });
 
 export const getUnreadDirectMessageCount = query({
@@ -290,7 +387,16 @@ export const createAnnouncement = mutation({
     senderId: v.id("users"),
     recipientIds: v.array(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...messagePipeline,
+      operation: "create",
+      entity: "announcement",
+      eventType: "messenger.announcement.created",
+      title: "Announcement Created",
+      registerSearch: true,
+    },
+    async (ctx, args) => {
     const now = Date.now();
     // Create announcement in the announcements channel
     const announcementsChannel = await ctx.db.query("channels").filter((q) => q.eq(q.field("name"), "Announcements")).first();
@@ -317,7 +423,8 @@ export const createAnnouncement = mutation({
         });
       }
     }
-  },
+    }
+  ),
 });
 
 export const getUnreadChannelCounts = query({
@@ -343,11 +450,20 @@ export const markChannelRead = mutation({
     channelId: v.id("channels"),
     userId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...messagePipeline,
+      operation: "update",
+      entity: "channel_member",
+      eventType: "messenger.channel.read",
+      title: "Channel Marked Read",
+    },
+    async (ctx, args) => {
     const memberships = await ctx.db.query("channelMembers").withIndex("userId", (q) => q.eq("userId", args.userId!)).collect();
     const membership = memberships.find((m) => m.channelId === args.channelId);
     if (membership) {
       await ctx.db.patch(membership._id, { lastReadAt: Date.now() });
     }
-  },
+    }
+  ),
 });

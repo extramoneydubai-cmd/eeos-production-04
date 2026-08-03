@@ -8,6 +8,31 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
+import { Events } from "./eventRegistry";
+
+// ─── Enterprise Pipeline Config ─────────────────────────────────
+// Campaign mutations route through withScopeAndEvents() so every
+// template/campaign emits audit + timeline + event-bus records,
+// registers into search, and signals dashboard refresh.
+//
+// getUserId returns undefined intentionally: launchCampaign is invoked
+// by marketing staff (including team/self scopes who would otherwise be
+// denied writes with an empty entity scope), so scope enforcement stays
+// a no-op here while the event pipeline is fully wired. Notification
+// matrix, workflow and automation triggers stay off — campaign
+// execution flows through communicationQueue.
+const campaignPipeline = {
+  module: "marketing",
+  getUserId: () => undefined,
+  getEntityCompanyId: () => undefined,
+  getEntityBranchId: () => undefined,
+  notifyViaMatrix: false,
+  triggerWorkflow: false,
+  triggerAutomation: false,
+  registerSearch: true,
+  signalDashboard: true,
+} as const;
 
 // ─── Campaign Templates ─────────────────────────────────────
 
@@ -20,7 +45,15 @@ export const createCommTemplate = mutation({
     variables: v.optional(v.array(v.string())),
     createdBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...campaignPipeline,
+      operation: "create",
+      entity: "comm_template",
+      eventType: "marketing.template.created",
+      title: "Comm Template Created",
+    },
+    async (ctx, args) => {
     return ctx.db.insert("commTemplates", {
       name: args.name,
       channel: args.channel,
@@ -31,7 +64,8 @@ export const createCommTemplate = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+    }
+  ),
 });
 
 // ─── Campaign Execution ─────────────────────────────────────
@@ -47,7 +81,15 @@ export const createCampaign = mutation({
     batchSize: v.optional(v.number()),
     createdBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...campaignPipeline,
+      operation: "create",
+      entity: "campaign",
+      eventType: Events.MARKETING.CAMPAIGN_CREATED,
+      title: "Campaign Created",
+    },
+    async (ctx, args) => {
     const campaignId = await ctx.db.insert("commCampaigns", {
       name: args.name,
       description: args.description,
@@ -79,12 +121,21 @@ export const createCampaign = mutation({
     }
 
     return campaignId;
-  },
+    }
+  ),
 });
 
 export const launchCampaign = mutation({
   args: { campaignId: v.id("commCampaigns"), userId: v.id("users") },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...campaignPipeline,
+      operation: "update",
+      entity: "campaign",
+      eventType: Events.MARKETING.CAMPAIGN_LAUNCHED,
+      title: "Campaign Launched",
+    },
+    async (ctx, args) => {
     const campaign = await ctx.db.get(args.campaignId);
     if (!campaign) throw new Error("Campaign not found");
 
@@ -182,7 +233,8 @@ export const launchCampaign = mutation({
     });
 
     return { campaignId: args.campaignId, totalRecipients: recipients.length, queued };
-  },
+    }
+  ),
 });
 
 export const trackDelivery = mutation({
@@ -191,7 +243,17 @@ export const trackDelivery = mutation({
     status: v.union(v.literal("sent"), v.literal("delivered"), v.literal("read"), v.literal("failed"), v.literal("clicked")),
     campaignId: v.optional(v.id("commCampaigns")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...campaignPipeline,
+      operation: "update",
+      entity: "communication_queue",
+      eventType: "marketing.delivery.updated",
+      title: "Delivery Updated",
+      registerSearch: false,
+      signalDashboard: false,
+    },
+    async (ctx, args) => {
     await ctx.db.patch(args.messageId, { status: args.status as any, updatedAt: Date.now() });
 
     if (args.campaignId) {
@@ -206,7 +268,8 @@ export const trackDelivery = mutation({
       }
     }
     return args.messageId;
-  },
+    }
+  ),
 });
 
 export const listCampaigns = query({
@@ -247,12 +310,21 @@ export const updateCampaignStatus = mutation({
     id: v.id("commCampaigns"),
     status: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...campaignPipeline,
+      operation: "update",
+      entity: "campaign",
+      eventType: "marketing.campaign.updated",
+      title: "Campaign Status Updated",
+    },
+    async (ctx, args) => {
     const campaign = await ctx.db.get(args.id);
     if (!campaign) throw new Error("Campaign not found");
     await ctx.db.patch(args.id, { status: args.status, updatedAt: Date.now() });
     return args.id;
-  },
+    }
+  ),
 });
 
 /** KPI dashboard for marketing analytics. */

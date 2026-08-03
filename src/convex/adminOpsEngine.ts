@@ -11,6 +11,32 @@
  */
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
+
+// ─── Enterprise Pipeline Config ─────────────────────────────────
+// Every admin-ops mutation routes through withScopeAndEvents() so each
+// register emits audit + timeline + event-bus records and signals
+// dashboard refresh.
+//
+// getUserId returns undefined intentionally: actor ids (createdBy /
+// performedBy) are optional so demo/local fallback sessions can operate
+// without a real Convex user id, and staff (team/self scopes) would
+// otherwise be denied writes with an empty entity scope. Scope
+// enforcement therefore stays a no-op here while the event pipeline is
+// fully wired. Search indexing, notification matrix, workflow and
+// automation triggers stay off — these are operational registers, not
+// searchable/approval entities.
+const adminPipeline = {
+  module: "admin",
+  getUserId: () => undefined,
+  getEntityCompanyId: () => undefined,
+  getEntityBranchId: () => undefined,
+  notifyViaMatrix: false,
+  triggerWorkflow: false,
+  triggerAutomation: false,
+  registerSearch: false,
+  signalDashboard: true,
+} as const;
 
 // ─── Visitors ──────────────────────────────────────────────
 
@@ -32,7 +58,15 @@ export const registerVisitor = mutation({
     hostName: v.optional(v.string()),
     createdBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...adminPipeline,
+      operation: "create",
+      entity: "visitor",
+      eventType: "admin.visitor.registered",
+      title: "Visitor Registered",
+    },
+    async (ctx, args) => {
     const now = Date.now();
     const qrToken = `vst_${now.toString(36)}_${Math.random().toString(36).substring(2, 10)}`;
     return ctx.db.insert("visitors", {
@@ -49,47 +83,84 @@ export const registerVisitor = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+    }
+  ),
 });
 
 export const approveVisitor = mutation({
   args: { visitorId: v.id("visitors"), performedBy: v.optional(v.id("users")) },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...adminPipeline,
+      operation: "approve",
+      entity: "visitor",
+      eventType: "admin.visitor.approved",
+      title: "Visitor Approved",
+    },
+    async (ctx, args) => {
     await ctx.db.patch(args.visitorId, { status: "approved", updatedAt: Date.now() });
     return args.visitorId;
-  },
+    }
+  ),
 });
 
 export const denyVisitor = mutation({
   args: { visitorId: v.id("visitors"), performedBy: v.optional(v.id("users")) },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...adminPipeline,
+      operation: "approve",
+      entity: "visitor",
+      eventType: "admin.visitor.denied",
+      title: "Visitor Denied",
+    },
+    async (ctx, args) => {
     await ctx.db.patch(args.visitorId, { status: "denied", updatedAt: Date.now() });
     return args.visitorId;
-  },
+    }
+  ),
 });
 
 export const checkInVisitor = mutation({
   args: { visitorId: v.id("visitors"), performedBy: v.optional(v.id("users")) },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...adminPipeline,
+      operation: "update",
+      entity: "visitor",
+      eventType: "admin.visitor.checked_in",
+      title: "Visitor Checked In",
+    },
+    async (ctx, args) => {
     await ctx.db.patch(args.visitorId, {
       status: "checked_in",
       checkIn: Date.now(),
       updatedAt: Date.now(),
     });
     return args.visitorId;
-  },
+    }
+  ),
 });
 
 export const checkOutVisitor = mutation({
   args: { visitorId: v.id("visitors"), performedBy: v.optional(v.id("users")) },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...adminPipeline,
+      operation: "update",
+      entity: "visitor",
+      eventType: "admin.visitor.checked_out",
+      title: "Visitor Checked Out",
+    },
+    async (ctx, args) => {
     await ctx.db.patch(args.visitorId, {
       status: "checked_out",
       checkOut: Date.now(),
       updatedAt: Date.now(),
     });
     return args.visitorId;
-  },
+    }
+  ),
 });
 
 // ─── Meeting Rooms ─────────────────────────────────────────
@@ -107,7 +178,15 @@ export const createMeetingRoom = mutation({
     amenities: v.optional(v.array(v.string())),
     createdBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...adminPipeline,
+      operation: "create",
+      entity: "meeting_room",
+      eventType: "admin.meeting_room.created",
+      title: "Meeting Room Created",
+    },
+    async (ctx, args) => {
     const now = Date.now();
     return ctx.db.insert("meetingRooms", {
       name: args.name,
@@ -120,7 +199,8 @@ export const createMeetingRoom = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+    }
+  ),
 });
 
 export const updateMeetingRoomStatus = mutation({
@@ -128,10 +208,19 @@ export const updateMeetingRoomStatus = mutation({
     roomId: v.id("meetingRooms"),
     status: v.union(v.literal("available"), v.literal("booked"), v.literal("maintenance")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...adminPipeline,
+      operation: "update",
+      entity: "meeting_room",
+      eventType: "admin.meeting_room.updated",
+      title: "Meeting Room Status Updated",
+    },
+    async (ctx, args) => {
     await ctx.db.patch(args.roomId, { status: args.status, updatedAt: Date.now() });
     return args.roomId;
-  },
+    }
+  ),
 });
 
 // ─── Office Assets ─────────────────────────────────────────
@@ -152,7 +241,15 @@ export const createOfficeAsset = mutation({
     notes: v.optional(v.string()),
     createdBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...adminPipeline,
+      operation: "create",
+      entity: "office_asset",
+      eventType: "admin.office_asset.created",
+      title: "Office Asset Created",
+    },
+    async (ctx, args) => {
     const now = Date.now();
     return ctx.db.insert("officeAssets", {
       name: args.name,
@@ -168,7 +265,8 @@ export const createOfficeAsset = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+    }
+  ),
 });
 
 export const updateOfficeAssetStatus = mutation({
@@ -176,10 +274,19 @@ export const updateOfficeAssetStatus = mutation({
     assetId: v.id("officeAssets"),
     status: v.union(v.literal("active"), v.literal("in_use"), v.literal("maintenance"), v.literal("retired")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...adminPipeline,
+      operation: "update",
+      entity: "office_asset",
+      eventType: "admin.office_asset.updated",
+      title: "Office Asset Status Updated",
+    },
+    async (ctx, args) => {
     await ctx.db.patch(args.assetId, { status: args.status, updatedAt: Date.now() });
     return args.assetId;
-  },
+    }
+  ),
 });
 
 // ─── Stationery ────────────────────────────────────────────
@@ -198,19 +305,36 @@ export const createStationery = mutation({
     supplier: v.optional(v.string()),
     createdBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...adminPipeline,
+      operation: "create",
+      entity: "stationery",
+      eventType: "admin.stationery.created",
+      title: "Stationery Created",
+    },
+    async (ctx, args) => {
     const now = Date.now();
     return ctx.db.insert("stationery", {
       ...args,
       createdAt: now,
       updatedAt: now,
     });
-  },
+    }
+  ),
 });
 
 export const adjustStationery = mutation({
   args: { itemId: v.id("stationery"), delta: v.number(), createdBy: v.optional(v.id("users")) },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...adminPipeline,
+      operation: "update",
+      entity: "stationery",
+      eventType: "admin.stationery.adjusted",
+      title: "Stationery Adjusted",
+    },
+    async (ctx, args) => {
     const item = await ctx.db.get(args.itemId);
     if (!item) throw new Error("Stationery item not found");
     await ctx.db.patch(args.itemId, {
@@ -218,7 +342,8 @@ export const adjustStationery = mutation({
       updatedAt: Date.now(),
     });
     return args.itemId;
-  },
+    }
+  ),
 });
 
 // ─── Housekeeping ──────────────────────────────────────────
@@ -235,7 +360,15 @@ export const createHousekeepingTask = mutation({
     scheduledDate: v.optional(v.number()),
     createdBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...adminPipeline,
+      operation: "create",
+      entity: "housekeeping_task",
+      eventType: "admin.housekeeping.created",
+      title: "Housekeeping Task Created",
+    },
+    async (ctx, args) => {
     const now = Date.now();
     return ctx.db.insert("housekeepingTasks", {
       taskName: args.taskName,
@@ -247,7 +380,8 @@ export const createHousekeepingTask = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+    }
+  ),
 });
 
 export const updateHousekeepingStatus = mutation({
@@ -255,7 +389,15 @@ export const updateHousekeepingStatus = mutation({
     taskId: v.id("housekeepingTasks"),
     status: v.union(v.literal("pending"), v.literal("in_progress"), v.literal("completed")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...adminPipeline,
+      operation: "update",
+      entity: "housekeeping_task",
+      eventType: "admin.housekeeping.updated",
+      title: "Housekeeping Task Updated",
+    },
+    async (ctx, args) => {
     const now = Date.now();
     await ctx.db.patch(args.taskId, {
       status: args.status,
@@ -263,7 +405,8 @@ export const updateHousekeepingStatus = mutation({
       updatedAt: now,
     });
     return args.taskId;
-  },
+    }
+  ),
 });
 
 // ─── Security Checks ───────────────────────────────────────
@@ -279,7 +422,15 @@ export const createSecurityCheck = mutation({
     notes: v.optional(v.string()),
     createdBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...adminPipeline,
+      operation: "create",
+      entity: "security_check",
+      eventType: "admin.security_check.created",
+      title: "Security Check Created",
+    },
+    async (ctx, args) => {
     const now = Date.now();
     return ctx.db.insert("securityChecks", {
       checkName: args.checkName,
@@ -290,7 +441,8 @@ export const createSecurityCheck = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+    }
+  ),
 });
 
 export const completeSecurityCheck = mutation({
@@ -299,7 +451,15 @@ export const completeSecurityCheck = mutation({
     status: v.union(v.literal("pending"), v.literal("passed"), v.literal("failed")),
     performedBy: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...adminPipeline,
+      operation: "update",
+      entity: "security_check",
+      eventType: "admin.security_check.completed",
+      title: "Security Check Completed",
+    },
+    async (ctx, args) => {
     const now = Date.now();
     await ctx.db.patch(args.checkId, {
       status: args.status,
@@ -308,7 +468,8 @@ export const completeSecurityCheck = mutation({
       updatedAt: now,
     });
     return args.checkId;
-  },
+    }
+  ),
 });
 
 // ─── Utility Bills ─────────────────────────────────────────
@@ -331,7 +492,15 @@ export const createUtilityBill = mutation({
     dueDate: v.optional(v.number()),
     createdBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...adminPipeline,
+      operation: "create",
+      entity: "utility_bill",
+      eventType: "admin.utility_bill.created",
+      title: "Utility Bill Created",
+    },
+    async (ctx, args) => {
     const now = Date.now();
     return ctx.db.insert("utilityBills", {
       utilityType: args.utilityType,
@@ -343,15 +512,25 @@ export const createUtilityBill = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+    }
+  ),
 });
 
 export const markBillPaid = mutation({
   args: { billId: v.id("utilityBills"), performedBy: v.optional(v.id("users")) },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...adminPipeline,
+      operation: "approve",
+      entity: "utility_bill",
+      eventType: "admin.utility_bill.paid",
+      title: "Utility Bill Marked Paid",
+    },
+    async (ctx, args) => {
     await ctx.db.patch(args.billId, { status: "paid", paidDate: Date.now(), updatedAt: Date.now() });
     return args.billId;
-  },
+    }
+  ),
 });
 
 // ─── AMC Contracts ─────────────────────────────────────────
@@ -371,7 +550,15 @@ export const createAmcContract = mutation({
     notes: v.optional(v.string()),
     createdBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...adminPipeline,
+      operation: "create",
+      entity: "amc_contract",
+      eventType: "admin.amc.created",
+      title: "AMC Contract Created",
+    },
+    async (ctx, args) => {
     const now = Date.now();
     const status = args.endDate && args.endDate < now ? "expired" : "active";
     return ctx.db.insert("amcContracts", {
@@ -380,7 +567,8 @@ export const createAmcContract = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+    }
+  ),
 });
 
 export const updateAmcStatus = mutation({
@@ -388,10 +576,19 @@ export const updateAmcStatus = mutation({
     contractId: v.id("amcContracts"),
     status: v.union(v.literal("active"), v.literal("expiring"), v.literal("expired")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...adminPipeline,
+      operation: "update",
+      entity: "amc_contract",
+      eventType: "admin.amc.updated",
+      title: "AMC Status Updated",
+    },
+    async (ctx, args) => {
     await ctx.db.patch(args.contractId, { status: args.status, updatedAt: Date.now() });
     return args.contractId;
-  },
+    }
+  ),
 });
 
 // ─── Vendor Visits ─────────────────────────────────────────
@@ -408,7 +605,15 @@ export const registerVendorVisit = mutation({
     hostName: v.optional(v.string()),
     createdBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...adminPipeline,
+      operation: "create",
+      entity: "vendor_visit",
+      eventType: "admin.vendor_visit.registered",
+      title: "Vendor Visit Registered",
+    },
+    async (ctx, args) => {
     const now = Date.now();
     return ctx.db.insert("vendorVisits", {
       vendorName: args.vendorName,
@@ -420,23 +625,42 @@ export const registerVendorVisit = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+    }
+  ),
 });
 
 export const checkInVendorVisit = mutation({
   args: { visitId: v.id("vendorVisits"), performedBy: v.optional(v.id("users")) },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...adminPipeline,
+      operation: "update",
+      entity: "vendor_visit",
+      eventType: "admin.vendor_visit.checked_in",
+      title: "Vendor Visit Checked In",
+    },
+    async (ctx, args) => {
     await ctx.db.patch(args.visitId, { status: "checked_in", checkIn: Date.now(), updatedAt: Date.now() });
     return args.visitId;
-  },
+    }
+  ),
 });
 
 export const checkOutVendorVisit = mutation({
   args: { visitId: v.id("vendorVisits"), performedBy: v.optional(v.id("users")) },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...adminPipeline,
+      operation: "update",
+      entity: "vendor_visit",
+      eventType: "admin.vendor_visit.checked_out",
+      title: "Vendor Visit Checked Out",
+    },
+    async (ctx, args) => {
     await ctx.db.patch(args.visitId, { status: "checked_out", checkOut: Date.now(), updatedAt: Date.now() });
     return args.visitId;
-  },
+    }
+  ),
 });
 
 // ─── Incident Register ─────────────────────────────────────
@@ -454,7 +678,15 @@ export const createIncident = mutation({
     reportedBy: v.optional(v.id("users")),
     createdBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...adminPipeline,
+      operation: "create",
+      entity: "incident",
+      eventType: "admin.incident.created",
+      title: "Incident Created",
+    },
+    async (ctx, args) => {
     const now = Date.now();
     return ctx.db.insert("incidentRegister", {
       incidentType: args.incidentType,
@@ -467,7 +699,8 @@ export const createIncident = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+    }
+  ),
 });
 
 export const updateIncidentStatus = mutation({
@@ -476,7 +709,15 @@ export const updateIncidentStatus = mutation({
     status: v.union(v.literal("open"), v.literal("investigating"), v.literal("resolved"), v.literal("closed")),
     resolution: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...adminPipeline,
+      operation: "update",
+      entity: "incident",
+      eventType: "admin.incident.updated",
+      title: "Incident Status Updated",
+    },
+    async (ctx, args) => {
     const now = Date.now();
     await ctx.db.patch(args.incidentId, {
       status: args.status,
@@ -485,7 +726,8 @@ export const updateIncidentStatus = mutation({
       updatedAt: now,
     });
     return args.incidentId;
-  },
+    }
+  ),
 });
 
 // ─── Aggregate Administration Dashboard ────────────────────
