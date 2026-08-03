@@ -32,7 +32,7 @@ import {
   Building, FileCheck, BookOpen, Package, Truck, Target,
   Activity, Calendar, Bell, ListChecks, Clock, AlertCircle,
   CheckCircle2, UserPlus, Zap, ShoppingCart, CreditCard,
-  LineChart, PieChart, Globe, Megaphone, MessageSquare,
+  Globe, Megaphone, MessageSquare,
   Monitor, Settings, Shield, Database, LayoutDashboard,
   ArrowUp, ArrowDown, Minus, Sparkles, ChevronRight,
   ArrowRight, Plus,
@@ -101,11 +101,11 @@ function ChartWidget({ title, type }: { title: string; type: string }) {
           ) : (type === "chart_pie" || type === "chart_donut" || type === "pie") ? (
             <PieChart>
               <Pie data={distData} cx="50%" cy="50%"
-                innerRadius={type === "chart_donut" || type === "donut" ? 40 : 0}
+                innerRadius={type === "chart_donut" ? 40 : 0}
                 outerRadius={70} paddingAngle={2} dataKey="value">
                 {distData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
               </Pie>
-              {(type === "chart_donut" || type === "donut") && (
+              {type === "chart_donut" && (
                 <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle" fontSize={14} fontWeight={700} fill="#1a1a2e">{total}</text>
               )}
               <Tooltip formatter={(v: number) => [`${v} (${((v/total)*100).toFixed(1)}%)`]} />
@@ -127,10 +127,9 @@ function ChartWidget({ title, type }: { title: string; type: string }) {
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f3f4" vertical={false} />
               <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#9aa0a6' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 9, fill: '#9aa0a6' }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ fontSize: 10 }} />
-              <Area type="monotone" dataKey="value" stroke="#4285f4" fill="url(#areaGrad)" strokeWidth={2} />
-            </AreaChart>
-          ) : null}
+              <Tooltip contentStyle={{ fontSize: 10 }} />                <Area type="monotone" dataKey="value" stroke="#4285f4" fill="url(#areaGrad)" strokeWidth={2} />
+              </AreaChart>
+            ) : <div />}
         </ResponsiveContainer>
       </CardContent>
     </Card>

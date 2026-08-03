@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Shield, ShieldCheck, ShieldOff, Users, Key, FolderTree, UserCog,
   UserCheck, Flag, Monitor, Menu as MenuIcon, Earth, Plus, Search, Check, X,
-  Loader2, Sliders, Settings2, ChevronRight, Lock, Unlock,
+  Loader2, Sliders, Settings, Settings2, ChevronRight, Lock, Unlock,
   Eye, EyeOff, ChevronDown, LayoutDashboard, Building2,
   Database, Workflow, ListChecks, LineChart, GraduationCap,
   UserPlus, BookOpen, PiggyBank, UsersRound, Megaphone,
@@ -45,7 +45,7 @@ const iconMap: Record<string, React.ElementType> = {
   BookOpen, PiggyBank, UsersRound, Megaphone, MessageSquare, BarChart3,
   Crown, DollarSign, FileText, Activity, Settings, ShoppingCart: ShoppingCartIcon,
   ContactRound, FileCheck, Monitor: MonitorIconSvg, ShieldCheck, ShieldAlert,
-  Users, Target, Siren, Gauge, Globe, Key, UserCog, Flag, ChevronRight,
+  Target, Siren, Gauge, Globe, Key, UserCog, Flag, ChevronRight,
   ToggleLeft, Eye, EyeOff, Copy, Sliders,
 };
 
