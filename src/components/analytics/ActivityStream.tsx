@@ -73,7 +73,7 @@ export const ActivityStream = memo(function ActivityStream({
               <div className="divide-y divide-[#e8eaed] dark:divide-[#2d2d4a]">
                 {displayItems.map((item) => {
                   const config = item.icon
-                    ? { icon: item.icon, color: item.color || "bg-gray-50 text-gray-600" }
+                    ? { icon: item.icon, color: item.color || "bg-gray-50 text-gray-600", label: typeConfig[item.type]?.label || "Activity" }
                     : typeConfig[item.type] || typeConfig.task;
 
                   const Icon = config.icon;

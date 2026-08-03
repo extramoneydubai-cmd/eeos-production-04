@@ -236,7 +236,7 @@ export default function OrganizationCalendar() {
               "flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] transition-all",
               filterModule === mod.id ? "ring-1 ring-offset-1" : "opacity-60 hover:opacity-100",
             )}
-            style={{ backgroundColor: `${mod.color}15`, ringColor: mod.color }}
+            style={{ backgroundColor: `${mod.color}15` }}
           >
             <mod.icon className="h-3 w-3" style={{ color: mod.color }} />
             <span style={{ color: mod.color }}>{mod.label}</span>

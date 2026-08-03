@@ -255,7 +255,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 {crmSettingsOpen && (
                   <nav className="space-y-0.5 mt-0.5">
                     <SidebarLink
-                      item={{ id: "lead-stages", label: "Lead Stages", href: "/crm/settings/stages", icon: Settings as any, group: "System", keywords: [], description: "" }}
+                      item={{ id: "lead-stages", label: "Lead Stages", href: "/crm/settings/stages", icon: Settings as any, group: "System" as any, keywords: [], description: "" }}
                       collapsed={false}
                       active={isActive("/crm/settings/stages")}
                       onToggleFavorite={handleToggleFavorite}

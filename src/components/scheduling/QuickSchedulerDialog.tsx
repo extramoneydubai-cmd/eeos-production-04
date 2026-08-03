@@ -72,6 +72,7 @@ function parseNaturalLanguage(input: string): Partial<{
   end: Date;
   description: string;
   priority: string;
+  recurrence: string;
 }> {
   const result: any = {};
   const lower = input.toLowerCase().trim();
@@ -191,7 +192,7 @@ function parseNaturalLanguage(input: string): Partial<{
 function getTimeSlots(): { label: string; start: Date; end: Date }[] {
   const now = new Date();
   const currentHour = now.getHours();
-  const suggestions = [];
+  const suggestions: { label: string; start: Date; end: Date }[] = [];
 
   // Next hour slot
   const nextHour = new Date(now);

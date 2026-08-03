@@ -365,7 +365,7 @@ export default function AssetWorkspace() {
                     <tr key={a._id} className="border-t hover:bg-muted/30 transition-colors">
                       <td className="px-3 py-2 font-medium">{a.name}</td>
                       <td className="px-3 py-2 font-mono text-xs">{a.assetCode}</td>
-                      <td className="px-3 py-2">{catMap.get(a.categoryId)?.name ?? "—"}</td>
+                      <td className="px-3 py-2">{(catMap.get(a.categoryId) as any)?.name ?? "—"}</td>
                       <td className="px-3 py-2 text-xs">{new Date(a.purchaseDate).toLocaleDateString()}</td>
                       <td className="px-3 py-2">${(a.currentValue ?? 0).toLocaleString()}</td>
                       <td className="px-3 py-2"><Badge variant={STATUS_BADGE[a.status] ?? "outline"} className="text-[10px]">{a.status}</Badge></td>

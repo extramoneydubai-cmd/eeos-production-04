@@ -169,7 +169,7 @@ export default function DashboardCounselor() {
             Counselor Dashboard
           </h1>
           <p className="text-sm text-slate-500 mt-0.5">
-            {user?.name || "User"}{user?.designation ? ` • ${user.designation}` : ""}
+            {user?.name || "User"}{(user as any)?.designation ? ` • ${(user as any).designation}` : ""}
           </p>
         </div>
       </div>

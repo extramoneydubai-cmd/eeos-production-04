@@ -179,7 +179,7 @@ export default function DashboardStudio() {
       id: `w-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       widgetType,
       title: wt?.label || widgetType,
-      size: wt?.sizes[0] || "medium",
+      size: (wt?.sizes[0] || "medium") as "small" | "medium" | "full" | "large",
       config: {},
       dataSource: widgetType,
     };

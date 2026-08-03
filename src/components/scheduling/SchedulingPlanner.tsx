@@ -37,6 +37,10 @@ export type PlannerView = "day" | "week" | "month" | "resource";
 export type ResourceType = "room" | "faculty" | "batch" | "all";
 
 export interface SchedulingPlannerProps {
+  /** Entity type (e.g. employee, batch, program) */
+  entityType?: string;
+  /** Entity id to scope the planner to */
+  entityId?: string;
   /** View mode */
   defaultView?: PlannerView;
   /** Resource type filter */

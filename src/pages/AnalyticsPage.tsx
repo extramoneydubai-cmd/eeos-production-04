@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "convex/react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -732,7 +733,7 @@ export default function AnalyticsPage() {
           })}
 
           {/* If no chart data available */}
-          {visibleSections.every(([id, data]) => !data?.charts?.filter((c: any) => c?.data?.length > 0).length) && (
+          {visibleSections.every(({ data }: any) => !data?.charts?.filter((c: any) => c?.data?.length > 0).length) && (
             <div className="text-center py-12">
               <PieChartIcon className="h-12 w-12 text-[#dadce0] mx-auto mb-3" />
               <h3 className="text-sm font-semibold text-[#1a1a2e]">Chart data loading</h3>

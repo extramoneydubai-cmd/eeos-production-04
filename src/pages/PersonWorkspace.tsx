@@ -472,7 +472,7 @@ export default function PersonWorkspace() {
   }
 
   const displayName = person?.displayName || (person ? `${person.firstName || ""} ${person.lastName || ""}` : "Loading...");
-  const initials = getInitials(person);
+  const initials = getInitials(person ?? undefined);
 
   // ─── Actions ─────────────────────────────────────────────────────
   const actions: WorkspaceAction[] = [

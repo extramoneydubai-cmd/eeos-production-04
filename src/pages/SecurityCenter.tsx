@@ -422,13 +422,13 @@ function SessionsTab() {
 function PermissionsTab() {
   const { user } = useAuth();
   const [roles, setRoles] = useState<string[]>(["staff"]);
-  const [profile, setProfile] = useState(permissionInspector.resolvePermissions(user?.id || "anonymous", roles));
+  const [profile, setProfile] = useState(permissionInspector.resolvePermissions(user?._id || "anonymous", roles));
   const [checkResource, setCheckResource] = useState("student");
   const [checkAction, setCheckAction] = useState("read");
 
   const handleCheck = useCallback(() => {
-    const result = permissionInspector.checkPermission(user?.id || "anonymous", roles, checkResource, checkAction);
-    setProfile(permissionInspector.resolvePermissions(user?.id || "anonymous", roles));
+    const result = permissionInspector.checkPermission(user?._id || "anonymous", roles, checkResource, checkAction);
+    setProfile(permissionInspector.resolvePermissions(user?._id || "anonymous", roles));
     alert(result.explanation);
   }, [user, roles, checkResource, checkAction]);
 

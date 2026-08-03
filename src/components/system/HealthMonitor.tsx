@@ -82,7 +82,7 @@ export function HealthMonitor() {
   // Monitor memory
   useEffect(() => {
     const timer = setInterval(() => {
-      const perf = (performance as Record<string, unknown>).memory as Record<string, number> | undefined;
+      const perf = (performance as unknown as Record<string, unknown>).memory as Record<string, number> | undefined;
       if (perf) {
         const used = Math.round(perf.usedJSHeapSize / 1024 / 1024);
         const total = Math.round(perf.totalJSHeapSize / 1024 / 1024);
@@ -111,7 +111,7 @@ export function HealthMonitor() {
           convex: ms < 500 ? "healthy" : ms < 2000 ? "degraded" : "down",
         }));
       } catch {
-        setHealth((prev) => ({ ...prev, convex: "down", latency: 9999 }));
+        setHealth((prev) => ({ ...prev, convex: "down", latency: "down" }));
       }
     };
     check();

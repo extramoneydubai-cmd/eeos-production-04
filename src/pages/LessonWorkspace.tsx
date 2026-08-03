@@ -122,7 +122,7 @@ export default function LessonWorkspace() {
     );
   }
 
-  const contentIcon = contentTypeIcons[lesson.contentType] || FileText;
+  const ContentIcon = contentTypeIcons[lesson.contentType] || FileText;
   const topics = lesson.topics || [];
   const assignments = lesson.assignments || [];
   const quizzes = lesson.quizzes || [];
@@ -141,7 +141,8 @@ export default function LessonWorkspace() {
         <CardContent className="p-6">
           <div className="flex items-start gap-4">
             <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-              {contentIcon && <contentIcon className="h-6 w-6 text-primary" />}
+              {ContentIcon && <ContentIcon className="h-6 w-6 text-primary" />}
+
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">

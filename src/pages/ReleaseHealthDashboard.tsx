@@ -257,9 +257,9 @@ function EnvironmentTab({ buildInfo }: { buildInfo: ReturnType<typeof buildVersi
           <EnvRow label="Node.js Version" value={buildInfo.nodeVersion} />
           <EnvRow label="React Version" value={buildInfo.reactVersion} />
           <EnvRow label="Convex URL" value={buildInfo.convexUrl} />
-          <EnvRow label="Browser" value={buildInfo.browser.slice(0, 80)} />
-          <EnvRow label="Platform" value={buildInfo.platform} />
-          <EnvRow label="Memory" value={buildInfo.memory} />
+          <EnvRow label="Browser" value={(buildInfo as any).browser?.slice(0, 80) || "unknown"} />
+          <EnvRow label="Platform" value={(buildInfo as any).platform || "unknown"} />
+          <EnvRow label="Memory" value={(buildInfo as any).memory || "N/A"} />
         </div>
       </div>
     </div>

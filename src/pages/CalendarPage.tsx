@@ -799,7 +799,9 @@ export default function CalendarPage() {
     const month = currentDate.getMonth();
     const firstDay = new Date(year, month, 1).getDay();
     const daysInMonth = getDaysInMonth(year, month);
-    const daysInPrevMonth = getDaysInMonth(year, month - 1 >= 0 ? month - 1 : 11, month - 1 >= 0 ? year : year - 1);
+    const prevYear = month - 1 >= 0 ? year : year - 1;
+    const prevMonth = month - 1 >= 0 ? month - 1 : 11;
+    const daysInPrevMonth = getDaysInMonth(prevYear, prevMonth);
     const weeks: (Date | null)[][] = [];
     let week: (Date | null)[] = [];
 

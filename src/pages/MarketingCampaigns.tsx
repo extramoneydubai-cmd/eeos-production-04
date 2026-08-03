@@ -71,7 +71,7 @@ export default function MarketingCampaigns() {
               {Object.entries(channelCounts).map(([ch, count]) => (
                 <div key={ch} className="flex items-center justify-between text-xs">
                   <span className="capitalize text-gray-600">{ch}</span>
-                  <Badge variant="outline" className="text-[10px]">{count}</Badge>
+                  <Badge variant="outline" className="text-[10px]">{count as React.ReactNode}</Badge>
                 </div>
               ))}
               {Object.keys(channelCounts).length === 0 && (

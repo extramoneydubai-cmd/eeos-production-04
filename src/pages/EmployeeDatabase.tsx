@@ -286,7 +286,7 @@ export default function EmployeeDatabase() {
   };
   const handleNextPage = () => {
     if (employeesResult?.hasMore && employeesResult?.nextCursor) {
-      setPrevCursors([...prevCursors, cursor]);
+      setPrevCursors([...prevCursors, ...(cursor ? [cursor] : [])]);
       setCursor(employeesResult.nextCursor);
     }
   };

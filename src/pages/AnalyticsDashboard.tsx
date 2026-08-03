@@ -39,7 +39,7 @@ import {
   GraduationCap, BookOpen, Package, Building, FileCheck, Truck,
   UserCheck, ListTodo, Award, AlertTriangle, ShoppingCart,
   CreditCard, ArrowUp, ArrowDown, X, Trash2, Edit, Play,
-  Printer, Mail, GripVertical, Table2, Sparkles, LineChart,
+  Printer, Mail, GripVertical, Table2, Sparkles,
   ChevronRight, Star, Heart, Eye, EyeOff, Maximize2,
   Share2, Clock4, TrendingUpIcon, Zap, Thermometer,
   BarChartHorizontal, PieChart as PieChartIcon2,
@@ -53,6 +53,7 @@ import {
 } from "recharts";
 
 // ─── Analytics Components ─────────────────────────────────────
+import { Id } from "@/convex/_generated/dataModel";
 import { KpiCard } from "@/components/analytics/KpiCard";
 import { AnalyticsFilters } from "@/components/analytics/AnalyticsFilters";
 import { DistributionCard } from "@/components/analytics/DistributionCard";
@@ -211,7 +212,7 @@ function ModuleAnalyticsSection({ moduleId, title, icon: ModIcon, data, onNaviga
               label={kpi.label}
               value={kpi.value}
               subtitle={kpi.subtitle}
-              trend={kpi.trend}
+              trend={kpi.trend as "up" | "down" | "stable"}
               color={colors.bg}
             />
           ))}
@@ -603,7 +604,7 @@ export default function AnalyticsDashboard() {
         id: reportDefId,
         success: !(result && 'error' in result && result.error),
         message: result && 'error' in result && result.error
-          ? (result as { error?: string }).error
+          ? (result as { error?: string }).error ?? "Export failed"
           : `Exported to ${format.toUpperCase()} — ${(result as { recordCount?: number })?.recordCount || 0} records`,
       });
     } catch (err: any) {
@@ -689,12 +690,9 @@ export default function AnalyticsDashboard() {
       {/* ─── Global Filters ────────────────────────────────── */}
       {showFilters && (
         <AnalyticsFilters
-          selectedModule={selectedModule}
-          onModuleChange={setSelectedModule}
-          periodPreset={periodPreset}
-          onPeriodChange={setPeriodPreset}
-          modules={Object.entries(MODULE_LABELS).map(([key, label]) => ({ id: key, label }))}
-          onClose={() => setShowFilters(false)}
+          values={{}}
+          onChange={() => {}}
+          onRefresh={() => setPeriodPreset(p => p)}
         />
       )}
 
@@ -972,14 +970,17 @@ export default function AnalyticsDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="lg:col-span-2">
               <ActivityStream
-                events={recentActivity || []}
-                isLoading={!recentActivity}
-                maxEvents={15}
-                onEventClick={(event) => {
-                  if (event.module && MODULE_ROUTES[event.module]) {
-                    handleNavigate(MODULE_ROUTES[event.module]);
-                  }
-                }}
+                items={(recentActivity || []).map((event: any) => ({
+                  id: event._id || event.id || String(Math.random()),
+                  type: event.eventType || "activity",
+                  title: event.description || event.eventType || event.action || "Activity",
+                  description: event.module ? `Module: ${MODULE_LABELS[event.module] || event.module}` : undefined,
+                  timestamp: typeof event.createdAt === "number" ? event.createdAt : new Date(event.createdAt || Date.now()).getTime(),
+                  onClick: event.module && MODULE_ROUTES[event.module]
+                    ? () => handleNavigate(MODULE_ROUTES[event.module])
+                    : undefined,
+                }))}
+                maxItems={15}
               />
             </div>
             <div className="space-y-3">
