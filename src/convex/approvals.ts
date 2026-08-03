@@ -1,7 +1,28 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { withEventPipeline, entityIdFromArg, userIdFromArg } from "../platform/eventPipeline";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 import { Events } from "./eventRegistry";
+
+// ─── Enterprise Pipeline Config ─────────────────────────────────
+// Every approval mutation routes through withScopeAndEvents() so
+// approvals emit audit, timeline, event-bus, notification-matrix,
+// workflow, automation, search-index and dashboard-refresh signals.
+//
+// getUserId returns undefined intentionally (consistent with the
+// adopted engines): approval args carry no reliable performer id for
+// scope enforcement today, so scope checks stay no-ops while the
+// event pipeline is fully wired. Handlers return the entity id so
+// the pipeline can attach timeline/event-bus records.
+const approvalPipeline = {
+  module: "workflow",
+  getUserId: () => undefined,
+  getEntityCompanyId: () => undefined,
+  getEntityBranchId: () => undefined,
+  triggerWorkflow: true,
+  triggerAutomation: true,
+  registerSearch: true,
+  signalDashboard: true,
+} as const;
 
 // ============================
 // APPROVAL TEMPLATES
@@ -27,18 +48,28 @@ export const createApprovalTemplate = mutation({
       })
     ),
   },
-  handler: async (ctx, args) => {
-    const now = Date.now();
-    return await ctx.db.insert("approvalTemplates", {
-      name: args.name,
-      description: args.description,
-      mode: args.mode as any,
-      phases: args.phases.map((p) => ({ ...p, order: p.order, requiredApprovers: p.requiredApprovers })),
-      isActive: true,
-      createdAt: now,
-      updatedAt: now,
-    });
-  },
+  handler: withScopeAndEvents(
+    {
+      ...approvalPipeline,
+      operation: "create",
+      entity: "approval_template",
+      eventType: "workflow.approval_template.created",
+      title: "Approval Template Created",
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
+      const now = Date.now();
+      return await ctx.db.insert("approvalTemplates", {
+        name: args.name,
+        description: args.description,
+        mode: args.mode as any,
+        phases: args.phases.map((p: { name: string; order: number; requiredApprovers: number }) => ({ ...p, order: p.order, requiredApprovers: p.requiredApprovers })),
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+    },
+  ),
 });
 
 export const updateApprovalTemplate = mutation({
@@ -58,23 +89,46 @@ export const updateApprovalTemplate = mutation({
     ),
     isActive: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { id, ...fields } = args;
-    const patch: Record<string, any> = { updatedAt: Date.now() };
-    if (fields.name !== undefined) patch.name = fields.name;
-    if (fields.description !== undefined) patch.description = fields.description;
-    if (fields.mode !== undefined) patch.mode = fields.mode;
-    if (fields.phases !== undefined) patch.phases = fields.phases;
-    if (fields.isActive !== undefined) patch.isActive = fields.isActive;
-    await ctx.db.patch(id, patch);
-  },
+  handler: withScopeAndEvents(
+    {
+      ...approvalPipeline,
+      operation: "update",
+      entity: "approval_template",
+      eventType: "workflow.approval_template.updated",
+      title: "Approval Template Updated",
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
+      const { id, ...fields } = args;
+      const patch: Record<string, any> = { updatedAt: Date.now() };
+      if (fields.name !== undefined) patch.name = fields.name;
+      if (fields.description !== undefined) patch.description = fields.description;
+      if (fields.mode !== undefined) patch.mode = fields.mode;
+      if (fields.phases !== undefined) patch.phases = fields.phases;
+      if (fields.isActive !== undefined) patch.isActive = fields.isActive;
+      await ctx.db.patch(id, patch);
+      return id;
+    },
+  ),
 });
 
 export const deleteApprovalTemplate = mutation({
   args: { id: v.id("approvalTemplates") },
-  handler: async (ctx, args) => {
-    await ctx.db.delete(args.id);
-  },
+  handler: withScopeAndEvents(
+    {
+      ...approvalPipeline,
+      operation: "delete",
+      entity: "approval_template",
+      eventType: "workflow.approval_template.deleted",
+      title: "Approval Template Deleted",
+      notifyViaMatrix: false,
+      registerSearch: false,
+    },
+    async (ctx, args) => {
+      await ctx.db.delete(args.id);
+      return args.id;
+    },
+  ),
 });
 
 // ============================
@@ -116,22 +170,32 @@ export const createApprovalRequest = mutation({
     mode: v.string(),
     totalPhases: v.number(),
   },
-  handler: async (ctx, args) => {
-    const now = Date.now();
-    return await ctx.db.insert("approvalRequests", {
-      templateId: args.templateId,
-      taskId: args.taskId,
-      requesterId: args.requesterId,
-      title: args.title,
-      description: args.description,
-      mode: args.mode as any,
-      status: "pending",
-      currentPhase: 0,
-      totalPhases: args.totalPhases,
-      createdAt: now,
-      updatedAt: now,
-    });
-  },
+  handler: withScopeAndEvents(
+    {
+      ...approvalPipeline,
+      operation: "create",
+      entity: "approval_request",
+      eventType: "workflow.approval.requested",
+      title: "Approval Requested",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => {
+      const now = Date.now();
+      return await ctx.db.insert("approvalRequests", {
+        templateId: args.templateId,
+        taskId: args.taskId,
+        requesterId: args.requesterId,
+        title: args.title,
+        description: args.description,
+        mode: args.mode as any,
+        status: "pending",
+        currentPhase: 0,
+        totalPhases: args.totalPhases,
+        createdAt: now,
+        updatedAt: now,
+      });
+    },
+  ),
 });
 
 export const approveRequest = mutation({
@@ -141,61 +205,63 @@ export const approveRequest = mutation({
     phaseIndex: v.number(),
     comment: v.optional(v.string()),
   },
-  handler: withEventPipeline(
+  handler: withScopeAndEvents(
     {
-      module: "workflow",
-      entity: "approval",
-      action: "approve",
+      ...approvalPipeline,
+      operation: "approve",
+      entity: "approval_request",
       eventType: Events.WORKFLOW.APPROVAL_COMPLETED,
       title: "Approval completed",
-      getEntityId: entityIdFromArg("requestId"),
-      getUserId: userIdFromArg("userId"),
+      notifyViaMatrix: true,
+      registerSearch: false,
     },
     async (ctx, args) => {
-    const request = await ctx.db.get(args.requestId);
-    if (!request) throw new Error("Approval request not found");
+      const request = await ctx.db.get(args.requestId);
+      if (!request) throw new Error("Approval request not found");
 
-    const now = Date.now();
+      const now = Date.now();
 
-    // Add approver decision
-    await ctx.db.insert("approvalRequestApprovers", {
-      requestId: args.requestId,
-      userId: args.userId,
-      phaseIndex: args.phaseIndex,
-      status: "approved",
-      comment: args.comment,
-      decidedAt: now,
-      createdAt: now,
-    });
-
-    // Check if all required approvers for this phase have approved
-    const phaseApprovers = await ctx.db.query("approvalRequestApprovers")
-      .withIndex("requestId", (q: any) => q.eq("requestId", args.requestId))
-      .collect();
-    const currentPhaseApprovers = phaseApprovers.filter((a: any) => a.phaseIndex === args.phaseIndex && a.status === "approved");
-
-    // For now, move to next phase or complete
-    const nextPhase = args.phaseIndex + 1;
-    if (nextPhase >= request.totalPhases) {
-      await ctx.db.patch(args.requestId, {
+      // Add approver decision
+      await ctx.db.insert("approvalRequestApprovers", {
+        requestId: args.requestId,
+        userId: args.userId,
+        phaseIndex: args.phaseIndex,
         status: "approved",
-        currentPhase: nextPhase,
-        updatedAt: now,
+        comment: args.comment,
+        decidedAt: now,
+        createdAt: now,
       });
-    } else {
-      await ctx.db.patch(args.requestId, {
-        currentPhase: nextPhase,
-        updatedAt: now,
-      });
-    }
 
-    // If linked to a task, update task approval status
-    if (request.taskId) {
-      await ctx.db.patch(request.taskId, {
-        approvalStatus: nextPhase >= request.totalPhases ? "approved" : "pending",
-        updatedAt: now,
-      });
-    }
+      // Check if all required approvers for this phase have approved
+      const phaseApprovers = await ctx.db.query("approvalRequestApprovers")
+        .withIndex("requestId", (q: any) => q.eq("requestId", args.requestId))
+        .collect();
+      const currentPhaseApprovers = phaseApprovers.filter((a: any) => a.phaseIndex === args.phaseIndex && a.status === "approved");
+
+      // For now, move to next phase or complete
+      const nextPhase = args.phaseIndex + 1;
+      if (nextPhase >= request.totalPhases) {
+        await ctx.db.patch(args.requestId, {
+          status: "approved",
+          currentPhase: nextPhase,
+          updatedAt: now,
+        });
+      } else {
+        await ctx.db.patch(args.requestId, {
+          currentPhase: nextPhase,
+          updatedAt: now,
+        });
+      }
+
+      // If linked to a task, update task approval status
+      if (request.taskId) {
+        await ctx.db.patch(request.taskId, {
+          approvalStatus: nextPhase >= request.totalPhases ? "approved" : "pending",
+          updatedAt: now,
+        });
+      }
+
+      return args.requestId;
     },
   ),
 });
@@ -207,43 +273,45 @@ export const rejectRequest = mutation({
     phaseIndex: v.number(),
     comment: v.optional(v.string()),
   },
-  handler: withEventPipeline(
+  handler: withScopeAndEvents(
     {
-      module: "workflow",
-      entity: "approval",
-      action: "reject",
+      ...approvalPipeline,
+      operation: "approve",
+      entity: "approval_request",
       eventType: Events.WORKFLOW.APPROVAL_REJECTED,
       title: "Approval rejected",
-      getEntityId: entityIdFromArg("requestId"),
-      getUserId: userIdFromArg("userId"),
+      notifyViaMatrix: true,
+      registerSearch: false,
     },
     async (ctx, args) => {
-    const request = await ctx.db.get(args.requestId);
-    if (!request) throw new Error("Approval request not found");
+      const request = await ctx.db.get(args.requestId);
+      if (!request) throw new Error("Approval request not found");
 
-    const now = Date.now();
+      const now = Date.now();
 
-    await ctx.db.insert("approvalRequestApprovers", {
-      requestId: args.requestId,
-      userId: args.userId,
-      phaseIndex: args.phaseIndex,
-      status: "rejected",
-      comment: args.comment,
-      decidedAt: now,
-      createdAt: now,
-    });
+      await ctx.db.insert("approvalRequestApprovers", {
+        requestId: args.requestId,
+        userId: args.userId,
+        phaseIndex: args.phaseIndex,
+        status: "rejected",
+        comment: args.comment,
+        decidedAt: now,
+        createdAt: now,
+      });
 
-    await ctx.db.patch(args.requestId, {
-      status: "rejected",
-      updatedAt: now,
-    });
-
-    if (request.taskId) {
-      await ctx.db.patch(request.taskId, {
-        approvalStatus: "rejected",
+      await ctx.db.patch(args.requestId, {
+        status: "rejected",
         updatedAt: now,
       });
-    }
+
+      if (request.taskId) {
+        await ctx.db.patch(request.taskId, {
+          approvalStatus: "rejected",
+          updatedAt: now,
+        });
+      }
+
+      return args.requestId;
     },
   ),
 });

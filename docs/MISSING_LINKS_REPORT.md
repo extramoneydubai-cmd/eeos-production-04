@@ -73,7 +73,7 @@
 
 | # | Finding |
 |---|---|
-| 1 | 241/267 convex files (90%) bypass `withScopeAndEvents` (scope/events/timeline/audit/notify) |
+| 1 | 243/267 convex files bypass `withScopeAndEvents` at file level (91%); **mutation gap closing** — 69+ mutations across support/messenger/marketing/adminOps/tasks/approvals/attendance/leave now wired (24 files adopt) |
 | 2 | Grid runtime (0 consumers) — all tables hand-rolled |
 | 3 | Rule runtime not enforced |
 | 4 | Dynamic menus not used by sidebar |

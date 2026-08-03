@@ -210,14 +210,14 @@
 | Check | Value |
 |---|---|
 | Files | `eventRegistry.ts` (209 events), `src/platform/eventPipeline.ts` (withEventPipeline, withBatchEventPipeline), `withScopeAndEvents.ts` (unified wrapper: scope + events + timeline + audit + notify + workflow + automation + search + dashboard) |
-| Consumers (withEventPipeline) | 10 files: approvals, tasks, chequeEngine, attendanceEngine, eventRegistry, timelineEngine, withScopeAndEvents, financialTransactionEngine, financePlatform, marksEngine |
-| Consumers (withScopeAndEvents) | 16 files: collectionEngine, crmLeads, admissionEngine, withScopeAndEvents, documentAutoGeneration, studentEngine, feeEngine, adoptionHelpers, employeeEngine, autoSearchIndexer, enterpriseValidation, examEngine, procurementEngine, financeEngine, documentEngine, refundEngine |
+| Consumers (withEventPipeline) | 7 files: chequeEngine, eventRegistry, timelineEngine, withScopeAndEvents, financialTransactionEngine, financePlatform, marksEngine (approvals/tasks/attendanceEngine migrated to withScopeAndEvents — Wave 2) |
+| Consumers (withScopeAndEvents) | 24 files: collectionEngine, crmLeads, admissionEngine, withScopeAndEvents, documentAutoGeneration, studentEngine, feeEngine, adoptionHelpers, employeeEngine, autoSearchIndexer, enterpriseValidation, examEngine, procurementEngine, financeEngine, documentEngine, refundEngine, supportEngine, messenger, communicationCampaignEngine, adminOpsEngine, tasks, approvals, attendanceEngine, leaveEngine |
 | Pages | ❌ none direct (backend wrapper) |
 | SDK | ❌ |
 | Dead code | ❌ none — actively used |
-| Remaining adoption | 267 convex files, only ~26 adopt the unified pipeline → **241 files (90%) bypass scope+events+timeline+audit+notify wiring** |
+| Remaining adoption | 267 convex files; 24 adopt the unified `withScopeAndEvents` wrapper (16 at audit time + 4 Wave-1 engines + 4 Wave-2 engines) → 243 files still bypass at file level, but **69+ high-traffic mutations now emit audit+timeline+events+notify+workflow+automation+search+dashboard** (was ~16 at audit time) |
 
-**Verdict: ⚠️ Partial — core plumbing excellent, adoption ~10%.**
+**Verdict: ⚠️ Partial — core plumbing excellent; file-level adoption 24/267 (9%), mutation-level coverage materially improved via Wave 1 + Wave 2 (69+ mutations).**
 
 ---
 

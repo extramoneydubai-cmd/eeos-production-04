@@ -8,6 +8,27 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
+import { Events } from "./eventRegistry";
+
+// ─── Enterprise Pipeline Config ─────────────────────────────────
+// Every leave mutation routes through withScopeAndEvents() so
+// records emit audit, timeline, event-bus, notification-matrix,
+// workflow, automation and dashboard-refresh signals. getUserId
+// returns undefined intentionally (consistent with the adopted
+// engines): leave args carry no reliable performer id for scope
+// enforcement today, so scope checks stay no-ops while the pipeline
+// is fully wired.
+const leavePipeline = {
+  module: "hr",
+  getUserId: () => undefined,
+  getEntityCompanyId: () => undefined,
+  getEntityBranchId: () => undefined,
+  triggerWorkflow: true,
+  triggerAutomation: true,
+  registerSearch: false,
+  signalDashboard: true,
+} as const;
 
 // ─── Leave Types ─────────────────────────────────────────────
 
@@ -22,13 +43,23 @@ export const createLeaveType = mutation({
     requiresApproval: v.optional(v.boolean()),
     genderSpecific: v.optional(v.union(v.literal("male"), v.literal("female"))),
   },
-  handler: async (ctx, args) => {
-    return ctx.db.insert("leaveTypes", {
-      ...args,
-      isActive: true,
-      createdAt: Date.now(),
-    });
-  },
+  handler: withScopeAndEvents(
+    {
+      ...leavePipeline,
+      operation: "create",
+      entity: "leave_type",
+      eventType: "hr.leave_type.created",
+      title: "Leave Type Created",
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
+      return ctx.db.insert("leaveTypes", {
+        ...args,
+        isActive: true,
+        createdAt: Date.now(),
+      });
+    },
+  ),
 });
 
 export const listLeaveTypes = query({
@@ -47,43 +78,53 @@ export const applyLeave = mutation({
     halfDay: v.optional(v.boolean()),
     contactDuringLeave: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+  handler: withScopeAndEvents(
+    {
+      ...leavePipeline,
+      operation: "create",
+      entity: "leave_application",
+      eventType: Events.HR.LEAVE_APPLIED,
+      title: "Leave Applied",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => {
+      const userId = await getAuthUserId(ctx);
+      if (!userId) throw new Error("Not authenticated");
 
-    // Calculate number of days
-    const dayMs = 86400000;
-    const days = Math.round((args.endDate - args.startDate) / dayMs) + 1;
+      // Calculate number of days
+      const dayMs = 86400000;
+      const days = Math.round((args.endDate - args.startDate) / dayMs) + 1;
 
-    // Check balance
-    const leaveType = await ctx.db.get(args.leaveTypeId);
-    if (!leaveType) throw new Error("Leave type not found");
+      // Check balance
+      const leaveType = await ctx.db.get(args.leaveTypeId);
+      if (!leaveType) throw new Error("Leave type not found");
 
-    const balance = await ctx.db.query("leaveBalances")
-      .withIndex("employeeId_leaveTypeId", (q: any) =>
-        q.eq("employeeId", args.employeeId).eq("leaveTypeId", args.leaveTypeId))
-      .first();
+      const balance = await ctx.db.query("leaveBalances")
+        .withIndex("employeeId_leaveTypeId", (q: any) =>
+          q.eq("employeeId", args.employeeId).eq("leaveTypeId", args.leaveTypeId))
+        .first();
 
-    const availableBalance = balance ? (balance as any).balance : (leaveType as any).annualAllowance;
-    if (days > availableBalance && (leaveType as any).requiresApproval !== false) {
-      // Still allow applying, but mark as potential excess
-    }
+      const availableBalance = balance ? (balance as any).balance : (leaveType as any).annualAllowance;
+      if (days > availableBalance && (leaveType as any).requiresApproval !== false) {
+        // Still allow applying, but mark as potential excess
+      }
 
-    return ctx.db.insert("leaveApplications", {
-      employeeId: args.employeeId,
-      leaveTypeId: args.leaveTypeId,
-      startDate: args.startDate,
-      endDate: args.endDate,
-      days,
-      halfDay: args.halfDay || false,
-      reason: args.reason,
-      contactDuringLeave: args.contactDuringLeave,
-      status: "pending",
-      appliedOn: Date.now(),
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    });
-  },
+      return ctx.db.insert("leaveApplications", {
+        employeeId: args.employeeId,
+        leaveTypeId: args.leaveTypeId,
+        startDate: args.startDate,
+        endDate: args.endDate,
+        days,
+        halfDay: args.halfDay || false,
+        reason: args.reason,
+        contactDuringLeave: args.contactDuringLeave,
+        status: "pending",
+        appliedOn: Date.now(),
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+    },
+  ),
 });
 
 export const approveLeave = mutation({
@@ -92,48 +133,58 @@ export const approveLeave = mutation({
     approve: v.boolean(),
     comments: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+  handler: withScopeAndEvents(
+    {
+      ...leavePipeline,
+      operation: "approve",
+      entity: "leave_application",
+      eventType: "hr.leave.decided",
+      title: "Leave Decision",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => {
+      const userId = await getAuthUserId(ctx);
+      if (!userId) throw new Error("Not authenticated");
 
-    const leave = await ctx.db.get(args.id);
-    if (!leave) throw new Error("Leave not found");
-    if (leave.status !== "pending") throw new Error("Leave is not pending");
+      const leave = await ctx.db.get(args.id);
+      if (!leave) throw new Error("Leave not found");
+      if (leave.status !== "pending") throw new Error("Leave is not pending");
 
-    await ctx.db.patch(args.id, {
-      status: args.approve ? "approved" : "rejected",
-      approvedBy: userId,
-      approvedAt: Date.now(),
-      comments: args.comments,
-      updatedAt: Date.now(),
-    });
+      await ctx.db.patch(args.id, {
+        status: args.approve ? "approved" : "rejected",
+        approvedBy: userId,
+        approvedAt: Date.now(),
+        comments: args.comments,
+        updatedAt: Date.now(),
+      });
 
-    // Update leave balance if approved
-    if (args.approve) {
-      const existing = await ctx.db.query("leaveBalances")
-        .withIndex("employeeId_leaveTypeId", (q: any) =>
-          q.eq("employeeId", leave.employeeId).eq("leaveTypeId", leave.leaveTypeId))
-        .first();
+      // Update leave balance if approved
+      if (args.approve) {
+        const existing = await ctx.db.query("leaveBalances")
+          .withIndex("employeeId_leaveTypeId", (q: any) =>
+            q.eq("employeeId", leave.employeeId).eq("leaveTypeId", leave.leaveTypeId))
+          .first();
 
-      if (existing) {
-        await ctx.db.patch(existing._id, {
-          balance: (existing as any).balance - leave.days,
-          used: (existing as any).used + leave.days,
-        });
-      } else {
-        await ctx.db.insert("leaveBalances", {
-          employeeId: leave.employeeId,
-          leaveTypeId: (leave as any).leaveTypeId,
-          balance: (((await ctx.db.get((leave as any).leaveTypeId)) as any)?.annualAllowance ?? 0) - leave.days,
-          used: leave.days,
-          year: new Date().getFullYear(),
-          createdAt: Date.now(),
-        });
+        if (existing) {
+          await ctx.db.patch(existing._id, {
+            balance: (existing as any).balance - leave.days,
+            used: (existing as any).used + leave.days,
+          });
+        } else {
+          await ctx.db.insert("leaveBalances", {
+            employeeId: leave.employeeId,
+            leaveTypeId: (leave as any).leaveTypeId,
+            balance: (((await ctx.db.get((leave as any).leaveTypeId)) as any)?.annualAllowance ?? 0) - leave.days,
+            used: leave.days,
+            year: new Date().getFullYear(),
+            createdAt: Date.now(),
+          });
+        }
       }
-    }
 
-    return args.id;
-  },
+      return args.id;
+    },
+  ),
 });
 
 export const listLeaveApplications = query({

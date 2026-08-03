@@ -119,7 +119,7 @@
 
 | # | Blocker | Phase | Severity | Fix |
 |---|---|---|---|---|
-| B1 | 90% of mutations bypass scope/audit/timeline pipeline | 3/7 | **Critical** | Adopt `withScopeAndEvents` on 4 high-traffic engines (support, messenger, marketing, adminOps) |
+| B1 | 90% of mutations bypass scope/audit/timeline pipeline | 5/7 | **Critical** | ✅ Wave 1 done: support, messenger, marketing (communicationCampaignEngine), adminOps. ✅ Wave 2 done: tasks, approvals, attendanceEngine, leaveEngine. 24 convex files now adopt the unified pipeline (69+ mutations emit audit/timeline/events/notify/workflow/automation/search/dashboard). Continue with remaining high-traffic engines |
 | B2 | No deployment artifacts (Docker/nginx/SSL/backup/monitoring) | 9 | **Critical** | Commit artifacts from DEPLOYMENT_GUIDE + set Convex env |
 | B3 | Crons disabled | 9 | High | Re-enable `crons.ts` for scheduled jobs |
 | B4 | Placeholder menus + unrouted menu links (6) | 2/12 | High | Register routes; flip placeholders |
@@ -145,7 +145,7 @@
 | 1 | **P0 Routes & Menus** | Register 6 broken routes; flip placeholders (B4) |
 | 2 | **P0 Tests** | Add test harness + smoke tests for login/tasks/approvals/notifications (B6) |
 | 3 | **P0 Crons** | Re-enable scheduled jobs (B3) |
-| 4 | **P1 Pipeline adoption** | Wrap support/messenger/marketing/adminOps engines (B1) |
+| 4 | **P1 Pipeline adoption** | ✅ Done: support/messenger/marketing/adminOps (Wave 1) + tasks/approvals/attendance/leave (Wave 2). Next: Wave 3 engines (B1) |
 | 5 | **P1 Notifications** | Unify stacks + matrix (B5) |
 | 6 | **P2 Deployment** | Commit Docker/nginx/SSL/backups; CI deploy (B2) |
 | 7 | **P2 Access** | Enforce scope on remaining engines; verify security policies |

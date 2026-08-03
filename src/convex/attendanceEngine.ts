@@ -5,8 +5,26 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { withEventPipeline, entityIdFromResult } from "../platform/eventPipeline";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 import { Events } from "./eventRegistry";
+
+// ─── Enterprise Pipeline Config ─────────────────────────────────
+// Every attendance mutation routes through withScopeAndEvents() so
+// records emit audit, timeline, event-bus, workflow, automation and
+// dashboard-refresh signals. getUserId returns undefined
+// intentionally (consistent with the adopted engines): attendance
+// args carry no reliable performer id for scope enforcement today,
+// so scope checks stay no-ops while the pipeline is fully wired.
+const attendancePipeline = {
+  module: "hr",
+  getUserId: () => undefined,
+  getEntityCompanyId: () => undefined,
+  getEntityBranchId: () => undefined,
+  triggerWorkflow: false,
+  triggerAutomation: true,
+  registerSearch: false,
+  signalDashboard: true,
+} as const;
 
 export const markAttendance = mutation({
   args: {
@@ -19,49 +37,48 @@ export const markAttendance = mutation({
     notes: v.optional(v.string()),
     markedBy: v.optional(v.id("users")),
   },
-  handler: withEventPipeline(
+  handler: withScopeAndEvents(
     {
-      module: "hr",
+      ...attendancePipeline,
+      operation: "create",
       entity: "attendance",
-      action: "mark",
       eventType: Events.HR.ATTENDANCE_MARKED,
       title: "Attendance marked",
-      getEntityId: entityIdFromResult(),
-      getUserId: (a) => (a as any).markedBy,
+      notifyViaMatrix: false,
     },
     async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+      const userId = await getAuthUserId(ctx);
+      if (!userId) throw new Error("Not authenticated");
 
-    // Check if already marked for this date
-    const existing = await ctx.db.query("attendanceRecords")
-      .withIndex("entityType_entityId_date", (q: any) =>
-        q.eq("entityType", args.entityType).eq("entityId", args.entityId).eq("date", args.date))
-      .first();
+      // Check if already marked for this date
+      const existing = await ctx.db.query("attendanceRecords")
+        .withIndex("entityType_entityId_date", (q: any) =>
+          q.eq("entityType", args.entityType).eq("entityId", args.entityId).eq("date", args.date))
+        .first();
 
-    if (existing) {
-      await ctx.db.patch(existing._id, {
+      if (existing) {
+        await ctx.db.patch(existing._id, {
+          status: args.status,
+          checkIn: args.checkIn || existing.checkIn,
+          checkOut: args.checkOut || existing.checkOut,
+          notes: args.notes,
+          updatedAt: Date.now(),
+        });
+        return existing._id;
+      }
+
+      return ctx.db.insert("attendanceRecords", {
+        entityType: args.entityType,
+        entityId: args.entityId,
+        date: args.date,
         status: args.status,
-        checkIn: args.checkIn || existing.checkIn,
-        checkOut: args.checkOut || existing.checkOut,
+        checkIn: args.checkIn,
+        checkOut: args.checkOut,
         notes: args.notes,
+        markedBy: args.markedBy || userId,
+        createdAt: Date.now(),
         updatedAt: Date.now(),
       });
-      return existing._id;
-    }
-
-    return ctx.db.insert("attendanceRecords", {
-      entityType: args.entityType,
-      entityId: args.entityId,
-      date: args.date,
-      status: args.status,
-      checkIn: args.checkIn,
-      checkOut: args.checkOut,
-      notes: args.notes,
-      markedBy: args.markedBy || userId,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    });
     },
   ),
 });
@@ -77,37 +94,47 @@ export const bulkMarkAttendance = mutation({
       checkOut: v.optional(v.number()),
     })),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+  handler: withScopeAndEvents(
+    {
+      ...attendancePipeline,
+      operation: "create",
+      entity: "attendance",
+      eventType: "hr.attendance.bulk_marked",
+      title: "Bulk attendance marked",
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
+      const userId = await getAuthUserId(ctx);
+      if (!userId) throw new Error("Not authenticated");
 
-    const ids: any[] = [];
-    for (const record of args.records) {
-      const existing = await ctx.db.query("attendanceRecords")
-        .withIndex("entityType_entityId_date", (q: any) =>
-          q.eq("entityType", args.entityType).eq("entityId", record.entityId).eq("date", args.date))
-        .first();
+      const ids: any[] = [];
+      for (const record of args.records) {
+        const existing = await ctx.db.query("attendanceRecords")
+          .withIndex("entityType_entityId_date", (q: any) =>
+            q.eq("entityType", args.entityType).eq("entityId", record.entityId).eq("date", args.date))
+          .first();
 
-      if (existing) {
-        await ctx.db.patch(existing._id, { status: record.status, updatedAt: Date.now() });
-        ids.push(existing._id);
-      } else {
-        const id = await ctx.db.insert("attendanceRecords", {
-          entityType: args.entityType,
-          entityId: record.entityId,
-          date: args.date,
-          status: record.status,
-          checkIn: record.checkIn,
-          checkOut: record.checkOut,
-          markedBy: userId,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        });
-        ids.push(id);
+        if (existing) {
+          await ctx.db.patch(existing._id, { status: record.status, updatedAt: Date.now() });
+          ids.push(existing._id);
+        } else {
+          const id = await ctx.db.insert("attendanceRecords", {
+            entityType: args.entityType,
+            entityId: record.entityId,
+            date: args.date,
+            status: record.status,
+            checkIn: record.checkIn,
+            checkOut: record.checkOut,
+            markedBy: userId,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          });
+          ids.push(id);
+        }
       }
-    }
-    return ids;
-  },
+      return ids;
+    },
+  ),
 });
 
 export const getAttendance = query({

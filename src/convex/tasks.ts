@@ -1,6 +1,28 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { withEventPipeline, entityIdFromResult, entityIdFromArg, userIdFromArg } from "../platform/eventPipeline";
+import { withScopeAndEvents } from "./withScopeAndEvents";
+
+// ─── Enterprise Pipeline Config ─────────────────────────────────
+// Every task mutation routes through withScopeAndEvents() so tasks
+// emit audit, timeline, event-bus, notification-matrix, workflow,
+// automation, search-index and dashboard-refresh signals.
+//
+// getUserId returns undefined intentionally (consistent with the
+// adopted support/messenger/marketing/adminOps engines): task
+// mutations carry no reliable performer id for scope enforcement
+// today, so scope checks stay no-ops while the pipeline is fully
+// wired. Each handler returns its entity id so the pipeline can
+// attach timeline/event-bus records to the task.
+const taskPipeline = {
+  module: "tasks",
+  getUserId: () => undefined,
+  getEntityCompanyId: () => undefined,
+  getEntityBranchId: () => undefined,
+  triggerWorkflow: true,
+  triggerAutomation: true,
+  registerSearch: true,
+  signalDashboard: true,
+} as const;
 
 // ============================
 // TASKS
@@ -69,14 +91,14 @@ export const createTask = mutation({
     entityType: v.optional(v.string()),
     entityId: v.optional(v.string()),
   },
-  handler: withEventPipeline(
+  handler: withScopeAndEvents(
     {
-      module: "tasks",
+      ...taskPipeline,
+      operation: "create",
       entity: "task",
-      action: "create",
-      getEntityId: entityIdFromResult(),
-      getUserId: userIdFromArg("ownerId"),
-      title: "Task created",
+      eventType: "tasks.task.created",
+      title: "Task Created",
+      notifyViaMatrix: true,
     },
     async (ctx, args) => {
       const now = Date.now();
@@ -134,19 +156,30 @@ export const updateTask = mutation({
     approvalRequired: v.optional(v.boolean()),
     order: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
-    const { taskId, ...fields } = args;
-    const updates: Record<string, any> = { updatedAt: Date.now() };
-    if (fields.title !== undefined) updates.title = fields.title;
-    if (fields.description !== undefined) updates.description = fields.description;
-    if (fields.status !== undefined) updates.status = fields.status;
-    if (fields.priority !== undefined) updates.priority = fields.priority;
-    if (fields.assignedTo !== undefined) updates.assignedTo = fields.assignedTo;
-    if (fields.dueDate !== undefined) updates.dueDate = fields.dueDate;
-    if (fields.approvalRequired !== undefined) updates.approvalRequired = fields.approvalRequired;
-    if (fields.order !== undefined) updates.order = fields.order;
-    await ctx.db.patch(taskId, updates);
-  },
+  handler: withScopeAndEvents(
+    {
+      ...taskPipeline,
+      operation: "update",
+      entity: "task",
+      eventType: "tasks.task.updated",
+      title: "Task Updated",
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
+      const { taskId, ...fields } = args;
+      const updates: Record<string, any> = { updatedAt: Date.now() };
+      if (fields.title !== undefined) updates.title = fields.title;
+      if (fields.description !== undefined) updates.description = fields.description;
+      if (fields.status !== undefined) updates.status = fields.status;
+      if (fields.priority !== undefined) updates.priority = fields.priority;
+      if (fields.assignedTo !== undefined) updates.assignedTo = fields.assignedTo;
+      if (fields.dueDate !== undefined) updates.dueDate = fields.dueDate;
+      if (fields.approvalRequired !== undefined) updates.approvalRequired = fields.approvalRequired;
+      if (fields.order !== undefined) updates.order = fields.order;
+      await ctx.db.patch(taskId, updates);
+      return taskId;
+    },
+  ),
 });
 
 export const updateTaskStatus = mutation({
@@ -155,22 +188,35 @@ export const updateTaskStatus = mutation({
     status: v.string(),
     order: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
-    const updates: Record<string, any> = { status: args.status as any, updatedAt: Date.now() };
-    if (args.order !== undefined) updates.order = args.order;
-    await ctx.db.patch(args.taskId, updates);
-  },
+  handler: withScopeAndEvents(
+    {
+      ...taskPipeline,
+      operation: "update",
+      entity: "task",
+      eventType: "tasks.task.status_changed",
+      title: "Task Status Changed",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => {
+      const updates: Record<string, any> = { status: args.status as any, updatedAt: Date.now() };
+      if (args.order !== undefined) updates.order = args.order;
+      await ctx.db.patch(args.taskId, updates);
+      return args.taskId;
+    },
+  ),
 });
 
 export const deleteTask = mutation({
   args: { taskId: v.id("tasks") },
-  handler: withEventPipeline(
+  handler: withScopeAndEvents(
     {
-      module: "tasks",
+      ...taskPipeline,
+      operation: "delete",
       entity: "task",
-      action: "delete",
-      getEntityId: entityIdFromArg("taskId"),
-      title: "Task deleted",
+      eventType: "tasks.task.deleted",
+      title: "Task Deleted",
+      notifyViaMatrix: false,
+      registerSearch: false,
     },
     async (ctx, args) => {
       const participants = await ctx.db.query("taskParticipants").withIndex("taskId", (q: any) => q.eq("taskId", args.taskId)).collect();
@@ -183,6 +229,7 @@ export const deleteTask = mutation({
       for (const c of comments) await ctx.db.delete(c._id);
 
       await ctx.db.delete(args.taskId);
+      return args.taskId;
     },
   ),
 });
@@ -204,21 +251,47 @@ export const addTaskParticipant = mutation({
     userId: v.id("users"),
     role: v.string(),
   },
-  handler: async (ctx, args) => {
-    await ctx.db.insert("taskParticipants", {
-      taskId: args.taskId,
-      userId: args.userId,
-      role: args.role,
-      createdAt: Date.now(),
-    });
-  },
+  handler: withScopeAndEvents(
+    {
+      ...taskPipeline,
+      operation: "update",
+      entity: "task_participant",
+      eventType: "tasks.task.participant_added",
+      title: "Participant Added",
+      notifyViaMatrix: true,
+      registerSearch: false,
+      signalDashboard: false,
+    },
+    async (ctx, args) => {
+      await ctx.db.insert("taskParticipants", {
+        taskId: args.taskId,
+        userId: args.userId,
+        role: args.role,
+        createdAt: Date.now(),
+      });
+      return args.taskId;
+    },
+  ),
 });
 
 export const removeTaskParticipant = mutation({
   args: { participantId: v.id("taskParticipants") },
-  handler: async (ctx, args) => {
-    await ctx.db.delete(args.participantId);
-  },
+  handler: withScopeAndEvents(
+    {
+      ...taskPipeline,
+      operation: "update",
+      entity: "task_participant",
+      eventType: "tasks.task.participant_removed",
+      title: "Participant Removed",
+      notifyViaMatrix: false,
+      registerSearch: false,
+      signalDashboard: false,
+    },
+    async (ctx, args) => {
+      await ctx.db.delete(args.participantId);
+      return args.participantId;
+    },
+  ),
 });
 
 // ============================
@@ -237,17 +310,30 @@ export const addChecklistItem = mutation({
     taskId: v.id("tasks"),
     text: v.string(),
   },
-  handler: async (ctx, args) => {
-    const existing = await ctx.db.query("taskChecklistItems").withIndex("taskId", (q) => q.eq("taskId", args.taskId)).collect();
-    const maxOrder = existing.reduce((max, i) => Math.max(max, i.order), -1);
-    await ctx.db.insert("taskChecklistItems", {
-      taskId: args.taskId,
-      text: args.text,
-      completed: false,
-      order: maxOrder + 1,
-      createdAt: Date.now(),
-    });
-  },
+  handler: withScopeAndEvents(
+    {
+      ...taskPipeline,
+      operation: "create",
+      entity: "task_checklist_item",
+      eventType: "tasks.task.checklist_added",
+      title: "Checklist Item Added",
+      notifyViaMatrix: false,
+      registerSearch: false,
+      signalDashboard: false,
+    },
+    async (ctx, args) => {
+      const existing = await ctx.db.query("taskChecklistItems").withIndex("taskId", (q: any) => q.eq("taskId", args.taskId)).collect();
+      const maxOrder = existing.reduce((max: number, i: any) => Math.max(max, i.order), -1);
+      await ctx.db.insert("taskChecklistItems", {
+        taskId: args.taskId,
+        text: args.text,
+        completed: false,
+        order: maxOrder + 1,
+        createdAt: Date.now(),
+      });
+      return args.taskId;
+    },
+  ),
 });
 
 export const toggleChecklistItem = mutation({
@@ -255,20 +341,46 @@ export const toggleChecklistItem = mutation({
     itemId: v.id("taskChecklistItems"),
     completed: v.boolean(),
   },
-  handler: async (ctx, args) => {
-    const now = Date.now();
-    await ctx.db.patch(args.itemId, {
-      completed: args.completed,
-      completedAt: args.completed ? now : undefined,
-    });
-  },
+  handler: withScopeAndEvents(
+    {
+      ...taskPipeline,
+      operation: "update",
+      entity: "task_checklist_item",
+      eventType: "tasks.task.checklist_toggled",
+      title: "Checklist Item Toggled",
+      notifyViaMatrix: false,
+      registerSearch: false,
+      signalDashboard: false,
+    },
+    async (ctx, args) => {
+      const now = Date.now();
+      await ctx.db.patch(args.itemId, {
+        completed: args.completed,
+        completedAt: args.completed ? now : undefined,
+      });
+      return args.itemId;
+    },
+  ),
 });
 
 export const deleteChecklistItem = mutation({
   args: { itemId: v.id("taskChecklistItems") },
-  handler: async (ctx, args) => {
-    await ctx.db.delete(args.itemId);
-  },
+  handler: withScopeAndEvents(
+    {
+      ...taskPipeline,
+      operation: "delete",
+      entity: "task_checklist_item",
+      eventType: "tasks.task.checklist_deleted",
+      title: "Checklist Item Deleted",
+      notifyViaMatrix: false,
+      registerSearch: false,
+      signalDashboard: false,
+    },
+    async (ctx, args) => {
+      await ctx.db.delete(args.itemId);
+      return args.itemId;
+    },
+  ),
 });
 
 // ============================
@@ -290,20 +402,46 @@ export const addComment = mutation({
     content: v.string(),
     isInternal: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    await ctx.db.insert("taskComments", {
-      taskId: args.taskId,
-      userId: args.userId,
-      content: args.content,
-      isInternal: args.isInternal,
-      createdAt: Date.now(),
-    });
-  },
+  handler: withScopeAndEvents(
+    {
+      ...taskPipeline,
+      operation: "create",
+      entity: "task_comment",
+      eventType: "tasks.task.commented",
+      title: "Comment Added",
+      notifyViaMatrix: true,
+      registerSearch: false,
+      signalDashboard: false,
+    },
+    async (ctx, args) => {
+      await ctx.db.insert("taskComments", {
+        taskId: args.taskId,
+        userId: args.userId,
+        content: args.content,
+        isInternal: args.isInternal,
+        createdAt: Date.now(),
+      });
+      return args.taskId;
+    },
+  ),
 });
 
 export const deleteComment = mutation({
   args: { commentId: v.id("taskComments") },
-  handler: async (ctx, args) => {
-    await ctx.db.delete(args.commentId);
-  },
+  handler: withScopeAndEvents(
+    {
+      ...taskPipeline,
+      operation: "delete",
+      entity: "task_comment",
+      eventType: "tasks.task.comment_deleted",
+      title: "Comment Deleted",
+      notifyViaMatrix: false,
+      registerSearch: false,
+      signalDashboard: false,
+    },
+    async (ctx, args) => {
+      await ctx.db.delete(args.commentId);
+      return args.commentId;
+    },
+  ),
 });

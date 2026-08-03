@@ -190,7 +190,7 @@ The following modules currently write events directly instead of using the pipel
 | Student | `studentEngine.ts` | `createTimelineEvent()` | 🔴 P0 |
 | Student | `studentLifecycle.ts` | `createTimelineEvent()` | 🔴 P0 |
 | Finance | `financeEngine.ts` | inline writes | 🟡 P1 |
-| Tasks | `tasks.ts` | none (missing events entirely) | 🟡 P1 |
+| Tasks | `tasks.ts` | ✅ migrated to `withScopeAndEvents` (Wave 2) — all 11 mutations wired | ✅ Done |
 | Employee | `employeeEngine.ts` | inline writes | 🟡 P1 |
 
 ## Event Type Naming Convention
