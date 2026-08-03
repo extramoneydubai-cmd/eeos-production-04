@@ -3,5 +3,5 @@
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.page.tsbuildinfo"
   },
-  "include": ["src/pages/AcademicDatabase.tsx"]
+  "include": ["src/pages/AcademicDatabase.tsx", "vly-toolbar-readonly.tsx"]
 }
