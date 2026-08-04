@@ -14,6 +14,28 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
+import { Events } from "./eventRegistry";
+
+// ─── Enterprise Pipeline Config ─────────────────────────────────
+// Every production mutation routes through withScopeAndEvents() so
+// production changes emit audit, timeline, event-bus, notification-matrix,
+// workflow, automation, search-index and dashboard-refresh signals.
+//
+// getUserId returns undefined intentionally: production mutations are called
+// by the production SDK and portals that pass performer strings rather than
+// a reliable Convex user id, so scope enforcement stays a no-op here while
+// the event pipeline is fully wired.
+const productionPipeline = {
+  module: "production",
+  getUserId: () => undefined,
+  getEntityCompanyId: () => undefined,
+  getEntityBranchId: () => undefined,
+  triggerWorkflow: true,
+  triggerAutomation: true,
+  registerSearch: true,
+  signalDashboard: true,
+} as const;
 
 /** Production pipeline KPIs for the dashboard. */
 export const getProductionDashboard = query({
@@ -70,7 +92,16 @@ export const createProductionTask = mutation({
     priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"))),
     description: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...productionPipeline,
+      operation: "create",
+      entity: "production_task",
+      eventType: Events.PRODUCTION.TASK_CREATED,
+      title: "Production Task Created",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
     const now = Date.now();
@@ -86,7 +117,8 @@ export const createProductionTask = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+    }
+  ),
 });
 
 /** Advance (or move) a production task to another pipeline stage. */
@@ -99,12 +131,22 @@ export const updateProductionTaskStatus = mutation({
       v.literal("published"), v.literal("rejected"),
     ),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...productionPipeline,
+      operation: "update",
+      entity: "production_task",
+      eventType: "production.task.status.updated",
+      title: "Production Task Status Updated",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
     const task = await ctx.db.get(args.taskId);
     if (!task) throw new Error("Production task not found");
     await ctx.db.patch(args.taskId, { status: args.status, updatedAt: Date.now() });
     return args.taskId;
-  },
+    }
+  ),
 });

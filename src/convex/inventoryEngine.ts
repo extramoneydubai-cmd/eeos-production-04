@@ -1,6 +1,28 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
+import { Events } from "./eventRegistry";
+
+// ─── Enterprise Pipeline Config ─────────────────────────────────
+// Every inventory mutation routes through withScopeAndEvents() so
+// inventory changes emit audit, timeline, event-bus, notification-matrix,
+// workflow, automation, search-index and dashboard-refresh signals.
+//
+// getUserId returns undefined intentionally: inventory mutations are
+// called by the inventory SDK and portals that pass performer strings
+// rather than a reliable Convex user id, so scope enforcement stays a
+// no-op here while the event pipeline is fully wired.
+const inventoryPipeline = {
+  module: "inventory",
+  getUserId: () => undefined,
+  getEntityCompanyId: () => undefined,
+  getEntityBranchId: () => undefined,
+  triggerWorkflow: true,
+  triggerAutomation: true,
+  registerSearch: true,
+  signalDashboard: true,
+} as const;
 
 // ─── INVENTORY CATEGORIES ─────────────────────────────
 
@@ -11,7 +33,16 @@ export const createCategory = mutation({
     description: v.optional(v.string()),
     parentId: v.optional(v.id("inventoryCategories")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...inventoryPipeline,
+      operation: "create",
+      entity: "inventory_category",
+      eventType: "inventory.category.created",
+      title: "Inventory Category Created",
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
@@ -21,7 +52,8 @@ export const createCategory = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+    }
+  ),
 });
 
 export const listCategories = query({
@@ -44,7 +76,16 @@ export const createWarehouse = mutation({
     type: v.union(v.literal("warehouse"), v.literal("branch_store"), v.literal("department_store")),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...inventoryPipeline,
+      operation: "create",
+      entity: "warehouse",
+      eventType: "inventory.warehouse.created",
+      title: "Warehouse Created",
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
@@ -54,7 +95,8 @@ export const createWarehouse = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+    }
+  ),
 });
 
 export const listWarehouses = query({
@@ -89,7 +131,16 @@ export const createInventoryItem = mutation({
     qrCode: v.optional(v.string()),
     serialNumber: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...inventoryPipeline,
+      operation: "create",
+      entity: "inventory_item",
+      eventType: Events.INVENTORY.STOCK_ADDED,
+      title: "Inventory Item Created",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
@@ -121,7 +172,8 @@ export const createInventoryItem = mutation({
     }
 
     return id;
-  },
+    }
+  ),
 });
 
 export const updateInventoryItem = mutation({
@@ -138,11 +190,21 @@ export const updateInventoryItem = mutation({
     qrCode: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...inventoryPipeline,
+      operation: "update",
+      entity: "inventory_item",
+      eventType: "inventory.item.updated",
+      title: "Inventory Item Updated",
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
     const { id, ...fields } = args;
     await ctx.db.patch(id, { ...fields, updatedAt: Date.now() });
     return id;
-  },
+    }
+  ),
 });
 
 export const adjustStock = mutation({
@@ -151,7 +213,16 @@ export const adjustStock = mutation({
     newStock: v.number(),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...inventoryPipeline,
+      operation: "update",
+      entity: "inventory_item",
+      eventType: Events.INVENTORY.STOCK_ADJUSTED,
+      title: "Stock Adjusted",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
@@ -180,7 +251,8 @@ export const adjustStock = mutation({
     });
 
     return args.itemId;
-  },
+    }
+  ),
 });
 
 export const listInventoryItems = query({
@@ -274,7 +346,16 @@ export const recordStockMovement = mutation({
     referenceId: v.optional(v.string()),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...inventoryPipeline,
+      operation: "create",
+      entity: "stock_movement",
+      eventType: "inventory.stock.movement",
+      title: "Stock Movement Recorded",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
@@ -306,7 +387,8 @@ export const recordStockMovement = mutation({
     });
 
     return { id, balanceBefore, balanceAfter };
-  },
+    }
+  ),
 });
 
 // ─── INVENTORY DASHBOARD ──────────────────────────────

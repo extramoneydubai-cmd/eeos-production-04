@@ -175,7 +175,7 @@ All live, real-time, no mock values. EnterpriseHealthCenter / OperationsCenter p
 
 **Goal:** close the "~90% pipeline gap" by routing the highest-traffic module mutations through the unified enterprise pipeline (`withScopeAndEvents.ts`). No new engines were built; existing code was reused.
 
-### Adopted engines (4 high-traffic)
+### Adopted engines (8 high-traffic)
 
 | Engine | Module | Mutations wrapped | Wrapper config | Event types emitted (code-derived) |
 |---|---|---:|---|---|
@@ -183,8 +183,12 @@ All live, real-time, no mock values. EnterpriseHealthCenter / OperationsCenter p
 | `messenger.ts` | messenger | **10/10** (`createChannel`, `addChannelMember`, `removeChannelMember`, `sendMessage`, `pinMessage`, `unpinMessage`, `sendDirectMessage`, `markDirectMessagesRead`, `createAnnouncement`, `markChannelRead`) | `messagePipeline` spread | `messenger.channel.created`, `messenger.channel.member_added/removed`, `messenger.channel.read`, `messenger.direct_message.sent/read`, `messenger.message.sent/pinned/unpinned`, `messenger.announcement.created` |
 | `communicationCampaignEngine.ts` | marketing | **5/5** (`createCommTemplate`, `createCampaign`, `launchCampaign`, `trackDelivery`, `updateCampaignStatus`) | `campaignPipeline` spread | `Events.MARKETING.CAMPAIGN_CREATED/CAMPAIGN_LAUNCHED` + `marketing.campaign.updated`, `marketing.template.created`, `marketing.delivery.updated` |
 | `adminOpsEngine.ts` | admin | **24/24** (visitors: register/approve/deny/check-in/check-out; meeting rooms; office assets; stationery; housekeeping; security checks; utility bills; AMC; vendor visits; incidents) | `adminPipeline` spread | 20+ `admin.*` types (`admin.visitor.approved`, `admin.security_check.completed`, `admin.utility_bill.paid`, `admin.incident.*`, …) |
+| `inventoryEngine.ts` | inventory | **6/6** (`createCategory`, `createWarehouse`, `createInventoryItem`, `updateInventoryItem`, `adjustStock`, `recordStockMovement`) | `inventoryPipeline` spread | `Events.INVENTORY.STOCK_ADDED/STOCK_ADJUSTED` + `inventory.category.created`, `inventory.warehouse.created`, `inventory.item.created/updated`, `inventory.stock.movement` |
+| `assetEngine.ts` | asset | **5/5** (`issueItem`, `returnIssuedItem`, `allocateAsset`, `returnAsset`, `recordReturn`) | `assetPipeline` spread | `Events.INVENTORY.ASSET_ASSIGNED/ASSET_RETURNED` + `asset.issue.created/returned`, `asset.return.recorded` |
+| `productionSdk.ts` | production | **2/2** (`createProductionTask`, `updateProductionTaskStatus`) | `productionPipeline` spread | `Events.PRODUCTION.TASK_CREATED` + `production.task.status.updated` |
+| `schedulingSdk.ts` | scheduling | **5/5** (`create`, `confirm`, `cancel`, `complete`, `remove`) | `schedulePipeline` spread | `Events.SCHEDULING.CREATED/CONFIRMED/CANCELLED/COMPLETED` + `scheduling.removed` (scope extractors wired from `companyId`/`branchId`/`departmentId` args where present) |
 
-**Total: 47 mutations newly routed through the unified pipeline.**
+**Total: 65 mutations newly routed through the unified pipeline.**
 
 ### Pipeline stages now active on these mutations
 
@@ -192,12 +196,12 @@ Inserted post-handler by `withScopeAndEvents`: audit log (`auditLogs`), timeline
 
 ### Adoption delta (code-derived, `grep -rl` census of `src/convex`)
 
-| Metric | P-020 | P-022 | Now |
-|---|---|---:|---:|
-| Files using `withEventPipeline`/`withScopeAndEvents`/`withBatchEventPipeline` | 22 | 25 | **30** |
-| Convex modules (`.ts` in `src/convex`) | — | 260 | **267** |
-| Pipeline adoption of convex surface | 8.5% | 9.6% | **11.2%** |
+| Metric | P-020 | P-022 | P-023 | Now |
+|---|---|---:|---:|---:|
+| Files using `withEventPipeline`/`withScopeAndEvents`/`withBatchEventPipeline` | 22 | 25 | 30 | **34** |
+| Convex modules (`.ts` in `src/convex`) | — | 260 | 267 | **267** |
+| Pipeline adoption of convex surface | 8.5% | 9.6% | 11.2% | **12.7%** |
 
 ### Known limitation (documented, not a regression)
 
-All four configs set `getUserId: () => undefined` (consistent with the earlier `tasks.ts` / `leaveEngine` adoption) because these mutations carry no reliable performer id. Consequence: the **scope gate is a no-op** on these 47 mutations while audit/timeline/events/notify/workflow/automation/search/dashboard remain fully wired. Scope enforcement stays active on engines that accept `createdBy`/`performedBy` (e.g. `crmLeads`, `feeEngine`).
+All eight configs set `getUserId: () => undefined` (consistent with the earlier `tasks.ts` / `leaveEngine` adoption) because these mutations carry no reliable performer id. Consequence: the **scope gate is a no-op** on these 65 mutations while audit/timeline/events/notify/workflow/automation/search/dashboard remain fully wired. Scope enforcement stays active on engines that accept `createdBy`/`performedBy` (e.g. `crmLeads`, `feeEngine`). Note `schedulingSdk` still wires `getEntityCompanyId`/`getEntityBranchId`/`getEntityDepartmentId` from args so audit/timeline/event rows carry real org scope even though the gate is inert.

@@ -7,7 +7,31 @@
  */
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
+import { Events } from "./eventRegistry";
+
+// ─── Enterprise Pipeline Config ─────────────────────────────────
+// Every scheduling mutation routes through withScopeAndEvents() so
+// schedule changes emit audit, timeline, event-bus, notification-matrix,
+// workflow, automation, search-index and dashboard-refresh signals.
+//
+// getUserId returns undefined intentionally: scheduling mutations are
+// called by the scheduling SDK and portals that pass performer/createdBy
+// strings rather than a reliable Convex user id, so scope enforcement
+// stays a no-op here while the event pipeline is fully wired. Where the
+// args carry company/branch/department scope it is still recorded on
+// audit, timeline and event rows.
+const schedulePipeline = {
+  module: "scheduling",
+  getUserId: () => undefined,
+  getEntityCompanyId: (args: { companyId?: any }) => args.companyId,
+  getEntityBranchId: (args: { branchId?: any }) => args.branchId,
+  getEntityDepartmentId: (args: { departmentId?: any }) => args.departmentId,
+  triggerWorkflow: true,
+  triggerAutomation: true,
+  registerSearch: true,
+  signalDashboard: true,
+} as const;
 
 const DAY_MS = 86_400_000;
 
@@ -179,7 +203,16 @@ export const create = mutation({
     createdBy: v.optional(v.id("users")),
     owner: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...schedulePipeline,
+      operation: "create",
+      entity: "schedule",
+      eventType: Events.SCHEDULING.CREATED,
+      title: "Schedule Created",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => {
     const now = Date.now();
     return await ctx.db.insert("schedules", {
       title: args.title,
@@ -199,7 +232,8 @@ export const create = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+    }
+  ),
 });
 
 /** Confirm a pending schedule. */
@@ -208,7 +242,16 @@ export const confirm = mutation({
     scheduleId: v.id("schedules"),
     approvedBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...schedulePipeline,
+      operation: "update",
+      entity: "schedule",
+      eventType: Events.SCHEDULING.CONFIRMED,
+      title: "Schedule Confirmed",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => {
     const schedule = await ctx.db.get(args.scheduleId);
     if (!schedule) throw new Error("Schedule not found");
     await ctx.db.patch(args.scheduleId, {
@@ -218,7 +261,8 @@ export const confirm = mutation({
       updatedAt: Date.now(),
     });
     return args.scheduleId;
-  },
+    }
+  ),
 });
 
 /** Cancel a schedule. */
@@ -227,7 +271,16 @@ export const cancel = mutation({
     scheduleId: v.id("schedules"),
     reason: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...schedulePipeline,
+      operation: "update",
+      entity: "schedule",
+      eventType: Events.SCHEDULING.CANCELLED,
+      title: "Schedule Cancelled",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => {
     const schedule = await ctx.db.get(args.scheduleId);
     if (!schedule) throw new Error("Schedule not found");
     await ctx.db.patch(args.scheduleId, {
@@ -237,13 +290,23 @@ export const cancel = mutation({
       updatedAt: Date.now(),
     });
     return args.scheduleId;
-  },
+    }
+  ),
 });
 
 /** Complete a schedule. */
 export const complete = mutation({
   args: { scheduleId: v.id("schedules") },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...schedulePipeline,
+      operation: "update",
+      entity: "schedule",
+      eventType: Events.SCHEDULING.COMPLETED,
+      title: "Schedule Completed",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => {
     const schedule = await ctx.db.get(args.scheduleId);
     if (!schedule) throw new Error("Schedule not found");
     await ctx.db.patch(args.scheduleId, {
@@ -252,16 +315,27 @@ export const complete = mutation({
       updatedAt: Date.now(),
     });
     return args.scheduleId;
-  },
+    }
+  ),
 });
 
 /** Hard-delete a schedule. */
 export const remove = mutation({
   args: { scheduleId: v.id("schedules") },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...schedulePipeline,
+      operation: "delete",
+      entity: "schedule",
+      eventType: "scheduling.removed",
+      title: "Schedule Removed",
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
     const schedule = await ctx.db.get(args.scheduleId);
     if (!schedule) throw new Error("Schedule not found");
     await ctx.db.delete(args.scheduleId);
     return args.scheduleId;
-  },
+    }
+  ),
 });
