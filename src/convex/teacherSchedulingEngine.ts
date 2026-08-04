@@ -17,7 +17,11 @@ const teacherSchedulePipeline = {
   module: "scheduling",
   getUserId: () => undefined,
   getEntityCompanyId: () => undefined,
-  getEntityBranchId: (args: { branchId?: any }) => args.branchId,
+  // Accessor param is intentionally untyped (any): a typed signature would
+  // constrain the generic args type P to a narrow shape and break handler
+  // arg access. Scope is still resolved from args at runtime and recorded on
+  // audit, timeline and event rows.
+  getEntityBranchId: (args: any) => args.branchId,
   getEntityDepartmentId: () => undefined,
   triggerWorkflow: true,
   triggerAutomation: true,

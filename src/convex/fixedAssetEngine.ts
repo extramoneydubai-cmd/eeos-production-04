@@ -24,10 +24,12 @@ const fixedAssetPipeline = {
   module: "asset",
   getUserId: () => undefined,
   getEntityCompanyId: () => undefined,
-  getEntityBranchId: (args: { branchId?: any; newBranchId?: any }) =>
-    args.branchId ?? args.newBranchId,
-  getEntityDepartmentId: (args: { departmentId?: any; newDepartmentId?: any }) =>
-    args.departmentId ?? args.newDepartmentId,
+  // Accessor params are intentionally untyped (any): typed signatures would
+  // constrain the generic args type P to a narrow shape and break handler
+  // arg access. Scope is still resolved from args at runtime and recorded on
+  // audit, timeline and event rows.
+  getEntityBranchId: (args: any) => args.branchId ?? args.newBranchId,
+  getEntityDepartmentId: (args: any) => args.departmentId ?? args.newDepartmentId,
   triggerWorkflow: true,
   triggerAutomation: true,
   registerSearch: true,
