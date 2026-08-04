@@ -26,6 +26,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { ScopeEngine } from "./scopeEngine";
+import { getUserFromToken } from "./authHelpers";
 import { withEventPipeline, EventPipelineConfig, MutationContext, MutationResult, extractIdFromResult } from "../platform/eventPipeline";
 import { indexEntity } from "./autoSearchIndexer";
 
@@ -75,11 +76,43 @@ export function withScopeAndEvents<P = any, R = any>(
   handler: (ctx: any, args: P) => Promise<R>,
 ): (ctx: any, args: P) => Promise<R> {
   return async (ctx: any, args: P) => {
-    const userId = config.getUserId?.(args);
+    const raw = args as any;
+
+    // ── Real performer resolution ────────────────────────────
+    // When the caller supplies a session token we resolve the ACTUAL user
+    // server-side from the sessions table. The token becomes the authoritative
+    // identity: scope checks, audit, timeline and events all use it, and a
+    // forged createdBy / performedBy / userId in args can no longer widen
+    // access. A present-but-invalid token rejects the call outright instead of
+    // silently falling back to a claimed identity.
+    //
+    // When no token is provided we fall back to the client-declared id from
+    // config.getUserId (legacy "claimed" identity used by seeding, demo and
+    // system/SDK flows that do not authenticate yet).
+    const token =
+      typeof raw?.token === "string" && raw.token.length > 0 ? raw.token : undefined;
+    let userId: Id<"users"> | undefined;
+    if (token) {
+      const sessionUser = await getUserFromToken(ctx as any, token);
+      if (!sessionUser) {
+        throw new Error(
+          "Session expired or invalid — authentication required",
+        );
+      }
+      userId = sessionUser._id as Id<"users">;
+      // Never persist the auth token into business documents via ...args spreads
+      delete raw.token;
+    } else {
+      userId = config.getUserId?.(args) as Id<"users"> | undefined;
+    }
+
+    // Handlers may read the verified performer (replaces dead getAuthUserId calls)
+    (ctx as any).__performerUserId = userId;
+
     let scope: ScopeEngine | null = null;
 
     if (userId) {
-      scope = await ScopeEngine.forUser(ctx as any, userId as Id<"users">);
+      scope = await ScopeEngine.forUser(ctx as any, userId);
     }
 
     const entityScope = {

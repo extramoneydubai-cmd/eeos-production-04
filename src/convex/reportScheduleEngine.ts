@@ -1,6 +1,5 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Enterprise Pipeline Config ─────────────────────────────────
@@ -28,6 +27,7 @@ const reportSchedulePipeline = {
 
 export const createSchedule = mutation({
   args: {
+    token: v.optional(v.string()),
     reportId: v.id("reportDefinitions"),
     name: v.string(),
     frequency: v.union(v.literal("daily"), v.literal("weekly"), v.literal("monthly")),
@@ -48,7 +48,7 @@ export const createSchedule = mutation({
       notifyViaMatrix: true,
     },
     async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+    const userId = (ctx as any).__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     // Calculate next run
@@ -68,6 +68,7 @@ export const createSchedule = mutation({
 
 export const updateSchedule = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("reportSchedules"),
     name: v.optional(v.string()),
     frequency: v.optional(v.union(v.literal("daily"), v.literal("weekly"), v.literal("monthly"))),
@@ -112,7 +113,7 @@ export const updateSchedule = mutation({
 });
 
 export const toggleSchedule = mutation({
-  args: { id: v.id("reportSchedules") },
+  args: { token: v.optional(v.string()), id: v.id("reportSchedules") },
   handler: withScopeAndEvents(
     {
       ...reportSchedulePipeline,
@@ -132,7 +133,7 @@ export const toggleSchedule = mutation({
 });
 
 export const deleteSchedule = mutation({
-  args: { id: v.id("reportSchedules") },
+  args: { token: v.optional(v.string()), id: v.id("reportSchedules") },
   handler: withScopeAndEvents(
     {
       ...reportSchedulePipeline,
@@ -183,7 +184,7 @@ export const executeDueSchedules = mutation({
       notifyViaMatrix: false,
     },
     async (ctx) => {
-    const userId = await getAuthUserId(ctx);
+    const userId = (ctx as any).__performerUserId;
     const now = Date.now();
 
     const dueSchedules = await ctx.db.query("reportSchedules")
@@ -351,6 +352,7 @@ function calculateNextRun(
 
 export const saveDashboardLayout = mutation({
   args: {
+    token: v.optional(v.string()),
     name: v.string(),
     layout: v.string(),
     widgets: v.string(),
@@ -367,7 +369,7 @@ export const saveDashboardLayout = mutation({
       notifyViaMatrix: false,
     },
     async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+    const userId = (ctx as any).__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     // If setting as default, unset other defaults

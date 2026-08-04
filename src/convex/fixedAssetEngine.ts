@@ -7,7 +7,6 @@
 
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Enterprise Pipeline Config ─────────────────────────────────
@@ -51,6 +50,7 @@ export const listAssetCategories = query({
 
 export const createAssetCategory = mutation({
   args: {
+    token: v.optional(v.string()),
     name: v.string(), code: v.string(),
     depreciationMethod: v.union(v.literal("straight_line"), v.literal("declining"), v.literal("sum_of_years"), v.literal("units_of_production"), v.literal("none")),
     usefulLifeYears: v.number(),
@@ -67,7 +67,7 @@ export const createAssetCategory = mutation({
       notifyViaMatrix: false,
     },
     async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+    const userId = (ctx as any).__performerUserId;
     if (!userId) throw new Error("Not authenticated");
     const now = Date.now();
     return await ctx.db.insert("assetCategories", {
@@ -108,6 +108,7 @@ export const getFixedAsset = query({
 
 export const createFixedAsset = mutation({
   args: {
+    token: v.optional(v.string()),
     name: v.string(), assetCode: v.string(),
     categoryId: v.id("assetCategories"),
     purchaseDate: v.number(),
@@ -130,7 +131,7 @@ export const createFixedAsset = mutation({
       notifyViaMatrix: true,
     },
     async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+    const userId = (ctx as any).__performerUserId;
     if (!userId) throw new Error("Not authenticated");
     const now = Date.now();
 
@@ -154,6 +155,7 @@ export const createFixedAsset = mutation({
 
 export const updateFixedAsset = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("fixedAssets"),
     location: v.optional(v.string()),
     departmentId: v.optional(v.id("departments")),
@@ -182,7 +184,7 @@ export const updateFixedAsset = mutation({
 // ═══════════════════════════════════════════════════════════════════
 
 export const calculateDepreciation = mutation({
-  args: { assetId: v.id("fixedAssets") },
+  args: { token: v.optional(v.string()), assetId: v.id("fixedAssets") },
   handler: withScopeAndEvents(
     {
       ...fixedAssetPipeline,
@@ -281,6 +283,7 @@ export const getAssetDepreciationSchedule = query({
 
 export const transferAsset = mutation({
   args: {
+    token: v.optional(v.string()),
     assetId: v.id("fixedAssets"),
     newBranchId: v.optional(v.id("orgBranches")),
     newDepartmentId: v.optional(v.id("departments")),
@@ -307,6 +310,7 @@ export const transferAsset = mutation({
 
 export const writeOffAsset = mutation({
   args: {
+    token: v.optional(v.string()),
     assetId: v.id("fixedAssets"),
     writeOffDate: v.number(),
     reason: v.string(),
@@ -337,6 +341,7 @@ export const writeOffAsset = mutation({
 
 export const disposeAsset = mutation({
   args: {
+    token: v.optional(v.string()),
     assetId: v.id("fixedAssets"),
     disposalDate: v.number(),
     disposalType: v.union(v.literal("sold"), v.literal("scrapped"), v.literal("donated"), v.literal("lost")),

@@ -477,6 +477,7 @@ export const detectConflicts = query({
 
 export const assignTeacherSchedule = mutation({
   args: {
+    token: v.optional(v.string()),
     teacherId: v.id("employees"),
     dayOfWeek: v.number(),
     startTime: v.number(),
@@ -504,6 +505,7 @@ export const assignTeacherSchedule = mutation({
 
 export const autoScheduleSubstitute = mutation({
   args: {
+    token: v.optional(v.string()),
     absentTeacherId: v.id("employees"),
     date: v.number(),
     startTime: v.number(),
@@ -559,6 +561,7 @@ export const autoScheduleSubstitute = mutation({
 
 export const updateTeacherSettings = mutation({
   args: {
+    token: v.optional(v.string()),
     teacherId: v.id("employees"),
     maxDailyHours: v.optional(v.number()),
     maxWeeklyHours: v.optional(v.number()),

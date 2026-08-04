@@ -206,6 +206,7 @@ export const getReorderSuggestions = query({
 
 export const adjustStock = mutation({
   args: {
+    token: v.optional(v.string()),
     itemId: v.id("inventoryItems"),
     quantity: v.number(),
     adjustmentType: v.union(
@@ -278,6 +279,7 @@ export const adjustStock = mutation({
 
 export const setStockLocation = mutation({
   args: {
+    token: v.optional(v.string()),
     itemId: v.id("inventoryItems"),
     store: v.optional(v.string()),
     rack: v.optional(v.string()),
@@ -313,6 +315,7 @@ export const setStockLocation = mutation({
 
 export const setStockLimits = mutation({
   args: {
+    token: v.optional(v.string()),
     itemId: v.id("inventoryItems"),
     minStock: v.number(),
     maxStock: v.number(),
@@ -340,6 +343,7 @@ export const setStockLimits = mutation({
 
 export const createTransferRequest = mutation({
   args: {
+    token: v.optional(v.string()),
     sourceBranchId: v.id("branches"),
     destBranchId: v.id("branches"),
     itemId: v.id("inventoryItems"),
@@ -390,6 +394,7 @@ export const createTransferRequest = mutation({
 
 export const approveTransfer = mutation({
   args: {
+    token: v.optional(v.string()),
     transferId: v.id("transfers"),
     approvedBy: v.id("users"),
     notes: v.optional(v.string()),
@@ -452,6 +457,7 @@ export const approveTransfer = mutation({
 
 export const reserveStock = mutation({
   args: {
+    token: v.optional(v.string()),
     itemId: v.id("inventoryItems"),
     quantity: v.number(),
     reason: v.string(),
@@ -490,6 +496,7 @@ export const reserveStock = mutation({
 
 export const releaseReservedStock = mutation({
   args: {
+    token: v.optional(v.string()),
     itemId: v.id("inventoryItems"),
     quantity: v.number(),
     releasedBy: v.id("users"),

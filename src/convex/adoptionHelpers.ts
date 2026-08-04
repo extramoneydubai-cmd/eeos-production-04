@@ -95,8 +95,14 @@ export function adoptMutation<P extends WithScope & Record<string, any>>(
   return function <A extends Record<string, any>, R>(
     mutationDef: { args: A; handler: (ctx: MutationCtx, args: P) => Promise<R> },
   ) {
+    // Accept an optional session token on every adopted mutation so
+    // withScopeAndEvents can resolve the REAL performer server-side
+    // instead of trusting the client-declared createdBy/performedBy.
+    const args = { ...mutationDef.args, token: v.optional(v.string()) } as A & {
+      token?: unknown;
+    };
     return mutation({
-      args: mutationDef.args,
+      args,
       handler: withScopeAndEvents(config, mutationDef.handler as any) as any,
     });
   };
