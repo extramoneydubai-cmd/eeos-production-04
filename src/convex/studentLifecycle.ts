@@ -200,7 +200,7 @@ export const enrollStudent = mutation({
       // Deactivate existing profiles
       const existingProfiles = await ctx.db
         .query("studentAcademicProfile")
-        .withIndex("studentId", (q) => q.eq("studentId", args.studentId))
+        .withIndex("studentId", (q: any) => q.eq("studentId", args.studentId))
         .collect();
       for (const p of existingProfiles) {
         await ctx.db.patch(p._id, { isCurrent: false, endDate: now, updatedAt: now });
@@ -275,8 +275,8 @@ export const promoteStudent = mutation({
     // Deactivate current academic profile
     const currentProfile = await ctx.db
       .query("studentAcademicProfile")
-      .withIndex("studentId", (q) => q.eq("studentId", args.studentId))
-      .filter((q) => q.eq(q.field("isCurrent"), true))
+      .withIndex("studentId", (q: any) => q.eq("studentId", args.studentId))
+      .filter((q: any) => q.eq(q.field("isCurrent"), true))
       .first();
 
     if (currentProfile) {
@@ -443,8 +443,8 @@ export const graduateStudent = mutation({
     const now = Date.now();
     const currentProfile = await ctx.db
       .query("studentAcademicProfile")
-      .withIndex("studentId", (q) => q.eq("studentId", args.studentId))
-      .filter((q) => q.eq(q.field("isCurrent"), true))
+      .withIndex("studentId", (q: any) => q.eq("studentId", args.studentId))
+      .filter((q: any) => q.eq(q.field("isCurrent"), true))
       .first();
     if (currentProfile) {
       await ctx.db.patch(currentProfile._id, { isCurrent: false, endDate: now, updatedAt: now });
@@ -482,7 +482,7 @@ export const convertToAlumni = mutation({
     if (student) {
       const existingProfile = await ctx.db
         .query("personProfiles")
-        .withIndex("personId_profileType", (q) =>
+        .withIndex("personId_profileType", (q: any) =>
           q.eq("personId", student.personId).eq("profileType", "alumni")
         )
         .first();
@@ -540,7 +540,7 @@ export const getStudentAcademicHistory = query({
   handler: async (ctx, args) => {
     return await ctx.db
       .query("studentAcademicProfile")
-      .withIndex("studentId", (q) => q.eq("studentId", args.studentId))
+      .withIndex("studentId", (q: any) => q.eq("studentId", args.studentId))
       .order("desc")
       .collect();
   },

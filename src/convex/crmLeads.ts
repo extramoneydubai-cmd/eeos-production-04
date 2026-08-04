@@ -170,8 +170,8 @@ export const updateLeadStage = mutation({
     
     // ── Payment validation: Require at least one verified payment to convert ──
     if (args.stage === "converted") {
-      const payments = await ctx.db.query("leadPayments").withIndex("leadId", (q) => q.eq("leadId", args.leadId)).collect();
-      const verifiedPayments = payments.filter((p) => p.status === "verified");
+      const payments = await ctx.db.query("leadPayments").withIndex("leadId", (q: any) => q.eq("leadId", args.leadId)).collect();
+      const verifiedPayments = payments.filter((p: any) => p.status === "verified");
       if (verifiedPayments.length === 0) {
         throw new Error("Cannot convert lead without at least one verified payment.");
       }
@@ -243,7 +243,7 @@ export const deleteLead = mutation({
     const leadId = args.leadId;
     const tables = ["leadStageHistory", "leadAssignments", "leadTasks", "leadNotes", "leadDocuments", "leadActivity", "leadDiscounts", "leadWhatsAppMessages", "leadApprovals", "leadPayments"] as const;
     for (const table of tables) {
-      try { const items = await ctx.db.query(table).withIndex("leadId", (q) => q.eq("leadId", leadId)).collect(); for (const item of items) await ctx.db.delete(item._id); } catch (e) {}
+      try { const items = await ctx.db.query(table).withIndex("leadId", (q: any) => q.eq("leadId", leadId)).collect(); for (const item of items) await ctx.db.delete(item._id); } catch (e) {}
     }
     await ctx.db.delete(leadId);
     return leadId;
@@ -306,8 +306,8 @@ export const bulkMoveStage = mutation({
       
       // ── Payment validation: Require at least one verified payment to convert ──
       if (args.stage === "converted") {
-        const payments = await ctx.db.query("leadPayments").withIndex("leadId", (q) => q.eq("leadId", leadId)).collect();
-        const verifiedPayments = payments.filter((p) => p.status === "verified");
+        const payments = await ctx.db.query("leadPayments").withIndex("leadId", (q: any) => q.eq("leadId", leadId)).collect();
+        const verifiedPayments = payments.filter((p: any) => p.status === "verified");
         if (verifiedPayments.length === 0) continue;
       }
       
@@ -366,7 +366,7 @@ export const bulkDelete = mutation({
     const tables = ["leadStageHistory", "leadAssignments", "leadTasks", "leadNotes", "leadDocuments", "leadActivity", "leadDiscounts", "leadWhatsAppMessages", "leadApprovals", "leadPayments"] as const;
     for (const leadId of args.leadIds) {
       for (const table of tables) {
-        try { const items = await ctx.db.query(table).withIndex("leadId", (q) => q.eq("leadId", leadId)).collect(); for (const item of items) await ctx.db.delete(item._id); } catch (e) {}
+        try { const items = await ctx.db.query(table).withIndex("leadId", (q: any) => q.eq("leadId", leadId)).collect(); for (const item of items) await ctx.db.delete(item._id); } catch (e) {}
       }
       await ctx.db.delete(leadId);
     }
@@ -432,7 +432,7 @@ export const importLeads = mutation({
     let firstLeadId: string | undefined;
     const allExisting = await ctx.db.query("leadMaster").collect();
     for (const lead of args.leads) {
-      const existing = allExisting.find((l) => l.phone === lead.phone);
+      const existing = allExisting.find((l: any) => l.phone === lead.phone);
       if (existing) {
         if (args.duplicateAction === "skip") { skipped++; continue; }
         if (args.duplicateAction === "overwrite") {

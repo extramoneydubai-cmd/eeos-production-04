@@ -580,8 +580,8 @@ export const updateTeacherSettings = mutation({
     async (ctx, args) => {
     const existing = await ctx.db
       .query("businessRules")
-      .withIndex("by_type", (q) => q.eq("ruleType", "teacher_scheduling"))
-      .filter((q) => q.eq(q.field("scopeId"), args.teacherId))
+      .withIndex("by_type", (q: any) => q.eq("ruleType", "teacher_scheduling"))
+      .filter((q: any) => q.eq(q.field("scopeId"), args.teacherId))
       .first();
 
     const config: Record<string, unknown> = {

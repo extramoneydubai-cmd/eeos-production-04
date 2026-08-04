@@ -431,8 +431,8 @@ export const approveTransfer = mutation({
     // Increase destination (find or create item in destination branch)
     const destItem = await ctx.db
       .query("inventoryItems")
-      .filter((q) => q.eq(q.field("branchId"), (transfer as any).destBranchId))
-      .filter((q) => q.eq(q.field("sku"), (sourceItem as any).sku))
+      .filter((q: any) => q.eq(q.field("branchId"), (transfer as any).destBranchId))
+      .filter((q: any) => q.eq(q.field("sku"), (sourceItem as any).sku))
       .first();
 
     if (destItem) {

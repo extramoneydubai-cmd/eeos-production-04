@@ -168,19 +168,19 @@ export const assignLeadWithRules = mutation({
     } else if (args.assignmentType === "round_robin") {
       // Simple round-robin: find user with least assigned leads
       const allLeads = await ctx.db.query("leadMaster").collect();
-      const activeUsers = await ctx.db.query("users").filter((q) =>
+      const activeUsers = await ctx.db.query("users").filter((q: any) =>
         q.and(
           q.neq(q.field("role"), undefined),
           q.neq(q.field("isDisabled"), true),
         )
       ).collect();
 
-      const leadCounts = activeUsers.map((u) => ({
+      const leadCounts = activeUsers.map((u: any) => ({
         userId: u._id,
-        count: allLeads.filter((l) => l.ownerId === u._id && l.status === "active").length,
+        count: allLeads.filter((l: any) => l.ownerId === u._id && l.status === "active").length,
       }));
 
-      leadCounts.sort((a, b) => a.count - b.count);
+      leadCounts.sort((a: any, b: any) => a.count - b.count);
       toUserId = leadCounts[0]?.userId || null;
     } else if (args.assignmentType === "manager" && lead.ownerId) {
       // Assign to reporting manager of current owner
@@ -423,7 +423,7 @@ export const startTrial = mutation({
     // Upsert: check if pipeline exists
     const existing = await ctx.db
       .query("leadConversionPipeline")
-      .withIndex("leadId", (q) => q.eq("leadId", args.leadId))
+      .withIndex("leadId", (q: any) => q.eq("leadId", args.leadId))
       .first();
 
     if (existing) {
@@ -485,7 +485,7 @@ export const updateTrialPhase = mutation({
     async (ctx: any, args: any) => {
     const pipeline = await ctx.db
       .query("leadConversionPipeline")
-      .withIndex("leadId", (q) => q.eq("leadId", args.leadId))
+      .withIndex("leadId", (q: any) => q.eq("leadId", args.leadId))
       .first();
 
     if (!pipeline) throw new Error("No trial pipeline found for this lead");
@@ -546,9 +546,9 @@ export const convertLead = mutation({
     // Require at least one verified payment
     const payments = await ctx.db
       .query("leadPayments")
-      .withIndex("leadId", (q) => q.eq("leadId", args.leadId))
+      .withIndex("leadId", (q: any) => q.eq("leadId", args.leadId))
       .collect();
-    const verifiedPayments = payments.filter((p) => p.status === "verified");
+    const verifiedPayments = payments.filter((p: any) => p.status === "verified");
     if (verifiedPayments.length === 0) {
       throw new Error("Cannot convert lead without at least one verified payment");
     }
@@ -576,7 +576,7 @@ export const convertLead = mutation({
     // Upsert conversion pipeline record
     const existing = await ctx.db
       .query("leadConversionPipeline")
-      .withIndex("leadId", (q) => q.eq("leadId", args.leadId))
+      .withIndex("leadId", (q: any) => q.eq("leadId", args.leadId))
       .first();
 
     if (existing) {
@@ -667,7 +667,7 @@ export const updateLeadStatus = mutation({
     // Check custom status engine rules
     const rules = await ctx.db
       .query("leadStatusEngine")
-      .withIndex("fromStatus_toStatus", (q) =>
+      .withIndex("fromStatus_toStatus", (q: any) =>
         q.eq("fromStatus", lead.status).eq("toStatus", args.newStatus)
       )
       .collect();
@@ -680,9 +680,9 @@ export const updateLeadStatus = mutation({
       if (rule.requiresPayment && args.newStatus === "converted") {
         const payments = await ctx.db
           .query("leadPayments")
-          .withIndex("leadId", (q) => q.eq("leadId", args.leadId))
+          .withIndex("leadId", (q: any) => q.eq("leadId", args.leadId))
           .collect();
-        if (!payments.some((p) => p.status === "verified")) {
+        if (!payments.some((p: any) => p.status === "verified")) {
           throw new Error("Verified payment required for this status change");
         }
       }
@@ -728,7 +728,7 @@ export const getLeadLifecycle = query({
 
     const pipeline = await ctx.db
       .query("leadConversionPipeline")
-      .withIndex("leadId", (q) => q.eq("leadId", args.leadId))
+      .withIndex("leadId", (q: any) => q.eq("leadId", args.leadId))
       .first();
 
     const activities = await ctx.db
@@ -739,7 +739,7 @@ export const getLeadLifecycle = query({
 
     const assignments = await ctx.db
       .query("leadAssignments")
-      .withIndex("leadId", (q) => q.eq("leadId", args.leadId))
+      .withIndex("leadId", (q: any) => q.eq("leadId", args.leadId))
       .order("desc")
       .take(10);
 
@@ -794,14 +794,14 @@ export const bulkAssignWithRules = mutation({
           toUserId = args.assignedTo;
         } else if (args.assignmentType === "round_robin") {
           const allLeads = await ctx.db.query("leadMaster").collect();
-          const activeUsers = await ctx.db.query("users").filter((q) =>
+          const activeUsers = await ctx.db.query("users").filter((q: any) =>
             q.and(q.neq(q.field("role"), undefined), q.neq(q.field("isDisabled"), true))
           ).collect();
-          const leadCounts = activeUsers.map((u) => ({
+          const leadCounts = activeUsers.map((u: any) => ({
             userId: u._id,
-            count: allLeads.filter((l) => l.ownerId === u._id && l.status === "active").length,
+            count: allLeads.filter((l: any) => l.ownerId === u._id && l.status === "active").length,
           }));
-          leadCounts.sort((a, b) => a.count - b.count);
+          leadCounts.sort((a: any, b: any) => a.count - b.count);
           toUserId = leadCounts[0]?.userId || null;
         } else if (args.assignmentType === "manager" && lead.ownerId) {
           const currentOwner = await ctx.db.get(lead.ownerId);
