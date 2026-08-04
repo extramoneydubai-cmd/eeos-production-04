@@ -363,15 +363,28 @@ export const setParentUser = mutation({
     performedBy: v.id("users"),
     parentUserId: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
-    const existing = await ctx.db.get(args.studentId);
-    if (!existing) throw new Error("Student not found");
-    await ctx.db.patch(args.studentId, {
-      parentUserId: args.parentUserId as any,
-      updatedAt: Date.now(),
-    });
-    return args.studentId;
-  },
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "admission",
+      entity: "student",
+      eventType: "admission.student.parent_linked",
+      title: "Parent Linked",
+      getUserId: (args: any) => args.performedBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
+      const existing = await ctx.db.get(args.studentId);
+      if (!existing) throw new Error("Student not found");
+      await ctx.db.patch(args.studentId, {
+        parentUserId: args.parentUserId as any,
+        updatedAt: Date.now(),
+      });
+      return args.studentId;
+    }
+  ),
 });
 
 // ─── Archive Student (Enterprise-Integrated) ───────────────

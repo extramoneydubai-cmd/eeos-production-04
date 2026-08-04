@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { logActivity, createNotification } from "./crmHelpers";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 /* ────────────
    INTERNAL: Create Timeline Event
@@ -47,7 +48,19 @@ export const scheduleMeeting = mutation({
     notes: v.optional(v.string()),
     createdBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "create",
+      module: "crm",
+      entity: "leadMeeting",
+      eventType: "crm.lead.meeting_scheduled",
+      title: "Meeting scheduled",
+      getUserId: (args: any) => args.createdBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const now = Date.now();
 
     const meetingId = await ctx.db.insert("leadMeetings", {
@@ -98,7 +111,8 @@ export const scheduleMeeting = mutation({
     }
 
     return meetingId;
-  },
+    }
+  ),
 });
 
 /* ────────────
@@ -110,8 +124,21 @@ export const completeMeeting = mutation({
     meetingId: v.id("leadMeetings"),
     userId: v.id("users"),
     outcomeNotes: v.optional(v.string()),
+    leadId: v.id("leadMaster"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "crm",
+      entity: "leadMeeting",
+      eventType: "crm.lead.meeting_completed",
+      title: "Meeting completed",
+      getUserId: (args: any) => args.userId,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const meeting = await ctx.db.get(args.meetingId);
     if (!meeting) throw new Error("Meeting not found");
 
@@ -133,7 +160,9 @@ export const completeMeeting = mutation({
     });
 
     await logActivity(ctx, meeting.leadId, "meeting_completed", `${meeting.meetingType} meeting completed`, args.userId);
-  },
+    return args.meetingId;
+    }
+  ),
 });
 
 /* ────────────
@@ -145,8 +174,21 @@ export const cancelMeeting = mutation({
     meetingId: v.id("leadMeetings"),
     userId: v.id("users"),
     reason: v.optional(v.string()),
+    leadId: v.id("leadMaster"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "crm",
+      entity: "leadMeeting",
+      eventType: "crm.lead.meeting_cancelled",
+      title: "Meeting cancelled",
+      getUserId: (args: any) => args.userId,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const meeting = await ctx.db.get(args.meetingId);
     if (!meeting) throw new Error("Meeting not found");
 
@@ -167,7 +209,9 @@ export const cancelMeeting = mutation({
     });
 
     await logActivity(ctx, meeting.leadId, "meeting_cancelled", `${meeting.meetingType} meeting cancelled`, args.userId);
-  },
+    return args.meetingId;
+    }
+  ),
 });
 
 /* ────────────
@@ -180,8 +224,21 @@ export const rescheduleMeeting = mutation({
     newDate: v.number(),
     userId: v.id("users"),
     reason: v.optional(v.string()),
+    leadId: v.id("leadMaster"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "crm",
+      entity: "leadMeeting",
+      eventType: "crm.lead.meeting_rescheduled",
+      title: "Meeting rescheduled",
+      getUserId: (args: any) => args.userId,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const meeting = await ctx.db.get(args.meetingId);
     if (!meeting) throw new Error("Meeting not found");
 
@@ -202,7 +259,9 @@ export const rescheduleMeeting = mutation({
     });
 
     await logActivity(ctx, meeting.leadId, "meeting_rescheduled", `${meeting.meetingType} meeting rescheduled`, args.userId);
-  },
+    return args.meetingId;
+    }
+  ),
 });
 
 /* ────────────

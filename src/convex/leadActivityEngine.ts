@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { logActivity, createNotification } from "./crmHelpers";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 /* ────────────
    TIMELINE EVENT TYPES
@@ -60,9 +61,22 @@ export const addTimelineEvent = mutation({
     metadata: v.optional(v.string()),
     performedBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "create",
+      module: "crm",
+      entity: "leadTimeline",
+      eventType: "crm.lead.timeline_added",
+      title: "Lead timeline event added",
+      getUserId: (args: any) => args.performedBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     return createTimelineEvent(ctx, args);
-  },
+    }
+  ),
 });
 
 /* ────────────
@@ -98,7 +112,19 @@ export const addNote = mutation({
     tags: v.optional(v.array(v.string())),
     createdBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "create",
+      module: "crm",
+      entity: "leadNote",
+      eventType: "crm.lead.note_added",
+      title: "Lead note added",
+      getUserId: (args: any) => args.createdBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const now = Date.now();
     const noteId = await ctx.db.insert("leadNotes", {
       leadId: args.leadId,
@@ -122,7 +148,8 @@ export const addNote = mutation({
     await logActivity(ctx, args.leadId, "note_added", `added a note`, args.createdBy);
 
     return noteId;
-  },
+    }
+  ),
 });
 
 export const pinNote = mutation({
@@ -130,24 +157,54 @@ export const pinNote = mutation({
     noteId: v.id("leadNotes"),
     pinned: v.boolean(),
     userId: v.id("users"),
+    leadId: v.id("leadMaster"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "crm",
+      entity: "leadNote",
+      eventType: "crm.lead.note_pinned",
+      title: "Lead note pinned",
+      getUserId: (args: any) => args.userId,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const note = await ctx.db.get(args.noteId);
     if (!note) throw new Error("Note not found");
     await ctx.db.patch(args.noteId, { pinned: args.pinned, updatedAt: Date.now() } as any);
-  },
+    return args.noteId;
+    }
+  ),
 });
 
 export const deleteNote = mutation({
   args: {
     noteId: v.id("leadNotes"),
     userId: v.id("users"),
+    leadId: v.id("leadMaster"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "delete",
+      module: "crm",
+      entity: "leadNote",
+      eventType: "crm.lead.note_deleted",
+      title: "Lead note deleted",
+      getUserId: (args: any) => args.userId,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const note = await ctx.db.get(args.noteId);
     if (!note) throw new Error("Note not found");
     await ctx.db.delete(args.noteId);
-  },
+    return args.noteId;
+    }
+  ),
 });
 
 /* ────────────
@@ -185,7 +242,19 @@ export const createTask = mutation({
     )),
     ownerId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "create",
+      module: "crm",
+      entity: "leadTask",
+      eventType: "crm.lead.task_created",
+      title: "Lead task created",
+      getUserId: (args: any) => args.ownerId,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const now = Date.now();
     const taskId = await ctx.db.insert("leadTasks", {
       leadId: args.leadId,
@@ -213,15 +282,29 @@ export const createTask = mutation({
     await logActivity(ctx, args.leadId, "task_created", `task created: ${args.title}`, args.ownerId);
 
     return taskId;
-  },
+    }
+  ),
 });
 
 export const completeTask = mutation({
   args: {
     taskId: v.id("leadTasks"),
     userId: v.id("users"),
+    leadId: v.id("leadMaster"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "crm",
+      entity: "leadTask",
+      eventType: "crm.lead.task_completed",
+      title: "Lead task completed",
+      getUserId: (args: any) => args.userId,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const task = await ctx.db.get(args.taskId);
     if (!task) throw new Error("Task not found");
 
@@ -239,7 +322,9 @@ export const completeTask = mutation({
     });
 
     await logActivity(ctx, task.leadId, "task_completed", `completed task: ${task.title}`, args.userId);
-  },
+    return args.taskId;
+    }
+  ),
 });
 
 /* ────────────
@@ -265,7 +350,19 @@ export const uploadAttachment = mutation({
     fileSize: v.optional(v.number()),
     uploadedBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "create",
+      module: "crm",
+      entity: "leadAttachment",
+      eventType: "crm.lead.attachment_uploaded",
+      title: "Lead attachment uploaded",
+      getUserId: (args: any) => args.uploadedBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const now = Date.now();
     const attId = await ctx.db.insert("leadAttachments", {
       leadId: args.leadId,
@@ -289,19 +386,35 @@ export const uploadAttachment = mutation({
     await logActivity(ctx, args.leadId, "document_added", `uploaded document: ${args.fileName}`, args.uploadedBy);
 
     return attId;
-  },
+    }
+  ),
 });
 
 export const deleteAttachment = mutation({
   args: {
     attachmentId: v.id("leadAttachments"),
     userId: v.id("users"),
+    leadId: v.id("leadMaster"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "delete",
+      module: "crm",
+      entity: "leadAttachment",
+      eventType: "crm.lead.attachment_deleted",
+      title: "Lead attachment deleted",
+      getUserId: (args: any) => args.userId,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const att = await ctx.db.get(args.attachmentId);
     if (!att) throw new Error("Attachment not found");
     await ctx.db.delete(args.attachmentId);
-  },
+    return args.attachmentId;
+    }
+  ),
 });
 
 /* ────────────

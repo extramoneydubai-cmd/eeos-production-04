@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Valid Status Transitions ────────────────────────────
 
@@ -87,7 +88,19 @@ export const admitStudent = mutation({
     installmentCount: v.optional(v.number()),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "admission",
+      entity: "student",
+      eventType: "admission.student.admitted",
+      title: "Student Admitted",
+      getUserId: (args: any) => args.performedBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: true,
+    },
+    async (ctx: any, args: any) => {
     const student = await ctx.db.get(args.studentId);
     if (!student) throw new Error("Student not found");
 
@@ -139,7 +152,8 @@ export const admitStudent = mutation({
     );
 
     return { studentId: args.studentId, admissionNumber };
-  },
+    }
+  ),
 });
 
 export const enrollStudent = mutation({
@@ -160,7 +174,19 @@ export const enrollStudent = mutation({
     ),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "admission",
+      entity: "student",
+      eventType: "admission.student.enrolled",
+      title: "Student Enrolled",
+      getUserId: (args: any) => args.performedBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: true,
+    },
+    async (ctx: any, args: any) => {
     const student = await ctx.db.get(args.studentId);
     if (!student) throw new Error("Student not found");
 
@@ -201,7 +227,8 @@ export const enrollStudent = mutation({
 
     await createTimelineEvent(ctx, args.studentId, "student_enrolled", "Student Enrolled", "Student started active enrollment", args.performedBy);
     return args.studentId;
-  },
+    }
+  ),
 });
 
 export const promoteStudent = mutation({
@@ -223,7 +250,19 @@ export const promoteStudent = mutation({
     ),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "admission",
+      entity: "student",
+      eventType: "admission.student.promoted",
+      title: "Student Promoted",
+      getUserId: (args: any) => args.performedBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: true,
+    },
+    async (ctx: any, args: any) => {
     const student = await ctx.db.get(args.studentId);
     if (!student) throw new Error("Student not found");
 
@@ -277,7 +316,8 @@ export const promoteStudent = mutation({
 
     await createTimelineEvent(ctx, args.studentId, "student_promoted", "Student Promoted", `Promoted to academic year ${args.nextYear}`, args.performedBy);
     return args.studentId;
-  },
+    }
+  ),
 });
 
 export const transferStudent = mutation({
@@ -288,7 +328,19 @@ export const transferStudent = mutation({
     toCompanyId: v.optional(v.id("companies")),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "admission",
+      entity: "student",
+      eventType: "admission.student.transferred",
+      title: "Student Transferred",
+      getUserId: (args: any) => args.performedBy,
+      getEntityCompanyId: (args: any) => (args as any).toCompanyId || undefined,
+      getEntityBranchId: (args: any) => (args as any).toBranchId || undefined,
+      notifyViaMatrix: true,
+    },
+    async (ctx: any, args: any) => {
     const student = await ctx.db.get(args.studentId);
     if (!student) throw new Error("Student not found");
 
@@ -311,7 +363,8 @@ export const transferStudent = mutation({
 
     await createTimelineEvent(ctx, args.studentId, "student_transferred", "Student Transferred", args.remarks || "Branch/Company transfer", args.performedBy);
     return args.studentId;
-  },
+    }
+  ),
 });
 
 export const suspendStudent = mutation({
@@ -320,11 +373,24 @@ export const suspendStudent = mutation({
     performedBy: v.id("users"),
     reason: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "admission",
+      entity: "student",
+      eventType: "admission.student.suspended",
+      title: "Student Suspended",
+      getUserId: (args: any) => args.performedBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: true,
+    },
+    async (ctx: any, args: any) => {
     await transitionStatus(ctx, args.studentId, "suspended", args.performedBy, args.reason);
     await createTimelineEvent(ctx, args.studentId, "student_suspended", "Student Suspended", args.reason, args.performedBy);
     return args.studentId;
-  },
+    }
+  ),
 });
 
 export const reinstateStudent = mutation({
@@ -333,11 +399,24 @@ export const reinstateStudent = mutation({
     performedBy: v.id("users"),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "admission",
+      entity: "student",
+      eventType: "admission.student.reinstated",
+      title: "Student Reinstated",
+      getUserId: (args: any) => args.performedBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: true,
+    },
+    async (ctx: any, args: any) => {
     await transitionStatus(ctx, args.studentId, "active", args.performedBy, args.remarks || "Student reinstated");
     await createTimelineEvent(ctx, args.studentId, "student_reinstated", "Student Reinstated", args.remarks || "Suspension lifted", args.performedBy);
     return args.studentId;
-  },
+    }
+  ),
 });
 
 export const graduateStudent = mutation({
@@ -346,7 +425,19 @@ export const graduateStudent = mutation({
     performedBy: v.id("users"),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "admission",
+      entity: "student",
+      eventType: "admission.student.graduated",
+      title: "Student Graduated",
+      getUserId: (args: any) => args.performedBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: true,
+    },
+    async (ctx: any, args: any) => {
     await transitionStatus(ctx, args.studentId, "completed", args.performedBy, args.remarks || "Student graduated");
 
     const now = Date.now();
@@ -361,7 +452,8 @@ export const graduateStudent = mutation({
 
     await createTimelineEvent(ctx, args.studentId, "student_graduated", "Student Graduated", args.remarks || "Course completed", args.performedBy);
     return args.studentId;
-  },
+    }
+  ),
 });
 
 export const convertToAlumni = mutation({
@@ -370,7 +462,19 @@ export const convertToAlumni = mutation({
     performedBy: v.id("users"),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "admission",
+      entity: "student",
+      eventType: "admission.student.alumni",
+      title: "Student Converted to Alumni",
+      getUserId: (args: any) => args.performedBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: true,
+    },
+    async (ctx: any, args: any) => {
     await transitionStatus(ctx, args.studentId, "alumni", args.performedBy, args.remarks || "Converted to alumni");
 
     // Update People Registry profile
@@ -399,7 +503,8 @@ export const convertToAlumni = mutation({
 
     await createTimelineEvent(ctx, args.studentId, "student_alumni", "Converted to Alumni", args.remarks || "Alumni status granted", args.performedBy);
     return args.studentId;
-  },
+    }
+  ),
 });
 
 // ─── Queries ────────────────────────────────────────────

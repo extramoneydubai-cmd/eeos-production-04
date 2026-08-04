@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { logActivity, createNotification } from "./crmHelpers";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 /* ────────────
    INTERNAL: Create Timeline Event
@@ -48,7 +49,19 @@ export const logCall = mutation({
     createFollowupTask: v.optional(v.boolean()),
     userId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "create",
+      module: "crm",
+      entity: "leadCommunication",
+      eventType: "crm.lead.call_logged",
+      title: "Lead call logged",
+      getUserId: (args: any) => args.userId,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const now = Date.now();
 
     // Save to leadCommunications
@@ -108,7 +121,8 @@ export const logCall = mutation({
     }
 
     return commId;
-  },
+    }
+  ),
 });
 
 /* ────────────
@@ -122,7 +136,19 @@ export const sendWhatsApp = mutation({
     template: v.optional(v.string()),
     sentBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "create",
+      module: "crm",
+      entity: "leadCommunication",
+      eventType: "crm.lead.whatsapp_sent",
+      title: "WhatsApp message sent",
+      getUserId: (args: any) => args.sentBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const now = Date.now();
     const identifier = ""; // Will be resolved from lead in UI
     const url = `https://wa.me/?text=${encodeURIComponent(args.message)}`;
@@ -164,7 +190,8 @@ export const sendWhatsApp = mutation({
     await logActivity(ctx, args.leadId, "whatsapp_sent", `sent WhatsApp message`, args.sentBy);
 
     return commId;
-  },
+    }
+  ),
 });
 
 /* ────────────
@@ -178,7 +205,19 @@ export const sendEmail = mutation({
     message: v.string(),
     sentBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "create",
+      module: "crm",
+      entity: "leadCommunication",
+      eventType: "crm.lead.email_sent",
+      title: "Email sent",
+      getUserId: (args: any) => args.sentBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const now = Date.now();
 
     const commId = await ctx.db.insert("leadCommunications", {
@@ -202,7 +241,8 @@ export const sendEmail = mutation({
     });
 
     return commId;
-  },
+    }
+  ),
 });
 
 /* ────────────
@@ -215,7 +255,19 @@ export const sendSMS = mutation({
     message: v.string(),
     sentBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "create",
+      module: "crm",
+      entity: "leadCommunication",
+      eventType: "crm.lead.sms_sent",
+      title: "SMS sent",
+      getUserId: (args: any) => args.sentBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const now = Date.now();
 
     const commId = await ctx.db.insert("leadCommunications", {
@@ -238,7 +290,8 @@ export const sendSMS = mutation({
     });
 
     return commId;
-  },
+    }
+  ),
 });
 
 /* ────────────
@@ -249,10 +302,25 @@ export const markCommunicationRead = mutation({
   args: {
     commId: v.id("leadCommunications"),
     userId: v.id("users"),
+    leadId: v.id("leadMaster"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "crm",
+      entity: "leadCommunication",
+      eventType: "crm.lead.communication_read",
+      title: "Communication marked read",
+      getUserId: (args: any) => args.userId,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     await ctx.db.patch(args.commId, { status: "read" } as any);
-  },
+    return args.commId;
+    }
+  ),
 });
 
 /* ────────────

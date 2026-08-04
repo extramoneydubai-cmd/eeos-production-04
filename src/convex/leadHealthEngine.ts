@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 /* ────────────
    HEALTH SCORE CONSTANTS
@@ -99,14 +100,27 @@ export const createFollowUpRule = mutation({
     createTask: v.boolean(),
     sendNotification: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "create",
+      module: "crm",
+      entity: "leadFollowUpRule",
+      eventType: "crm.lead_followup_rule.created",
+      title: "Follow-up rule created",
+      getUserId: () => undefined,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     return ctx.db.insert("leadFollowUpRules", {
       ...args,
       isActive: true,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+    }
+  ),
 });
 
 export const updateFollowUpRule = mutation({
@@ -126,21 +140,49 @@ export const updateFollowUpRule = mutation({
     sendNotification: v.optional(v.boolean()),
     isActive: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "crm",
+      entity: "leadFollowUpRule",
+      eventType: "crm.lead_followup_rule.updated",
+      title: "Follow-up rule updated",
+      getUserId: () => undefined,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const { ruleId, ...fields } = args;
     const existing = await ctx.db.get(ruleId);
     if (!existing) throw new Error("Follow-up rule not found");
-    return ctx.db.patch(ruleId, { ...fields, updatedAt: Date.now() });
-  },
+    await ctx.db.patch(ruleId, { ...fields, updatedAt: Date.now() });
+    return ruleId;
+    }
+  ),
 });
 
 export const deleteFollowUpRule = mutation({
   args: { ruleId: v.id("leadFollowUpRules") },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "delete",
+      module: "crm",
+      entity: "leadFollowUpRule",
+      eventType: "crm.lead_followup_rule.deleted",
+      title: "Follow-up rule deleted",
+      getUserId: () => undefined,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const existing = await ctx.db.get(args.ruleId);
     if (!existing) throw new Error("Follow-up rule not found");
     await ctx.db.delete(args.ruleId);
-  },
+    return args.ruleId;
+    }
+  ),
 });
 
 /* ────────────
@@ -168,7 +210,19 @@ export const createStatusEngineRule = mutation({
     irreversible: v.optional(v.boolean()),
     triggerWorkflowId: v.optional(v.id("workflows")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "create",
+      module: "crm",
+      entity: "leadStatusEngineRule",
+      eventType: "crm.lead_status_rule.created",
+      title: "Status engine rule created",
+      getUserId: () => undefined,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     return ctx.db.insert("leadStatusEngine", {
       fromStatus: args.fromStatus,
       toStatus: args.toStatus,
@@ -180,7 +234,8 @@ export const createStatusEngineRule = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+    }
+  ),
 });
 
 export const updateStatusEngineRule = mutation({
@@ -192,21 +247,49 @@ export const updateStatusEngineRule = mutation({
     irreversible: v.optional(v.boolean()),
     triggerWorkflowId: v.optional(v.id("workflows")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "crm",
+      entity: "leadStatusEngineRule",
+      eventType: "crm.lead_status_rule.updated",
+      title: "Status engine rule updated",
+      getUserId: () => undefined,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const { ruleId, ...fields } = args;
     const existing = await ctx.db.get(ruleId);
     if (!existing) throw new Error("Status engine rule not found");
-    return ctx.db.patch(ruleId, { ...fields, updatedAt: Date.now() });
-  },
+    await ctx.db.patch(ruleId, { ...fields, updatedAt: Date.now() });
+    return ruleId;
+    }
+  ),
 });
 
 export const deleteStatusEngineRule = mutation({
   args: { ruleId: v.id("leadStatusEngine") },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "delete",
+      module: "crm",
+      entity: "leadStatusEngineRule",
+      eventType: "crm.lead_status_rule.deleted",
+      title: "Status engine rule deleted",
+      getUserId: () => undefined,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const existing = await ctx.db.get(args.ruleId);
     if (!existing) throw new Error("Status engine rule not found");
     await ctx.db.delete(args.ruleId);
-  },
+    return args.ruleId;
+    }
+  ),
 });
 
 /* ────────────

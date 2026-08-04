@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { logActivity, createNotification } from "./crmHelpers";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 /* ────────────
    CONSTANTS
@@ -25,7 +26,19 @@ export const createFromSubmission = mutation({
     submissionId: v.id("intakeSubmissions"),
     createdBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "create",
+      module: "crm",
+      entity: "lead",
+      eventType: "crm.lead.created_from_submission",
+      title: "Lead created from intake submission",
+      getUserId: (args: any) => args.createdBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const submission = await ctx.db.get(args.submissionId);
     if (!submission) throw new Error("Submission not found");
     if (submission.targetModule !== "crm") {
@@ -110,7 +123,8 @@ export const createFromSubmission = mutation({
       submissionNumber: submission.submissionNumber,
       autoAssigned: !!payload.ownerId,
     };
-  },
+    }
+  ),
 });
 
 /* ────────────
@@ -131,7 +145,19 @@ export const assignLeadWithRules = mutation({
     assignedBy: v.id("users"),
     note: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "crm",
+      entity: "lead",
+      eventType: "crm.lead.assigned",
+      title: "Lead assigned with rules",
+      getUserId: (args: any) => args.assignedBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const lead = await ctx.db.get(args.leadId);
     if (!lead) throw new Error("Lead not found");
 
@@ -199,7 +225,8 @@ export const assignLeadWithRules = mutation({
     );
 
     return { assignedTo: toUserId };
-  },
+    }
+  ),
 });
 
 /* ────────────
@@ -276,9 +303,22 @@ async function calculateHealthScoreInternal(ctx: any, leadId: Id<"leadMaster">) 
 
 export const calculateHealthScore = mutation({
   args: { leadId: v.id("leadMaster") },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "crm",
+      entity: "lead",
+      eventType: "crm.lead.health_calculated",
+      title: "Lead health score calculated",
+      getUserId: () => undefined,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     return calculateHealthScoreInternal(ctx, args.leadId);
-  },
+    }
+  ),
 });
 
 export const getHealthScore = query({
@@ -307,7 +347,19 @@ export const scheduleFollowUp = mutation({
     reminder: v.optional(v.boolean()),
     userId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "create",
+      module: "crm",
+      entity: "lead",
+      eventType: "crm.lead.followup_scheduled",
+      title: "Follow-up scheduled",
+      getUserId: (args: any) => args.userId,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const now = Date.now();
 
     await ctx.db.patch(args.leadId, {
@@ -334,8 +386,9 @@ export const scheduleFollowUp = mutation({
       updatedAt: now,
     });
 
-    return { scheduled: true };
-  },
+    return { scheduled: true, leadId: args.leadId };
+    }
+  ),
 });
 
 /* ────────────
@@ -349,7 +402,19 @@ export const startTrial = mutation({
     startedBy: v.id("users"),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "crm",
+      entity: "lead",
+      eventType: "crm.lead.trial_started",
+      title: "Lead trial started",
+      getUserId: (args: any) => args.startedBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const lead = await ctx.db.get(args.leadId);
     if (!lead) throw new Error("Lead not found");
 
@@ -387,8 +452,9 @@ export const startTrial = mutation({
       args.startedBy,
     );
 
-    return { trialStarted: true, trialEndDate: args.trialEndDate };
-  },
+    return { trialStarted: true, trialEndDate: args.trialEndDate, leadId: args.leadId };
+    }
+  ),
 });
 
 export const updateTrialPhase = mutation({
@@ -404,7 +470,19 @@ export const updateTrialPhase = mutation({
     updatedBy: v.id("users"),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "crm",
+      entity: "lead",
+      eventType: "crm.lead.trial_phase_updated",
+      title: "Lead trial phase updated",
+      getUserId: (args: any) => args.updatedBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const pipeline = await ctx.db
       .query("leadConversionPipeline")
       .withIndex("leadId", (q) => q.eq("leadId", args.leadId))
@@ -424,8 +502,9 @@ export const updateTrialPhase = mutation({
       args.updatedBy,
     );
 
-    return { phase: args.phase };
-  },
+    return { phase: args.phase, leadId: args.leadId };
+    }
+  ),
 });
 
 /* ────────────
@@ -447,7 +526,19 @@ export const convertLead = mutation({
     installmentCount: v.optional(v.number()),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "crm",
+      entity: "lead",
+      eventType: "crm.lead.converted",
+      title: "Lead converted",
+      getUserId: (args: any) => args.convertedBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const lead = await ctx.db.get(args.leadId);
     if (!lead) throw new Error("Lead not found");
     if (lead.status === "converted") throw new Error("Lead is already converted");
@@ -533,8 +624,9 @@ export const convertLead = mutation({
       );
     }
 
-    return { converted: true, conversionDate: now };
-  },
+    return { converted: true, conversionDate: now, leadId: args.leadId };
+    }
+  ),
 });
 
 /* ────────────
@@ -549,7 +641,19 @@ export const updateLeadStatus = mutation({
     changedBy: v.id("users"),
     reason: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "crm",
+      entity: "lead",
+      eventType: "crm.lead.status_changed",
+      title: "Lead status changed",
+      getUserId: (args: any) => args.changedBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const lead = await ctx.db.get(args.leadId);
     if (!lead) throw new Error("Lead not found");
     if (lead.status === args.newStatus) return { status: lead.status, changed: false };
@@ -601,8 +705,9 @@ export const updateLeadStatus = mutation({
       args.changedBy,
     );
 
-    return { status: args.newStatus, changed: true };
-  },
+    return { status: args.newStatus, changed: true, leadId: args.leadId };
+    }
+  ),
 });
 
 /* ────────────
@@ -663,7 +768,19 @@ export const bulkAssignWithRules = mutation({
     assignedTo: v.optional(v.id("users")),
     assignedBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "crm",
+      entity: "lead",
+      eventType: "crm.lead.bulk_assigned",
+      title: "Leads bulk assigned with rules",
+      getUserId: (args: any) => args.assignedBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const results: { leadId: Id<"leadMaster">; assignedTo: Id<"users"> | null }[] = [];
 
     for (const leadId of args.leadIds) {
@@ -717,8 +834,9 @@ export const bulkAssignWithRules = mutation({
       }
     }
 
-    return results;
-  },
+    return { results, leadId: args.leadIds[0] };
+    }
+  ),
 });
 
 export const bulkUpdateStatus = mutation({
@@ -728,7 +846,19 @@ export const bulkUpdateStatus = mutation({
     changedBy: v.id("users"),
     reason: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "crm",
+      entity: "lead",
+      eventType: "crm.lead.bulk_status_changed",
+      title: "Leads bulk status changed",
+      getUserId: (args: any) => args.changedBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     let success = 0;
     let failed = 0;
 
@@ -756,6 +886,7 @@ export const bulkUpdateStatus = mutation({
       }
     }
 
-    return { success, failed, total: args.leadIds.length };
-  },
+    return { success, failed, total: args.leadIds.length, leadId: args.leadIds[0] };
+    }
+  ),
 });

@@ -3,7 +3,7 @@ import { mutation, query } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
 import { LEAD_PIPELINE_STAGES, logActivity, createNotification } from "./crmHelpers";
 import { paginatedQuery, applyStandardFilters, type PaginatedResponse } from "./queryHelpers";
-import { withScopeAndEvents, type ScopeAndEventsConfig } from "./withScopeAndEvents";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 import { Events } from "./eventRegistry";
 import { Id } from "./_generated/dataModel";
 
@@ -147,7 +147,19 @@ export const updateLead = mutation({
 
 export const updateLeadStage = mutation({
   args: { leadId: v.id("leadMaster"), stage: v.string(), note: v.optional(v.string()), userId: v.id("users") },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "crm",
+      entity: "lead",
+      eventType: "crm.lead.stage_changed",
+      title: "Lead stage changed",
+      getUserId: (args: any) => args.userId,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const lead = await ctx.db.get(args.leadId);
     if (!lead) throw new Error("Lead not found");
     
@@ -181,33 +193,62 @@ export const updateLeadStage = mutation({
       await logActivity(ctx, args.leadId, "stage_changed", `moved to ${LEAD_PIPELINE_STAGES.find((s) => s === args.stage) || args.stage}`, args.userId);
     }
     await ctx.db.insert("leadStageHistory", { leadId: args.leadId, fromStage, toStage: args.stage, changedBy: args.userId, note: args.note, createdAt: now });
-  },
+    return args.leadId;
+    }
+  ),
 });
 
 export const assignLead = mutation({
   args: { leadId: v.id("leadMaster"), toUserId: v.id("users"), note: v.optional(v.string()), userId: v.id("users") },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "crm",
+      entity: "lead",
+      eventType: "crm.lead.assigned",
+      title: "Lead assigned",
+      getUserId: (args: any) => args.userId,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const lead = await ctx.db.get(args.leadId);
     if (!lead) throw new Error("Lead not found");
     const toUser = await ctx.db.get(args.toUserId);
-    const assigner = await ctx.db.get(args.userId);
     await ctx.db.patch(args.leadId, { ownerId: args.toUserId, updatedAt: Date.now() });
     await ctx.db.insert("leadAssignments", { leadId: args.leadId, fromUserId: lead.ownerId || undefined, toUserId: args.toUserId, assignedBy: args.userId, note: args.note, createdAt: Date.now() });
     await logActivity(ctx, args.leadId, "assigned", `assigned to ${toUser?.name || args.toUserId}`, args.userId);
     await createNotification(ctx, args.toUserId, "lead", "Lead Assigned", `${lead.firstName} ${lead.lastName} assigned to you`, args.leadId, "lead");
-  },
+    return args.leadId;
+    }
+  ),
 });
 
 export const deleteLead = mutation({
   args: { leadId: v.id("leadMaster") },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "delete",
+      module: "crm",
+      entity: "lead",
+      eventType: "crm.lead.deleted",
+      title: "Lead deleted",
+      getUserId: () => undefined,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const leadId = args.leadId;
     const tables = ["leadStageHistory", "leadAssignments", "leadTasks", "leadNotes", "leadDocuments", "leadActivity", "leadDiscounts", "leadWhatsAppMessages", "leadApprovals", "leadPayments"] as const;
     for (const table of tables) {
       try { const items = await ctx.db.query(table).withIndex("leadId", (q) => q.eq("leadId", leadId)).collect(); for (const item of items) await ctx.db.delete(item._id); } catch (e) {}
     }
     await ctx.db.delete(leadId);
-  },
+    return leadId;
+    }
+  ),
 });
 
 // ============================
@@ -216,19 +257,45 @@ export const deleteLead = mutation({
 
 export const bulkAssign = mutation({
   args: { leadIds: v.array(v.id("leadMaster")), toUserId: v.id("users"), userId: v.id("users") },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "crm",
+      entity: "lead",
+      eventType: "crm.lead.bulk_assigned",
+      title: "Leads bulk assigned",
+      getUserId: (args: any) => args.userId,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const toUser = await ctx.db.get(args.toUserId);
     for (const leadId of args.leadIds) {
       await ctx.db.patch(leadId, { ownerId: args.toUserId, updatedAt: Date.now() });
       await ctx.db.insert("leadAssignments", { leadId, toUserId: args.toUserId, assignedBy: args.userId, createdAt: Date.now() });
       await logActivity(ctx, leadId, "assigned", `assigned to ${toUser?.name || args.toUserId} (bulk)`, args.userId);
     }
-  },
+    return args.leadIds[0];
+    }
+  ),
 });
 
 export const bulkMoveStage = mutation({
   args: { leadIds: v.array(v.id("leadMaster")), stage: v.string(), userId: v.id("users") },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "crm",
+      entity: "lead",
+      eventType: "crm.lead.bulk_stage_changed",
+      title: "Leads bulk stage changed",
+      getUserId: (args: any) => args.userId,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const now = Date.now();
     for (const leadId of args.leadIds) {
       const lead = await ctx.db.get(leadId);
@@ -250,24 +317,52 @@ export const bulkMoveStage = mutation({
       await ctx.db.insert("leadStageHistory", { leadId, fromStage: lead.stage, toStage: args.stage, changedBy: args.userId, createdAt: now });
       await logActivity(ctx, leadId, "stage_changed", `bulk moved to ${args.stage}`, args.userId);
     }
-  },
+    return args.leadIds[0];
+    }
+  ),
 });
 
 export const bulkTag = mutation({
   args: { leadIds: v.array(v.id("leadMaster")), tags: v.array(v.string()), userId: v.id("users") },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "update",
+      module: "crm",
+      entity: "lead",
+      eventType: "crm.lead.bulk_tagged",
+      title: "Leads bulk tagged",
+      getUserId: (args: any) => args.userId,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     for (const leadId of args.leadIds) {
       const lead = await ctx.db.get(leadId);
       if (!lead) continue;
       const merged = [...new Set([...(lead.tags || []), ...args.tags])];
       await ctx.db.patch(leadId, { tags: merged, updatedAt: Date.now() });
     }
-  },
+    return args.leadIds[0];
+    }
+  ),
 });
 
 export const bulkDelete = mutation({
   args: { leadIds: v.array(v.id("leadMaster")), userId: v.id("users") },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "delete",
+      module: "crm",
+      entity: "lead",
+      eventType: "crm.lead.bulk_deleted",
+      title: "Leads bulk deleted",
+      getUserId: (args: any) => args.userId,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const tables = ["leadStageHistory", "leadAssignments", "leadTasks", "leadNotes", "leadDocuments", "leadActivity", "leadDiscounts", "leadWhatsAppMessages", "leadApprovals", "leadPayments"] as const;
     for (const leadId of args.leadIds) {
       for (const table of tables) {
@@ -275,18 +370,34 @@ export const bulkDelete = mutation({
       }
       await ctx.db.delete(leadId);
     }
-  },
+    return args.leadIds[0];
+    }
+  ),
 });
 
 export const bulkCreateTasks = mutation({
   args: { leadIds: v.array(v.id("leadMaster")), title: v.string(), userId: v.id("users"), dueDate: v.optional(v.number()), priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("critical"))) },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "create",
+      module: "crm",
+      entity: "leadTask",
+      eventType: "crm.lead.bulk_tasks_created",
+      title: "Bulk lead tasks created",
+      getUserId: (args: any) => args.userId,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const now = Date.now();
     for (const leadId of args.leadIds) {
       await ctx.db.insert("leadTasks", { leadId, title: args.title, ownerId: args.userId, status: "pending", priority: args.priority || "medium", dueDate: args.dueDate, createdAt: now, updatedAt: now });
       await logActivity(ctx, leadId, "task_created", `task created: ${args.title}`, args.userId);
     }
-  },
+    return args.leadIds[0];
+    }
+  ),
 });
 
 // ============================
@@ -303,9 +414,22 @@ export const checkDuplicateLeads = query({
 
 export const importLeads = mutation({
   args: { leads: v.array(v.object({ firstName: v.string(), lastName: v.string(), phone: v.string(), email: v.optional(v.string()), location: v.optional(v.string()), source: v.optional(v.string()), stage: v.optional(v.string()), priority: v.optional(v.string()), expectedRevenue: v.optional(v.number()), verticalId: v.optional(v.id("verticals")), branchInterestId: v.optional(v.id("branches")), ownerId: v.optional(v.id("users")), tags: v.optional(v.array(v.string())), nextAction: v.optional(v.string()), nextActionDate: v.optional(v.number()), whatsappUsername: v.optional(v.string()), whatsappPin: v.optional(v.string()) })), createdBy: v.id("users"), duplicateAction: v.union(v.literal("skip"), v.literal("overwrite"), v.literal("create_new")) },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "create",
+      module: "crm",
+      entity: "lead",
+      eventType: "crm.lead.imported",
+      title: "Leads imported",
+      getUserId: (args: any) => args.createdBy,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: () => undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     const now = Date.now();
     let created = 0, skipped = 0, overwritten = 0;
+    let firstLeadId: string | undefined;
     const allExisting = await ctx.db.query("leadMaster").collect();
     for (const lead of args.leads) {
       const existing = allExisting.find((l) => l.phone === lead.phone);
@@ -327,10 +451,12 @@ export const importLeads = mutation({
       }
       const leadId = await ctx.db.insert("leadMaster", { firstName: lead.firstName, lastName: lead.lastName, phone: lead.phone, email: lead.email, location: lead.location, source: lead.source, stage: lead.stage || "new", priority: (lead.priority as any) || "medium", expectedRevenue: lead.expectedRevenue, verticalId: lead.verticalId, branchInterestId: lead.branchInterestId, ownerId: lead.ownerId, tags: lead.tags, nextAction: lead.nextAction, nextActionDate: lead.nextActionDate, whatsappUsername: lead.whatsappUsername, whatsappPin: lead.whatsappPin, status: "active", createdBy: args.createdBy, createdAt: now, updatedAt: now });
       await ctx.db.insert("leadStageHistory", { leadId, toStage: lead.stage || "new", changedBy: args.createdBy, createdAt: now });
+      if (!firstLeadId) firstLeadId = leadId;
       created++;
     }
-    return { created, skipped, overwritten, total: args.leads.length };
-  },
+    return { created, skipped, overwritten, total: args.leads.length, leadId: firstLeadId };
+    }
+  ),
 });
 
 // ============================
@@ -339,11 +465,25 @@ export const importLeads = mutation({
 
 export const scheduleFollowup = mutation({
   args: { leadId: v.id("leadMaster"), action: v.string(), followupDate: v.number(), followupType: v.optional(v.string()), priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("critical"))), reminder: v.optional(v.boolean()), userId: v.id("users") },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      operation: "create",
+      module: "crm",
+      entity: "lead",
+      eventType: "crm.lead.followup_scheduled",
+      title: "Follow-up scheduled",
+      getUserId: (args: any) => args.userId,
+      getEntityCompanyId: () => undefined,
+      getEntityBranchId: (args: any) => (args as any).branchInterestId || undefined,
+      notifyViaMatrix: false,
+    },
+    async (ctx: any, args: any) => {
     await ctx.db.patch(args.leadId, { nextAction: args.action, nextActionDate: args.followupDate, updatedAt: Date.now() });
     await logActivity(ctx, args.leadId, "followup_scheduled", `followup scheduled: ${args.action} on ${new Date(args.followupDate).toLocaleDateString()}`, args.userId);
     await ctx.db.insert("leadTasks", { leadId: args.leadId, title: args.action, ownerId: args.userId, assignedTo: args.userId, dueDate: args.followupDate, status: "pending", priority: args.priority || "medium", createdAt: Date.now(), updatedAt: Date.now() });
-  },
+    return args.leadId;
+    }
+  ),
 });
 
 export const getFollowups = query({
