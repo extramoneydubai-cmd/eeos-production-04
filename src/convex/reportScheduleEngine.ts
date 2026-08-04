@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
 import { withScopeAndEvents } from "./withScopeAndEvents";
+import { getUserFromToken } from "./authHelpers";
 
 // ─── Enterprise Pipeline Config ─────────────────────────────────
 // Every report-schedule mutation routes through withScopeAndEvents()
@@ -9,9 +11,11 @@ import { withScopeAndEvents } from "./withScopeAndEvents";
 // dashboard-refresh signals.
 //
 // getUserId returns undefined intentionally: report-schedule mutations
-// resolve the performer via getAuthUserId inside the handler but the
-// scheduler cron path carries no reliable Convex user id, so scope
-// enforcement stays a no-op here while the event pipeline is fully wired.
+// resolve the real performer from the session token via the
+// withScopeAndEvents wrapper when a token is supplied, otherwise they fall
+// back to the claimed id. The scheduler cron path carries no reliable
+// Convex user id, so scope enforcement stays a no-op for cron-driven runs
+// while the event pipeline is fully wired.
 const reportSchedulePipeline = {
   module: "reporting",
   getUserId: () => undefined,
@@ -396,8 +400,17 @@ export const saveDashboardLayout = mutation({
 });
 
 export const getUserDashboardLayouts = query({
-  handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
+  args: {
+    userId: v.optional(v.id("users")),
+    token: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    let userId = args.userId;
+    if (args.token) {
+      const sessionUser = await getUserFromToken(ctx, args.token);
+      if (!sessionUser) return [];
+      userId = sessionUser._id as Id<"users">;
+    }
     if (!userId) return [];
 
     const layouts = await ctx.db.query("userDashboardLayouts")
@@ -409,8 +422,17 @@ export const getUserDashboardLayouts = query({
 });
 
 export const getDefaultDashboardLayout = query({
-  handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
+  args: {
+    userId: v.optional(v.id("users")),
+    token: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    let userId = args.userId;
+    if (args.token) {
+      const sessionUser = await getUserFromToken(ctx, args.token);
+      if (!sessionUser) return null;
+      userId = sessionUser._id as Id<"users">;
+    }
     if (!userId) return null;
 
     return ctx.db.query("userDashboardLayouts")

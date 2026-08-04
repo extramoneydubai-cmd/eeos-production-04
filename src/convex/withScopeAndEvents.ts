@@ -49,10 +49,14 @@ export interface ScopeAndEventsConfig<P = any, R = any> {
   entity: string;
   eventType?: string;
   title?: string;
-  getEntityCompanyId?: (args: P) => any;
-  getEntityBranchId?: (args: P) => any;
-  getEntityDepartmentId?: (args: P) => any;
-  getUserId?: (args: P) => any;
+  // Accessors take loose `any` args so typed accessor signatures (e.g.
+  // `(args: { companyId?: any }) => ...`) can never constrain the P generic.
+  // P is driven by the handler's args type instead, keeping both typed and
+  // untyped config styles compatible.
+  getEntityCompanyId?: (args: any) => any;
+  getEntityBranchId?: (args: any) => any;
+  getEntityDepartmentId?: (args: any) => any;
+  getUserId?: (args: any) => any;
   eventConfig?: Partial<EventPipelineConfig<P, R>>;
 
   // Auto-document generation
