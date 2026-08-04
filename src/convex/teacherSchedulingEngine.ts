@@ -1,6 +1,29 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
+
+// ─── Enterprise Pipeline Config ─────────────────────────────────
+// Every teacher-scheduling mutation routes through withScopeAndEvents()
+// so schedule changes emit audit, timeline, event-bus, notification-matrix,
+// workflow, automation, search-index and dashboard-refresh signals.
+//
+// getUserId returns undefined intentionally: teacher-scheduling mutations
+// are called by the scheduling SDK and portals that pass performer strings
+// rather than a reliable Convex user id, so scope enforcement stays a
+// no-op here while the event pipeline is fully wired. Where the args
+// carry a branch it is still recorded on audit, timeline and event rows.
+const teacherSchedulePipeline = {
+  module: "scheduling",
+  getUserId: () => undefined,
+  getEntityCompanyId: () => undefined,
+  getEntityBranchId: (args: { branchId?: any }) => args.branchId,
+  getEntityDepartmentId: () => undefined,
+  triggerWorkflow: true,
+  triggerAutomation: true,
+  registerSearch: true,
+  signalDashboard: true,
+} as const;
 
 /**
  * Teacher Scheduling Enhancement Engine
@@ -462,7 +485,17 @@ export const assignTeacherSchedule = mutation({
     roomId: v.optional(v.id("academicClassrooms")),
     scheduleType: v.optional(v.string()),
   },
-  handler: async (ctx, args) => assignSchedule(ctx, args),
+  handler: withScopeAndEvents(
+    {
+      ...teacherSchedulePipeline,
+      operation: "create",
+      entity: "teacher_schedule",
+      eventType: "scheduling.teacher.assigned",
+      title: "Teacher Schedule Assigned",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => assignSchedule(ctx, args)
+  ),
 });
 
 export const autoScheduleSubstitute = mutation({
@@ -474,7 +507,16 @@ export const autoScheduleSubstitute = mutation({
     branchId: v.optional(v.id("branches")),
     subject: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...teacherSchedulePipeline,
+      operation: "create",
+      entity: "teacher_schedule",
+      eventType: "scheduling.substitute.auto_assigned",
+      title: "Substitute Auto-Scheduled",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => {
     // Find best substitute
     const suggestions = await computeSubstitutes(ctx, {
       absentTeacherId: args.absentTeacherId,
@@ -507,7 +549,8 @@ export const autoScheduleSubstitute = mutation({
       substitute: bestSubstitute,
       absentTeacherId: args.absentTeacherId,
     };
-  },
+    }
+  ),
 });
 
 export const updateTeacherSettings = mutation({
@@ -518,7 +561,16 @@ export const updateTeacherSettings = mutation({
     travelBufferMinutes: v.optional(v.number()),
     branches: v.optional(v.array(v.id("branches"))),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...teacherSchedulePipeline,
+      operation: "update",
+      entity: "teacher_settings",
+      eventType: "scheduling.teacher.settings.updated",
+      title: "Teacher Settings Updated",
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
     const existing = await ctx.db
       .query("businessRules")
       .withIndex("by_type", (q) => q.eq("ruleType", "teacher_scheduling"))
@@ -551,5 +603,6 @@ export const updateTeacherSettings = mutation({
     }
 
     return { success: true };
-  },
+    }
+  ),
 });

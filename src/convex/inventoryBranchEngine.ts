@@ -1,6 +1,28 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
+import { Events } from "./eventRegistry";
+
+// ─── Enterprise Pipeline Config ─────────────────────────────────
+// Every branch-inventory mutation routes through withScopeAndEvents()
+// so stock changes emit audit, timeline, event-bus, notification-matrix,
+// workflow, automation, search-index and dashboard-refresh signals.
+//
+// getUserId returns undefined intentionally: branch-inventory mutations
+// carry performer ids (userId/requestedBy/approvedBy/reservedBy) as
+// business fields rather than a reliable Convex auth id, so scope
+// enforcement stays a no-op here while the event pipeline is fully wired.
+const branchInventoryPipeline = {
+  module: "inventory",
+  getUserId: () => undefined,
+  getEntityCompanyId: () => undefined,
+  getEntityBranchId: () => undefined,
+  triggerWorkflow: true,
+  triggerAutomation: true,
+  registerSearch: true,
+  signalDashboard: true,
+} as const;
 
 /**
  * Enterprise Branch Inventory Engine
@@ -197,7 +219,16 @@ export const adjustStock = mutation({
     reason: v.string(),
     userId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...branchInventoryPipeline,
+      operation: "update",
+      entity: "branch_stock",
+      eventType: Events.INVENTORY.STOCK_ADJUSTED,
+      title: "Stock Adjusted",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => {
     const item = await ctx.db.get(args.itemId);
     if (!item) throw new Error("Item not found");
 
@@ -241,7 +272,8 @@ export const adjustStock = mutation({
       newQuantity: newQty,
       adjustmentType: args.adjustmentType,
     };
-  },
+    }
+  ),
 });
 
 export const setStockLocation = mutation({
@@ -253,7 +285,16 @@ export const setStockLocation = mutation({
     bin: v.optional(v.string()),
     userId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...branchInventoryPipeline,
+      operation: "update",
+      entity: "branch_stock",
+      eventType: "inventory.branch.stock.location",
+      title: "Stock Location Set",
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
     const item = await ctx.db.get(args.itemId);
     if (!item) throw new Error("Item not found");
 
@@ -266,7 +307,8 @@ export const setStockLocation = mutation({
     await ctx.db.patch(args.itemId, updates);
 
     return { success: true };
-  },
+    }
+  ),
 });
 
 export const setStockLimits = mutation({
@@ -276,14 +318,24 @@ export const setStockLimits = mutation({
     maxStock: v.number(),
     userId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...branchInventoryPipeline,
+      operation: "update",
+      entity: "branch_stock",
+      eventType: "inventory.branch.stock.limits",
+      title: "Stock Limits Set",
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
     await ctx.db.patch(args.itemId, {
       minStock: args.minStock,
       maxStock: args.maxStock,
     });
 
     return { success: true };
-  },
+    }
+  ),
 });
 
 export const createTransferRequest = mutation({
@@ -296,7 +348,16 @@ export const createTransferRequest = mutation({
     requestedBy: v.id("users"),
     priority: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...branchInventoryPipeline,
+      operation: "create",
+      entity: "transfer",
+      eventType: "inventory.transfer.requested",
+      title: "Transfer Requested",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => {
     const sourceItem = await ctx.db.get(args.itemId);
     if (!sourceItem) throw new Error("Source item not found");
 
@@ -323,7 +384,8 @@ export const createTransferRequest = mutation({
     });
 
     return transferId;
-  },
+    }
+  ),
 });
 
 export const approveTransfer = mutation({
@@ -332,7 +394,16 @@ export const approveTransfer = mutation({
     approvedBy: v.id("users"),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...branchInventoryPipeline,
+      operation: "approve",
+      entity: "transfer",
+      eventType: Events.INVENTORY.STOCK_TRANSFERRED,
+      title: "Transfer Approved",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => {
     const transfer = await ctx.db.get(args.transferId);
     if (!transfer) throw new Error("Transfer not found");
 
@@ -375,7 +446,8 @@ export const approveTransfer = mutation({
     });
 
     return { success: true };
-  },
+    }
+  ),
 });
 
 export const reserveStock = mutation({
@@ -385,7 +457,16 @@ export const reserveStock = mutation({
     reason: v.string(),
     reservedBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...branchInventoryPipeline,
+      operation: "create",
+      entity: "branch_stock_reservation",
+      eventType: "inventory.branch.stock.reserved",
+      title: "Stock Reserved",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => {
     const item = await ctx.db.get(args.itemId);
     if (!item) throw new Error("Item not found");
 
@@ -403,7 +484,8 @@ export const reserveStock = mutation({
       reserved: args.quantity,
       remainingAvailable: available - args.quantity,
     };
-  },
+    }
+  ),
 });
 
 export const releaseReservedStock = mutation({
@@ -412,7 +494,16 @@ export const releaseReservedStock = mutation({
     quantity: v.number(),
     releasedBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...branchInventoryPipeline,
+      operation: "update",
+      entity: "branch_stock_reservation",
+      eventType: "inventory.branch.stock.reserved.released",
+      title: "Reserved Stock Released",
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
     const item = await ctx.db.get(args.itemId);
     if (!item) throw new Error("Item not found");
 
@@ -426,5 +517,6 @@ export const releaseReservedStock = mutation({
       released: args.quantity,
       remainingReserved: newReserved,
     };
-  },
+    }
+  ),
 });

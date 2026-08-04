@@ -1,6 +1,28 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
+
+// ─── Enterprise Pipeline Config ─────────────────────────────────
+// Every report-schedule mutation routes through withScopeAndEvents()
+// so schedule/layout changes emit audit, timeline, event-bus,
+// notification-matrix, workflow, automation, search-index and
+// dashboard-refresh signals.
+//
+// getUserId returns undefined intentionally: report-schedule mutations
+// resolve the performer via getAuthUserId inside the handler but the
+// scheduler cron path carries no reliable Convex user id, so scope
+// enforcement stays a no-op here while the event pipeline is fully wired.
+const reportSchedulePipeline = {
+  module: "reporting",
+  getUserId: () => undefined,
+  getEntityCompanyId: () => undefined,
+  getEntityBranchId: () => undefined,
+  triggerWorkflow: true,
+  triggerAutomation: true,
+  registerSearch: true,
+  signalDashboard: true,
+} as const;
 
 // ─── SCHEDULE CRUD ─────────────────────────────
 
@@ -16,7 +38,16 @@ export const createSchedule = mutation({
     recipients: v.array(v.string()),
     exportFormat: v.union(v.literal("pdf"), v.literal("csv"), v.literal("excel")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...reportSchedulePipeline,
+      operation: "create",
+      entity: "report_schedule",
+      eventType: "reporting.schedule.created",
+      title: "Report Schedule Created",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
@@ -31,7 +62,8 @@ export const createSchedule = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+    }
+  ),
 });
 
 export const updateSchedule = mutation({
@@ -47,7 +79,16 @@ export const updateSchedule = mutation({
     exportFormat: v.optional(v.union(v.literal("pdf"), v.literal("csv"), v.literal("excel"))),
     isActive: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...reportSchedulePipeline,
+      operation: "update",
+      entity: "report_schedule",
+      eventType: "reporting.schedule.updated",
+      title: "Report Schedule Updated",
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
     const { id, ...fields } = args;
 
     // Recalculate next run if schedule changed
@@ -66,24 +107,45 @@ export const updateSchedule = mutation({
 
     await ctx.db.patch(id, update);
     return id;
-  },
+    }
+  ),
 });
 
 export const toggleSchedule = mutation({
   args: { id: v.id("reportSchedules") },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...reportSchedulePipeline,
+      operation: "update",
+      entity: "report_schedule",
+      eventType: "reporting.schedule.toggled",
+      title: "Report Schedule Toggled",
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
     const schedule = await ctx.db.get(args.id);
     if (!schedule) throw new Error("Schedule not found");
     await ctx.db.patch(args.id, { isActive: !(schedule as any).isActive, updatedAt: Date.now() });
     return args.id;
-  },
+    }
+  ),
 });
 
 export const deleteSchedule = mutation({
   args: { id: v.id("reportSchedules") },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...reportSchedulePipeline,
+      operation: "delete",
+      entity: "report_schedule",
+      eventType: "reporting.schedule.deleted",
+      title: "Report Schedule Deleted",
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
     await ctx.db.delete(args.id);
-  },
+    }
+  ),
 });
 
 export const listSchedules = query({
@@ -111,7 +173,16 @@ export const listSchedules = query({
 // ─── SCHEDULE EXECUTION ─────────────────────────
 
 export const executeDueSchedules = mutation({
-  handler: async (ctx) => {
+  handler: withScopeAndEvents(
+    {
+      ...reportSchedulePipeline,
+      operation: "update",
+      entity: "report_schedule",
+      eventType: "reporting.schedule.executed",
+      title: "Due Schedules Executed",
+      notifyViaMatrix: false,
+    },
+    async (ctx) => {
     const userId = await getAuthUserId(ctx);
     const now = Date.now();
 
@@ -166,7 +237,8 @@ export const executeDueSchedules = mutation({
     }
 
     return results;
-  },
+    }
+  ),
 });
 
 async function executeScheduledReport(ctx: any, dataSource: string, filtersJson: string): Promise<any> {
@@ -285,7 +357,16 @@ export const saveDashboardLayout = mutation({
     globalFilters: v.optional(v.string()),
     isDefault: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...reportSchedulePipeline,
+      operation: "create",
+      entity: "dashboard_layout",
+      eventType: "reporting.dashboard_layout.saved",
+      title: "Dashboard Layout Saved",
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
@@ -308,7 +389,8 @@ export const saveDashboardLayout = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+    }
+  ),
 });
 
 export const getUserDashboardLayouts = query({
@@ -338,7 +420,17 @@ export const getDefaultDashboardLayout = query({
 
 export const deleteDashboardLayout = mutation({
   args: { id: v.id("userDashboardLayouts") },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...reportSchedulePipeline,
+      operation: "delete",
+      entity: "dashboard_layout",
+      eventType: "reporting.dashboard_layout.deleted",
+      title: "Dashboard Layout Deleted",
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
     await ctx.db.delete(args.id);
-  },
+    }
+  ),
 });

@@ -8,6 +8,31 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
+
+// ─── Enterprise Pipeline Config ─────────────────────────────────
+// Every fixed-asset mutation routes through withScopeAndEvents() so
+// asset lifecycle changes emit audit, timeline, event-bus, notification-matrix,
+// workflow, automation, search-index and dashboard-refresh signals.
+//
+// getUserId returns undefined intentionally: fixed-asset mutations are called
+// by the asset SDK and portals that pass performer strings rather than a
+// reliable Convex user id, so scope enforcement stays a no-op here while the
+// event pipeline is fully wired. Where the args carry branch/department scope
+// it is still recorded on audit, timeline and event rows.
+const fixedAssetPipeline = {
+  module: "asset",
+  getUserId: () => undefined,
+  getEntityCompanyId: () => undefined,
+  getEntityBranchId: (args: { branchId?: any; newBranchId?: any }) =>
+    args.branchId ?? args.newBranchId,
+  getEntityDepartmentId: (args: { departmentId?: any; newDepartmentId?: any }) =>
+    args.departmentId ?? args.newDepartmentId,
+  triggerWorkflow: true,
+  triggerAutomation: true,
+  registerSearch: true,
+  signalDashboard: true,
+} as const;
 
 // ═══════════════════════════════════════════════════════════════════
 // ASSET CATEGORIES
@@ -30,14 +55,24 @@ export const createAssetCategory = mutation({
     depreciationRate: v.optional(v.number()),
     description: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...fixedAssetPipeline,
+      operation: "create",
+      entity: "asset_category",
+      eventType: "asset.fixed.category.created",
+      title: "Asset Category Created",
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
     const now = Date.now();
     return await ctx.db.insert("assetCategories", {
       ...args, isActive: true, createdAt: now, updatedAt: now,
     });
-  },
+    }
+  ),
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -83,7 +118,16 @@ export const createFixedAsset = mutation({
     vendorName: v.optional(v.string()),
     usefulLifeYears: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...fixedAssetPipeline,
+      operation: "create",
+      entity: "fixed_asset",
+      eventType: "asset.fixed.created",
+      title: "Fixed Asset Created",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
     const now = Date.now();
@@ -102,7 +146,8 @@ export const createFixedAsset = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+    }
+  ),
 });
 
 export const updateFixedAsset = mutation({
@@ -113,11 +158,21 @@ export const updateFixedAsset = mutation({
     assignedTo: v.optional(v.id("users")),
     description: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...fixedAssetPipeline,
+      operation: "update",
+      entity: "fixed_asset",
+      eventType: "asset.fixed.updated",
+      title: "Fixed Asset Updated",
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
     const { id, ...updates } = args;
     await ctx.db.patch(id, { ...updates, updatedAt: Date.now() });
     return id;
-  },
+    }
+  ),
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -126,7 +181,16 @@ export const updateFixedAsset = mutation({
 
 export const calculateDepreciation = mutation({
   args: { assetId: v.id("fixedAssets") },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...fixedAssetPipeline,
+      operation: "update",
+      entity: "fixed_asset",
+      eventType: "asset.fixed.depreciation.calculated",
+      title: "Depreciation Calculated",
+      notifyViaMatrix: false,
+    },
+    async (ctx, args) => {
     const asset = await ctx.db.get(args.assetId);
     if (!asset) throw new Error("Asset not found");
 
@@ -189,7 +253,8 @@ export const calculateDepreciation = mutation({
       bookValueAfter: Math.round(newValue * 100) / 100,
       accumulatedDepreciation: Math.round(newAccumulated * 100) / 100,
     };
-  },
+    }
+  ),
 });
 
 export const getAssetDepreciationSchedule = query({
@@ -221,11 +286,21 @@ export const transferAsset = mutation({
     transferredTo: v.optional(v.id("users")),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...fixedAssetPipeline,
+      operation: "update",
+      entity: "fixed_asset",
+      eventType: "asset.fixed.transferred",
+      title: "Asset Transferred",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => {
     const { assetId, ...updates } = args;
     await ctx.db.patch(assetId, { ...updates, updatedAt: Date.now() });
     return assetId;
-  },
+    }
+  ),
 });
 
 export const writeOffAsset = mutation({
@@ -235,7 +310,16 @@ export const writeOffAsset = mutation({
     reason: v.string(),
     approvedBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...fixedAssetPipeline,
+      operation: "update",
+      entity: "fixed_asset",
+      eventType: "asset.fixed.written_off",
+      title: "Asset Written Off",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => {
     const { assetId, ...updates } = args;
     await ctx.db.patch(assetId, {
       status: "written_off",
@@ -245,7 +329,8 @@ export const writeOffAsset = mutation({
       updatedAt: Date.now(),
     });
     return assetId;
-  },
+    }
+  ),
 });
 
 export const disposeAsset = mutation({
@@ -256,7 +341,16 @@ export const disposeAsset = mutation({
     saleAmount: v.optional(v.number()),
     reason: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...fixedAssetPipeline,
+      operation: "update",
+      entity: "fixed_asset",
+      eventType: "asset.fixed.disposed",
+      title: "Asset Disposed",
+      notifyViaMatrix: true,
+    },
+    async (ctx, args) => {
     const { assetId, ...updates } = args;
     await ctx.db.patch(assetId, {
       status: "disposed",
@@ -264,5 +358,6 @@ export const disposeAsset = mutation({
       updatedAt: Date.now(),
     });
     return assetId;
-  },
+    }
+  ),
 });
