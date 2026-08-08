@@ -12,7 +12,7 @@
  *   ✓ Uses documentSdk — NO finance-specific file storage
  *   ✓ Uses securePaginatedQuery — NO full table scans
  *   ✓ Uses visibilitySdk/permissionSdk — NO hardcoded role logic
- *   ✓ Uses withEventPipeline — NO manual event logging
+ *   ✓ Uses withScopeAndEvents — NO manual event logging
  *   ✓ Registers dashboard provider — NO direct table queries in dashboards
  *   ✓ References personMaster — NO duplicated personal information
  *
@@ -21,9 +21,9 @@
  */
 
 import { v } from "convex/values";
-import { mutation, query, internalMutation } from "./_generated/server";
-import { Doc, Id } from "./_generated/dataModel";
-import { withEventPipeline, entityIdFromResult, entityIdFromArg, userIdFromArg } from "../platform/eventPipeline";
+import { mutation, query } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
+import { withScopeAndEvents, type ScopeAndEventsConfig } from "./withScopeAndEvents";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
 // ═══════════════════════════════════════════════════════════════════
@@ -32,6 +32,48 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 
 function generateNumber(prefix: string, serial: number): string {
   return `${prefix}-${String(serial).padStart(6, "0")}`;
+}
+
+// ─── Enterprise Handler Factory ───────────────────────────────────────
+// Wraps ctx-based auth extraction for withScopeAndEvents integration.
+// When a session token is supplied the withScopeAndEvents wrapper resolves
+// the REAL performer from the sessions table; getAuthUserId (Convex auth
+// headers) only applies to legacy flows.
+
+function withFinance<P = any, R = any>(
+  operation: ScopeAndEventsConfig<P, R>["operation"],
+  entity: string,
+  getScope: (args: P) => { companyId?: string; branchId?: string; departmentId?: string },
+  handler: (ctx: any, args: P) => Promise<R>,
+) {
+  return async (ctx: any, args: P) => {
+    const raw = args as any;
+    const hasToken = typeof raw?.token === "string" && raw.token.length > 0;
+    let userId: Id<"users"> | undefined;
+    if (!hasToken) {
+      userId = (await getAuthUserId(ctx)) as Id<"users"> | undefined;
+    }
+
+    const scope = getScope(args);
+    const wrappedHandler = withScopeAndEvents<P, R>(
+      {
+        operation,
+        module: "finance",
+        entity,
+        getEntityCompanyId: () => scope.companyId,
+        getEntityBranchId: () => scope.branchId,
+        getEntityDepartmentId: () => scope.departmentId,
+        getUserId: () => userId as Id<"users">,
+        notifyViaMatrix: true,
+        triggerWorkflow: true,
+        triggerAutomation: true,
+        registerSearch: true,
+        signalDashboard: true,
+      },
+      (ctx2, args2) => handler(ctx2, args2),
+    );
+    return wrappedHandler(ctx, args);
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -76,33 +118,23 @@ export async function getPersonName(ctx: any, studentId: Id<"studentMaster">): P
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// EVENT PIPELINE WRAPPERS FOR CORE FINANCE MUTATIONS
+// ENTERPRISE PIPELINE WRAPPERS FOR CORE FINANCE MUTATIONS
 // ═══════════════════════════════════════════════════════════════════
 
 /**
- * Fee Account Operations (with Event Pipeline)
+ * Fee Account Operations (with Enterprise Pipeline)
  */
 
 export const createFeeAccountPlatform = mutation({
   args: {
+    token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     personId: v.optional(v.id("people")),
     totalFee: v.number(),
     installmentCount: v.number(),
     installmentFrequency: v.string(),
   },
-  handler: withEventPipeline(
-    {
-      module: "finance",
-      entity: "fee_account",
-      action: "create",
-      eventType: "finance.fee_account.created",
-      title: "Fee Account Created",
-      getEntityId: entityIdFromResult(),
-      getUserId: userIdFromArg(),
-      getDescription: (args) => `Fee account created: ${args.totalFee} with ${args.installmentCount} installments`,
-    },
-    async (ctx, args) => {
+  handler: withFinance("create", "fee_account", () => ({}), async (ctx, args) => {
       const userId = await getAuthUserId(ctx);
       if (!userId) throw new Error("Not authenticated");
 
@@ -126,16 +158,16 @@ export const createFeeAccountPlatform = mutation({
         status: "active",
         createdBy: userId,
       });
-    },
-  ),
+  }),
 });
 
 /**
- * Invoice Operations (with Event Pipeline)
+ * Invoice Operations (with Enterprise Pipeline)
  */
 
 export const createInvoicePlatform = mutation({
   args: {
+    token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     feeAccountId: v.id("studentFeeAccounts"),
     dueDate: v.number(),
@@ -147,18 +179,7 @@ export const createInvoicePlatform = mutation({
     gstPercentage: v.optional(v.number()),
     billingPeriod: v.optional(v.string()),
   },
-  handler: withEventPipeline(
-    {
-      module: "finance",
-      entity: "invoice",
-      action: "create",
-      eventType: "finance.invoice.created",
-      title: "Invoice Created",
-      getEntityId: entityIdFromResult(),
-      getUserId: userIdFromArg(),
-      getDescription: (args) => `Invoice created: ${args.totalAmount}`,
-    },
-    async (ctx, args) => {
+  handler: withFinance("create", "invoice", () => ({}), async (ctx, args) => {
       const userId = await getAuthUserId(ctx);
       if (!userId) throw new Error("Not authenticated");
 
@@ -183,16 +204,16 @@ export const createInvoicePlatform = mutation({
         gstPercentage: args.gstPercentage,
         createdBy: userId,
       });
-    },
-  ),
+  }),
 });
 
 /**
- * Payment Operations (with Event Pipeline)
+ * Payment Operations (with Enterprise Pipeline)
  */
 
 export const receivePaymentPlatform = mutation({
   args: {
+    token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     feeAccountId: v.id("studentFeeAccounts"),
     invoiceId: v.optional(v.id("feeInvoices")),
@@ -204,18 +225,7 @@ export const receivePaymentPlatform = mutation({
     chequeNumber: v.optional(v.string()),
     notes: v.optional(v.string()),
   },
-  handler: withEventPipeline(
-    {
-      module: "finance",
-      entity: "payment",
-      action: "receive",
-      eventType: "finance.payment.received",
-      title: "Payment Received",
-      getEntityId: entityIdFromResult(),
-      getUserId: userIdFromArg(),
-      getDescription: (args) => `Payment of ${args.amount} via ${args.paymentMethod}`,
-    },
-    async (ctx, args) => {
+  handler: withFinance("create", "payment", () => ({}), async (ctx, args) => {
       const userId = await getAuthUserId(ctx);
       if (!userId) throw new Error("Not authenticated");
 
@@ -239,30 +249,19 @@ export const receivePaymentPlatform = mutation({
         notes: args.notes,
         createdBy: userId,
       });
-    },
-  ),
+  }),
 });
 
 /**
- * Verify Payment (with Event Pipeline)
+ * Verify Payment (with Enterprise Pipeline)
  * Updates fee account, invoice, and installment balances.
  */
 export const verifyPaymentPlatform = mutation({
   args: {
+    token: v.optional(v.string()),
     transactionId: v.id("paymentTransactions"),
   },
-  handler: withEventPipeline(
-    {
-      module: "finance",
-      entity: "payment",
-      action: "verify",
-      eventType: "finance.payment.verified",
-      title: "Payment Verified",
-      getEntityId: entityIdFromArg("transactionId"),
-      getUserId: userIdFromArg(),
-      getDescription: () => "Payment transaction verified and applied",
-    },
-    async (ctx, args) => {
+  handler: withFinance("update", "payment", () => ({}), async (ctx, args) => {
       const userId = await getAuthUserId(ctx);
       if (!userId) throw new Error("Not authenticated");
 
@@ -314,16 +313,16 @@ export const verifyPaymentPlatform = mutation({
       }
 
       return args.transactionId;
-    },
-  ),
+  }),
 });
 
 /**
- * Refund Request (with Event Pipeline)
+ * Refund Request (with Enterprise Pipeline)
  */
 
 export const createRefundPlatform = mutation({
   args: {
+    token: v.optional(v.string()),
     studentId: v.optional(v.id("studentMaster")),
     transactionId: v.optional(v.id("paymentTransactions")),
     invoiceId: v.optional(v.id("feeInvoices")),
@@ -332,18 +331,7 @@ export const createRefundPlatform = mutation({
     reasonCategory: v.union(v.literal("academic"), v.literal("administrative"), v.literal("financial"), v.literal("withdrawal"), v.literal("other")),
     notes: v.optional(v.string()),
   },
-  handler: withEventPipeline(
-    {
-      module: "finance",
-      entity: "refund",
-      action: "request",
-      eventType: "finance.refund.requested",
-      title: "Refund Requested",
-      getEntityId: entityIdFromResult(),
-      getUserId: userIdFromArg(),
-      getDescription: (args) => `Refund of ${args.amount}: ${args.reason}`,
-    },
-    async (ctx, args) => {
+  handler: withFinance("create", "refund", () => ({}), async (ctx, args) => {
       const userId = await getAuthUserId(ctx);
       if (!userId) throw new Error("Not authenticated");
 
@@ -354,16 +342,16 @@ export const createRefundPlatform = mutation({
         createdAt: Date.now(),
         updatedAt: Date.now(),
       });
-    },
-  ),
+  }),
 });
 
 /**
- * Expense Request (with Event Pipeline)
+ * Expense Request (with Enterprise Pipeline)
  */
 
 export const createExpensePlatform = mutation({
   args: {
+    token: v.optional(v.string()),
     branchId: v.optional(v.id("branches")),
     departmentId: v.optional(v.id("departments")),
     expenseCategoryId: v.optional(v.id("financeExpenseCategories")),
@@ -376,18 +364,10 @@ export const createExpensePlatform = mutation({
     billReference: v.optional(v.string()),
     attachmentUrl: v.optional(v.string()),
   },
-  handler: withEventPipeline(
-    {
-      module: "finance",
-      entity: "expense",
-      action: "create",
-      eventType: "finance.expense.created",
-      title: "Expense Created",
-      getEntityId: entityIdFromResult(),
-      getUserId: userIdFromArg(),
-      getDescription: (args) => `Expense of ${args.amount}: ${args.description}`,
-    },
-    async (ctx, args) => {
+  handler: withFinance("create", "expense", (a) => ({
+    branchId: a.branchId,
+    departmentId: a.departmentId,
+  }), async (ctx, args) => {
       const userId = await getAuthUserId(ctx);
       if (!userId) throw new Error("Not authenticated");
 
@@ -398,16 +378,16 @@ export const createExpensePlatform = mutation({
         createdAt: Date.now(),
         updatedAt: Date.now(),
       });
-    },
-  ),
+  }),
 });
 
 /**
- * Vendor Bill (with Event Pipeline)
+ * Vendor Bill (with Enterprise Pipeline)
  */
 
 export const createVendorBillPlatform = mutation({
   args: {
+    token: v.optional(v.string()),
     vendorName: v.string(),
     vendorContact: v.optional(v.string()),
     billNumber: v.string(),
@@ -418,18 +398,7 @@ export const createVendorBillPlatform = mutation({
     categoryId: v.optional(v.id("financeExpenseCategories")),
     attachmentUrls: v.optional(v.array(v.string())),
   },
-  handler: withEventPipeline(
-    {
-      module: "finance",
-      entity: "vendor_bill",
-      action: "create",
-      eventType: "finance.vendor_bill.created",
-      title: "Vendor Bill Created",
-      getEntityId: entityIdFromResult(),
-      getUserId: userIdFromArg(),
-      getDescription: (args) => `Vendor bill ${args.billNumber}: ${args.amount}`,
-    },
-    async (ctx, args) => {
+  handler: withFinance("create", "vendor_bill", () => ({}), async (ctx, args) => {
       const userId = await getAuthUserId(ctx);
       if (!userId) throw new Error("Not authenticated");
 
@@ -442,16 +411,16 @@ export const createVendorBillPlatform = mutation({
         createdAt: Date.now(),
         updatedAt: Date.now(),
       });
-    },
-  ),
+  }),
 });
 
 /**
- * Journal Entry (with Event Pipeline)
+ * Journal Entry (with Enterprise Pipeline)
  */
 
 export const createJournalEntryPlatform = mutation({
   args: {
+    token: v.optional(v.string()),
     entryDate: v.number(),
     description: v.string(),
     debitAccount: v.string(),
@@ -460,18 +429,7 @@ export const createJournalEntryPlatform = mutation({
     referenceType: v.optional(v.union(v.literal("invoice"), v.literal("payment"), v.literal("expense"), v.literal("receipt"), v.literal("adjustment"), v.literal("refund"))),
     referenceId: v.optional(v.string()),
   },
-  handler: withEventPipeline(
-    {
-      module: "finance",
-      entity: "journal_entry",
-      action: "create",
-      eventType: "finance.journal_entry.created",
-      title: "Journal Entry Created",
-      getEntityId: entityIdFromResult(),
-      getUserId: userIdFromArg(),
-      getDescription: (args) => `Journal: ${args.debitAccount} / ${args.creditAccount}: ${args.amount}`,
-    },
-    async (ctx, args) => {
+  handler: withFinance("create", "journal_entry", () => ({}), async (ctx, args) => {
       const userId = await getAuthUserId(ctx);
       if (!userId) throw new Error("Not authenticated");
 
@@ -486,8 +444,7 @@ export const createJournalEntryPlatform = mutation({
         createdAt: Date.now(),
         updatedAt: Date.now(),
       });
-    },
-  ),
+  }),
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -657,11 +614,12 @@ export const getFinanceDashboardKPIs = query({
 
 export const approveExpenseWithWorkflow = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("expenseRecords"),
     approved: v.boolean(),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withFinance("approve", "expense", () => ({}), async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
@@ -675,39 +633,18 @@ export const approveExpenseWithWorkflow = mutation({
       updatedAt: Date.now(),
     });
 
-    // Use withEventPipeline-style logging
-    const now = Date.now();
-    await ctx.db.insert("auditLogs", {
-      action: args.approved ? "approve" : "reject",
-      entity: "expense",
-      entityId: args.id,
-      userId: identity.subject as any,
-      changes: args.notes ? { reason: args.notes } : undefined,
-      createdAt: now,
-    });
-
-    await ctx.db.insert("timelineEvents", {
-      module: "finance",
-      eventType: args.approved ? "finance.expense.approved" : "finance.expense.rejected",
-      entityType: "expense",
-      entityId: args.id,
-      title: args.approved ? "Expense Approved" : "Expense Rejected",
-      description: args.notes,
-      performedBy: identity.subject as any,
-      createdAt: now,
-    });
-
     return args.id;
-  },
+  }),
 });
 
 export const approveRefundWithWorkflow = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("refundRequests"),
     approved: v.boolean(),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withFinance("approve", "refund", () => ({}), async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
@@ -721,29 +658,8 @@ export const approveRefundWithWorkflow = mutation({
       updatedAt: Date.now(),
     });
 
-    const now = Date.now();
-    await ctx.db.insert("auditLogs", {
-      action: args.approved ? "approve" : "reject",
-      entity: "refund",
-      entityId: args.id,
-      userId: identity.subject as any,
-      changes: args.notes ? { reason: args.notes } : undefined,
-      createdAt: now,
-    });
-
-    await ctx.db.insert("timelineEvents", {
-      module: "finance",
-      eventType: args.approved ? "finance.refund.approved" : "finance.refund.rejected",
-      entityType: "refund",
-      entityId: args.id,
-      title: args.approved ? "Refund Approved" : "Refund Rejected",
-      description: args.notes,
-      performedBy: identity.subject as any,
-      createdAt: now,
-    });
-
     return args.id;
-  },
+  }),
 });
 
 // ═══════════════════════════════════════════════════════════════════

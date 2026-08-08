@@ -1,7 +1,51 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { logActivity, createNotification } from "./crmHelpers";
+import { withScopeAndEvents, type ScopeAndEventsConfig } from "./withScopeAndEvents";
+
+// ─── Enterprise Handler Factory ───────────────────────────────────────
+// Wraps ctx-based auth extraction for withScopeAndEvents integration.
+// When a session token is supplied the withScopeAndEvents wrapper resolves
+// the REAL performer from the sessions table; getAuthUserId (Convex auth
+// headers) only applies to legacy flows. The declared actor args (createdBy,
+// startedBy, ...) remain the recorded actors, while authorization uses the
+// verified performer.
+
+function withSla<P = any, R = any>(
+  operation: ScopeAndEventsConfig<P, R>["operation"],
+  entity: string,
+  handler: (ctx: any, args: P) => Promise<R>,
+) {
+  return async (ctx: any, args: P) => {
+    const raw = args as any;
+    const hasToken = typeof raw?.token === "string" && raw.token.length > 0;
+    let userId: Id<"users"> | undefined;
+    if (!hasToken) {
+      userId = (await getAuthUserId(ctx)) as Id<"users"> | undefined;
+    }
+
+    const wrappedHandler = withScopeAndEvents<P, R>(
+      {
+        operation,
+        module: "crm",
+        entity,
+        getEntityCompanyId: () => undefined,
+        getEntityBranchId: () => undefined,
+        getEntityDepartmentId: () => undefined,
+        getUserId: () => userId as Id<"users">,
+        notifyViaMatrix: true,
+        triggerWorkflow: true,
+        triggerAutomation: true,
+        registerSearch: true,
+        signalDashboard: true,
+      },
+      (ctx2, args2) => handler(ctx2, args2),
+    );
+    return wrappedHandler(ctx, args);
+  };
+}
 
 /* ────────────
    INTERNAL HELPERS
@@ -70,6 +114,7 @@ export const listSlaPolicies = query({
 
 export const createSlaPolicy = mutation({
   args: {
+    token: v.optional(v.string()),
     name: v.string(),
     description: v.optional(v.string()),
     slaType: v.union(
@@ -88,18 +133,19 @@ export const createSlaPolicy = mutation({
     reassignmentPolicy: v.optional(v.string()),
     createdBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withSla("create", "sla_policy", async (ctx, args) => {
     return ctx.db.insert("slaPolicies", {
       ...args,
       isActive: true,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const updateSlaPolicy = mutation({
   args: {
+    token: v.optional(v.string()),
     policyId: v.id("slaPolicies"),
     name: v.optional(v.string()),
     description: v.optional(v.string()),
@@ -113,21 +159,21 @@ export const updateSlaPolicy = mutation({
     reassignmentPolicy: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
+  handler: withSla("update", "sla_policy", async (ctx, args) => {
     const { policyId, ...fields } = args;
     const existing = await ctx.db.get(policyId);
     if (!existing) throw new Error("SLA policy not found");
     return ctx.db.patch(policyId, { ...fields, updatedAt: Date.now() });
-  },
+  }),
 });
 
 export const deleteSlaPolicy = mutation({
-  args: { policyId: v.id("slaPolicies") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), policyId: v.id("slaPolicies") },
+  handler: withSla("delete", "sla_policy", async (ctx, args) => {
     const existing = await ctx.db.get(args.policyId);
     if (!existing) throw new Error("SLA policy not found");
     await ctx.db.delete(args.policyId);
-  },
+  }),
 });
 
 /* ────────────
@@ -136,11 +182,12 @@ export const deleteSlaPolicy = mutation({
 
 export const startSLA = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     slaPolicyId: v.id("slaPolicies"),
     startedBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withSla("create", "sla", async (ctx, args) => {
     const policy = await ctx.db.get(args.slaPolicyId);
     if (!policy) throw new Error("SLA policy not found");
     if (!policy.isActive) throw new Error("SLA policy is not active");
@@ -158,16 +205,17 @@ export const startSLA = mutation({
     });
 
     return { slaPolicyId: args.slaPolicyId, deadline, startedAt: now };
-  },
+  }),
 });
 
 export const pauseSLA = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     slaPolicyId: v.id("slaPolicies"),
     pausedBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withSla("update", "sla", async (ctx, args) => {
     await createTimelineEvent(ctx, {
       leadId: args.leadId,
       eventType: "LeadUpdated",
@@ -175,16 +223,17 @@ export const pauseSLA = mutation({
       metadata: JSON.stringify({ slaPolicyId: args.slaPolicyId }),
       performedBy: args.pausedBy,
     });
-  },
+  }),
 });
 
 export const resumeSLA = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     slaPolicyId: v.id("slaPolicies"),
     resumedBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withSla("update", "sla", async (ctx, args) => {
     await createTimelineEvent(ctx, {
       leadId: args.leadId,
       eventType: "LeadUpdated",
@@ -192,22 +241,23 @@ export const resumeSLA = mutation({
       metadata: JSON.stringify({ slaPolicyId: args.slaPolicyId }),
       performedBy: args.resumedBy,
     });
-  },
+  }),
 });
 
 export const completeSLA = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     slaPolicyId: v.id("slaPolicies"),
     completedBy: v.optional(v.id("users")),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withSla("update", "sla", async (ctx, args) => {
     // Resolve any violations for this SLA
     const violations = await ctx.db
       .query("slaViolations")
-      .withIndex("leadId", (q) => q.eq("leadId", args.leadId))
-      .filter((q) => q.and(
+      .withIndex("leadId", (q: any) => q.eq("leadId", args.leadId))
+      .filter((q: any) => q.and(
         q.eq(q.field("slaPolicyId"), args.slaPolicyId),
         q.eq(q.field("status"), "open"),
       ))
@@ -229,18 +279,19 @@ export const completeSLA = mutation({
       metadata: JSON.stringify({ slaPolicyId: args.slaPolicyId }),
       performedBy: args.completedBy,
     });
-  },
+  }),
 });
 
 export const violateSLA = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     slaPolicyId: v.id("slaPolicies"),
     slaStartedAt: v.number(),
     slaDeadlineAt: v.number(),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withSla("create", "sla_violation", async (ctx, args) => {
     const now = Date.now();
 
     const violationId = await ctx.db.insert("slaViolations", {
@@ -266,7 +317,7 @@ export const violateSLA = mutation({
     await escalateLead(ctx, args.leadId, 1, "sla_violation", `SLA violation: ${args.notes || "Deadline missed"}`, violationId);
 
     return violationId;
-  },
+  }),
 });
 
 /* ────────────
@@ -332,6 +383,7 @@ async function escalateLead(
 
 export const escalateLeadMutation = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     level: v.number(),
     escalationType: v.union(
@@ -342,17 +394,18 @@ export const escalateLeadMutation = mutation({
     slaViolationId: v.optional(v.id("slaViolations")),
     escalatedBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withSla("create", "escalation", async (ctx, args) => {
     return escalateLead(ctx, args.leadId, args.level, args.escalationType, args.reason, args.slaViolationId, args.escalatedBy);
-  },
+  }),
 });
 
 export const acknowledgeEscalation = mutation({
   args: {
+    token: v.optional(v.string()),
     escalationId: v.id("leadEscalations"),
     userId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withSla("update", "escalation", async (ctx, args) => {
     const escalation = await ctx.db.get(args.escalationId);
     if (!escalation) throw new Error("Escalation not found");
 
@@ -361,17 +414,18 @@ export const acknowledgeEscalation = mutation({
       notes: `Acknowledged by ${args.userId}`,
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const resolveEscalation = mutation({
   args: {
+    token: v.optional(v.string()),
     escalationId: v.id("leadEscalations"),
     userId: v.id("users"),
     reassignTo: v.optional(v.id("users")),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withSla("update", "escalation", async (ctx, args) => {
     const escalation = await ctx.db.get(args.escalationId);
     if (!escalation) throw new Error("Escalation not found");
 
@@ -405,7 +459,7 @@ export const resolveEscalation = mutation({
         resolvedBy: args.userId,
       });
     }
-  },
+  }),
 });
 
 /* ────────────

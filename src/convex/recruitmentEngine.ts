@@ -1,6 +1,50 @@
 import { v } from "convex/values";
-import { mutation, query, internalMutation } from "./_generated/server";
-import { Doc, Id } from "./_generated/dataModel";
+import { mutation, query } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
+import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents, type ScopeAndEventsConfig } from "./withScopeAndEvents";
+
+// ─── Enterprise Handler Factory ───────────────────────────────────────
+// Wraps ctx-based auth extraction for withScopeAndEvents integration.
+// When a session token is supplied the withScopeAndEvents wrapper resolves
+// the REAL performer from the sessions table; getAuthUserId (Convex auth
+// headers) only applies to legacy flows. The declared actor (identity
+// subject) remains the recorded actor, while authorization uses the
+// verified performer.
+
+function withRecruitment<P = any, R = any>(
+  operation: ScopeAndEventsConfig<P, R>["operation"],
+  entity: string,
+  handler: (ctx: any, args: P) => Promise<R>,
+) {
+  return async (ctx: any, args: P) => {
+    const raw = args as any;
+    const hasToken = typeof raw?.token === "string" && raw.token.length > 0;
+    let userId: Id<"users"> | undefined;
+    if (!hasToken) {
+      userId = (await getAuthUserId(ctx)) as Id<"users"> | undefined;
+    }
+
+    const wrappedHandler = withScopeAndEvents<P, R>(
+      {
+        operation,
+        module: "hr",
+        entity,
+        getEntityCompanyId: () => undefined,
+        getEntityBranchId: () => undefined,
+        getEntityDepartmentId: () => undefined,
+        getUserId: () => userId as Id<"users">,
+        notifyViaMatrix: true,
+        triggerWorkflow: true,
+        triggerAutomation: true,
+        registerSearch: true,
+        signalDashboard: true,
+      },
+      (ctx2, args2) => handler(ctx2, args2),
+    );
+    return wrappedHandler(ctx, args);
+  };
+}
 
 // ─── HELPERS ───────────────────────────────────────────────
 
@@ -28,6 +72,7 @@ async function createTimelineEvent(
 
 export const createJobRequisition = mutation({
   args: {
+    token: v.optional(v.string()),
     departmentId: v.id("organizationDepartments"),
     designationId: v.optional(v.id("organizationDesignations")),
     companyId: v.optional(v.id("organizationCompanies")),
@@ -37,7 +82,7 @@ export const createJobRequisition = mutation({
     salaryRange: v.optional(v.string()),
     description: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withRecruitment("create", "job_requisition", async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
@@ -50,11 +95,12 @@ export const createJobRequisition = mutation({
       updatedAt: now,
     });
     return id;
-  },
+  }),
 });
 
 export const updateJobRequisition = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("jobRequisitions"),
     departmentId: v.optional(v.id("organizationDepartments")),
     designationId: v.optional(v.id("organizationDesignations")),
@@ -63,31 +109,32 @@ export const updateJobRequisition = mutation({
     salaryRange: v.optional(v.string()),
     description: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withRecruitment("update", "job_requisition", async (ctx, args) => {
     const { id, ...fields } = args;
     await ctx.db.patch(id, { ...fields, updatedAt: Date.now() });
     return id;
-  },
+  }),
 });
 
 export const submitForApproval = mutation({
-  args: { id: v.id("jobRequisitions") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("jobRequisitions") },
+  handler: withRecruitment("update", "job_requisition", async (ctx, args) => {
     const req = await ctx.db.get(args.id);
     if (!req) throw new Error("Requisition not found");
     if (req.status !== "draft") throw new Error("Only draft requisitions can be submitted");
 
     await ctx.db.patch(args.id, { status: "pending_approval", updatedAt: Date.now() });
     return args.id;
-  },
+  }),
 });
 
 export const approveRequisition = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("jobRequisitions"),
     approved: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withRecruitment("approve", "job_requisition", async (ctx, args) => {
     const req = await ctx.db.get(args.id);
     if (!req) throw new Error("Requisition not found");
 
@@ -96,15 +143,15 @@ export const approveRequisition = mutation({
       updatedAt: Date.now(),
     });
     return args.id;
-  },
+  }),
 });
 
 export const cancelRequisition = mutation({
-  args: { id: v.id("jobRequisitions") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("jobRequisitions") },
+  handler: withRecruitment("update", "job_requisition", async (ctx, args) => {
     await ctx.db.patch(args.id, { status: "cancelled", updatedAt: Date.now() });
     return args.id;
-  },
+  }),
 });
 
 export const listRequisitions = query({
@@ -133,6 +180,7 @@ export const getRequisition = query({
 
 export const publishJob = mutation({
   args: {
+    token: v.optional(v.string()),
     requisitionId: v.id("jobRequisitions"),
     title: v.string(),
     description: v.optional(v.string()),
@@ -140,7 +188,7 @@ export const publishJob = mutation({
     locations: v.array(v.string()),
     applicationDeadline: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: withRecruitment("create", "job_posting", async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
@@ -156,15 +204,15 @@ export const publishJob = mutation({
       updatedAt: now,
     });
     return id;
-  },
+  }),
 });
 
 export const closeJobPosting = mutation({
-  args: { id: v.id("jobPostings") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("jobPostings") },
+  handler: withRecruitment("update", "job_posting", async (ctx, args) => {
     await ctx.db.patch(args.id, { status: "closed", updatedAt: Date.now() });
     return args.id;
-  },
+  }),
 });
 
 export const listJobPostings = query({
@@ -193,6 +241,7 @@ export const getJobPosting = query({
 
 export const applyCandidate = mutation({
   args: {
+    token: v.optional(v.string()),
     personId: v.id("personMaster"),
     jobPostingId: v.optional(v.id("jobPostings")),
     source: v.string(),
@@ -203,7 +252,7 @@ export const applyCandidate = mutation({
     experience: v.optional(v.number()),
     resumeUrl: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withRecruitment("create", "candidate", async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
@@ -224,13 +273,14 @@ export const applyCandidate = mutation({
     });
 
     return id;
-  },
+  }),
 });
 
 // ─── HIRING (Candidate → Employee) ─────────────────────────
 
 export const hireCandidate = mutation({
   args: {
+    token: v.optional(v.string()),
     candidateId: v.id("candidates"),
     personId: v.id("personMaster"),
     departmentId: v.id("organizationDepartments"),
@@ -242,7 +292,7 @@ export const hireCandidate = mutation({
     joiningDate: v.number(),
     employmentType: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: withRecruitment("create", "employee", async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
@@ -295,7 +345,7 @@ export const hireCandidate = mutation({
     });
 
     return { employeeId, candidateId: args.candidateId };
-  },
+  }),
 });
 
 // ─── REPORTING ─────────────────────────────────────────────

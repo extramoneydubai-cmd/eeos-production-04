@@ -1,11 +1,54 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents, type ScopeAndEventsConfig } from "./withScopeAndEvents";
+import { Id } from "./_generated/dataModel";
+
+// ─── Enterprise Handler Factory ───────────────────────────────────────
+// Wraps ctx-based auth extraction for withScopeAndEvents integration.
+// When a session token is supplied the withScopeAndEvents wrapper resolves
+// the REAL performer from the sessions table; getAuthUserId (Convex auth
+// headers) only applies to legacy flows.
+
+function withLmsEngine<P = any, R = any>(
+  operation: ScopeAndEventsConfig<P, R>["operation"],
+  entity: string,
+  handler: (ctx: any, args: P, userId: Id<"users">) => Promise<R>,
+) {
+  return async (ctx: any, args: P) => {
+    const raw = args as any;
+    const hasToken = typeof raw?.token === "string" && raw.token.length > 0;
+    let userId: Id<"users"> | undefined;
+    if (!hasToken) {
+      userId = (await getAuthUserId(ctx)) as Id<"users"> | undefined;
+    }
+
+    const wrappedHandler = withScopeAndEvents<P, R>(
+      {
+        operation,
+        module: "lms",
+        entity,
+        getEntityCompanyId: () => undefined,
+        getEntityBranchId: () => undefined,
+        getEntityDepartmentId: () => undefined,
+        getUserId: () => userId as Id<"users">,
+        notifyViaMatrix: true,
+        triggerWorkflow: true,
+        triggerAutomation: true,
+        registerSearch: true,
+        signalDashboard: true,
+      },
+      (ctx2, args2) => handler(ctx2, args2, userId as Id<"users">),
+    );
+    return wrappedHandler(ctx, args);
+  };
+}
 
 // ─── COURSE LIBRARY ───────────────────────────────────
 
 export const createCourse = mutation({
   args: {
+    token: v.optional(v.string()),
     title: v.string(),
     code: v.string(),
     description: v.optional(v.string()),
@@ -17,8 +60,7 @@ export const createCourse = mutation({
     difficulty: v.union(v.literal("beginner"), v.literal("intermediate"), v.literal("advanced")),
     tags: v.optional(v.array(v.string())),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withLmsEngine("create", "course", async (ctx, args, userId) => {
     if (!userId) throw new Error("Not authenticated");
 
     return ctx.db.insert("lmsCourses", {
@@ -30,11 +72,12 @@ export const createCourse = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const updateCourse = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("lmsCourses"),
     title: v.optional(v.string()),
     description: v.optional(v.string()),
@@ -43,16 +86,16 @@ export const updateCourse = mutation({
     status: v.optional(v.union(v.literal("draft"), v.literal("published"), v.literal("archived"))),
     tags: v.optional(v.array(v.string())),
   },
-  handler: async (ctx, args) => {
+  handler: withLmsEngine("update", "course", async (ctx, args) => {
     const { id, ...fields } = args;
     await ctx.db.patch(id, { ...fields, updatedAt: Date.now() });
     return id;
-  },
+  }),
 });
 
 export const publishCourse = mutation({
-  args: { id: v.id("lmsCourses") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("lmsCourses") },
+  handler: withLmsEngine("update", "course", async (ctx, args) => {
     const course = await ctx.db.get(args.id);
     if (!course) throw new Error("Course not found");
     if ((course as any).totalLessons === 0) throw new Error("Cannot publish a course with no lessons");
@@ -62,7 +105,7 @@ export const publishCourse = mutation({
       updatedAt: Date.now(),
     });
     return args.id;
-  },
+  }),
 });
 
 export const listCourses = query({
@@ -115,6 +158,7 @@ export const getCourse = query({
 
 export const createLesson = mutation({
   args: {
+    token: v.optional(v.string()),
     courseId: v.id("lmsCourses"),
     title: v.string(),
     description: v.optional(v.string()),
@@ -127,8 +171,7 @@ export const createLesson = mutation({
     contentData: v.optional(v.string()),
     duration: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withLmsEngine("create", "lesson", async (ctx, args, userId) => {
     if (!userId) throw new Error("Not authenticated");
 
     const id = await ctx.db.insert("lmsLessons", {
@@ -146,11 +189,12 @@ export const createLesson = mutation({
     await ctx.db.patch(args.courseId, { totalLessons: allLessons.length, updatedAt: Date.now() });
 
     return id;
-  },
+  }),
 });
 
 export const updateLesson = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("lmsLessons"),
     title: v.optional(v.string()),
     description: v.optional(v.string()),
@@ -163,17 +207,16 @@ export const updateLesson = mutation({
     duration: v.optional(v.number()),
     orderIndex: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: withLmsEngine("update", "lesson", async (ctx, args) => {
     const { id, ...fields } = args;
     await ctx.db.patch(id, { ...fields, updatedAt: Date.now() });
     return id;
-  },
+  }),
 });
 
 export const publishLesson = mutation({
-  args: { id: v.id("lmsLessons") },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  args: { token: v.optional(v.string()), id: v.id("lmsLessons") },
+  handler: withLmsEngine("update", "lesson", async (ctx, args, userId) => {
     const lesson = await ctx.db.get(args.id);
     if (!lesson) throw new Error("Lesson not found");
 
@@ -194,7 +237,7 @@ export const publishLesson = mutation({
     } as any);
 
     return args.id;
-  },
+  }),
 });
 
 export const listLessons = query({
@@ -250,6 +293,7 @@ export const getLesson = query({
 
 export const createTopic = mutation({
   args: {
+    token: v.optional(v.string()),
     lessonId: v.id("lmsLessons"),
     title: v.string(),
     orderIndex: v.number(),
@@ -261,17 +305,18 @@ export const createTopic = mutation({
     contentData: v.optional(v.string()),
     duration: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: withLmsEngine("create", "topic", async (ctx, args) => {
     return ctx.db.insert("lmsTopics", {
       ...args,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const updateTopic = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("lmsTopics"),
     title: v.optional(v.string()),
     contentUrl: v.optional(v.string()),
@@ -279,24 +324,24 @@ export const updateTopic = mutation({
     duration: v.optional(v.number()),
     orderIndex: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: withLmsEngine("update", "topic", async (ctx, args) => {
     const { id, ...fields } = args;
     await ctx.db.patch(id, { ...fields, updatedAt: Date.now() });
     return id;
-  },
+  }),
 });
 
 // ─── ANNOUNCEMENTS ────────────────────────────────────
 
 export const createAnnouncement = mutation({
   args: {
+    token: v.optional(v.string()),
     courseId: v.id("lmsCourses"),
     title: v.string(),
     content: v.string(),
     priority: v.union(v.literal("normal"), v.literal("important"), v.literal("urgent")),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withLmsEngine("create", "announcement", async (ctx, args, userId) => {
     if (!userId) throw new Error("Not authenticated");
 
     return ctx.db.insert("lmsAnnouncements", {
@@ -305,7 +350,7 @@ export const createAnnouncement = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const listAnnouncements = query({
@@ -322,13 +367,13 @@ export const listAnnouncements = query({
 
 export const createDiscussion = mutation({
   args: {
+    token: v.optional(v.string()),
     courseId: v.id("lmsCourses"),
     lessonId: v.optional(v.id("lmsLessons")),
     content: v.string(),
     parentId: v.optional(v.id("lmsDiscussions")),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withLmsEngine("create", "discussion", async (ctx, args, userId) => {
     if (!userId) throw new Error("Not authenticated");
 
     return ctx.db.insert("lmsDiscussions", {
@@ -337,7 +382,7 @@ export const createDiscussion = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const listDiscussions = query({
