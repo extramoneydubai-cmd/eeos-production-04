@@ -91,6 +91,13 @@ export const routes: RouteEntry[] = [
     visible,
   },
   {
+    label: "Access Control List",
+    href: "/access/list",
+    icon: ListChecks,
+    group: "Studios",
+    visible,
+  },
+  {
     label: "Dashboards",
     href: "/studio/dashboards",
     icon: LayoutDashboard,
@@ -232,7 +239,6 @@ export const routes: RouteEntry[] = [
     icon: Monitor,
     group: "Business Modules",
     visible,
-    isPlaceholder: placeholder,
   },
   {
     label: "Communication",
@@ -280,6 +286,13 @@ export const routes: RouteEntry[] = [
     label: "System Analytics",
     href: "/analytics",
     icon: BarChart3,
+    group: "System",
+    visible,
+  },
+  {
+    label: "Analytics (Basic)",
+    href: "/analytics/basic",
+    icon: LineChart,
     group: "System",
     visible,
   },

@@ -5,7 +5,7 @@ import { ConvexProvider } from "convex/react";
 import { createSecureConvexClient } from "@/lib/convex-client";
 import { useEffect, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Route, Routes, useLocation } from "react-router";
+import { BrowserRouter, Route, Routes, useLocation, useNavigate, useParams } from "react-router";
 import "./index.css";
 import "./types/global.d.ts";
 
@@ -16,6 +16,14 @@ const AttendancePage = lazy(() => import("./pages/AttendancePage.tsx"));
 const OrganizationStudio = lazy(() => import("./pages/OrganizationStudio.tsx"));
 const UsersPage = lazy(() => import("./pages/UsersPage.tsx"));
 const AccessControl = lazy(() => import("./pages/AccessControl.tsx"));
+const AccessControlList = lazy(() => import("./pages/AccessControlList.tsx"));
+const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage.tsx"));
+const AuthPage = lazy(() => import("./pages/Auth.tsx"));
+const DashboardCEO = lazy(() => import("./pages/DashboardCEO.tsx"));
+const DashboardCounselor = lazy(() => import("./pages/DashboardCounselor.tsx"));
+const LandingPage = lazy(() => import("./pages/Landing.tsx"));
+const LeadWorkspaceDrawer = lazy(() => import("./pages/LeadWorkspaceDrawer.tsx"));
+const TechnologyWorkspace = lazy(() => import("./pages/TechnologyWorkspace.tsx"));
 const TasksPage = lazy(() => import("./pages/TasksPage.tsx"));
 const TaskDetail = lazy(() => import("./pages/TaskDetail.tsx"));
 const ApprovalsPage = lazy(() => import("./pages/ApprovalsPage.tsx"));
@@ -375,6 +383,20 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Route wrapper for the LeadWorkspaceDrawer drawer component. */
+function LeadWorkspaceDrawerRoute() {
+  const { leadId } = useParams<{ leadId: string }>();
+  const navigate = useNavigate();
+  if (!leadId) return null;
+  return (
+    <LeadWorkspaceDrawer
+      leadId={leadId}
+      onClose={() => navigate("/crm/leads")}
+      onOpenFull={() => navigate(`/crm/leads/${leadId}`)}
+    />
+  );
+}
+
 createRoot(document.getElementById("root")!).render(
     <GlobalErrorBoundary>
       <VlyToolbar />
@@ -388,10 +410,15 @@ createRoot(document.getElementById("root")!).render(
               <Routes>
                 <Route path="/" element={<LoginPage />} />
               <Route path="/login" element={<LoginPage />} />
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="/landing" element={<LandingPage />} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/dashboard/ceo" element={<ProtectedRoute><DashboardCEO /></ProtectedRoute>} />
+              <Route path="/dashboard/counselor" element={<ProtectedRoute><DashboardCounselor /></ProtectedRoute>} />
               <Route path="/org" element={<ProtectedRoute><OrganizationStudio /></ProtectedRoute>} />
               <Route path="/users" element={<ProtectedRoute><UsersPage /></ProtectedRoute>} />
               <Route path="/access" element={<ProtectedRoute><AccessControl /></ProtectedRoute>} />
+              <Route path="/access/list" element={<ProtectedRoute><AccessControlList /></ProtectedRoute>} />
               <Route path="/tasks" element={<ProtectedRoute><TasksPage /></ProtectedRoute>} />
               <Route path="/tasks/:taskId" element={<ProtectedRoute><TaskDetail /></ProtectedRoute>} />
               <Route path="/approvals" element={<ProtectedRoute><ApprovalsPage /></ProtectedRoute>} />
@@ -410,6 +437,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/crm" element={<ProtectedRoute><CrmDashboard /></ProtectedRoute>} />
               <Route path="/crm/leads" element={<ProtectedRoute><LeadDatabase /></ProtectedRoute>} />
               <Route path="/crm/leads/:leadId" element={<ProtectedRoute><LeadWorkspace /></ProtectedRoute>} />
+              <Route path="/crm/leads/:leadId/drawer" element={<ProtectedRoute><LeadWorkspaceDrawerRoute /></ProtectedRoute>} />
               <Route path="/courses" element={<ProtectedRoute><CourseStudio /></ProtectedRoute>} />
               <Route path="/collections" element={<ProtectedRoute><CollectionDashboard /></ProtectedRoute>} />
               <Route path="/crm/sales" element={<ProtectedRoute><SalesWorkspace /></ProtectedRoute>} />
@@ -520,6 +548,8 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/procurement/assets" element={<ProtectedRoute><AssetWorkspace /></ProtectedRoute>} />
               <Route path="/attendance" element={<ProtectedRoute><AttendancePage /></ProtectedRoute>} />
               <Route path="/analytics" element={<ProtectedRoute><AnalyticsDashboard /></ProtectedRoute>} />
+              <Route path="/analytics/basic" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
+              <Route path="/studio/technology" element={<ProtectedRoute><TechnologyWorkspace /></ProtectedRoute>} />
               <Route path="/studio/dashboards" element={<ProtectedRoute><DashboardStudio /></ProtectedRoute>} />
               <Route path="/documents" element={<ProtectedRoute><DocumentManagement /></ProtectedRoute>} />
               <Route path="/studios/intake" element={<ProtectedRoute><IntakeDashboard /></ProtectedRoute>} />
