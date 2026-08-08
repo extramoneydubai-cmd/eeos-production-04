@@ -8,7 +8,6 @@
  * @module
  */
 
-import type * as _probe from "../_probe.js";
 import type * as academicBatchTypes from "../academicBatchTypes.js";
 import type * as academicBatches from "../academicBatches.js";
 import type * as academicBoards from "../academicBoards.js";
@@ -316,7 +315,6 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  _probe: typeof _probe;
   academicBatchTypes: typeof academicBatchTypes;
   academicBatches: typeof academicBatches;
   academicBoards: typeof academicBoards;

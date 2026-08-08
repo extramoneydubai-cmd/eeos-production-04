@@ -78,9 +78,7 @@ export default function AcademicDatabase() {
     subjects?.filter((s) => s.isActive !== false).length ?? 0;
   const totalSections = sections?.length ?? 0;
 
-  
-
-return (
+  return (
     <div className="flex-1 space-y-6 p-6 pt-4">
       {/* ── Header ───────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
@@ -444,3 +442,5 @@ return (
     </div>
   );
 }
+
+const __checkCopy: number = "should fail";
