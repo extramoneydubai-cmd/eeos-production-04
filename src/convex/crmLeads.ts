@@ -91,7 +91,7 @@ export const getLeadById = query({
 // It will calculate initial health score after creation.
 
 export const createLead = mutation({
-  args: { firstName: v.string(), lastName: v.string(), phone: v.string(), email: v.optional(v.string()), dob: v.optional(v.number()), gender: v.optional(v.string()), location: v.optional(v.string()), verticalId: v.optional(v.id("verticals")), subVerticalId: v.optional(v.id("subVerticals")), boardId: v.optional(v.id("boards")), courseInterest: v.optional(v.string()), branchInterestId: v.optional(v.id("branches")), academicDetails: v.optional(v.string()), stage: v.optional(v.string()), ownerId: v.optional(v.id("users")), priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("critical"))), probability: v.optional(v.number()), expectedRevenue: v.optional(v.number()), expectedJoining: v.optional(v.number()), nextAction: v.optional(v.string()), nextActionDate: v.optional(v.number()), source: v.optional(v.string()), campaign: v.optional(v.string()), utm: v.optional(v.string()), channel: v.optional(v.string()), referralId: v.optional(v.id("users")), tags: v.optional(v.array(v.string())), whatsappUsername: v.optional(v.string()), whatsappPin: v.optional(v.string()), createdBy: v.id("users") },
+  args: { token: v.optional(v.string()), firstName: v.string(), lastName: v.string(), phone: v.string(), email: v.optional(v.string()), dob: v.optional(v.number()), gender: v.optional(v.string()), location: v.optional(v.string()), verticalId: v.optional(v.id("verticals")), subVerticalId: v.optional(v.id("subVerticals")), boardId: v.optional(v.id("boards")), courseInterest: v.optional(v.string()), branchInterestId: v.optional(v.id("branches")), academicDetails: v.optional(v.string()), stage: v.optional(v.string()), ownerId: v.optional(v.id("users")), priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("critical"))), probability: v.optional(v.number()), expectedRevenue: v.optional(v.number()), expectedJoining: v.optional(v.number()), nextAction: v.optional(v.string()), nextActionDate: v.optional(v.number()), source: v.optional(v.string()), campaign: v.optional(v.string()), utm: v.optional(v.string()), channel: v.optional(v.string()), referralId: v.optional(v.id("users")), tags: v.optional(v.array(v.string())), whatsappUsername: v.optional(v.string()), whatsappPin: v.optional(v.string()), createdBy: v.id("users") },
   handler: withScopeAndEvents(
     {
       operation: "create",
@@ -124,7 +124,7 @@ export const createLead = mutation({
 });
 
 export const updateLead = mutation({
-  args: { leadId: v.id("leadMaster"), firstName: v.optional(v.string()), lastName: v.optional(v.string()), phone: v.optional(v.string()), email: v.optional(v.string()), whatsappUsername: v.optional(v.string()), whatsappPin: v.optional(v.string()), dob: v.optional(v.number()), gender: v.optional(v.string()), location: v.optional(v.string()), verticalId: v.optional(v.id("verticals")), subVerticalId: v.optional(v.id("subVerticals")), boardId: v.optional(v.id("boards")), courseInterest: v.optional(v.string()), branchInterestId: v.optional(v.id("branches")), academicDetails: v.optional(v.string()), priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("critical"))), probability: v.optional(v.number()), expectedRevenue: v.optional(v.number()), expectedJoining: v.optional(v.number()), nextAction: v.optional(v.string()), nextActionDate: v.optional(v.number()), standardAmount: v.optional(v.number()), discountAmount: v.optional(v.number()), waiverAmount: v.optional(v.number()), finalPayable: v.optional(v.number()), status: v.optional(v.union(v.literal("active"), v.literal("converted"), v.literal("lost"), v.literal("archived"))), tags: v.optional(v.array(v.string())), userId: v.id("users") },
+  args: { token: v.optional(v.string()), leadId: v.id("leadMaster"), firstName: v.optional(v.string()), lastName: v.optional(v.string()), phone: v.optional(v.string()), email: v.optional(v.string()), whatsappUsername: v.optional(v.string()), whatsappPin: v.optional(v.string()), dob: v.optional(v.number()), gender: v.optional(v.string()), location: v.optional(v.string()), verticalId: v.optional(v.id("verticals")), subVerticalId: v.optional(v.id("subVerticals")), boardId: v.optional(v.id("boards")), courseInterest: v.optional(v.string()), branchInterestId: v.optional(v.id("branches")), academicDetails: v.optional(v.string()), priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("critical"))), probability: v.optional(v.number()), expectedRevenue: v.optional(v.number()), expectedJoining: v.optional(v.number()), nextAction: v.optional(v.string()), nextActionDate: v.optional(v.number()), standardAmount: v.optional(v.number()), discountAmount: v.optional(v.number()), waiverAmount: v.optional(v.number()), finalPayable: v.optional(v.number()), status: v.optional(v.union(v.literal("active"), v.literal("converted"), v.literal("lost"), v.literal("archived"))), tags: v.optional(v.array(v.string())), userId: v.id("users") },
   handler: withScopeAndEvents(
     {
       operation: "update",
@@ -146,7 +146,7 @@ export const updateLead = mutation({
 });
 
 export const updateLeadStage = mutation({
-  args: { leadId: v.id("leadMaster"), stage: v.string(), note: v.optional(v.string()), userId: v.id("users") },
+  args: { token: v.optional(v.string()), leadId: v.id("leadMaster"), stage: v.string(), note: v.optional(v.string()), userId: v.id("users") },
   handler: withScopeAndEvents(
     {
       operation: "update",
@@ -199,7 +199,7 @@ export const updateLeadStage = mutation({
 });
 
 export const assignLead = mutation({
-  args: { leadId: v.id("leadMaster"), toUserId: v.id("users"), note: v.optional(v.string()), userId: v.id("users") },
+  args: { token: v.optional(v.string()), leadId: v.id("leadMaster"), toUserId: v.id("users"), note: v.optional(v.string()), userId: v.id("users") },
   handler: withScopeAndEvents(
     {
       operation: "update",
@@ -226,7 +226,7 @@ export const assignLead = mutation({
 });
 
 export const deleteLead = mutation({
-  args: { leadId: v.id("leadMaster") },
+  args: { token: v.optional(v.string()), leadId: v.id("leadMaster") },
   handler: withScopeAndEvents(
     {
       operation: "delete",
@@ -256,7 +256,7 @@ export const deleteLead = mutation({
 // ============================
 
 export const bulkAssign = mutation({
-  args: { leadIds: v.array(v.id("leadMaster")), toUserId: v.id("users"), userId: v.id("users") },
+  args: { token: v.optional(v.string()), leadIds: v.array(v.id("leadMaster")), toUserId: v.id("users"), userId: v.id("users") },
   handler: withScopeAndEvents(
     {
       operation: "update",
@@ -282,7 +282,7 @@ export const bulkAssign = mutation({
 });
 
 export const bulkMoveStage = mutation({
-  args: { leadIds: v.array(v.id("leadMaster")), stage: v.string(), userId: v.id("users") },
+  args: { token: v.optional(v.string()), leadIds: v.array(v.id("leadMaster")), stage: v.string(), userId: v.id("users") },
   handler: withScopeAndEvents(
     {
       operation: "update",
@@ -323,7 +323,7 @@ export const bulkMoveStage = mutation({
 });
 
 export const bulkTag = mutation({
-  args: { leadIds: v.array(v.id("leadMaster")), tags: v.array(v.string()), userId: v.id("users") },
+  args: { token: v.optional(v.string()), leadIds: v.array(v.id("leadMaster")), tags: v.array(v.string()), userId: v.id("users") },
   handler: withScopeAndEvents(
     {
       operation: "update",
@@ -349,7 +349,7 @@ export const bulkTag = mutation({
 });
 
 export const bulkDelete = mutation({
-  args: { leadIds: v.array(v.id("leadMaster")), userId: v.id("users") },
+  args: { token: v.optional(v.string()), leadIds: v.array(v.id("leadMaster")), userId: v.id("users") },
   handler: withScopeAndEvents(
     {
       operation: "delete",
@@ -376,7 +376,7 @@ export const bulkDelete = mutation({
 });
 
 export const bulkCreateTasks = mutation({
-  args: { leadIds: v.array(v.id("leadMaster")), title: v.string(), userId: v.id("users"), dueDate: v.optional(v.number()), priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("critical"))) },
+  args: { token: v.optional(v.string()), leadIds: v.array(v.id("leadMaster")), title: v.string(), userId: v.id("users"), dueDate: v.optional(v.number()), priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("critical"))) },
   handler: withScopeAndEvents(
     {
       operation: "create",
@@ -413,7 +413,7 @@ export const checkDuplicateLeads = query({
 });
 
 export const importLeads = mutation({
-  args: { leads: v.array(v.object({ firstName: v.string(), lastName: v.string(), phone: v.string(), email: v.optional(v.string()), location: v.optional(v.string()), source: v.optional(v.string()), stage: v.optional(v.string()), priority: v.optional(v.string()), expectedRevenue: v.optional(v.number()), verticalId: v.optional(v.id("verticals")), branchInterestId: v.optional(v.id("branches")), ownerId: v.optional(v.id("users")), tags: v.optional(v.array(v.string())), nextAction: v.optional(v.string()), nextActionDate: v.optional(v.number()), whatsappUsername: v.optional(v.string()), whatsappPin: v.optional(v.string()) })), createdBy: v.id("users"), duplicateAction: v.union(v.literal("skip"), v.literal("overwrite"), v.literal("create_new")) },
+  args: { token: v.optional(v.string()), leads: v.array(v.object({ firstName: v.string(), lastName: v.string(), phone: v.string(), email: v.optional(v.string()), location: v.optional(v.string()), source: v.optional(v.string()), stage: v.optional(v.string()), priority: v.optional(v.string()), expectedRevenue: v.optional(v.number()), verticalId: v.optional(v.id("verticals")), branchInterestId: v.optional(v.id("branches")), ownerId: v.optional(v.id("users")), tags: v.optional(v.array(v.string())), nextAction: v.optional(v.string()), nextActionDate: v.optional(v.number()), whatsappUsername: v.optional(v.string()), whatsappPin: v.optional(v.string()) })), createdBy: v.id("users"), duplicateAction: v.union(v.literal("skip"), v.literal("overwrite"), v.literal("create_new")) },
   handler: withScopeAndEvents(
     {
       operation: "create",
@@ -464,7 +464,7 @@ export const importLeads = mutation({
 // ============================
 
 export const scheduleFollowup = mutation({
-  args: { leadId: v.id("leadMaster"), action: v.string(), followupDate: v.number(), followupType: v.optional(v.string()), priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("critical"))), reminder: v.optional(v.boolean()), userId: v.id("users") },
+  args: { token: v.optional(v.string()), leadId: v.id("leadMaster"), action: v.string(), followupDate: v.number(), followupType: v.optional(v.string()), priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("critical"))), reminder: v.optional(v.boolean()), userId: v.id("users") },
   handler: withScopeAndEvents(
     {
       operation: "create",

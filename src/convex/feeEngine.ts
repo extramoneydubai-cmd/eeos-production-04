@@ -28,6 +28,7 @@ function generateInvoiceNumber(prefix: string, count: number): string {
 
 export const createFeeStructure = mutation({
   args: {
+    token: v.optional(v.string()),
     name: v.string(),
     code: v.optional(v.string()),
     description: v.optional(v.string()),
@@ -67,6 +68,7 @@ export const createFeeStructure = mutation({
 
 export const updateFeeStructure = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("feeStructures"),
     performedBy: v.id("users"),
     name: v.optional(v.string()),
@@ -127,6 +129,7 @@ export const getFeeStructure = query({
 
 export const createFeeAccount = mutation({
   args: {
+    token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     totalFee: v.number(),
     installmentCount: v.number(),
@@ -219,7 +222,7 @@ export const calculateOutstanding = query({
 });
 
 export const recalculateBalances = mutation({
-  args: { feeAccountId: v.id("studentFeeAccounts"), performedBy: v.id("users") },
+  args: { token: v.optional(v.string()), feeAccountId: v.id("studentFeeAccounts"), performedBy: v.id("users") },
   handler: withScopeAndEvents(
     {
       operation: "update",
@@ -255,6 +258,7 @@ export const recalculateBalances = mutation({
 
 export const generateInstallments = mutation({
   args: {
+    token: v.optional(v.string()),
     feeAccountId: v.id("studentFeeAccounts"),
     startDate: v.number(),
     performedBy: v.id("users"),
@@ -339,6 +343,7 @@ export const listInstallments = query({
 
 export const createDiscount = mutation({
   args: {
+    token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     discountType: v.union(v.literal("percentage"), v.literal("fixed")),
@@ -376,6 +381,7 @@ export const createDiscount = mutation({
 
 export const applyDiscount = mutation({
   args: {
+    token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     feeAccountId: v.id("studentFeeAccounts"),
     discountId: v.id("feeDiscounts"),
@@ -441,6 +447,7 @@ export const listDiscounts = query({
 
 export const createScholarship = mutation({
   args: {
+    token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     scholarshipType: v.union(v.literal("percentage"), v.literal("fixed")),
@@ -480,6 +487,7 @@ export const createScholarship = mutation({
 
 export const applyScholarship = mutation({
   args: {
+    token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     feeAccountId: v.id("studentFeeAccounts"),
     scholarshipId: v.id("feeScholarships"),
@@ -544,6 +552,7 @@ export const listScholarships = query({
 
 export const createWaiver = mutation({
   args: {
+    token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     feeAccountId: v.id("studentFeeAccounts"),
     waiverType: v.union(v.literal("full"), v.literal("partial")),
@@ -575,6 +584,7 @@ export const createWaiver = mutation({
 
 export const approveWaiver = mutation({
   args: {
+    token: v.optional(v.string()),
     waiverId: v.id("feeWaivers"),
     approve: v.boolean(),
     notes: v.optional(v.string()),
@@ -640,6 +650,7 @@ export const listWaivers = query({
 
 export const createLateFeeRule = mutation({
   args: {
+    token: v.optional(v.string()),
     name: v.string(),
     feeStructureId: v.optional(v.id("feeStructures")),
     gracePeriod: v.number(),
@@ -672,7 +683,7 @@ export const createLateFeeRule = mutation({
 });
 
 export const calculateLateFees = mutation({
-  args: { feeAccountId: v.id("studentFeeAccounts"), performedBy: v.id("users") },
+  args: { token: v.optional(v.string()), feeAccountId: v.id("studentFeeAccounts"), performedBy: v.id("users") },
   handler: withScopeAndEvents(
     {
       operation: "update",

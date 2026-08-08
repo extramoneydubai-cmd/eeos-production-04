@@ -42,6 +42,7 @@ async function generateAdmissionNumber(ctx: { db: { query: (name: string) => any
 
 export const createStudent = mutation({
   args: {
+    token: v.optional(v.string()),
     firstName: v.string(),
     middleName: v.optional(v.string()),
     lastName: v.string(),
@@ -314,6 +315,7 @@ export const getStudent = query({
 
 export const updateStudent = mutation({
   args: {
+    token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     performedBy: v.id("users"),
     companyId: v.optional(v.id("companies")),
@@ -359,6 +361,7 @@ export const updateStudent = mutation({
  */
 export const setParentUser = mutation({
   args: {
+    token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     performedBy: v.id("users"),
     parentUserId: v.optional(v.id("users")),
@@ -391,6 +394,7 @@ export const setParentUser = mutation({
 
 export const archiveStudent = mutation({
   args: {
+    token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     reason: v.optional(v.string()),
     performedBy: v.id("users"),
@@ -433,6 +437,7 @@ export const archiveStudent = mutation({
 
 export const restoreStudent = mutation({
   args: {
+    token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     performedBy: v.id("users"),
   },
