@@ -207,7 +207,7 @@ return (
         {/* ── Programs Tab ──────────────────────────────────── */}
         <TabsContent value="programs" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filterItems(programs).map((p) => (
+            {filterItems(programs).map((p: any) => (
               <Card key={p._id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/academic?programId=${p._id}`)}>
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
@@ -253,7 +253,7 @@ return (
         {/* ── Batch Types Tab ───────────────────────────────── */}
         <TabsContent value="batchTypes" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filterItems(batchTypes).map((bt) => (
+            {filterItems(batchTypes).map((bt: any) => (
               <Card key={bt._id} className="hover:shadow-md transition-shadow">
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
@@ -288,7 +288,7 @@ return (
         {/* ── Batches Tab ───────────────────────────────────── */}
         <TabsContent value="batches" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filterItems(batches).map((b) => (
+            {filterItems(batches).map((b: any) => (
               <Card key={b._id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/academic?batchId=${b._id}`)}>
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
@@ -323,7 +323,7 @@ return (
         {/* ── Subjects Tab ──────────────────────────────────── */}
         <TabsContent value="subjects" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filterItems(subjects).map((s) => (
+            {filterItems(subjects).map((s: any) => (
               <Card key={s._id} className="hover:shadow-md transition-shadow">
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
@@ -360,7 +360,7 @@ return (
         {/* ── Sections Tab ──────────────────────────────────── */}
         <TabsContent value="sections" className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {filterItems(sections).map((s) => (
+            {filterItems(sections).map((s: any) => (
               <Card key={s._id} className="hover:shadow-md transition-shadow text-center">
                 <CardContent className="pt-6">
                   <div className="mx-auto mb-2 p-2 rounded-full w-fit" style={{ backgroundColor: s.color + "20" }}>
@@ -380,7 +380,7 @@ return (
         {/* ── Classrooms Tab ────────────────────────────────── */}
         <TabsContent value="classrooms" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filterItems(classrooms).map((c) => (
+            {filterItems(classrooms).map((c: any) => (
               <Card key={c._id} className="hover:shadow-md transition-shadow">
                 <CardHeader className="pb-2">
                   <div className="flex items-center gap-2">
@@ -411,7 +411,7 @@ return (
         {/* ── Sessions Tab ──────────────────────────────────── */}
         <TabsContent value="sessions" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {filterItems(sessions).map((s) => (
+            {filterItems(sessions).map((s: any) => (
               <Card key={s._id} className={`hover:shadow-md transition-shadow ${s.isCurrent ? "ring-2 ring-primary/20" : ""}`}>
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
