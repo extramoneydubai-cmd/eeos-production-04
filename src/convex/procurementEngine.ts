@@ -28,8 +28,15 @@ function withProcurement<P = any, R = any>(
   handler: (ctx: any, args: P, userId: Id<"users">) => Promise<R>,
 ) {
   return async (ctx: any, args: P) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
+    // Token-aware performer resolution: when a session token is supplied the
+    // withScopeAndEvents wrapper resolves the REAL user from the sessions
+    // table; getAuthUserId (Convex auth headers) only applies to legacy flows.
+    const raw = args as any;
+    const hasToken = typeof raw?.token === "string" && raw.token.length > 0;
+    let userId: Id<"users"> | undefined;
+    if (!hasToken) {
+      userId = (await getAuthUserId(ctx)) as Id<"users"> | undefined;
+    }
 
     const scope = getScope(args);
     const wrappedHandler = withScopeAndEvents<P, R>(
