@@ -1,6 +1,49 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents, type ScopeAndEventsConfig } from "./withScopeAndEvents";
+
+// ─── Enterprise Handler Factory ───────────────────────────────────
+// Wraps ctx-based auth extraction for withScopeAndEvents integration.
+// When a session token is supplied the withScopeAndEvents wrapper resolves
+// the REAL performer from the sessions table; getAuthUserId (Convex auth
+// headers) only applies to legacy flows. Declared actor args remain the
+// recorded actors, while authorization uses the verified performer.
+
+function withPayment<P = any, R = any>(
+  operation: ScopeAndEventsConfig<P, R>["operation"],
+  entity: string,
+  handler: (ctx: any, args: P) => Promise<R>,
+) {
+  return async (ctx: any, args: P) => {
+    const raw = args as any;
+    const hasToken = typeof raw?.token === "string" && raw.token.length > 0;
+    let userId: Id<"users"> | undefined;
+    if (!hasToken) {
+      userId = (await getAuthUserId(ctx)) as Id<"users"> | undefined;
+    }
+
+    const wrappedHandler = withScopeAndEvents<P, R>(
+      {
+        operation,
+        module: "finance",
+        entity,
+        getEntityCompanyId: () => undefined,
+        getEntityBranchId: () => undefined,
+        getEntityDepartmentId: () => undefined,
+        getUserId: () => userId as Id<"users">,
+        notifyViaMatrix: true,
+        triggerWorkflow: true,
+        triggerAutomation: true,
+        registerSearch: true,
+        signalDashboard: true,
+      },
+      (ctx2, args2) => handler(ctx2, args2),
+    );
+    return wrappedHandler(ctx, args);
+  };
+}
 
 // ─── HELPERS ───────────────────────────────────────────────
 
@@ -8,7 +51,7 @@ async function createTimelineEvent(
   ctx: any,
   args: { studentId: string; eventType: string; title: string; description?: string; metadata?: string; performedBy?: string }
 ) {
-  const performedBy = args.performedBy || (await getAuthUserId(ctx));
+  const performedBy = args.performedBy || (ctx as any).__performerUserId;
   await ctx.db.insert("studentEnrollmentHistory", {
     studentId: args.studentId,
     eventType: args.eventType,
@@ -30,6 +73,7 @@ function generateTransactionNumber(): string {
 
 export const createPaymentMethod = mutation({
   args: {
+    token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     type: v.union(
@@ -41,15 +85,15 @@ export const createPaymentMethod = mutation({
     processingFee: v.optional(v.number()),
     description: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withPayment("create", "payment_method", async (ctx, args) => {
+    const userId = (ctx as any).__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     return ctx.db.insert("paymentMethods", {
       ...args,
       isActive: true,
     });
-  },
+  }),
 });
 
 export const listPaymentMethods = query({
@@ -67,6 +111,7 @@ export const listPaymentMethods = query({
 
 export const createTaxRule = mutation({
   args: {
+    token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     taxType: v.union(v.literal("gst"), v.literal("vat"), v.literal("service_tax"), v.literal("custom")),
@@ -74,15 +119,15 @@ export const createTaxRule = mutation({
     applicableToVerticals: v.optional(v.array(v.string())),
     description: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withPayment("create", "tax_rule", async (ctx, args) => {
+    const userId = (ctx as any).__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     return ctx.db.insert("taxRules", {
       ...args,
       isActive: true,
     });
-  },
+  }),
 });
 
 export const listTaxRules = query({
@@ -100,6 +145,7 @@ export const listTaxRules = query({
 
 export const receivePayment = mutation({
   args: {
+    token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     feeAccountId: v.id("studentFeeAccounts"),
     invoiceId: v.optional(v.id("feeInvoices")),
@@ -113,8 +159,8 @@ export const receivePayment = mutation({
     chequeDate: v.optional(v.number()),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withPayment("create", "payment", async (ctx, args) => {
+    const userId = (ctx as any).__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const transactionNumber = generateTransactionNumber();
@@ -148,15 +194,16 @@ export const receivePayment = mutation({
     });
 
     return { id, transactionNumber };
-  },
+  }),
 });
 
 export const verifyPayment = mutation({
   args: {
+    token: v.optional(v.string()),
     transactionId: v.id("paymentTransactions"),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withPayment("update", "payment", async (ctx, args) => {
+    const userId = (ctx as any).__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const transaction = await ctx.db.get(args.transactionId);
@@ -220,16 +267,17 @@ export const verifyPayment = mutation({
     });
 
     return args.transactionId;
-  },
+  }),
 });
 
 export const reversePayment = mutation({
   args: {
+    token: v.optional(v.string()),
     transactionId: v.id("paymentTransactions"),
     reason: v.string(),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withPayment("update", "payment", async (ctx, args) => {
+    const userId = (ctx as any).__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const transaction = await ctx.db.get(args.transactionId);
@@ -277,18 +325,19 @@ export const reversePayment = mutation({
     });
 
     return args.transactionId;
-  },
+  }),
 });
 
 export const refundPayment = mutation({
   args: {
+    token: v.optional(v.string()),
     transactionId: v.id("paymentTransactions"),
     studentId: v.id("studentMaster"),
     feeAccountId: v.id("studentFeeAccounts"),
     refundAmount: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withPayment("update", "payment", async (ctx, args) => {
+    const userId = (ctx as any).__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const transaction = await ctx.db.get(args.transactionId);
@@ -312,15 +361,16 @@ export const refundPayment = mutation({
     });
 
     return args.transactionId;
-  },
+  }),
 });
 
 export const reconcilePayments = mutation({
   args: {
+    token: v.optional(v.string()),
     transactionIds: v.array(v.id("paymentTransactions")),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withPayment("update", "payment", async (ctx, args) => {
+    const userId = (ctx as any).__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const results: any[] = [];
@@ -335,7 +385,7 @@ export const reconcilePayments = mutation({
     }
 
     return results;
-  },
+  }),
 });
 
 export const listPayments = query({

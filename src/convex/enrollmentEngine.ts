@@ -1,7 +1,50 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { logActivity, createNotification } from "./crmHelpers";
+import { withScopeAndEvents, type ScopeAndEventsConfig } from "./withScopeAndEvents";
+
+// ─── Enterprise Handler Factory ───────────────────────────────────
+// Wraps ctx-based auth extraction for withScopeAndEvents integration.
+// When a session token is supplied the withScopeAndEvents wrapper resolves
+// the REAL performer from the sessions table; getAuthUserId (Convex auth
+// headers) only applies to legacy flows. Declared actor args remain the
+// recorded actors, while authorization uses the verified performer.
+
+function withEnrollment<P = any, R = any>(
+  operation: ScopeAndEventsConfig<P, R>["operation"],
+  entity: string,
+  handler: (ctx: any, args: P) => Promise<R>,
+) {
+  return async (ctx: any, args: P) => {
+    const raw = args as any;
+    const hasToken = typeof raw?.token === "string" && raw.token.length > 0;
+    let userId: Id<"users"> | undefined;
+    if (!hasToken) {
+      userId = (await getAuthUserId(ctx)) as Id<"users"> | undefined;
+    }
+
+    const wrappedHandler = withScopeAndEvents<P, R>(
+      {
+        operation,
+        module: "students",
+        entity,
+        getEntityCompanyId: () => undefined,
+        getEntityBranchId: () => undefined,
+        getEntityDepartmentId: () => undefined,
+        getUserId: () => userId as Id<"users">,
+        notifyViaMatrix: true,
+        triggerWorkflow: true,
+        triggerAutomation: true,
+        registerSearch: true,
+        signalDashboard: true,
+      },
+      (ctx2, args2) => handler(ctx2, args2),
+    );
+    return wrappedHandler(ctx, args);
+  };
+}
 
 /* ────────────
    HELPERS
@@ -47,10 +90,11 @@ async function createEnrollmentHistory(
 
 export const createStudentFromLead = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     createdBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withEnrollment("create", "student", async (ctx, args) => {
     const lead = await ctx.db.get(args.leadId);
     if (!lead) throw new Error("Lead not found");
     if (lead.status !== "active") throw new Error("Lead is not in active status. Must be converted first.");
@@ -125,7 +169,7 @@ export const createStudentFromLead = mutation({
       admissionId: admId,
       admissionNumber,
     };
-  },
+  }),
 });
 
 /* ────────────
@@ -134,6 +178,7 @@ export const createStudentFromLead = mutation({
 
 export const allocateCourse = mutation({
   args: {
+    token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     courseId: v.id("courses"),
     verticalId: v.optional(v.id("verticals")),
@@ -143,7 +188,7 @@ export const allocateCourse = mutation({
     academicYearId: v.optional(v.id("academicSessions")),
     allocatedBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withEnrollment("create", "allocation", async (ctx, args) => {
     const student = await ctx.db.get(args.studentId);
     if (!student) throw new Error("Student not found");
 
@@ -176,7 +221,7 @@ export const allocateCourse = mutation({
     await createEnrollmentHistory(ctx, args.studentId, "course_allocated", "Course allocated", `Course ID: ${args.courseId}`, JSON.stringify({ courseId: args.courseId }), args.allocatedBy);
 
     return { allocated: true };
-  },
+  }),
 });
 
 /* ────────────
@@ -187,12 +232,13 @@ let rollCounter = 0;
 
 export const assignBatch = mutation({
   args: {
+    token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     batchId: v.id("academicBatches"),
     academicYearId: v.optional(v.id("academicSessions")),
     assignedBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withEnrollment("update", "batch_assignment", async (ctx, args) => {
     const batch = await ctx.db.get(args.batchId);
     if (!batch) throw new Error("Batch not found");
 
@@ -214,18 +260,19 @@ export const assignBatch = mutation({
     await createEnrollmentHistory(ctx, args.studentId, "batch_assigned", `Batch assigned: ${batchCode}`, `Roll #${rollNumber}`, JSON.stringify({ batchId: args.batchId, rollNumber }), args.assignedBy);
 
     return { batchId: args.batchId, rollNumber };
-  },
+  }),
 });
 
 export const assignRollNumber = mutation({
   args: {
+    token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     rollNumber: v.string(),
     assignedBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withEnrollment("update", "roll_number", async (ctx, args) => {
     // Check uniqueness
-    const existing = await ctx.db.query("studentMaster").withIndex("rollNumber", (q) => q.eq("rollNumber", args.rollNumber)).first();
+    const existing = await ctx.db.query("studentMaster").withIndex("rollNumber", (q: any) => q.eq("rollNumber", args.rollNumber)).first();
     if (existing && existing._id !== args.studentId) {
       throw new Error(`Roll number ${args.rollNumber} is already assigned`);
     }
@@ -234,7 +281,7 @@ export const assignRollNumber = mutation({
     await createEnrollmentHistory(ctx, args.studentId, "roll_number_assigned", `Roll number assigned: ${args.rollNumber}`, undefined, undefined, args.assignedBy);
 
     return { rollNumber: args.rollNumber };
-  },
+  }),
 });
 
 /* ────────────
@@ -243,6 +290,7 @@ export const assignRollNumber = mutation({
 
 export const collectDocument = mutation({
   args: {
+    token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     documentType: v.union(
       v.literal("aadhaar"), v.literal("passport"),
@@ -256,7 +304,7 @@ export const collectDocument = mutation({
     fileSize: v.optional(v.number()),
     uploadedBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withEnrollment("create", "document", async (ctx, args) => {
     const docId = await ctx.db.insert("studentDocuments", {
       studentId: args.studentId,
       documentType: args.documentType,
@@ -271,15 +319,16 @@ export const collectDocument = mutation({
     await createEnrollmentHistory(ctx, args.studentId, "document_uploaded", `Document uploaded: ${args.documentType}`, args.fileName, undefined, args.uploadedBy);
 
     return docId;
-  },
+  }),
 });
 
 export const verifyDocument = mutation({
   args: {
+    token: v.optional(v.string()),
     docId: v.id("studentDocuments"),
     verifiedBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withEnrollment("update", "document", async (ctx, args) => {
     const doc = await ctx.db.get(args.docId);
     if (!doc) throw new Error("Document not found");
 
@@ -290,7 +339,7 @@ export const verifyDocument = mutation({
     });
 
     return { verified: true };
-  },
+  }),
 });
 
 /* ────────────
@@ -299,6 +348,7 @@ export const verifyDocument = mutation({
 
 export const completeAdmission = mutation({
   args: {
+    token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     approvedBy: v.id("users"),
     remarks: v.optional(v.string()),
@@ -307,7 +357,7 @@ export const completeAdmission = mutation({
     installmentCount: v.optional(v.number()),
     paymentPlan: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withEnrollment("approve", "admission", async (ctx, args) => {
     const student = await ctx.db.get(args.studentId);
     if (!student) throw new Error("Student not found");
 
@@ -320,7 +370,7 @@ export const completeAdmission = mutation({
     });
 
     // Get or create admission record
-    const admissions = await ctx.db.query("studentAdmissions").withIndex("studentId", (q) => q.eq("studentId", args.studentId)).collect();
+    const admissions = await ctx.db.query("studentAdmissions").withIndex("studentId", (q: any) => q.eq("studentId", args.studentId)).collect();
     const admission = admissions[0];
     if (admission) {
       await ctx.db.patch(admission._id, {
@@ -343,7 +393,7 @@ export const completeAdmission = mutation({
     await createNotification(ctx, args.approvedBy, "conversion", "Admission Completed", `Student ${student.firstName} ${student.lastName} admitted successfully`, args.studentId, "student");
 
     return { completed: true, status: "active" };
-  },
+  }),
 });
 
 /* ────────────
@@ -352,11 +402,12 @@ export const completeAdmission = mutation({
 
 export const cancelAdmission = mutation({
   args: {
+    token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     cancelledBy: v.id("users"),
     reason: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: withEnrollment("update", "admission", async (ctx, args) => {
     const student = await ctx.db.get(args.studentId);
     if (!student) throw new Error("Student not found");
 
@@ -368,7 +419,7 @@ export const cancelAdmission = mutation({
     });
 
     // Update admission record
-    const admissions = await ctx.db.query("studentAdmissions").withIndex("studentId", (q) => q.eq("studentId", args.studentId)).collect();
+    const admissions = await ctx.db.query("studentAdmissions").withIndex("studentId", (q: any) => q.eq("studentId", args.studentId)).collect();
     for (const adm of admissions) {
       await ctx.db.patch(adm._id, { status: "cancelled", remarks: args.reason, updatedAt: now });
     }
@@ -376,7 +427,7 @@ export const cancelAdmission = mutation({
     await createEnrollmentHistory(ctx, args.studentId, "admission_cancelled", "Admission cancelled", args.reason, undefined, args.cancelledBy);
 
     return { cancelled: true };
-  },
+  }),
 });
 
 /* ────────────
@@ -422,14 +473,14 @@ export const listStudents = query({
 export const getStudentDocuments = query({
   args: { studentId: v.id("studentMaster") },
   handler: async (ctx, args) => {
-    return ctx.db.query("studentDocuments").withIndex("studentId", (q) => q.eq("studentId", args.studentId)).collect();
+    return ctx.db.query("studentDocuments").withIndex("studentId", (q: any) => q.eq("studentId", args.studentId)).collect();
   },
 });
 
 export const getGuardians = query({
   args: { studentId: v.id("studentMaster") },
   handler: async (ctx, args) => {
-    return ctx.db.query("guardianDetails").withIndex("studentId", (q) => q.eq("studentId", args.studentId)).collect();
+    return ctx.db.query("guardianDetails").withIndex("studentId", (q: any) => q.eq("studentId", args.studentId)).collect();
   },
 });
 

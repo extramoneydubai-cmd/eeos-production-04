@@ -1,7 +1,50 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents, type ScopeAndEventsConfig } from "./withScopeAndEvents";
 import { withEventPipeline, entityIdFromResult, entityIdFromArg } from "../platform/eventPipeline";
+
+// ─── Enterprise Handler Factory ───────────────────────────────────
+// Wraps ctx-based auth extraction for withScopeAndEvents integration.
+// When a session token is supplied the withScopeAndEvents wrapper resolves
+// the REAL performer from the sessions table; getAuthUserId (Convex auth
+// headers) only applies to legacy flows. Declared actor args remain the
+// recorded actors, while authorization uses the verified performer.
+
+function withMarks<P = any, R = any>(
+  operation: ScopeAndEventsConfig<P, R>["operation"],
+  entity: string,
+  handler: (ctx: any, args: P) => Promise<R>,
+) {
+  return async (ctx: any, args: P) => {
+    const raw = args as any;
+    const hasToken = typeof raw?.token === "string" && raw.token.length > 0;
+    let userId: Id<"users"> | undefined;
+    if (!hasToken) {
+      userId = (await getAuthUserId(ctx)) as Id<"users"> | undefined;
+    }
+
+    const wrappedHandler = withScopeAndEvents<P, R>(
+      {
+        operation,
+        module: "exams",
+        entity,
+        getEntityCompanyId: () => undefined,
+        getEntityBranchId: () => undefined,
+        getEntityDepartmentId: () => undefined,
+        getUserId: () => userId as Id<"users">,
+        notifyViaMatrix: true,
+        triggerWorkflow: true,
+        triggerAutomation: true,
+        registerSearch: true,
+        signalDashboard: true,
+      },
+      (ctx2, args2) => handler(ctx2, args2),
+    );
+    return wrappedHandler(ctx, args);
+  };
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // MARKS QUERIES
@@ -21,7 +64,7 @@ export const getStudentMarks = query({
   handler: async (ctx, args) => {
     return await ctx.db
       .query("examMarks")
-      .filter((q) => q.and(q.eq(q.field("examSessionId"), args.examSessionId), q.eq(q.field("studentId"), args.studentId)))
+      .filter((q: any) => q.and(q.eq(q.field("examSessionId"), args.examSessionId), q.eq(q.field("studentId"), args.studentId)))
       .collect();
   },
 });
@@ -31,7 +74,7 @@ export const getSubjectMarks = query({
   handler: async (ctx, args) => {
     return await ctx.db
       .query("examMarks")
-      .filter((q) => q.eq(q.field("examSubjectId"), args.examSubjectId))
+      .filter((q: any) => q.eq(q.field("examSubjectId"), args.examSubjectId))
       .collect();
   },
 });
@@ -75,14 +118,15 @@ export const getMarksVerificationStatus = query({
 
 export const enterMarks = mutation({
   args: {
+    token: v.optional(v.string()),
     examSessionId: v.id("examSessions"), examSubjectId: v.optional(v.id("examSubjects")),
     studentId: v.id("personMaster"), marksObtained: v.optional(v.number()),
     totalMarks: v.number(),
     attendance: v.union(v.literal("present"), v.literal("absent"), v.literal("medical"), v.literal("leave")),
     graceMarks: v.optional(v.number()), remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withMarks("create", "marks", async (ctx, args) => {
+    const identity = (ctx as any).__performerUserId as string | undefined;
     if (!identity) throw new Error("Not authenticated");
 
     const now = Date.now();
@@ -95,7 +139,7 @@ export const enterMarks = mutation({
     // Check for existing marks entry
     const existing = await ctx.db
       .query("examMarks")
-      .filter((q) => q.and(
+      .filter((q: any) => q.and(
         q.eq(q.field("examSessionId"), args.examSessionId),
         q.eq(q.field("studentId"), args.studentId),
         args.examSubjectId ? q.eq(q.field("examSubjectId"), args.examSubjectId) : q.eq(q.field("totalMarks"), args.totalMarks),
@@ -107,7 +151,7 @@ export const enterMarks = mutation({
         marksObtained: args.attendance === "absent" ? 0 : args.marksObtained,
         totalMarks: args.totalMarks, percentage, attendance: args.attendance,
         graceMarks: args.graceMarks, remarks: args.remarks,
-        enteredBy: identity.subject as any, enteredAt: now, updatedAt: now,
+        enteredBy: identity as any, enteredAt: now, updatedAt: now,
       });
       return existing._id;
     }
@@ -117,13 +161,14 @@ export const enterMarks = mutation({
       studentId: args.studentId, marksObtained: args.attendance === "absent" ? 0 : args.marksObtained,
       totalMarks: args.totalMarks, percentage, attendance: args.attendance,
       graceMarks: args.graceMarks, remarks: args.remarks,
-      enteredBy: identity.subject as any, enteredAt: now, createdAt: now, updatedAt: now,
+      enteredBy: identity as any, enteredAt: now, createdAt: now, updatedAt: now,
     });
-  },
+  }),
 });
 
 export const bulkImportMarks = mutation({
   args: {
+    token: v.optional(v.string()),
     examSessionId: v.id("examSessions"), examSubjectId: v.optional(v.id("examSubjects")),
     marks: v.array(v.object({
       studentId: v.id("personMaster"), marksObtained: v.optional(v.number()),
@@ -131,8 +176,8 @@ export const bulkImportMarks = mutation({
       graceMarks: v.optional(v.number()), remarks: v.optional(v.string()),
     })),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withMarks("create", "marks", async (ctx, args) => {
+    const identity = (ctx as any).__performerUserId as string | undefined;
     if (!identity) throw new Error("Not authenticated");
 
     const now = Date.now();
@@ -149,27 +194,28 @@ export const bulkImportMarks = mutation({
         studentId: mark.studentId, marksObtained: mark.attendance === "absent" ? 0 : mark.marksObtained,
         totalMarks: mark.totalMarks, percentage, attendance: mark.attendance,
         graceMarks: mark.graceMarks, remarks: mark.remarks,
-        enteredBy: identity.subject as any, enteredAt: now, createdAt: now, updatedAt: now,
+        enteredBy: identity as any, enteredAt: now, createdAt: now, updatedAt: now,
       });
       results.push(id);
     }
 
     await ctx.db.insert("examTimeline", {
       examSessionId: args.examSessionId, eventType: "marks_submitted",
-      description: `${args.marks.length} marks imported`, userId: identity.subject as any, createdAt: now,
+      description: `${args.marks.length} marks imported`, userId: identity as any, createdAt: now,
     });
 
     return results;
-  },
+  }),
 });
 
 export const updateMarks = mutation({
   args: {
+    token: v.optional(v.string()),
     markId: v.id("examMarks"), marksObtained: v.optional(v.number()),
     totalMarks: v.optional(v.number()), attendance: v.optional(v.union(v.literal("present"), v.literal("absent"), v.literal("medical"), v.literal("leave"))),
     graceMarks: v.optional(v.number()), remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withMarks("update", "marks", async (ctx, args) => {
     const { markId, ...updates } = args;
     const existing = await ctx.db.get(markId);
     if (!existing) throw new Error("Marks entry not found");
@@ -191,7 +237,7 @@ export const updateMarks = mutation({
 
     await ctx.db.patch(markId, patch);
     return markId;
-  },
+  }),
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -199,25 +245,25 @@ export const updateMarks = mutation({
 // ═══════════════════════════════════════════════════════════════════
 
 export const verifyMarks = mutation({
-  args: { markIds: v.array(v.id("examMarks")) },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  args: { token: v.optional(v.string()), markIds: v.array(v.id("examMarks")) },
+  handler: withMarks("update", "marks_verification", async (ctx, args) => {
+    const identity = (ctx as any).__performerUserId as string | undefined;
     if (!identity) throw new Error("Not authenticated");
 
     const now = Date.now();
     for (const markId of args.markIds) {
-      await ctx.db.patch(markId, { verifiedBy: identity.subject as any, verifiedAt: now, updatedAt: now });
+      await ctx.db.patch(markId, { verifiedBy: identity as any, verifiedAt: now, updatedAt: now });
     }
 
     const mark = await ctx.db.get(args.markIds[0]);
     if (mark) {
       await ctx.db.insert("examTimeline", {
         examSessionId: mark.examSessionId, eventType: "marks_verified",
-        description: `${args.markIds.length} marks entries verified`, userId: identity.subject as any, createdAt: now,
+        description: `${args.markIds.length} marks entries verified`, userId: identity as any, createdAt: now,
       });
     }
     return args.markIds.length;
-  },
+  }),
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -226,17 +272,18 @@ export const verifyMarks = mutation({
 
 export const moderateMarks = mutation({
   args: {
+    token: v.optional(v.string()),
     markId: v.id("examMarks"), moderatedMarks: v.number(),
     moderationNotes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withMarks("update", "marks_moderation", async (ctx, args) => {
+    const identity = (ctx as any).__performerUserId as string | undefined;
     if (!identity) throw new Error("Not authenticated");
 
     const now = Date.now();
     await ctx.db.patch(args.markId, {
       moderatedMarks: args.moderatedMarks,
-      moderatedBy: identity.subject as any,
+      moderatedBy: identity as any,
       moderatedAt: now,
       moderationNotes: args.moderationNotes,
       updatedAt: now,
@@ -247,28 +294,29 @@ export const moderateMarks = mutation({
       await ctx.db.insert("examTimeline", {
         examSessionId: mark.examSessionId, eventType: "marks_moderated",
         description: "Marks entry moderated",
-        userId: identity.subject as any, createdAt: now,
+        userId: identity as any, createdAt: now,
       });
     }
 
     return args.markId;
-  },
+  }),
 });
 
 export const bulkModerateMarks = mutation({
   args: {
+    token: v.optional(v.string()),
     examSubjectId: v.id("examSubjects"),
     moderationType: v.union(v.literal("increase_all"), v.literal("decrease_all"), v.literal("set_common"), v.literal("custom")),
     adjustmentValue: v.optional(v.number()),
     moderationNotes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withMarks("update", "marks_moderation", async (ctx, args) => {
+    const identity = (ctx as any).__performerUserId as string | undefined;
     if (!identity) throw new Error("Not authenticated");
 
     const marks = await ctx.db
       .query("examMarks")
-      .filter((q) => q.eq(q.field("examSubjectId"), args.examSubjectId))
+      .filter((q: any) => q.eq(q.field("examSubjectId"), args.examSubjectId))
       .collect();
 
     const now = Date.now();
@@ -285,7 +333,7 @@ export const bulkModerateMarks = mutation({
 
       if (moderatedMarks !== (mark.marksObtained ?? 0)) {
         await ctx.db.patch(mark._id, {
-          moderatedMarks, moderatedBy: identity.subject as any, moderatedAt: now,
+          moderatedMarks, moderatedBy: identity as any, moderatedAt: now,
           moderationNotes: args.moderationNotes, updatedAt: now,
         });
         count++;
@@ -293,27 +341,28 @@ export const bulkModerateMarks = mutation({
     }
 
     return { count, message: `${count} marks entries moderated` };
-  },
+  }),
 });
 
 export const requestModeration = mutation({
   args: {
+    token: v.optional(v.string()),
     examSessionId: v.id("examSessions"), remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withMarks("update", "marks_moderation", async (ctx, args) => {
+    const identity = (ctx as any).__performerUserId as string | undefined;
     if (!identity) throw new Error("Not authenticated");
 
     await ctx.db.insert("examPublishLog", {
       examSessionId: args.examSessionId, action: "moderation_requested",
-      performedBy: identity.subject as any, remarks: args.remarks, createdAt: Date.now(),
+      performedBy: identity as any, remarks: args.remarks, createdAt: Date.now(),
     });
     await ctx.db.insert("examTimeline", {
       examSessionId: args.examSessionId, eventType: "moderation_requested",
-      description: "Moderation requested", userId: identity.subject as any, createdAt: Date.now(),
+      description: "Moderation requested", userId: identity as any, createdAt: Date.now(),
     });
     return { success: true };
-  },
+  }),
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -322,19 +371,20 @@ export const requestModeration = mutation({
 
 export const markAttendance = mutation({
   args: {
+    token: v.optional(v.string()),
     examSessionId: v.id("examSessions"), timetableId: v.id("examTimetable"),
     studentId: v.id("personMaster"), subjectId: v.id("examSubjects"),
     status: v.union(v.literal("present"), v.literal("absent"), v.literal("medical"), v.literal("leave")),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withMarks("create", "exam_attendance", async (ctx, args) => {
+    const identity = (ctx as any).__performerUserId as string | undefined;
     if (!identity) throw new Error("Not authenticated");
 
     const now = Date.now();
     const existing = await ctx.db
       .query("examAttendance")
-      .filter((q) => q.and(
+      .filter((q: any) => q.and(
         q.eq(q.field("examSessionId"), args.examSessionId),
         q.eq(q.field("studentId"), args.studentId),
         q.eq(q.field("subjectId"), args.subjectId),
@@ -342,18 +392,19 @@ export const markAttendance = mutation({
       .first();
 
     if (existing) {
-      await ctx.db.patch(existing._id, { status: args.status, markedBy: identity.subject as any, markedAt: now, remarks: args.remarks, updatedAt: now });
+      await ctx.db.patch(existing._id, { status: args.status, markedBy: identity as any, markedAt: now, remarks: args.remarks, updatedAt: now });
       return existing._id;
     }
 
     return await ctx.db.insert("examAttendance", {
-      ...args, markedBy: identity.subject as any, markedAt: now, createdAt: now, updatedAt: now,
+      ...args, markedBy: identity as any, markedAt: now, createdAt: now, updatedAt: now,
     });
-  },
+  }),
 });
 
 export const bulkMarkAttendance = mutation({
   args: {
+    token: v.optional(v.string()),
     examSessionId: v.id("examSessions"), timetableId: v.id("examTimetable"),
     subjectId: v.id("examSubjects"),
     entries: v.array(v.object({
@@ -362,8 +413,8 @@ export const bulkMarkAttendance = mutation({
       remarks: v.optional(v.string()),
     })),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withMarks("create", "exam_attendance", async (ctx, args) => {
+    const identity = (ctx as any).__performerUserId as string | undefined;
     if (!identity) throw new Error("Not authenticated");
 
     const now = Date.now();
@@ -371,7 +422,7 @@ export const bulkMarkAttendance = mutation({
     for (const entry of args.entries) {
       const existing = await ctx.db
         .query("examAttendance")
-        .filter((q) => q.and(
+        .filter((q: any) => q.and(
           q.eq(q.field("examSessionId"), args.examSessionId),
           q.eq(q.field("studentId"), entry.studentId),
           q.eq(q.field("subjectId"), args.subjectId),
@@ -379,19 +430,19 @@ export const bulkMarkAttendance = mutation({
         .first();
 
       if (existing) {
-        await ctx.db.patch(existing._id, { status: entry.status, markedBy: identity.subject as any, markedAt: now, remarks: entry.remarks, updatedAt: now });
+        await ctx.db.patch(existing._id, { status: entry.status, markedBy: identity as any, markedAt: now, remarks: entry.remarks, updatedAt: now });
       } else {
         await ctx.db.insert("examAttendance", {
           examSessionId: args.examSessionId, timetableId: args.timetableId,
           studentId: entry.studentId, subjectId: args.subjectId,
-          status: entry.status, markedBy: identity.subject as any, markedAt: now,
+          status: entry.status, markedBy: identity as any, markedAt: now,
           remarks: entry.remarks, createdAt: now, updatedAt: now,
         });
       }
       count++;
     }
     return { count };
-  },
+  }),
 });
 
 export const getAttendance = query({
