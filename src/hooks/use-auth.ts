@@ -1,8 +1,9 @@
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { SESSION_TOKEN_KEY } from "@/lib/session-token";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const SESSION_KEY = "eeos_session_token";
+const SESSION_KEY = SESSION_TOKEN_KEY;
 const LOCAL_USER_KEY = "eeos_local_user";
 
 /**
