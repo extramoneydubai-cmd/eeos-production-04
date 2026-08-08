@@ -7,6 +7,25 @@ import {
   submissionStatusValidator,
   fieldTypeValidator,
 } from "./schema";
+import { withScopeAndEvents, type ScopeAndEventsConfig } from "./withScopeAndEvents";
+
+function withFormPipeline<P = any, R = any>(
+  operation: ScopeAndEventsConfig<P, R>["operation"],
+  entity: string,
+  handler: (ctx: any, args: P) => Promise<R>,
+): (ctx: any, args: P) => Promise<R> {
+  return withScopeAndEvents<P, R>(
+    {
+      operation,
+      module: "forms",
+      entity,
+      notifyViaMatrix: true,
+      registerSearch: true,
+      signalDashboard: true,
+    },
+    handler,
+  );
+}
 
 /* ────────────
    HELPERS
@@ -70,8 +89,9 @@ export const createForm = mutation({
     description: v.optional(v.string()),
     category: v.optional(v.string()),
     ownerId: v.optional(v.id("users")),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withFormPipeline("create", "form", async (ctx, args) => {
     const code = args.code || generateFormCode(args.name);
     const now = Date.now();
     const formId = await ctx.db.insert("forms", {
@@ -104,7 +124,7 @@ export const createForm = mutation({
     });
 
     return formId;
-  },
+  }),
 });
 
 export const updateForm = mutation({
@@ -123,18 +143,19 @@ export const updateForm = mutation({
     theme: v.optional(v.string()),
     successMessage: v.optional(v.string()),
     redirectUrl: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withFormPipeline("update", "form", async (ctx, args) => {
     const { formId, ...fields } = args;
     const existing = await ctx.db.get(formId);
     if (!existing) throw new Error("Form not found");
     return ctx.db.patch(formId, { ...fields, updatedAt: Date.now() });
-  },
+  }),
 });
 
 export const publishForm = mutation({
-  args: { formId: v.id("forms"), publishedBy: v.optional(v.id("users")) },
-  handler: async (ctx, args) => {
+  args: { formId: v.id("forms"), publishedBy: v.optional(v.id("users")), token: v.optional(v.string()) },
+  handler: withFormPipeline("update", "form", async (ctx, args) => {
     const form = await ctx.db.get(args.formId);
     if (!form) throw new Error("Form not found");
 
@@ -143,11 +164,11 @@ export const publishForm = mutation({
     // Collect all current fields
     const fields = await ctx.db
       .query("formFields")
-      .withIndex("formId", (q) => q.eq("formId", args.formId))
+      .withIndex("formId", (q: any) => q.eq("formId", args.formId))
       .collect();
 
     const schemaData = JSON.stringify(
-      fields.map((f) => ({
+      fields.map((f: any) => ({
         fieldCode: f.fieldCode,
         fieldType: f.fieldType,
         label: f.label,
@@ -188,12 +209,12 @@ export const publishForm = mutation({
     });
 
     return { version: newVersion };
-  },
+  }),
 });
 
 export const archiveForm = mutation({
-  args: { formId: v.id("forms") },
-  handler: async (ctx, args) => {
+  args: { formId: v.id("forms"), token: v.optional(v.string()) },
+  handler: withFormPipeline("update", "form", async (ctx, args) => {
     const existing = await ctx.db.get(args.formId);
     if (!existing) throw new Error("Form not found");
     return ctx.db.patch(args.formId, {
@@ -201,31 +222,31 @@ export const archiveForm = mutation({
       isArchived: true,
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const deactivateForm = mutation({
-  args: { formId: v.id("forms") },
-  handler: async (ctx, args) => {
+  args: { formId: v.id("forms"), token: v.optional(v.string()) },
+  handler: withFormPipeline("update", "form", async (ctx, args) => {
     const existing = await ctx.db.get(args.formId);
     if (!existing) throw new Error("Form not found");
     return ctx.db.patch(args.formId, {
       status: FORM_STATUS.DEACTIVATED,
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const deleteForm = mutation({
-  args: { formId: v.id("forms") },
-  handler: async (ctx, args) => {
+  args: { formId: v.id("forms"), token: v.optional(v.string()) },
+  handler: withFormPipeline("delete", "form", async (ctx, args) => {
     const existing = await ctx.db.get(args.formId);
     if (!existing) throw new Error("Form not found");
 
     // Delete all related data
     const fields = await ctx.db
       .query("formFields")
-      .withIndex("formId", (q) => q.eq("formId", args.formId))
+      .withIndex("formId", (q: any) => q.eq("formId", args.formId))
       .collect();
     for (const f of fields) {
       await ctx.db.delete(f._id);
@@ -233,7 +254,7 @@ export const deleteForm = mutation({
 
     const versions = await ctx.db
       .query("formVersions")
-      .withIndex("formId", (q) => q.eq("formId", args.formId))
+      .withIndex("formId", (q: any) => q.eq("formId", args.formId))
       .collect();
     for (const v of versions) {
       await ctx.db.delete(v._id);
@@ -241,19 +262,19 @@ export const deleteForm = mutation({
 
     const submissions = await ctx.db
       .query("formSubmissions")
-      .withIndex("formId", (q) => q.eq("formId", args.formId))
+      .withIndex("formId", (q: any) => q.eq("formId", args.formId))
       .collect();
     for (const s of submissions) {
       await ctx.db.delete(s._id);
     }
 
     await ctx.db.delete(args.formId);
-  },
+  }),
 });
 
 export const duplicateForm = mutation({
-  args: { formId: v.id("forms"), ownerId: v.optional(v.id("users")) },
-  handler: async (ctx, args) => {
+  args: { formId: v.id("forms"), ownerId: v.optional(v.id("users")), token: v.optional(v.string()) },
+  handler: withFormPipeline("create", "form", async (ctx, args) => {
     const source = await ctx.db.get(args.formId);
     if (!source) throw new Error("Form not found");
 
@@ -272,7 +293,7 @@ export const duplicateForm = mutation({
     // Duplicate fields
     const fields = await ctx.db
       .query("formFields")
-      .withIndex("formId", (q) => q.eq("formId", args.formId))
+      .withIndex("formId", (q: any) => q.eq("formId", args.formId))
       .collect();
     for (const f of fields) {
       await ctx.db.insert("formFields", {
@@ -293,7 +314,7 @@ export const duplicateForm = mutation({
     });
 
     return newId;
-  },
+  }),
 });
 
 /* ────────────
@@ -336,8 +357,9 @@ export const createFormField = mutation({
     width: v.optional(v.string()),
     displayOrder: v.optional(v.number()),
     sectionId: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withFormPipeline("create", "form_field", async (ctx, args) => {
     const { formId, ...fieldData } = args;
 
     // Get current form version
@@ -347,9 +369,9 @@ export const createFormField = mutation({
     // Get max display order
     const existing = await ctx.db
       .query("formFields")
-      .withIndex("formId", (q) => q.eq("formId", formId))
+      .withIndex("formId", (q: any) => q.eq("formId", formId))
       .collect();
-    const maxOrder = existing.reduce((m, f) => Math.max(m, f.displayOrder), -1);
+    const maxOrder = existing.reduce((m: any, f: any) => Math.max(m, f.displayOrder), -1);
 
     const now = Date.now();
     return ctx.db.insert("formFields", {
@@ -380,7 +402,7 @@ export const createFormField = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateFormField = mutation({
@@ -408,34 +430,35 @@ export const updateFormField = mutation({
     width: v.optional(v.string()),
     displayOrder: v.optional(v.number()),
     sectionId: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withFormPipeline("update", "form_field", async (ctx, args) => {
     const { fieldId, ...fields } = args;
     const existing = await ctx.db.get(fieldId);
     if (!existing) throw new Error("Field not found");
     return ctx.db.patch(fieldId, { ...fields, updatedAt: Date.now() });
-  },
+  }),
 });
 
 export const deleteFormField = mutation({
-  args: { fieldId: v.id("formFields") },
-  handler: async (ctx, args) => {
+  args: { fieldId: v.id("formFields"), token: v.optional(v.string()) },
+  handler: withFormPipeline("delete", "form_field", async (ctx, args) => {
     const existing = await ctx.db.get(args.fieldId);
     if (!existing) throw new Error("Field not found");
     await ctx.db.delete(args.fieldId);
-  },
+  }),
 });
 
 export const reorderFormFields = mutation({
-  args: { orderedFieldIds: v.array(v.id("formFields")) },
-  handler: async (ctx, args) => {
+  args: { orderedFieldIds: v.array(v.id("formFields")), token: v.optional(v.string()) },
+  handler: withFormPipeline("update", "form_fields", async (ctx, args) => {
     for (let i = 0; i < args.orderedFieldIds.length; i++) {
       await ctx.db.patch(args.orderedFieldIds[i], {
         displayOrder: i,
         updatedAt: Date.now(),
       });
     }
-  },
+  }),
 });
 
 /* ────────────
@@ -503,8 +526,9 @@ export const createSubmission = mutation({
     ipAddress: v.optional(v.string()),
     browser: v.optional(v.string()),
     notes: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withFormPipeline("create", "form_submission", async (ctx, args) => {
     const form = await ctx.db.get(args.formId);
     if (!form) throw new Error("Form not found");
     if (form.status !== FORM_STATUS.PUBLISHED && form.status !== FORM_STATUS.DRAFT) {
@@ -526,7 +550,7 @@ export const createSubmission = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateSubmissionStatus = mutation({
@@ -534,8 +558,9 @@ export const updateSubmissionStatus = mutation({
     submissionId: v.id("formSubmissions"),
     status: submissionStatusValidator,
     notes: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withFormPipeline("update", "form_submission", async (ctx, args) => {
     const existing = await ctx.db.get(args.submissionId);
     if (!existing) throw new Error("Submission not found");
     return ctx.db.patch(args.submissionId, {
@@ -543,16 +568,16 @@ export const updateSubmissionStatus = mutation({
       notes: args.notes,
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const deleteSubmission = mutation({
-  args: { submissionId: v.id("formSubmissions") },
-  handler: async (ctx, args) => {
+  args: { submissionId: v.id("formSubmissions"), token: v.optional(v.string()) },
+  handler: withFormPipeline("delete", "form_submission", async (ctx, args) => {
     const existing = await ctx.db.get(args.submissionId);
     if (!existing) throw new Error("Submission not found");
     await ctx.db.delete(args.submissionId);
-  },
+  }),
 });
 
 /* ────────────

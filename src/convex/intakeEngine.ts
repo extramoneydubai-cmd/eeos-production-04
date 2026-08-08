@@ -1,6 +1,25 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { withScopeAndEvents, type ScopeAndEventsConfig } from "./withScopeAndEvents";
+
+function withIntakePipeline<P = any, R = any>(
+  operation: ScopeAndEventsConfig<P, R>["operation"],
+  entity: string,
+  handler: (ctx: any, args: P) => Promise<R>,
+): (ctx: any, args: P) => Promise<R> {
+  return withScopeAndEvents<P, R>(
+    {
+      operation,
+      module: "intake",
+      entity,
+      notifyViaMatrix: true,
+      registerSearch: true,
+      signalDashboard: true,
+    },
+    handler,
+  );
+}
 
 /* ────────────
    CONSTANTS
@@ -129,8 +148,9 @@ export const submit = mutation({
     browser: v.optional(v.string()),
     device: v.optional(v.string()),
     metadata: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withIntakePipeline("create", "intake_submission", async (ctx, args) => {
     const now = Date.now();
     const submissionNumber = generateSubmissionNumber();
 
@@ -172,7 +192,7 @@ export const submit = mutation({
       submissionId,
       submissionNumber,
     };
-  },
+  }),
 });
 
 /* ────────────
@@ -183,8 +203,9 @@ export const validate = mutation({
   args: {
     submissionId: v.id("intakeSubmissions"),
     validatedBy: v.optional(v.id("users")),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withIntakePipeline("update", "intake_submission", async (ctx, args) => {
     const submission = await ctx.db.get(args.submissionId);
     if (!submission) throw new Error("Submission not found");
 
@@ -196,7 +217,7 @@ export const validate = mutation({
     if (submission.formId) {
       const fields = await ctx.db
         .query("formFields")
-        .withIndex("formId", (q) => q.eq("formId", submission.formId!))
+        .withIndex("formId", (q: any) => q.eq("formId", submission.formId!))
         .collect();
 
       for (const field of fields) {
@@ -257,7 +278,7 @@ export const validate = mutation({
       }
 
       // Check for unknown fields
-      const validFieldCodes = new Set(fields.map((f) => f.fieldCode));
+      const validFieldCodes = new Set(fields.map((f: any) => f.fieldCode));
       const unknownFields = Object.keys(payload).filter(
         (key) => !validFieldCodes.has(key) && !key.startsWith("_")
       );
@@ -309,7 +330,7 @@ export const validate = mutation({
       errors,
       warnings,
     };
-  },
+  }),
 });
 
 /* ────────────
@@ -320,8 +341,9 @@ export const deduplicate = mutation({
   args: {
     submissionId: v.id("intakeSubmissions"),
     checkedBy: v.optional(v.id("users")),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withIntakePipeline("update", "intake_submission", async (ctx, args) => {
     const submission = await ctx.db.get(args.submissionId);
     if (!submission) throw new Error("Submission not found");
 
@@ -331,7 +353,7 @@ export const deduplicate = mutation({
     // Get active duplicate rules
     const rules = await ctx.db
       .query("intakeDuplicateRules")
-      .withIndex("isActive", (q) => q.eq("isActive", true))
+      .withIndex("isActive", (q: any) => q.eq("isActive", true))
       .collect();
 
     if (rules.length === 0) {
@@ -378,13 +400,13 @@ export const deduplicate = mutation({
       // Simple approach: scan recent submissions and compare payload
       const existingSubmissions = await ctx.db
         .query("intakeSubmissions")
-        .withIndex("processingStatus_createdAt", (q) => q.eq("processingStatus", submission.processingStatus))
+        .withIndex("processingStatus_createdAt", (q: any) => q.eq("processingStatus", submission.processingStatus))
         .take(50);
 
       // Also check all non-rejected submissions
       const allActive = await ctx.db
         .query("intakeSubmissions")
-        .filter((q) =>
+        .filter((q: any) =>
           q.and(
             q.neq(q.field("_id"), args.submissionId),
             q.neq(q.field("processingStatus"), PROCESSING_STATUS.REJECTED),
@@ -463,7 +485,7 @@ export const deduplicate = mutation({
     );
 
     return { isDuplicate: false, reason: null };
-  },
+  }),
 });
 
 /* ────────────
@@ -480,8 +502,9 @@ export const verify = mutation({
     ),
     verifiedBy: v.id("users"),
     remarks: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withIntakePipeline("update", "intake_submission", async (ctx, args) => {
     const submission = await ctx.db.get(args.submissionId);
     if (!submission) throw new Error("Submission not found");
 
@@ -515,7 +538,7 @@ export const verify = mutation({
     );
 
     return { status: args.status };
-  },
+  }),
 });
 
 /* ────────────
@@ -527,8 +550,9 @@ export const transform = mutation({
     submissionId: v.id("intakeSubmissions"),
     targetModule: v.string(),
     mappedBy: v.optional(v.id("users")),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withIntakePipeline("update", "intake_submission", async (ctx, args) => {
     const submission = await ctx.db.get(args.submissionId);
     if (!submission) throw new Error("Submission not found");
 
@@ -537,8 +561,8 @@ export const transform = mutation({
     // Get active mappings for the target module
     const mappings = await ctx.db
       .query("intakeTransformMappings")
-      .withIndex("targetModule", (q) => q.eq("targetModule", args.targetModule))
-      .filter((q) => q.eq(q.field("isActive"), true))
+      .withIndex("targetModule", (q: any) => q.eq("targetModule", args.targetModule))
+      .filter((q: any) => q.eq(q.field("isActive"), true))
       .collect();
 
     const transformed: Record<string, any> = {};
@@ -600,7 +624,7 @@ export const transform = mutation({
       missingRequired,
       appliedCount: Object.keys(transformed).length,
     };
-  },
+  }),
 });
 
 /* ────────────
@@ -612,8 +636,9 @@ export const route = mutation({
     submissionId: v.id("intakeSubmissions"),
     targetModule: v.optional(v.string()),
     routedBy: v.optional(v.id("users")),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withIntakePipeline("update", "intake_submission", async (ctx, args) => {
     const submission = await ctx.db.get(args.submissionId);
     if (!submission) throw new Error("Submission not found");
 
@@ -623,7 +648,7 @@ export const route = mutation({
     if (!targetModule) {
       const rules = await ctx.db
         .query("intakeRoutingRules")
-        .withIndex("isActive", (q) => q.eq("isActive", true))
+        .withIndex("isActive", (q: any) => q.eq("isActive", true))
         .order("asc")
         .collect();
 
@@ -649,7 +674,7 @@ export const route = mutation({
             rule.conditionOperator === "contains" ? value.includes(conditionValue) :
             rule.conditionOperator === "starts_with" ? value.startsWith(conditionValue) :
             rule.conditionOperator === "ends_with" ? value.endsWith(conditionValue) :
-            rule.conditionOperator === "in" ? conditionValue.split(",").map(s => s.trim()).includes(value) :
+            rule.conditionOperator === "in" ? conditionValue.split(",").map((s: any) => s.trim()).includes(value) :
             true;
 
           if (matches) {
@@ -685,7 +710,7 @@ export const route = mutation({
     );
 
     return { targetModule };
-  },
+  }),
 });
 
 /* ────────────
@@ -698,8 +723,9 @@ export const completeProcessing = mutation({
     targetEntityId: v.optional(v.string()),
     completedBy: v.optional(v.id("users")),
     notes: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withIntakePipeline("update", "intake_submission", async (ctx, args) => {
     const submission = await ctx.db.get(args.submissionId);
     if (!submission) throw new Error("Submission not found");
 
@@ -729,7 +755,7 @@ export const completeProcessing = mutation({
     );
 
     return { processingTime };
-  },
+  }),
 });
 
 /* ────────────
@@ -753,8 +779,9 @@ export const processSubmission = mutation({
     skipDeduplicate: v.optional(v.boolean()),
     autoRoute: v.optional(v.boolean()),
     targetModule: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withIntakePipeline("create", "intake_submission", async (ctx, args) => {
     // Step 1: Submit (inline logic)
     const now = Date.now();
     const submissionNumber = generateSubmissionNumber();
@@ -803,7 +830,7 @@ export const processSubmission = mutation({
         if (sub && sub.formId) {
           const fields = await ctx.db
             .query("formFields")
-            .withIndex("formId", (q) => q.eq("formId", sub.formId!))
+            .withIndex("formId", (q: any) => q.eq("formId", sub.formId!))
             .collect();
 
           const payload = JSON.parse(args.payload || "{}");
@@ -907,7 +934,7 @@ export const processSubmission = mutation({
         message: error.message,
       };
     }
-  },
+  }),
 });
 
 /* ────────────
@@ -920,8 +947,9 @@ export const routeAndCreateLead = mutation({
     submissionId: v.id("intakeSubmissions"),
     createdBy: v.id("users"),
     targetModule: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withIntakePipeline("create", "intake_submission", async (ctx, args) => {
     // Step 1: Route the submission
     const submission = await ctx.db.get(args.submissionId);
     if (!submission) throw new Error("Submission not found");
@@ -932,7 +960,7 @@ export const routeAndCreateLead = mutation({
       // Auto-route using rules
       const rules = await ctx.db
         .query("intakeRoutingRules")
-        .withIndex("isActive", (q) => q.eq("isActive", true))
+        .withIndex("isActive", (q: any) => q.eq("isActive", true))
         .order("asc")
         .collect();
 
@@ -954,7 +982,7 @@ export const routeAndCreateLead = mutation({
             rule.conditionOperator === "contains" ? value.includes(conditionValue) :
             rule.conditionOperator === "starts_with" ? value.startsWith(conditionValue) :
             rule.conditionOperator === "ends_with" ? value.endsWith(conditionValue) :
-            rule.conditionOperator === "in" ? conditionValue.split(",").map(s => s.trim()).includes(value) :
+            rule.conditionOperator === "in" ? conditionValue.split(",").map((s: any) => s.trim()).includes(value) :
             true;
           if (matches) { targetModule = rule.targetModule; break; }
         }
@@ -1085,7 +1113,7 @@ export const routeAndCreateLead = mutation({
       targetModule,
       leadCreated: false,
     };
-  },
+  }),
 });
 
 /* ────────────
@@ -1096,8 +1124,9 @@ export const retrySubmission = mutation({
   args: {
     submissionId: v.id("intakeSubmissions"),
     retriedBy: v.optional(v.id("users")),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withIntakePipeline("update", "intake_submission", async (ctx, args) => {
     const submission = await ctx.db.get(args.submissionId);
     if (!submission) throw new Error("Submission not found");
 
@@ -1117,7 +1146,7 @@ export const retrySubmission = mutation({
     );
 
     return { retryCount: currentRetry + 1 };
-  },
+  }),
 });
 
 export const cancelSubmission = mutation({
@@ -1125,8 +1154,9 @@ export const cancelSubmission = mutation({
     submissionId: v.id("intakeSubmissions"),
     reason: v.optional(v.string()),
     cancelledBy: v.optional(v.id("users")),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withIntakePipeline("update", "intake_submission", async (ctx, args) => {
     const submission = await ctx.db.get(args.submissionId);
     if (!submission) throw new Error("Submission not found");
 
@@ -1146,7 +1176,7 @@ export const cancelSubmission = mutation({
     );
 
     return { status: PROCESSING_STATUS.CANCELLED };
-  },
+  }),
 });
 
 /* ────────────
@@ -1246,15 +1276,16 @@ export const createDuplicateRule = mutation({
     matchType: v.union(v.literal("any"), v.literal("all"), v.literal("custom")),
     action: v.union(v.literal("ignore"), v.literal("merge"), v.literal("keep_both"), v.literal("review")),
     targetFormIds: v.optional(v.array(v.id("forms"))),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withIntakePipeline("create", "intake_duplicate_rule", async (ctx, args) => {
     return ctx.db.insert("intakeDuplicateRules", {
       ...args,
       isActive: true,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const updateDuplicateRule = mutation({
@@ -1267,22 +1298,23 @@ export const updateDuplicateRule = mutation({
     action: v.optional(v.union(v.literal("ignore"), v.literal("merge"), v.literal("keep_both"), v.literal("review"))),
     isActive: v.optional(v.boolean()),
     targetFormIds: v.optional(v.array(v.id("forms"))),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withIntakePipeline("update", "intake_duplicate_rule", async (ctx, args) => {
     const { ruleId, ...fields } = args;
     const existing = await ctx.db.get(ruleId);
     if (!existing) throw new Error("Rule not found");
     return ctx.db.patch(ruleId, { ...fields, updatedAt: Date.now() });
-  },
+  }),
 });
 
 export const deleteDuplicateRule = mutation({
-  args: { ruleId: v.id("intakeDuplicateRules") },
-  handler: async (ctx, args) => {
+  args: { ruleId: v.id("intakeDuplicateRules"), token: v.optional(v.string()) },
+  handler: withIntakePipeline("delete", "intake_duplicate_rule", async (ctx, args) => {
     const existing = await ctx.db.get(args.ruleId);
     if (!existing) throw new Error("Rule not found");
     await ctx.db.delete(args.ruleId);
-  },
+  }),
 });
 
 /* ────────────
@@ -1311,10 +1343,11 @@ export const createTransformMapping = mutation({
     defaultValue: v.optional(v.string()),
     isRequired: v.boolean(),
     sourceFormIds: v.optional(v.array(v.id("forms"))),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withIntakePipeline("create", "intake_transform_mapping", async (ctx, args) => {
     const all = await ctx.db.query("intakeTransformMappings").collect();
-    const maxOrder = all.reduce((m, r) => Math.max(m, r.displayOrder), -1);
+    const maxOrder = all.reduce((m: any, r: any) => Math.max(m, r.displayOrder), -1);
     return ctx.db.insert("intakeTransformMappings", {
       ...args,
       isActive: true,
@@ -1322,7 +1355,7 @@ export const createTransformMapping = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const updateTransformMapping = mutation({
@@ -1336,22 +1369,23 @@ export const updateTransformMapping = mutation({
     defaultValue: v.optional(v.string()),
     isRequired: v.optional(v.boolean()),
     isActive: v.optional(v.boolean()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withIntakePipeline("update", "intake_transform_mapping", async (ctx, args) => {
     const { mappingId, ...fields } = args;
     const existing = await ctx.db.get(mappingId);
     if (!existing) throw new Error("Mapping not found");
     return ctx.db.patch(mappingId, { ...fields, updatedAt: Date.now() });
-  },
+  }),
 });
 
 export const deleteTransformMapping = mutation({
-  args: { mappingId: v.id("intakeTransformMappings") },
-  handler: async (ctx, args) => {
+  args: { mappingId: v.id("intakeTransformMappings"), token: v.optional(v.string()) },
+  handler: withIntakePipeline("delete", "intake_transform_mapping", async (ctx, args) => {
     const existing = await ctx.db.get(args.mappingId);
     if (!existing) throw new Error("Mapping not found");
     await ctx.db.delete(args.mappingId);
-  },
+  }),
 });
 
 /* ────────────
@@ -1379,10 +1413,11 @@ export const createRoutingRule = mutation({
     conditionOperator: v.optional(v.string()),
     sourceFormIds: v.optional(v.array(v.id("forms"))),
     defaultRoute: v.boolean(),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withIntakePipeline("create", "intake_routing_rule", async (ctx, args) => {
     const all = await ctx.db.query("intakeRoutingRules").collect();
-    const maxPriority = all.reduce((m, r) => Math.max(m, r.priority), 0);
+    const maxPriority = all.reduce((m: any, r: any) => Math.max(m, r.priority), 0);
     return ctx.db.insert("intakeRoutingRules", {
       ...args,
       priority: maxPriority + 1,
@@ -1390,7 +1425,7 @@ export const createRoutingRule = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const updateRoutingRule = mutation({
@@ -1404,20 +1439,21 @@ export const updateRoutingRule = mutation({
     conditionOperator: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
     defaultRoute: v.optional(v.boolean()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withIntakePipeline("update", "intake_routing_rule", async (ctx, args) => {
     const { ruleId, ...fields } = args;
     const existing = await ctx.db.get(ruleId);
     if (!existing) throw new Error("Rule not found");
     return ctx.db.patch(ruleId, { ...fields, updatedAt: Date.now() });
-  },
+  }),
 });
 
 export const deleteRoutingRule = mutation({
-  args: { ruleId: v.id("intakeRoutingRules") },
-  handler: async (ctx, args) => {
+  args: { ruleId: v.id("intakeRoutingRules"), token: v.optional(v.string()) },
+  handler: withIntakePipeline("delete", "intake_routing_rule", async (ctx, args) => {
     const existing = await ctx.db.get(args.ruleId);
     if (!existing) throw new Error("Rule not found");
     await ctx.db.delete(args.ruleId);
-  },
+  }),
 });

@@ -1,6 +1,25 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { withScopeAndEvents, type ScopeAndEventsConfig } from "./withScopeAndEvents";
+
+function withWorkflowPipeline<P = any, R = any>(
+  operation: ScopeAndEventsConfig<P, R>["operation"],
+  entity: string,
+  handler: (ctx: any, args: P) => Promise<R>,
+): (ctx: any, args: P) => Promise<R> {
+  return withScopeAndEvents<P, R>(
+    {
+      operation,
+      module: "workflow",
+      entity,
+      notifyViaMatrix: true,
+      registerSearch: true,
+      signalDashboard: true,
+    },
+    handler,
+  );
+}
 
 /* ────────────
    CONSTANTS
@@ -108,8 +127,9 @@ export const create = mutation({
     module: v.string(),
     tag: v.optional(v.string()),
     createdBy: v.optional(v.id("users")),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withWorkflowPipeline("create", "workflow", async (ctx, args) => {
     const now = Date.now();
     const workflowId = await ctx.db.insert("workflows", {
       name: args.name,
@@ -147,7 +167,7 @@ export const create = mutation({
     });
 
     return { workflowId, startNodeId: startId, endNodeId: endId };
-  },
+  }),
 });
 
 export const update = mutation({
@@ -158,8 +178,9 @@ export const update = mutation({
     module: v.optional(v.string()),
     tag: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withWorkflowPipeline("update", "workflow", async (ctx, args) => {
     const { workflowId, ...fields } = args;
     const existing = await ctx.db.get(workflowId);
     if (!existing) throw new Error("Workflow not found");
@@ -173,12 +194,12 @@ export const update = mutation({
 
     await ctx.db.patch(workflowId, updates);
     return { success: true };
-  },
+  }),
 });
 
 export const publish = mutation({
-  args: { workflowId: v.id("workflows") },
-  handler: async (ctx, args) => {
+  args: { workflowId: v.id("workflows"), token: v.optional(v.string()) },
+  handler: withWorkflowPipeline("update", "workflow", async (ctx, args) => {
     const workflow = await ctx.db.get(args.workflowId);
     if (!workflow) throw new Error("Workflow not found");
     if (workflow.status === WORKFLOW_STATUS.ARCHIVED) {
@@ -188,11 +209,11 @@ export const publish = mutation({
     // Validate nodes exist (must have Start and End)
     const nodes = await ctx.db
       .query("workflowNodes")
-      .withIndex("workflowId", (qb) => qb.eq("workflowId", args.workflowId))
+      .withIndex("workflowId", (qb: any) => qb.eq("workflowId", args.workflowId))
       .collect();
 
-    const hasStart = nodes.some((n) => n.nodeType === "start");
-    const hasEnd = nodes.some((n) => n.nodeType === "end");
+    const hasStart = nodes.some((n: any) => n.nodeType === "start");
+    const hasEnd = nodes.some((n: any) => n.nodeType === "end");
     if (!hasStart || !hasEnd) {
       throw new Error("Workflow must have Start and End nodes");
     }
@@ -205,28 +226,28 @@ export const publish = mutation({
     });
 
     return { success: true, version: workflow.version + 1 };
-  },
+  }),
 });
 
 export const archive = mutation({
-  args: { workflowId: v.id("workflows") },
-  handler: async (ctx, args) => {
+  args: { workflowId: v.id("workflows"), token: v.optional(v.string()) },
+  handler: withWorkflowPipeline("update", "workflow", async (ctx, args) => {
     await ctx.db.patch(args.workflowId, {
       status: WORKFLOW_STATUS.ARCHIVED,
       isActive: false,
       updatedAt: Date.now(),
     });
     return { success: true };
-  },
+  }),
 });
 
 export const remove = mutation({
-  args: { workflowId: v.id("workflows") },
-  handler: async (ctx, args) => {
+  args: { workflowId: v.id("workflows"), token: v.optional(v.string()) },
+  handler: withWorkflowPipeline("delete", "workflow", async (ctx, args) => {
     // Remove all related data
     const nodes = await ctx.db
       .query("workflowNodes")
-      .withIndex("workflowId", (qb) => qb.eq("workflowId", args.workflowId))
+      .withIndex("workflowId", (qb: any) => qb.eq("workflowId", args.workflowId))
       .collect();
     for (const node of nodes) {
       await ctx.db.delete(node._id);
@@ -234,7 +255,7 @@ export const remove = mutation({
 
     const edges = await ctx.db
       .query("workflowEdges")
-      .withIndex("workflowId", (qb) => qb.eq("workflowId", args.workflowId))
+      .withIndex("workflowId", (qb: any) => qb.eq("workflowId", args.workflowId))
       .collect();
     for (const edge of edges) {
       await ctx.db.delete(edge._id);
@@ -242,7 +263,7 @@ export const remove = mutation({
 
     await ctx.db.delete(args.workflowId);
     return { success: true };
-  },
+  }),
 });
 
 export const clone = mutation({
@@ -251,8 +272,9 @@ export const clone = mutation({
     newName: v.string(),
     newCode: v.string(),
     createdBy: v.optional(v.id("users")),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withWorkflowPipeline("create", "workflow", async (ctx, args) => {
     const original = await ctx.db.get(args.workflowId);
     if (!original) throw new Error("Workflow not found");
 
@@ -274,7 +296,7 @@ export const clone = mutation({
     // Clone nodes
     const nodes = await ctx.db
       .query("workflowNodes")
-      .withIndex("workflowId", (qb) => qb.eq("workflowId", args.workflowId))
+      .withIndex("workflowId", (qb: any) => qb.eq("workflowId", args.workflowId))
       .collect();
 
     const nodeIdMap = new Map<Id<"workflowNodes">, Id<"workflowNodes">>();
@@ -297,7 +319,7 @@ export const clone = mutation({
     // Clone edges
     const edges = await ctx.db
       .query("workflowEdges")
-      .withIndex("workflowId", (qb) => qb.eq("workflowId", args.workflowId))
+      .withIndex("workflowId", (qb: any) => qb.eq("workflowId", args.workflowId))
       .collect();
 
     for (const edge of edges) {
@@ -313,7 +335,7 @@ export const clone = mutation({
     }
 
     return { workflowId: newWorkflowId };
-  },
+  }),
 });
 
 /* ────────────
@@ -347,8 +369,9 @@ export const addNode = mutation({
     config: v.optional(v.string()),
     configSchema: v.optional(v.string()),
     description: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withWorkflowPipeline("create", "workflow_node", async (ctx, args) => {
     const now = Date.now();
     const nodeId = await ctx.db.insert("workflowNodes", {
       workflowId: args.workflowId,
@@ -363,7 +386,7 @@ export const addNode = mutation({
       updatedAt: now,
     });
     return { nodeId };
-  },
+  }),
 });
 
 export const updateNode = mutation({
@@ -375,8 +398,9 @@ export const updateNode = mutation({
     config: v.optional(v.string()),
     configSchema: v.optional(v.string()),
     description: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withWorkflowPipeline("update", "workflow_node", async (ctx, args) => {
     const { nodeId, ...fields } = args;
     const updates: Record<string, unknown> = { updatedAt: Date.now() };
     if (fields.label !== undefined) updates.label = fields.label;
@@ -388,16 +412,16 @@ export const updateNode = mutation({
 
     await ctx.db.patch(nodeId, updates);
     return { success: true };
-  },
+  }),
 });
 
 export const removeNode = mutation({
-  args: { nodeId: v.id("workflowNodes") },
-  handler: async (ctx, args) => {
+  args: { nodeId: v.id("workflowNodes"), token: v.optional(v.string()) },
+  handler: withWorkflowPipeline("delete", "workflow_node", async (ctx, args) => {
     // Remove edges connected to this node
     const edges = await ctx.db
       .query("workflowEdges")
-      .filter((q) =>
+      .filter((q: any) =>
         q.or(
           q.eq(q.field("sourceNodeId"), args.nodeId),
           q.eq(q.field("targetNodeId"), args.nodeId),
@@ -410,7 +434,7 @@ export const removeNode = mutation({
 
     await ctx.db.delete(args.nodeId);
     return { success: true };
-  },
+  }),
 });
 
 /* ────────────
@@ -435,8 +459,9 @@ export const addEdge = mutation({
     label: v.optional(v.string()),
     condition: v.optional(v.string()),
     displayOrder: v.number(),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withWorkflowPipeline("create", "workflow_edge", async (ctx, args) => {
     const edgeId = await ctx.db.insert("workflowEdges", {
       workflowId: args.workflowId,
       sourceNodeId: args.sourceNodeId,
@@ -447,7 +472,7 @@ export const addEdge = mutation({
       createdAt: Date.now(),
     });
     return { edgeId };
-  },
+  }),
 });
 
 export const updateEdge = mutation({
@@ -456,8 +481,9 @@ export const updateEdge = mutation({
     label: v.optional(v.string()),
     condition: v.optional(v.string()),
     displayOrder: v.optional(v.number()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withWorkflowPipeline("update", "workflow_edge", async (ctx, args) => {
     const { edgeId, ...fields } = args;
     const updates: Record<string, unknown> = {};
     if (fields.label !== undefined) updates.label = fields.label;
@@ -468,15 +494,15 @@ export const updateEdge = mutation({
       await ctx.db.patch(edgeId, updates);
     }
     return { success: true };
-  },
+  }),
 });
 
 export const removeEdge = mutation({
-  args: { edgeId: v.id("workflowEdges") },
-  handler: async (ctx, args) => {
+  args: { edgeId: v.id("workflowEdges"), token: v.optional(v.string()) },
+  handler: withWorkflowPipeline("delete", "workflow_edge", async (ctx, args) => {
     await ctx.db.delete(args.edgeId);
     return { success: true };
-  },
+  }),
 });
 
 /* ────────────
@@ -514,8 +540,9 @@ export const startWorkflow = mutation({
     triggerEntityId: v.optional(v.string()),
     triggerPayload: v.optional(v.string()),
     initiatedBy: v.optional(v.id("users")),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withWorkflowPipeline("create", "workflow_instance", async (ctx, args) => {
     const workflow = await ctx.db.get(args.workflowId);
     if (!workflow) throw new Error("Workflow not found");
     if (workflow.status !== WORKFLOW_STATUS.PUBLISHED) {
@@ -525,8 +552,8 @@ export const startWorkflow = mutation({
     // Find the Start node
     const startNode = await ctx.db
       .query("workflowNodes")
-      .withIndex("workflowId", (qb) => qb.eq("workflowId", args.workflowId))
-      .filter((qb) => qb.eq(qb.field("nodeType"), "start"))
+      .withIndex("workflowId", (qb: any) => qb.eq("workflowId", args.workflowId))
+      .filter((qb: any) => qb.eq(qb.field("nodeType"), "start"))
       .first();
 
     if (!startNode) throw new Error("No Start node found");
@@ -556,7 +583,7 @@ export const startWorkflow = mutation({
     await executeNextStep(ctx, instanceId, startNode._id, args.triggerPayload);
 
     return { instanceId };
-  },
+  }),
 });
 
 async function executeNextStep(
@@ -898,8 +925,9 @@ export const resumeWorkflow = mutation({
     approved: v.boolean(),
     performedBy: v.optional(v.id("users")),
     notes: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withWorkflowPipeline("update", "workflow_instance", async (ctx, args) => {
     const instance = await ctx.db.get(args.instanceId);
     if (!instance) throw new Error("Instance not found");
 
@@ -927,7 +955,7 @@ export const resumeWorkflow = mutation({
     }
 
     return { success: true };
-  },
+  }),
 });
 
 export const cancelInstance = mutation({
@@ -935,8 +963,9 @@ export const cancelInstance = mutation({
     instanceId: v.id("workflowInstances"),
     reason: v.optional(v.string()),
     cancelledBy: v.optional(v.id("users")),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withWorkflowPipeline("update", "workflow_instance", async (ctx, args) => {
     await ctx.db.patch(args.instanceId, {
       status: INSTANCE_STATUS.CANCELLED,
       updatedAt: Date.now(),
@@ -949,15 +978,16 @@ export const cancelInstance = mutation({
     }
 
     return { success: true };
-  },
+  }),
 });
 
 export const retryInstance = mutation({
   args: {
     instanceId: v.id("workflowInstances"),
     performedBy: v.optional(v.id("users")),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withWorkflowPipeline("update", "workflow_instance", async (ctx, args) => {
     const instance = await ctx.db.get(args.instanceId);
     if (!instance) throw new Error("Instance not found");
 
@@ -978,7 +1008,7 @@ export const retryInstance = mutation({
     }
 
     return { success: true };
-  },
+  }),
 });
 
 /* ────────────

@@ -207,7 +207,7 @@ export const deleteDepartment = mutation({
     // Check for dependent teams
     const teams = await ctx.db
       .query("teams")
-      .withIndex("by_department", (q) => q.eq("departmentId", args.id))
+      .withIndex("by_department", (q: any) => q.eq("departmentId", args.id))
       .collect();
     if (teams.length > 0) {
       throw new Error(
@@ -285,7 +285,7 @@ export const deleteCompany = mutation({
     // Check for dependent branches
     const branches = await ctx.db
       .query("branches")
-      .withIndex("parentType_parentId", (q) =>
+      .withIndex("parentType_parentId", (q: any) =>
         q.eq("parentType", "company").eq("parentId", args.id),
       )
       .collect();
@@ -297,7 +297,7 @@ export const deleteCompany = mutation({
     // Check for dependent departments
     const depts = await ctx.db
       .query("departments")
-      .withIndex("parentType_parentId", (q) =>
+      .withIndex("parentType_parentId", (q: any) =>
         q.eq("parentType", "company").eq("parentId", args.id),
       )
       .collect();

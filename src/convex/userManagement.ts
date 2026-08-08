@@ -495,7 +495,7 @@ export const updateUserScope = mutation({
   },
   handler: withUserPipeline("update", "user_scope", async (ctx, args) => {
     const { userId, ...scopeData } = args;
-    const existing = await ctx.db.query("userScopes").withIndex("userId", (q) => q.eq("userId", userId)).collect();
+    const existing = await ctx.db.query("userScopes").withIndex("userId", (q: any) => q.eq("userId", userId)).collect();
     const now = Date.now();
     if (existing.length > 0) {
       await ctx.db.patch(existing[0]._id, { ...scopeData, updatedAt: now });
