@@ -132,7 +132,7 @@ class BuildVerifierImpl {
       const jsResources = entries.filter(
         (e) => e.name.includes(".js") || e.name.includes(".css"),
       );
-      const totalSize = jsResources.reduce((sum, e) => sum + (e.transferSize || 0), 0);
+      const totalSize = jsResources.reduce((sum, e) => sum + ((e as PerformanceResourceTiming).transferSize || 0), 0);
       const totalMB = Math.round(totalSize / 1024 / 1024 * 100) / 100;
 
       return {

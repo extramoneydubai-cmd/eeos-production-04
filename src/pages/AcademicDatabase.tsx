@@ -59,15 +59,19 @@ export default function AcademicDatabase() {
   const classrooms = useQuery(api.academicClassrooms.list);
   const sessions = useQuery(api.academicSessions.listAcademicSessions);
 
-  // Filter helpers
-  const filterItems = <T extends { name?: string; code?: string }>(
-    items: T[] | undefined,
-  ) =>
+  // Filter helpers — unconstrained generic so T stays the full doc type
+  // (a `T extends { name?: string; code?: string }` constraint collapses T
+  //  to the constraint when name/code are optional, dropping _id/color/etc.)
+  const filterItems = <T,>(items: T[] | undefined): T[] =>
     (items || []).filter(
       (i) =>
         !search ||
-        (i.name || "").toLowerCase().includes(search.toLowerCase()) ||
-        (i.code || "").toLowerCase().includes(search.toLowerCase()),
+        ((i as { name?: string }).name ?? "")
+          .toLowerCase()
+          .includes(search.toLowerCase()) ||
+        ((i as { code?: string }).code ?? "")
+          .toLowerCase()
+          .includes(search.toLowerCase()),
     );
 
   // Stats counts

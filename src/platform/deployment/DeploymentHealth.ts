@@ -172,7 +172,7 @@ class DeploymentHealthImpl {
     const exists = typeof window !== "undefined";
     return {
       name: "Operations Center",
-      status: exists ? "pass" : "skip",
+      status: (exists ? "pass" : "skip") as "pass" | "fail" | "warn",
       message: exists ? "Available at /operations" : "Not available",
       duration: Math.round(performance.now() - start),
     };
@@ -183,7 +183,7 @@ class DeploymentHealthImpl {
     const exists = typeof window !== "undefined";
     return {
       name: "Security Center",
-      status: exists ? "pass" : "skip",
+      status: (exists ? "pass" : "skip") as "pass" | "fail" | "warn",
       message: exists ? "Available at /security" : "Not available",
       duration: Math.round(performance.now() - start),
     };

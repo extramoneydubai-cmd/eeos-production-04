@@ -97,7 +97,7 @@ class ProvisioningManagerImpl {
     // Step 4: Initialize feature flags
     steps.push(await this.runStep("Initialize Feature Flags", async () => {
       featureFlagManager.init();
-      const flags = featureFlagManager.getAllFlags();
+      const flags = featureFlagManager.listFlags();
       return `Initialized ${flags.length} feature flags`;
     }));
 

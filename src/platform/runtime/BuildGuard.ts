@@ -162,7 +162,7 @@ class BuildGuardImpl {
   /** Check browser APIs */
   private checkBrowserApis(): GuardCheck {
     try {
-      const apis = [];
+      const apis: string[] = [];
       if (typeof window !== "undefined") apis.push("window");
       if (typeof document !== "undefined") apis.push("document");
       if (typeof navigator !== "undefined") apis.push("navigator");

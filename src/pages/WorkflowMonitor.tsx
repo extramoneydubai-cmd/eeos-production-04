@@ -51,7 +51,13 @@ export default function WorkflowMonitor() {
   const kpis = workflowMetrics.getKPIs();
   const templates = workflowTemplateEngine.listTemplates();
   const categories = workflowTemplateEngine.getCategories();
-  const executions = workflowEngine.listExecutions({ search, limit: 50 });
+  const [executions, setExecutions] = useState<Awaited<ReturnType<typeof workflowEngine.listExecutions>>>([]);
+  useEffect(() => {
+    workflowEngine
+      .listExecutions({ search, limit: 50 })
+      .then((res) => setExecutions(Array.isArray(res) ? res : []))
+      .catch(() => setExecutions([]));
+  }, [search]);
   const approvalStats = approvalEngine.getStats();
 
   const filteredExecs = useMemo(() => {

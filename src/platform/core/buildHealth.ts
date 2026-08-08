@@ -55,7 +55,7 @@ export function getBuildInfo(): BuildInfo {
     platform: typeof navigator !== "undefined" ? navigator.platform || "unknown" : "unknown",
     memory: (() => {
       try {
-        const perf = (performance as Record<string, unknown>).memory as Record<string, number>;
+        const perf = (performance as unknown as Record<string, unknown>).memory as Record<string, number>;
         if (perf) return `${Math.round(perf.usedJSHeapSize / 1024 / 1024)}MB / ${Math.round(perf.totalJSHeapSize / 1024 / 1024)}MB`;
       } catch {}
       return "N/A";

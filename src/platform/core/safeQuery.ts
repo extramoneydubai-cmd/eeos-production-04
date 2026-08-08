@@ -76,7 +76,10 @@ export function useSafeQuery<F extends FunctionReference<"query", "public">>(
   let rawError: Error | undefined;
 
   try {
-    rawData = useQuery(query, queryArgs) as FunctionReturnType<F> | undefined;
+    // queryArgs is `FunctionArgs<F> | "skip"` — the union can't be statically
+    // matched to Convex's OptionalRestArgsOrSkip tuple, so cast to never to
+    // preserve the exact runtime call (skip support included).
+    rawData = useQuery(query, queryArgs as never) as FunctionReturnType<F> | undefined;
     rawError = undefined;
   } catch (e) {
     rawError = e instanceof Error ? e : new Error(String(e));
@@ -95,7 +98,7 @@ export function useSafeQuery<F extends FunctionReference<"query", "public">>(
         source: "convex",
         severity,
         metadata: {
-          queryName: query.__type,
+          queryName: (query as { _type?: string })._type ?? "unknown",
           module: options?.moduleName,
         },
       });

@@ -211,7 +211,6 @@ function ModuleAnalyticsSection({ moduleId, title, icon: ModIcon, data, onNaviga
               key={i}
               label={kpi.label}
               value={kpi.value}
-              subtitle={kpi.subtitle}
               trend={kpi.trend as "up" | "down" | "stable"}
               color={colors.bg}
             />
@@ -591,7 +590,7 @@ export default function AnalyticsDashboard() {
   }, [navigate]);
 
   const handleExecuteReport = async (reportDefId: string) => {
-    try { await executeReport({ reportDefinitionId: reportDefId as Id<"reports"> }); }
+    try { await executeReport({ reportId: reportDefId as Id<"reportDefinitions"> }); }
     catch (err) { console.error("Failed to execute report:", err); }
   };
 
@@ -599,7 +598,7 @@ export default function AnalyticsDashboard() {
     setExportingReportId(reportDefId);
     setShowExportDropdown(null);
     try {
-      const result = await exportReportMutation({ reportId: reportDefId as Id<"reports">, format: format });
+      const result = await exportReportMutation({ reportId: reportDefId as Id<"reportDefinitions">, format: format });
       setExportStatus({
         id: reportDefId,
         success: !(result && 'error' in result && result.error),

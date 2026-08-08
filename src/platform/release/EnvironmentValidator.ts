@@ -92,7 +92,7 @@ class EnvironmentValidatorImpl {
     else missing.push("IndexedDB");
 
     if (typeof navigator !== "undefined") {
-      if (navigator.clipboard?.writeText) apis.push("Clipboard API");
+      if (typeof navigator.clipboard?.writeText === "function") apis.push("Clipboard API");
       else missing.push("Clipboard API");
 
       if (navigator.onLine !== undefined) apis.push("Online Detection");
