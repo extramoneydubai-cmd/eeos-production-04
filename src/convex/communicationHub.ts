@@ -1,6 +1,30 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
+
+// ─── Enterprise Pipeline Config ───────────────────────────────
+// Communication mutations route through withScopeAndEvents() so every
+// queue entry / notification emits audit + timeline + event-bus records
+// and dashboard-refresh signals.
+//
+// getUserId returns undefined intentionally: communication is used by
+// every staff role (including team/self scopes who would otherwise be
+// denied writes with an empty entity scope), so scope enforcement stays
+// a no-op here while the event pipeline is fully wired — mirroring the
+// messenger engine adoption. Search indexing is off (message noise);
+// notifications opt back in individually.
+const commPipeline = {
+  module: "communication",
+  getUserId: () => undefined,
+  getEntityCompanyId: () => undefined,
+  getEntityBranchId: () => undefined,
+  notifyViaMatrix: false,
+  triggerWorkflow: false,
+  triggerAutomation: false,
+  registerSearch: false,
+  signalDashboard: true,
+} as const;
 
 // ─── HELPERS ───────────────────────────────────────────────
 
@@ -43,6 +67,7 @@ function generateReferenceNumber(): string {
 
 export const sendEmail = mutation({
   args: {
+    token: v.optional(v.string()),
     to: v.string(),
     toName: v.optional(v.string()),
     subject: v.string(),
@@ -56,7 +81,15 @@ export const sendEmail = mutation({
     scheduledAt: v.optional(v.number()),
     campaignId: v.optional(v.id("messageCampaigns")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...commPipeline,
+      operation: "create",
+      entity: "message",
+      eventType: "communication.email.queued",
+      title: "Email Queued",
+    },
+    async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
@@ -112,11 +145,13 @@ export const sendEmail = mutation({
     }
 
     return queueId;
-  },
+    }
+  ),
 });
 
 export const sendWhatsApp = mutation({
   args: {
+    token: v.optional(v.string()),
     to: v.string(),
     toName: v.optional(v.string()),
     body: v.string(),
@@ -129,7 +164,15 @@ export const sendWhatsApp = mutation({
     scheduledAt: v.optional(v.number()),
     campaignId: v.optional(v.id("messageCampaigns")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...commPipeline,
+      operation: "create",
+      entity: "message",
+      eventType: "communication.whatsapp.queued",
+      title: "WhatsApp Queued",
+    },
+    async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
@@ -177,11 +220,13 @@ export const sendWhatsApp = mutation({
     }
 
     return queueId;
-  },
+    }
+  ),
 });
 
 export const sendSMS = mutation({
   args: {
+    token: v.optional(v.string()),
     to: v.string(),
     toName: v.optional(v.string()),
     body: v.string(),
@@ -194,7 +239,15 @@ export const sendSMS = mutation({
     scheduledAt: v.optional(v.number()),
     campaignId: v.optional(v.id("messageCampaigns")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...commPipeline,
+      operation: "create",
+      entity: "message",
+      eventType: "communication.sms.queued",
+      title: "SMS Queued",
+    },
+    async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
@@ -229,11 +282,13 @@ export const sendSMS = mutation({
     }
 
     return queueId;
-  },
+    }
+  ),
 });
 
 export const sendPush = mutation({
   args: {
+    token: v.optional(v.string()),
     to: v.string(),
     toName: v.optional(v.string()),
     title: v.string(),
@@ -246,7 +301,15 @@ export const sendPush = mutation({
     actionUrl: v.optional(v.string()),
     priority: v.optional(v.union(v.literal("low"), v.literal("normal"), v.literal("high"), v.literal("urgent"))),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...commPipeline,
+      operation: "create",
+      entity: "message",
+      eventType: "communication.push.sent",
+      title: "Push Sent",
+    },
+    async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
@@ -289,11 +352,13 @@ export const sendPush = mutation({
     }
 
     return queueId;
-  },
+    }
+  ),
 });
 
 export const sendInAppNotification = mutation({
   args: {
+    token: v.optional(v.string()),
     userId: v.id("users"),
     title: v.string(),
     message: v.string(),
@@ -304,7 +369,15 @@ export const sendInAppNotification = mutation({
     actionUrl: v.optional(v.string()),
     templateId: v.optional(v.id("communicationTemplates")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...commPipeline,
+      operation: "create",
+      entity: "notification",
+      eventType: "communication.in_app.sent",
+      title: "In-App Notification Sent",
+    },
+    async (ctx, args) => {
     const currentUser = await getAuthUserId(ctx);
     if (!currentUser) throw new Error("Not authenticated");
 
@@ -343,17 +416,27 @@ export const sendInAppNotification = mutation({
     });
 
     return queueId;
-  },
+    }
+  ),
 });
 
 // ─── SCHEDULING ────────────────────────────────────────────
 
 export const scheduleMessage = mutation({
   args: {
+    token: v.optional(v.string()),
     queueId: v.id("communicationQueue"),
     scheduledAt: v.number(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...commPipeline,
+      operation: "update",
+      entity: "message",
+      eventType: "communication.message.scheduled",
+      title: "Message Scheduled",
+    },
+    async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
@@ -367,12 +450,21 @@ export const scheduleMessage = mutation({
     await createQueueLog(ctx, args.queueId, "scheduled", "queued", `Scheduled for ${new Date(args.scheduledAt).toISOString()}`);
 
     return args.queueId;
-  },
+    }
+  ),
 });
 
 export const cancelScheduledMessage = mutation({
-  args: { queueId: v.id("communicationQueue") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), queueId: v.id("communicationQueue") },
+  handler: withScopeAndEvents(
+    {
+      ...commPipeline,
+      operation: "update",
+      entity: "message",
+      eventType: "communication.message.cancelled",
+      title: "Message Cancelled",
+    },
+    async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
@@ -383,12 +475,21 @@ export const cancelScheduledMessage = mutation({
     await ctx.db.patch(args.queueId, { status: "cancelled" });
     await createQueueLog(ctx, args.queueId, "cancelled", "cancelled", "Message cancelled by user");
     return args.queueId;
-  },
+    }
+  ),
 });
 
 export const retryFailedMessage = mutation({
-  args: { queueId: v.id("communicationQueue") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), queueId: v.id("communicationQueue") },
+  handler: withScopeAndEvents(
+    {
+      ...commPipeline,
+      operation: "update",
+      entity: "message",
+      eventType: "communication.message.retried",
+      title: "Message Retried",
+    },
+    async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
@@ -403,7 +504,8 @@ export const retryFailedMessage = mutation({
     });
     await createQueueLog(ctx, args.queueId, "retry", "queued", `Retry attempt ${newRetryCount}`);
     return args.queueId;
-  },
+    }
+  ),
 });
 
 // ─── MESSAGE QUERIES ───────────────────────────────────────
@@ -482,6 +584,7 @@ export const getQueueStats = query({
 
 export const updateDeliveryStatus = mutation({
   args: {
+    token: v.optional(v.string()),
     queueId: v.id("communicationQueue"),
     status: v.union(v.literal("delivered"), v.literal("read"), v.literal("failed")),
     provider: v.optional(v.string()),
@@ -489,7 +592,15 @@ export const updateDeliveryStatus = mutation({
     errorMessage: v.optional(v.string()),
     errorCode: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...commPipeline,
+      operation: "update",
+      entity: "message",
+      eventType: "communication.message.delivery_updated",
+      title: "Delivery Status Updated",
+    },
+    async (ctx, args) => {
     const patch: Record<string, any> = { status: args.status };
     if (args.status === "delivered") patch.deliveredAt = Date.now();
     if (args.status === "read") patch.readAt = Date.now();
@@ -511,7 +622,8 @@ export const updateDeliveryStatus = mutation({
 
     await createQueueLog(ctx, args.queueId, "delivery_update", args.status, args.errorMessage || `Status updated to ${args.status}`);
     return args.queueId;
-  },
+    }
+  ),
 });
 
 // ─── NOTIFICATION CENTER QUERIES ───────────────────────────
@@ -555,16 +667,33 @@ export const getUnreadCount = query({
 });
 
 export const markAsRead = mutation({
-  args: { notificationId: v.id("notificationCenter") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), notificationId: v.id("notificationCenter") },
+  handler: withScopeAndEvents(
+    {
+      ...commPipeline,
+      operation: "update",
+      entity: "notification",
+      eventType: "communication.notification.read",
+      title: "Notification Read",
+    },
+    async (ctx, args) => {
     await ctx.db.patch(args.notificationId, { isRead: true, readAt: Date.now() });
     return args.notificationId;
-  },
+    }
+  ),
 });
 
 export const markAllAsRead = mutation({
-  args: { userId: v.id("users") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), userId: v.id("users") },
+  handler: withScopeAndEvents(
+    {
+      ...commPipeline,
+      operation: "update",
+      entity: "notification",
+      eventType: "communication.notification.all_read",
+      title: "All Notifications Read",
+    },
+    async (ctx, args) => {
     const unread = await ctx.db.query("notificationCenter")
       .withIndex("userId_isRead", (q: any) => q.eq("userId", args.userId).eq("isRead", false))
       .collect();
@@ -572,45 +701,82 @@ export const markAllAsRead = mutation({
       await ctx.db.patch(n._id, { isRead: true, readAt: Date.now() });
     }
     return unread.length;
-  },
+    }
+  ),
 });
 
 export const togglePin = mutation({
-  args: { notificationId: v.id("notificationCenter") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), notificationId: v.id("notificationCenter") },
+  handler: withScopeAndEvents(
+    {
+      ...commPipeline,
+      operation: "update",
+      entity: "notification",
+      eventType: "communication.notification.pinned",
+      title: "Notification Pinned",
+    },
+    async (ctx, args) => {
     const n = await ctx.db.get(args.notificationId);
     if (!n) throw new Error("Notification not found");
     await ctx.db.patch(args.notificationId, { isPinned: !n.isPinned });
     return args.notificationId;
-  },
+    }
+  ),
 });
 
 export const archiveNotification = mutation({
-  args: { notificationId: v.id("notificationCenter") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), notificationId: v.id("notificationCenter") },
+  handler: withScopeAndEvents(
+    {
+      ...commPipeline,
+      operation: "update",
+      entity: "notification",
+      eventType: "communication.notification.archived",
+      title: "Notification Archived",
+    },
+    async (ctx, args) => {
     await ctx.db.patch(args.notificationId, { isArchived: true });
     return args.notificationId;
-  },
+    }
+  ),
 });
 
 export const deleteNotification = mutation({
-  args: { notificationId: v.id("notificationCenter") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), notificationId: v.id("notificationCenter") },
+  handler: withScopeAndEvents(
+    {
+      ...commPipeline,
+      operation: "delete",
+      entity: "notification",
+      eventType: "communication.notification.deleted",
+      title: "Notification Deleted",
+    },
+    async (ctx, args) => {
     await ctx.db.delete(args.notificationId);
     return args.notificationId;
-  },
+    }
+  ),
 });
 
 // ─── PREFERENCES ───────────────────────────────────────────
 
 export const setPreference = mutation({
   args: {
+    token: v.optional(v.string()),
     userId: v.id("users"),
     channel: v.union(v.literal("email"), v.literal("whatsapp"), v.literal("sms"), v.literal("push"), v.literal("in_app")),
     category: v.string(),
     enabled: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents(
+    {
+      ...commPipeline,
+      operation: "create",
+      entity: "preference",
+      eventType: "communication.preference.saved",
+      title: "Preference Saved",
+    },
+    async (ctx, args) => {
     const existing = await ctx.db.query("communicationPreferences")
       .withIndex("userId_category", (q: any) =>
         q.eq("userId", args.userId).eq("category", args.category))
@@ -630,7 +796,8 @@ export const setPreference = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+    }
+  ),
 });
 
 export const getPreferences = query({

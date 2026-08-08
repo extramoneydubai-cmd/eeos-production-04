@@ -1,6 +1,52 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents, type ScopeAndEventsConfig } from "./withScopeAndEvents";
+
+// ─── Enterprise Handler Factory ───────────────────────────────────────
+// Wraps ctx-based auth extraction for withScopeAndEvents integration.
+// When a session token is supplied the withScopeAndEvents wrapper resolves
+// the REAL performer from the sessions table; getAuthUserId (Convex auth
+// headers) only applies to legacy flows. The declared `changedBy`
+// (employeeMaster id) remains the recorded actor, while authorization
+// uses the verified performer.
+
+function withLifecycle<P = any, R = any>(
+  operation: ScopeAndEventsConfig<P, R>["operation"],
+  entity: string,
+  getScope: (args: P) => { companyId?: string; branchId?: string; departmentId?: string },
+  handler: (ctx: any, args: P, userId: Id<"users">) => Promise<R>,
+) {
+  return async (ctx: any, args: P) => {
+    const raw = args as any;
+    const hasToken = typeof raw?.token === "string" && raw.token.length > 0;
+    let userId: Id<"users"> | undefined;
+    if (!hasToken) {
+      userId = (await getAuthUserId(ctx)) as Id<"users"> | undefined;
+    }
+
+    const scope = getScope(args);
+    const wrappedHandler = withScopeAndEvents<P, R>(
+      {
+        operation,
+        module: "hr",
+        entity,
+        getEntityCompanyId: () => scope.companyId,
+        getEntityBranchId: () => scope.branchId,
+        getEntityDepartmentId: () => scope.departmentId,
+        getUserId: () => userId as Id<"users">,
+        notifyViaMatrix: true,
+        triggerWorkflow: true,
+        triggerAutomation: true,
+        registerSearch: true,
+        signalDashboard: true,
+      },
+      (ctx2, args2) => handler(ctx2, args2, userId as Id<"users">),
+    );
+    return wrappedHandler(ctx, args);
+  };
+}
 
 // ─── Valid Transitions ───────────────────────────────────────────
 
@@ -72,12 +118,13 @@ async function transitionStatus(
 
 export const onboardEmployee = mutation({
   args: {
+    token: v.optional(v.string()),
     employeeId: v.id("employeeMaster"),
     joiningDate: v.optional(v.number()),
     probationEndDate: v.optional(v.number()),
     changedBy: v.id("employeeMaster"),
   },
-  handler: async (ctx, args) => {
+  handler: withLifecycle("update", "employee", () => ({}), async (ctx, args) => {
     const employee = await ctx.db.get(args.employeeId);
     if (!employee) throw new Error("Employee not found");
 
@@ -94,19 +141,20 @@ export const onboardEmployee = mutation({
     );
 
     return { success: true };
-  },
+  }),
 });
 
 // ─── Confirm Employee (Probation → Active) ───────────────────────
 
 export const confirmEmployee = mutation({
   args: {
+    token: v.optional(v.string()),
     employeeId: v.id("employeeMaster"),
     confirmationDate: v.optional(v.number()),
     changedBy: v.id("employeeMaster"),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withLifecycle("update", "employee", () => ({}), async (ctx, args) => {
     await transitionStatus(ctx, args.employeeId, "active", args.changedBy, args.remarks || "Probation confirmed");
 
     await ctx.db.patch(args.employeeId, {
@@ -120,13 +168,14 @@ export const confirmEmployee = mutation({
     );
 
     return { success: true };
-  },
+  }),
 });
 
 // ─── Transfer Employee ───────────────────────────────────────────
 
 export const transferEmployee = mutation({
   args: {
+    token: v.optional(v.string()),
     employeeId: v.id("employeeMaster"),
     newBranchId: v.optional(v.id("branches")),
     newDepartmentId: v.optional(v.id("departments")),
@@ -135,7 +184,11 @@ export const transferEmployee = mutation({
     changedBy: v.id("employeeMaster"),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withLifecycle("update", "employee", (a) => ({
+    companyId: a.newCompanyId,
+    branchId: a.newBranchId,
+    departmentId: a.newDepartmentId,
+  }), async (ctx, args) => {
     const employee = await ctx.db.get(args.employeeId);
     if (!employee) throw new Error("Employee not found");
 
@@ -165,13 +218,14 @@ export const transferEmployee = mutation({
     }
 
     return { success: true, changes: changes.length };
-  },
+  }),
 });
 
 // ─── Promote Employee ────────────────────────────────────────────
 
 export const promoteEmployee = mutation({
   args: {
+    token: v.optional(v.string()),
     employeeId: v.id("employeeMaster"),
     newDesignationId: v.id("designations"),
     newPrimaryRole: v.optional(v.union(
@@ -182,7 +236,7 @@ export const promoteEmployee = mutation({
     changedBy: v.id("employeeMaster"),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withLifecycle("update", "employee", () => ({}), async (ctx, args) => {
     const employee = await ctx.db.get(args.employeeId);
     if (!employee) throw new Error("Employee not found");
 
@@ -205,19 +259,22 @@ export const promoteEmployee = mutation({
     );
 
     return { success: true };
-  },
+  }),
 });
 
 // ─── Change Department ───────────────────────────────────────────
 
 export const changeDepartment = mutation({
   args: {
+    token: v.optional(v.string()),
     employeeId: v.id("employeeMaster"),
     newDepartmentId: v.id("departments"),
     changedBy: v.id("employeeMaster"),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withLifecycle("update", "employee", (a) => ({
+    departmentId: a.newDepartmentId,
+  }), async (ctx, args) => {
     const employee = await ctx.db.get(args.employeeId);
     if (!employee) throw new Error("Employee not found");
 
@@ -234,19 +291,20 @@ export const changeDepartment = mutation({
     );
 
     return { success: true };
-  },
+  }),
 });
 
 // ─── Assign Manager ──────────────────────────────────────────────
 
 export const assignManager = mutation({
   args: {
+    token: v.optional(v.string()),
     employeeId: v.id("employeeMaster"),
     managerId: v.id("employeeMaster"),
     changedBy: v.id("employeeMaster"),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withLifecycle("update", "employee", () => ({}), async (ctx, args) => {
     if (args.employeeId === args.managerId) {
       throw new Error("Employee cannot report to themselves");
     }
@@ -280,47 +338,50 @@ export const assignManager = mutation({
     );
 
     return { success: true };
-  },
+  }),
 });
 
 // ─── Suspend ─────────────────────────────────────────────────────
 
 export const suspendEmployee = mutation({
   args: {
+    token: v.optional(v.string()),
     employeeId: v.id("employeeMaster"),
     changedBy: v.id("employeeMaster"),
     remarks: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: withLifecycle("update", "employee", () => ({}), async (ctx, args) => {
     await transitionStatus(ctx, args.employeeId, "suspended", args.changedBy, args.remarks);
     return { success: true };
-  },
+  }),
 });
 
 // ─── Reinstate ───────────────────────────────────────────────────
 
 export const reinstateEmployee = mutation({
   args: {
+    token: v.optional(v.string()),
     employeeId: v.id("employeeMaster"),
     changedBy: v.id("employeeMaster"),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withLifecycle("update", "employee", () => ({}), async (ctx, args) => {
     await transitionStatus(ctx, args.employeeId, "active", args.changedBy, args.remarks || "Reinstated");
     return { success: true };
-  },
+  }),
 });
 
 // ─── Resign ──────────────────────────────────────────────────────
 
 export const resignEmployee = mutation({
   args: {
+    token: v.optional(v.string()),
     employeeId: v.id("employeeMaster"),
     resignationDate: v.number(),
     changedBy: v.id("employeeMaster"),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withLifecycle("update", "employee", () => ({}), async (ctx, args) => {
     await transitionStatus(ctx, args.employeeId, "resigned", args.changedBy, args.remarks || "Resignation submitted");
 
     await ctx.db.patch(args.employeeId, {
@@ -334,19 +395,20 @@ export const resignEmployee = mutation({
     );
 
     return { success: true };
-  },
+  }),
 });
 
 // ─── Relieve ─────────────────────────────────────────────────────
 
 export const relieveEmployee = mutation({
   args: {
+    token: v.optional(v.string()),
     employeeId: v.id("employeeMaster"),
     relievingDate: v.number(),
     changedBy: v.id("employeeMaster"),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withLifecycle("update", "employee", () => ({}), async (ctx, args) => {
     await transitionStatus(ctx, args.employeeId, "relieved", args.changedBy, args.remarks || "Employee relieved");
 
     await ctx.db.patch(args.employeeId, {
@@ -360,19 +422,20 @@ export const relieveEmployee = mutation({
     );
 
     return { success: true };
-  },
+  }),
 });
 
 // ─── Terminate ───────────────────────────────────────────────────
 
 export const terminateEmployee = mutation({
   args: {
+    token: v.optional(v.string()),
     employeeId: v.id("employeeMaster"),
     changedBy: v.id("employeeMaster"),
     remarks: v.string(),
     relievingDate: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: withLifecycle("update", "employee", () => ({}), async (ctx, args) => {
     await transitionStatus(ctx, args.employeeId, "terminated", args.changedBy, args.remarks);
 
     if (args.relievingDate) {
@@ -388,19 +451,20 @@ export const terminateEmployee = mutation({
     );
 
     return { success: true };
-  },
+  }),
 });
 
 // ─── Retire ──────────────────────────────────────────────────────
 
 export const retireEmployee = mutation({
   args: {
+    token: v.optional(v.string()),
     employeeId: v.id("employeeMaster"),
     retirementDate: v.optional(v.number()),
     changedBy: v.id("employeeMaster"),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withLifecycle("update", "employee", () => ({}), async (ctx, args) => {
     await transitionStatus(ctx, args.employeeId, "retired", args.changedBy, args.remarks || "Retirement");
 
     await ctx.db.patch(args.employeeId, {
@@ -414,7 +478,7 @@ export const retireEmployee = mutation({
     );
 
     return { success: true };
-  },
+  }),
 });
 
 // ─── Query: Get History ──────────────────────────────────────────

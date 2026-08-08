@@ -1,18 +1,14 @@
 /**
- * Procurement Platform — Event Pipeline Integration
+ * Procurement Platform — Enterprise Pipeline Integration
  *
- * This file provides event-pipeline-wrapped wrappers for critical
- * procurement, inventory, and asset mutations.
- *
- * These mutations automatically fire:
- *   - Audit Log (auditLogs table)
- *   - Timeline Event (timelineEvents table)
- *   - Activity Record (activities table)
- *   - Event Bus Event (events table)
- *   - Notification (notifications table — optional)
+ * All mutations use withScopeAndEvents for complete enterprise adoption:
+ *   ✓ ScopeEngine authorization    ✓ Event Pipeline
+ *   ✓ Timeline auto-recording     ✓ Auto-document generation
+ *   ✓ Notification Matrix routing  ✓ Search indexing
+ *   ✓ Dashboard refresh signals    ✓ Workflow + Automation triggers
  *
  * Every business module MUST use these platform mutations.
- * Do NOT bypass the event pipeline.
+ * Do NOT bypass the enterprise pipeline.
  *
  * IMPORTANT: These wrappers maintain backward compatibility.
  * The original mutations in procurementEngine.ts, inventoryEngine.ts,
@@ -22,72 +18,50 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents, type ScopeAndEventsConfig } from "./withScopeAndEvents";
+import { Id } from "./_generated/dataModel";
 
-// ─── Internal Helper: Record Events ───────────────────────────────────
+// ─── Enterprise Handler Factory ──────────────────────────────
+// Wraps ctx-based auth extraction for withScopeAndEvents integration.
+// When a session token is supplied the withScopeAndEvents wrapper resolves
+// the REAL performer from the sessions table; getAuthUserId (Convex auth
+// headers) only applies to legacy flows.
 
-function eventConfig(module: string, entity: string, action: string) {
-  return { module, entity, action };
-}
-
-async function recordEvents(
-  ctx: any,
-  config: ReturnType<typeof eventConfig>,
-  entityId: string | undefined,
-  performedBy: any,
-  description?: string,
+function withPlatform<P = any, R = any>(
+  operation: ScopeAndEventsConfig<P, R>["operation"],
+  module: string,
+  entity: string,
+  getScope: (args: P) => { companyId?: string; branchId?: string; departmentId?: string },
+  handler: (ctx: any, args: P, userId: Id<"users">) => Promise<R>,
 ) {
-  if (!entityId || !performedBy) return;
-  const now = Date.now();
-  const eventType = `${config.module}.${config.entity}.${config.action}`;
+  return async (ctx: any, args: P) => {
+    const raw = args as any;
+    const hasToken = typeof raw?.token === "string" && raw.token.length > 0;
+    let userId: Id<"users"> | undefined;
+    if (!hasToken) {
+      userId = (await getAuthUserId(ctx)) as Id<"users"> | undefined;
+    }
 
-  try {
-    // 1. Audit Log
-    await ctx.db.insert("auditLogs", {
-      action: config.action,
-      entity: config.entity,
-      entityId,
-      userId: performedBy,
-      createdAt: now,
-    });
-
-    // 2. Timeline Event
-    await ctx.db.insert("timelineEvents", {
-      module: config.module,
-      eventType,
-      entityType: config.entity,
-      entityId,
-      title: `${config.module} ${config.entity} ${config.action}`,
-      description,
-      performedBy,
-      createdAt: now,
-    });
-
-    // 3. Activity Record
-    await ctx.db.insert("activities", {
-      module: config.module,
-      action: config.action,
-      entityType: config.entity,
-      entityId,
-      description: description || `${config.module} ${config.entity} ${config.action}`,
-      userId: performedBy,
-      createdAt: now,
-    });
-
-    // 4. Event Bus Event
-    await ctx.db.insert("events", {
-      module: config.module,
-      eventType,
-      entityType: config.entity,
-      entityId,
-      performedBy,
-      status: "published",
-      publishedAt: now,
-      createdAt: now,
-    });
-  } catch (error) {
-    // Event pipeline failure must never break the business operation
-    console.error(`[ProcurementPlatform] Failed to record events for ${eventType}:`, error);
-  }
+    const scope = getScope(args);
+    const wrappedHandler = withScopeAndEvents<P, R>(
+      {
+        operation,
+        module,
+        entity,
+        getEntityCompanyId: () => scope.companyId,
+        getEntityBranchId: () => scope.branchId,
+        getEntityDepartmentId: () => scope.departmentId,
+        getUserId: () => userId as Id<"users">,
+        notifyViaMatrix: true,
+        triggerWorkflow: true,
+        triggerAutomation: true,
+        registerSearch: true,
+        signalDashboard: true,
+      },
+      (ctx2, args2) => handler(ctx2, args2, userId as Id<"users">),
+    );
+    return wrappedHandler(ctx, args);
+  };
 }
 
 // ═════════════════════════════════════════════════════════════════════
@@ -96,6 +70,7 @@ async function recordEvents(
 
 export const createVendor = mutation({
   args: {
+    token: v.optional(v.string()),
     vendorName: v.string(),
     vendorCode: v.string(),
     contactPerson: v.optional(v.string()),
@@ -108,8 +83,7 @@ export const createVendor = mutation({
     rating: v.optional(v.number()),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withPlatform("create", "procurement", "vendor", () => ({}), async (ctx, args, userId) => {
     if (!userId) throw new Error("Not authenticated");
 
     const id = await ctx.db.insert("vendorMaster", {
@@ -119,14 +93,13 @@ export const createVendor = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-
-    await recordEvents(ctx, eventConfig("procurement", "vendor", "create"), id, userId, `Vendor ${args.vendorName} created`);
     return id;
-  },
+  }),
 });
 
 export const updateVendor = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("vendorMaster"),
     vendorName: v.optional(v.string()),
     contactPerson: v.optional(v.string()),
@@ -140,16 +113,13 @@ export const updateVendor = mutation({
     status: v.optional(v.union(v.literal("active"), v.literal("inactive"), v.literal("blacklisted"))),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withPlatform("update", "procurement", "vendor", () => ({}), async (ctx, args, userId) => {
     if (!userId) throw new Error("Not authenticated");
 
     const { id, ...fields } = args;
     await ctx.db.patch(id, { ...fields, updatedAt: Date.now() });
-
-    await recordEvents(ctx, eventConfig("procurement", "vendor", "update"), id, userId, `Vendor ${args.vendorName || id} updated`);
     return id;
-  },
+  }),
 });
 
 // ═════════════════════════════════════════════════════════════════════
@@ -158,6 +128,7 @@ export const updateVendor = mutation({
 
 export const createRequisition = mutation({
   args: {
+    token: v.optional(v.string()),
     departmentId: v.optional(v.id("departments")),
     branchId: v.optional(v.id("branches")),
     priority: v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("critical")),
@@ -170,13 +141,15 @@ export const createRequisition = mutation({
       notes: v.optional(v.string()),
     })),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withPlatform("create", "procurement", "purchase_requisition", (a) => ({
+    branchId: a.branchId,
+    departmentId: a.departmentId,
+  }), async (ctx, args, userId) => {
     if (!userId) throw new Error("Not authenticated");
 
     const allReqs = await ctx.db.query("purchaseRequisitions").collect();
     const reqNumber = `PR-${String(allReqs.length + 1).padStart(6, "0")}`;
-    const totalEstimated = args.items.reduce((s, i) => s + i.quantity * i.estimatedUnitPrice, 0);
+    const totalEstimated = args.items.reduce((s: number, i: any) => s + i.quantity * i.estimatedUnitPrice, 0);
 
     const reqId = await ctx.db.insert("purchaseRequisitions", {
       requisitionNumber: reqNumber,
@@ -204,15 +177,13 @@ export const createRequisition = mutation({
       });
     }
 
-    await recordEvents(ctx, eventConfig("procurement", "requisition", "create"), reqId, userId, `Requisition ${reqNumber} created with ${args.items.length} items`);
     return { id: reqId, requisitionNumber: reqNumber };
-  },
+  }),
 });
 
 export const submitRequisitionForApproval = mutation({
-  args: { id: v.id("purchaseRequisitions") },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  args: { token: v.optional(v.string()), id: v.id("purchaseRequisitions") },
+  handler: withPlatform("update", "procurement", "purchase_requisition", () => ({}), async (ctx, args, userId) => {
     if (!userId) throw new Error("Not authenticated");
 
     const req = await ctx.db.get(args.id);
@@ -220,15 +191,17 @@ export const submitRequisitionForApproval = mutation({
     if (req.status !== "draft") throw new Error("Only draft requisitions can be submitted");
 
     await ctx.db.patch(args.id, { status: "pending_approval", updatedAt: Date.now() });
-    await recordEvents(ctx, eventConfig("procurement", "requisition", "submit"), args.id, userId, `Requisition submitted for approval`);
     return args.id;
-  },
+  }),
 });
 
 export const approveRequisition = mutation({
-  args: { id: v.id("purchaseRequisitions"), approve: v.boolean() },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  args: {
+    token: v.optional(v.string()),
+    id: v.id("purchaseRequisitions"),
+    approve: v.boolean(),
+  },
+  handler: withPlatform("approve", "procurement", "purchase_requisition", () => ({}), async (ctx, args, userId) => {
     if (!userId) throw new Error("Not authenticated");
 
     const req = await ctx.db.get(args.id);
@@ -242,10 +215,8 @@ export const approveRequisition = mutation({
       approvedAt: Date.now(),
       updatedAt: Date.now(),
     });
-
-    await recordEvents(ctx, eventConfig("procurement", "requisition", args.approve ? "approve" : "reject"), args.id, userId, `Requisition ${newStatus}`);
     return args.id;
-  },
+  }),
 });
 
 // ═════════════════════════════════════════════════════════════════════
@@ -254,6 +225,7 @@ export const approveRequisition = mutation({
 
 export const createPurchaseOrder = mutation({
   args: {
+    token: v.optional(v.string()),
     requisitionId: v.optional(v.id("purchaseRequisitions")),
     vendorId: v.id("vendorMaster"),
     departmentId: v.optional(v.id("departments")),
@@ -271,13 +243,15 @@ export const createPurchaseOrder = mutation({
       notes: v.optional(v.string()),
     })),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withPlatform("create", "procurement", "purchase_order", (a) => ({
+    branchId: a.branchId,
+    departmentId: a.departmentId,
+  }), async (ctx, args, userId) => {
     if (!userId) throw new Error("Not authenticated");
 
     const allPOs = await ctx.db.query("purchaseOrders").collect();
     const poNumber = `PO-${String(allPOs.length + 1).padStart(6, "0")}`;
-    const subtotal = args.items.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+    const subtotal = args.items.reduce((s: number, i: any) => s + i.quantity * i.unitPrice, 0);
     const totalAmount = subtotal + args.taxAmount;
 
     const poId = await ctx.db.insert("purchaseOrders", {
@@ -317,15 +291,13 @@ export const createPurchaseOrder = mutation({
       await ctx.db.patch(args.requisitionId, { status: "ordered", updatedAt: Date.now() });
     }
 
-    await recordEvents(ctx, eventConfig("procurement", "purchase_order", "create"), poId, userId, `PO ${poNumber} created for $${totalAmount.toFixed(2)}`);
     return { id: poId, poNumber };
-  },
+  }),
 });
 
 export const submitPOForApproval = mutation({
-  args: { id: v.id("purchaseOrders") },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  args: { token: v.optional(v.string()), id: v.id("purchaseOrders") },
+  handler: withPlatform("update", "procurement", "purchase_order", () => ({}), async (ctx, args, userId) => {
     if (!userId) throw new Error("Not authenticated");
 
     const po = await ctx.db.get(args.id);
@@ -333,15 +305,17 @@ export const submitPOForApproval = mutation({
     if (po.status !== "draft") throw new Error("Only draft POs can be submitted");
 
     await ctx.db.patch(args.id, { status: "pending_approval", updatedAt: Date.now() });
-    await recordEvents(ctx, eventConfig("procurement", "purchase_order", "submit"), args.id, userId, `PO submitted for approval`);
     return args.id;
-  },
+  }),
 });
 
 export const approvePurchaseOrder = mutation({
-  args: { id: v.id("purchaseOrders"), approve: v.boolean() },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  args: {
+    token: v.optional(v.string()),
+    id: v.id("purchaseOrders"),
+    approve: v.boolean(),
+  },
+  handler: withPlatform("approve", "procurement", "purchase_order", () => ({}), async (ctx, args, userId) => {
     if (!userId) throw new Error("Not authenticated");
 
     const po = await ctx.db.get(args.id);
@@ -355,10 +329,8 @@ export const approvePurchaseOrder = mutation({
       approvedAt: Date.now(),
       updatedAt: Date.now(),
     });
-
-    await recordEvents(ctx, eventConfig("procurement", "purchase_order", args.approve ? "approve" : "reject"), args.id, userId, `PO ${newStatus}`);
     return args.id;
-  },
+  }),
 });
 
 // ═════════════════════════════════════════════════════════════════════
@@ -367,6 +339,7 @@ export const approvePurchaseOrder = mutation({
 
 export const createGoodsReceipt = mutation({
   args: {
+    token: v.optional(v.string()),
     poId: v.id("purchaseOrders"),
     deliveryNote: v.optional(v.string()),
     items: v.array(v.object({
@@ -379,8 +352,7 @@ export const createGoodsReceipt = mutation({
       rejectionReason: v.optional(v.string()),
     })),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withPlatform("create", "procurement", "goods_receipt", () => ({}), async (ctx, args, userId) => {
     if (!userId) throw new Error("Not authenticated");
 
     const po = await ctx.db.get(args.poId);
@@ -457,9 +429,8 @@ export const createGoodsReceipt = mutation({
     const grnStatus = !anyReceived ? "pending" : allAccepted ? "complete" : "partial";
     await ctx.db.patch(receiptId, { status: grnStatus, updatedAt: Date.now() });
 
-    await recordEvents(ctx, eventConfig("procurement", "goods_receipt", "create"), receiptId, userId, `GRN ${receiptNumber} — ${grnStatus}`);
     return { id: receiptId, receiptNumber };
-  },
+  }),
 });
 
 // ═════════════════════════════════════════════════════════════════════
@@ -468,6 +439,7 @@ export const createGoodsReceipt = mutation({
 
 export const createInventoryItem = mutation({
   args: {
+    token: v.optional(v.string()),
     sku: v.string(),
     name: v.string(),
     description: v.optional(v.string()),
@@ -483,8 +455,7 @@ export const createInventoryItem = mutation({
     qrCode: v.optional(v.string()),
     serialNumber: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withPlatform("create", "inventory", "inventory_item", () => ({}), async (ctx, args, userId) => {
     if (!userId) throw new Error("Not authenticated");
 
     const { initialStock, ...fields } = args;
@@ -513,19 +484,18 @@ export const createInventoryItem = mutation({
       });
     }
 
-    await recordEvents(ctx, eventConfig("inventory", "item", "create"), id, userId, `Item ${args.name} (${args.sku}) created with ${initialStock} units`);
     return id;
-  },
+  }),
 });
 
 export const adjustStock = mutation({
   args: {
+    token: v.optional(v.string()),
     itemId: v.id("inventoryItems"),
     newStock: v.number(),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withPlatform("update", "inventory", "inventory_item", () => ({}), async (ctx, args, userId) => {
     if (!userId) throw new Error("Not authenticated");
 
     const item = await ctx.db.get(args.itemId);
@@ -552,9 +522,8 @@ export const adjustStock = mutation({
       createdAt: Date.now(),
     });
 
-    await recordEvents(ctx, eventConfig("inventory", "item", "adjust_stock"), args.itemId, userId, `Stock adjusted: ${balanceBefore} → ${args.newStock} (${adjustment >= 0 ? "+" : ""}${adjustment})`);
     return args.itemId;
-  },
+  }),
 });
 
 // ═════════════════════════════════════════════════════════════════════
@@ -563,6 +532,7 @@ export const adjustStock = mutation({
 
 export const issueItem = mutation({
   args: {
+    token: v.optional(v.string()),
     itemId: v.id("inventoryItems"),
     issuedTo: v.id("users"),
     quantity: v.number(),
@@ -571,8 +541,9 @@ export const issueItem = mutation({
     expectedReturn: v.optional(v.number()),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withPlatform("create", "inventory", "issue", (a) => ({
+    departmentId: a.departmentId,
+  }), async (ctx, args, userId) => {
     if (!userId) throw new Error("Not authenticated");
 
     const item = await ctx.db.get(args.itemId);
@@ -612,18 +583,17 @@ export const issueItem = mutation({
       createdAt: Date.now(),
     });
 
-    await recordEvents(ctx, eventConfig("inventory", "issue", "create"), issueId, userId, `Item issued: ${args.quantity} units for ${args.purpose}`);
     return { id: issueId, balanceAfter };
-  },
+  }),
 });
 
 export const returnIssuedItem = mutation({
   args: {
+    token: v.optional(v.string()),
     issueId: v.id("issueRegister"),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withPlatform("update", "inventory", "issue", () => ({}), async (ctx, args, userId) => {
     if (!userId) throw new Error("Not authenticated");
 
     const issue = await ctx.db.get(args.issueId);
@@ -659,13 +629,13 @@ export const returnIssuedItem = mutation({
       updatedAt: Date.now(),
     });
 
-    await recordEvents(ctx, eventConfig("inventory", "issue", "return"), args.issueId, userId, `Item returned`);
     return args.issueId;
-  },
+  }),
 });
 
 export const allocateAsset = mutation({
   args: {
+    token: v.optional(v.string()),
     itemId: v.id("inventoryItems"),
     assetName: v.string(),
     assetTag: v.string(),
@@ -675,8 +645,9 @@ export const allocateAsset = mutation({
     condition: v.union(v.literal("new"), v.literal("good"), v.literal("fair"), v.literal("damaged")),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withPlatform("create", "assets", "asset", (a) => ({
+    departmentId: a.departmentId,
+  }), async (ctx, args, userId) => {
     if (!userId) throw new Error("Not authenticated");
 
     const id = await ctx.db.insert("assetAllocations", {
@@ -695,19 +666,18 @@ export const allocateAsset = mutation({
       updatedAt: Date.now(),
     });
 
-    await recordEvents(ctx, eventConfig("assets", "asset", "allocate"), id, userId, `Asset ${args.assetName} (${args.assetTag}) allocated`);
     return id;
-  },
+  }),
 });
 
 export const returnAsset = mutation({
   args: {
+    token: v.optional(v.string()),
     assetId: v.id("assetAllocations"),
     condition: v.optional(v.union(v.literal("new"), v.literal("good"), v.literal("fair"), v.literal("damaged"))),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withPlatform("update", "assets", "asset", () => ({}), async (ctx, args, userId) => {
     if (!userId) throw new Error("Not authenticated");
 
     const asset = await ctx.db.get(args.assetId);
@@ -722,9 +692,8 @@ export const returnAsset = mutation({
       updatedAt: Date.now(),
     });
 
-    await recordEvents(ctx, eventConfig("assets", "asset", "return"), args.assetId, userId, `Asset returned`);
     return args.assetId;
-  },
+  }),
 });
 
 // ═════════════════════════════════════════════════════════════════════
@@ -733,6 +702,7 @@ export const returnAsset = mutation({
 
 export const createPaymentRequest = mutation({
   args: {
+    token: v.optional(v.string()),
     poId: v.optional(v.id("purchaseOrders")),
     vendorBillId: v.optional(v.id("vendorBills")),
     vendorId: v.id("vendorMaster"),
@@ -747,8 +717,10 @@ export const createPaymentRequest = mutation({
     )),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withPlatform("create", "procurement", "payment_request", (a) => ({
+    branchId: a.branchId,
+    departmentId: a.departmentId,
+  }), async (ctx, args, userId) => {
     if (!userId) throw new Error("Not authenticated");
 
     const allRequests = await ctx.db.query("paymentRequests").collect();
@@ -771,15 +743,13 @@ export const createPaymentRequest = mutation({
       updatedAt: Date.now(),
     });
 
-    await recordEvents(ctx, eventConfig("procurement", "payment_request", "create"), id, userId, `Payment request ${requestNumber} for $${args.amount.toFixed(2)}`);
     return { id, requestNumber };
-  },
+  }),
 });
 
 export const submitPaymentRequest = mutation({
-  args: { id: v.id("paymentRequests") },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  args: { token: v.optional(v.string()), id: v.id("paymentRequests") },
+  handler: withPlatform("update", "procurement", "payment_request", () => ({}), async (ctx, args, userId) => {
     if (!userId) throw new Error("Not authenticated");
 
     const pr = await ctx.db.get(args.id);
@@ -787,13 +757,13 @@ export const submitPaymentRequest = mutation({
     if (pr.status !== "draft") throw new Error("Only draft payment requests can be submitted");
 
     await ctx.db.patch(args.id, { status: "pending_approval", updatedAt: Date.now() });
-    await recordEvents(ctx, eventConfig("procurement", "payment_request", "submit"), args.id, userId, `Payment request submitted for approval`);
     return args.id;
-  },
+  }),
 });
 
 export const approvePaymentRequest = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("paymentRequests"),
     approve: v.boolean(),
     paymentMode: v.optional(v.union(
@@ -802,8 +772,7 @@ export const approvePaymentRequest = mutation({
       v.literal("card"), v.literal("online"),
     )),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withPlatform("approve", "procurement", "payment_request", () => ({}), async (ctx, args, userId) => {
     if (!userId) throw new Error("Not authenticated");
 
     const pr = await ctx.db.get(args.id);
@@ -819,15 +788,13 @@ export const approvePaymentRequest = mutation({
       updatedAt: Date.now(),
     });
 
-    await recordEvents(ctx, eventConfig("procurement", "payment_request", args.approve ? "approve" : "reject"), args.id, userId, `Payment request ${newStatus}`);
     return args.id;
-  },
+  }),
 });
 
 export const markPaymentPaid = mutation({
-  args: { id: v.id("paymentRequests") },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  args: { token: v.optional(v.string()), id: v.id("paymentRequests") },
+  handler: withPlatform("update", "procurement", "payment_request", () => ({}), async (ctx, args, userId) => {
     if (!userId) throw new Error("Not authenticated");
 
     const pr = await ctx.db.get(args.id);
@@ -835,9 +802,8 @@ export const markPaymentPaid = mutation({
     if (pr.status !== "approved") throw new Error("Only approved payment requests can be marked paid");
 
     await ctx.db.patch(args.id, { status: "paid", paidAt: Date.now(), updatedAt: Date.now() });
-    await recordEvents(ctx, eventConfig("procurement", "payment_request", "pay"), args.id, userId, `Payment completed`);
     return args.id;
-  },
+  }),
 });
 
 // ═════════════════════════════════════════════════════════════════════
@@ -883,6 +849,7 @@ export const getProcurementDashboard = query({
 
 export const createVendorBill = mutation({
   args: {
+    token: v.optional(v.string()),
     poId: v.optional(v.id("purchaseOrders")),
     vendorId: v.id("vendorMaster"),
     billNumber: v.string(),
@@ -894,8 +861,7 @@ export const createVendorBill = mutation({
     description: v.optional(v.string()),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withPlatform("create", "procurement", "vendor_bill", () => ({}), async (ctx, args, userId) => {
     if (!userId) throw new Error("Not authenticated");
 
     const vendor = await ctx.db.get(args.vendorId);
@@ -913,7 +879,6 @@ export const createVendorBill = mutation({
       updatedAt: Date.now(),
     });
 
-    await recordEvents(ctx, eventConfig("procurement", "vendor_bill", "create"), id, userId, `Vendor bill ${args.billNumber} for $${args.totalAmount.toFixed(2)}`);
     return id;
-  },
+  }),
 });

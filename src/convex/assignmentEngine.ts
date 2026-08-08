@@ -1,7 +1,52 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { logActivity, createNotification } from "./crmHelpers";
+import { withScopeAndEvents, type ScopeAndEventsConfig } from "./withScopeAndEvents";
+
+// ─── Enterprise Handler Factory ───────────────────────────────────────
+// Wraps ctx-based auth extraction for withScopeAndEvents integration.
+// When a session token is supplied the withScopeAndEvents wrapper resolves
+// the REAL performer from the sessions table; getAuthUserId (Convex auth
+// headers) only applies to legacy flows. The declared `assignedBy` remains
+// the recorded actor, while authorization uses the verified performer.
+
+function withAssignment<P = any, R = any>(
+  operation: ScopeAndEventsConfig<P, R>["operation"],
+  entity: string,
+  getScope: (args: P) => { companyId?: string; branchId?: string; departmentId?: string },
+  handler: (ctx: any, args: P, userId: Id<"users">) => Promise<R>,
+) {
+  return async (ctx: any, args: P) => {
+    const raw = args as any;
+    const hasToken = typeof raw?.token === "string" && raw.token.length > 0;
+    let userId: Id<"users"> | undefined;
+    if (!hasToken) {
+      userId = (await getAuthUserId(ctx)) as Id<"users"> | undefined;
+    }
+
+    const scope = getScope(args);
+    const wrappedHandler = withScopeAndEvents<P, R>(
+      {
+        operation,
+        module: "crm",
+        entity,
+        getEntityCompanyId: () => scope.companyId,
+        getEntityBranchId: () => scope.branchId,
+        getEntityDepartmentId: () => scope.departmentId,
+        getUserId: () => userId as Id<"users">,
+        notifyViaMatrix: true,
+        triggerWorkflow: true,
+        triggerAutomation: true,
+        registerSearch: true,
+        signalDashboard: true,
+      },
+      (ctx2, args2) => handler(ctx2, args2, userId as Id<"users">),
+    );
+    return wrappedHandler(ctx, args);
+  };
+}
 
 /* ────────────
    INTERNAL HELPERS
@@ -86,18 +131,19 @@ async function recordAssignment(
 
 export const assignLead = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     toUserId: v.id("users"),
     assignedBy: v.id("users"),
     note: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withAssignment("update", "lead_assignment", () => ({}), async (ctx, args) => {
     const lead = await ctx.db.get(args.leadId);
     if (!lead) throw new Error("Lead not found");
 
     const fromUserId = lead.ownerId || undefined;
     return recordAssignment(ctx, args.leadId, fromUserId, args.toUserId, args.assignedBy, "manual", args.note);
-  },
+  }),
 });
 
 /* ────────────
@@ -106,18 +152,19 @@ export const assignLead = mutation({
 
 export const reassignLead = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     toUserId: v.id("users"),
     assignedBy: v.id("users"),
     reason: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: withAssignment("update", "lead_assignment", () => ({}), async (ctx, args) => {
     const lead = await ctx.db.get(args.leadId);
     if (!lead) throw new Error("Lead not found");
     if (lead.ownerId === args.toUserId) throw new Error("Lead is already assigned to this user");
 
     return recordAssignment(ctx, args.leadId, lead.ownerId || undefined, args.toUserId, args.assignedBy, "reassign", args.reason);
-  },
+  }),
 });
 
 /* ────────────
@@ -126,45 +173,48 @@ export const reassignLead = mutation({
 
 export const roundRobinAssign = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     assignedBy: v.id("users"),
     teamId: v.optional(v.id("teams")),
     branchId: v.optional(v.id("branches")),
   },
-  handler: async (ctx, args) => {
+  handler: withAssignment("update", "lead_assignment", (a) => ({
+    branchId: a.branchId,
+  }), async (ctx, args) => {
     const lead = await ctx.db.get(args.leadId);
     if (!lead) throw new Error("Lead not found");
 
     // Find users in scope (team or branch or all active counselors)
-    let candidateUsers = await ctx.db.query("users").filter((q) =>
+    let candidateUsers = await ctx.db.query("users").filter((q: any) =>
       q.and(q.neq(q.field("role"), undefined), q.neq(q.field("isDisabled"), true))
     ).collect();
 
     // Filter by team
     if (args.teamId) {
-      candidateUsers = candidateUsers.filter((u) => u.teamIds?.includes(args.teamId!));
+      candidateUsers = candidateUsers.filter((u: any) => u.teamIds?.includes(args.teamId!));
     }
 
     // Filter by branch
     if (args.branchId) {
-      candidateUsers = candidateUsers.filter((u) => u.branchId === args.branchId);
+      candidateUsers = candidateUsers.filter((u: any) => u.branchId === args.branchId);
     }
 
     if (candidateUsers.length === 0) throw new Error("No eligible users found for assignment");
 
     // Calculate workload (active lead count per user)
     const allLeads = await ctx.db.query("leadMaster").collect();
-    const workload = candidateUsers.map((u) => ({
+    const workload = candidateUsers.map((u: any) => ({
       userId: u._id,
-      count: allLeads.filter((l) => l.ownerId === u._id && l.status === "active").length,
+      count: allLeads.filter((l: any) => l.ownerId === u._id && l.status === "active").length,
     }));
 
     // Sort by workload ascending (least loaded first)
-    workload.sort((a, b) => a.count - b.count);
+    workload.sort((a: any, b: any) => a.count - b.count);
     const toUserId = workload[0].userId;
 
     return recordAssignment(ctx, args.leadId, lead.ownerId || undefined, toUserId, args.assignedBy, "round_robin");
-  },
+  }),
 });
 
 /* ────────────
@@ -173,22 +223,23 @@ export const roundRobinAssign = mutation({
 
 export const skillBasedAssign = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     assignedBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withAssignment("update", "lead_assignment", () => ({}), async (ctx, args) => {
     const lead = await ctx.db.get(args.leadId);
     if (!lead) throw new Error("Lead not found");
 
     // Find assignment rules matching lead properties
     const rules = await ctx.db
       .query("assignmentRules")
-      .withIndex("isActive", (q) => q.eq("isActive", true))
+      .withIndex("isActive", (q: any) => q.eq("isActive", true))
       .collect();
 
     let matchedUser: Id<"users"> | null = null;
 
-    for (const rule of rules.sort((a, b) => a.priority - b.priority)) {
+    for (const rule of rules.sort((a: any, b: any) => a.priority - b.priority)) {
       const conditions = JSON.parse(rule.conditions || "{}");
 
       // Check each condition against lead
@@ -211,7 +262,7 @@ export const skillBasedAssign = mutation({
         break;
       } else if (rule.assignmentType === "branch_based" && lead.branchInterestId) {
         // Find user in same branch
-        const branchUsers = await ctx.db.query("users").filter((q) =>
+        const branchUsers = await ctx.db.query("users").filter((q: any) =>
           q.and(
             q.eq(q.field("branchId"), lead.branchInterestId!),
             q.neq(q.field("isDisabled"), true),
@@ -223,7 +274,7 @@ export const skillBasedAssign = mutation({
         }
       } else if (rule.assignmentType === "vertical_based" && lead.verticalId) {
         // Find user with matching vertical (via userScopes)
-        const scopeUsers = await ctx.db.query("users").filter((q) =>
+        const scopeUsers = await ctx.db.query("users").filter((q: any) =>
           q.and(
             q.neq(q.field("role"), undefined),
             q.neq(q.field("isDisabled"), true),
@@ -238,22 +289,22 @@ export const skillBasedAssign = mutation({
 
     if (!matchedUser) {
       // Fallback to round robin
-      const allUsers = await ctx.db.query("users").filter((q) =>
+      const allUsers = await ctx.db.query("users").filter((q: any) =>
         q.and(q.neq(q.field("role"), undefined), q.neq(q.field("isDisabled"), true))
       ).collect();
       if (allUsers.length === 0) throw new Error("No eligible users found");
 
       const allLeads = await ctx.db.query("leadMaster").collect();
-      const workload = allUsers.map((u) => ({
+      const workload = allUsers.map((u: any) => ({
         userId: u._id,
-        count: allLeads.filter((l) => l.ownerId === u._id && l.status === "active").length,
+        count: allLeads.filter((l: any) => l.ownerId === u._id && l.status === "active").length,
       }));
-      workload.sort((a, b) => a.count - b.count);
+      workload.sort((a: any, b: any) => a.count - b.count);
       matchedUser = workload[0].userId;
     }
 
     return recordAssignment(ctx, args.leadId, lead.ownerId || undefined, matchedUser!, args.assignedBy, "skill_based");
-  },
+  }),
 });
 
 /* ────────────
@@ -262,18 +313,21 @@ export const skillBasedAssign = mutation({
 
 export const branchBasedAssign = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     assignedBy: v.id("users"),
     branchId: v.optional(v.id("branches")),
   },
-  handler: async (ctx, args) => {
+  handler: withAssignment("update", "lead_assignment", (a) => ({
+    branchId: a.branchId,
+  }), async (ctx, args) => {
     const lead = await ctx.db.get(args.leadId);
     if (!lead) throw new Error("Lead not found");
 
     const targetBranch = args.branchId || lead.branchInterestId;
     if (!targetBranch) throw new Error("No branch specified and lead has no branch interest");
 
-    const branchUsers = await ctx.db.query("users").filter((q) =>
+    const branchUsers = await ctx.db.query("users").filter((q: any) =>
       q.and(
         q.eq(q.field("branchId"), targetBranch),
         q.neq(q.field("isDisabled"), true),
@@ -283,14 +337,14 @@ export const branchBasedAssign = mutation({
     if (branchUsers.length === 0) throw new Error(`No active users found in branch ${targetBranch}`);
 
     const allLeads = await ctx.db.query("leadMaster").collect();
-    const workload = branchUsers.map((u) => ({
+    const workload = branchUsers.map((u: any) => ({
       userId: u._id,
-      count: allLeads.filter((l) => l.ownerId === u._id && l.status === "active").length,
+      count: allLeads.filter((l: any) => l.ownerId === u._id && l.status === "active").length,
     }));
-    workload.sort((a, b) => a.count - b.count);
+    workload.sort((a: any, b: any) => a.count - b.count);
 
     return recordAssignment(ctx, args.leadId, lead.ownerId || undefined, workload[0].userId, args.assignedBy, "branch_based");
-  },
+  }),
 });
 
 /* ────────────
@@ -299,11 +353,12 @@ export const branchBasedAssign = mutation({
 
 export const verticalBasedAssign = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     assignedBy: v.id("users"),
     verticalId: v.optional(v.id("verticals")),
   },
-  handler: async (ctx, args) => {
+  handler: withAssignment("update", "lead_assignment", () => ({}), async (ctx, args) => {
     const lead = await ctx.db.get(args.leadId);
     if (!lead) throw new Error("Lead not found");
 
@@ -311,7 +366,7 @@ export const verticalBasedAssign = mutation({
     if (!targetVertical) throw new Error("No vertical specified and lead has no vertical");
 
     // Find users whose scopes include this vertical
-    const allUsers = await ctx.db.query("users").filter((q) =>
+    const allUsers = await ctx.db.query("users").filter((q: any) =>
       q.and(
         q.neq(q.field("role"), undefined),
         q.neq(q.field("isDisabled"), true),
@@ -322,14 +377,14 @@ export const verticalBasedAssign = mutation({
     if (allUsers.length === 0) throw new Error(`No users found for vertical ${targetVertical}`);
 
     const allLeads = await ctx.db.query("leadMaster").collect();
-    const workload = allUsers.map((u) => ({
+    const workload = allUsers.map((u: any) => ({
       userId: u._id,
-      count: allLeads.filter((l) => l.ownerId === u._id && l.status === "active").length,
+      count: allLeads.filter((l: any) => l.ownerId === u._id && l.status === "active").length,
     }));
-    workload.sort((a, b) => a.count - b.count);
+    workload.sort((a: any, b: any) => a.count - b.count);
 
     return recordAssignment(ctx, args.leadId, lead.ownerId || undefined, workload[0].userId, args.assignedBy, "vertical_based");
-  },
+  }),
 });
 
 /* ────────────
@@ -338,10 +393,11 @@ export const verticalBasedAssign = mutation({
 
 export const managerAssign = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     assignedBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withAssignment("update", "lead_assignment", () => ({}), async (ctx, args) => {
     const lead = await ctx.db.get(args.leadId);
     if (!lead) throw new Error("Lead not found");
 
@@ -351,7 +407,7 @@ export const managerAssign = mutation({
     if (!currentOwner?.reportingManagerId) throw new Error("Current owner has no reporting manager");
 
     return recordAssignment(ctx, args.leadId, lead.ownerId || undefined, currentOwner.reportingManagerId, args.assignedBy, "manager");
-  },
+  }),
 });
 
 /* ────────────
@@ -361,22 +417,23 @@ export const managerAssign = mutation({
 
 export const autoAssignLead = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     assignedBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withAssignment("update", "lead_assignment", () => ({}), async (ctx, args) => {
     const lead = await ctx.db.get(args.leadId);
     if (!lead) throw new Error("Lead not found");
 
     const rules = await ctx.db
       .query("assignmentRules")
-      .withIndex("isActive", (q) => q.eq("isActive", true))
+      .withIndex("isActive", (q: any) => q.eq("isActive", true))
       .order("asc")
       .collect();
 
     if (rules.length === 0) {
       // No rules configured — assign to createdBy or first available user
-      const users = await ctx.db.query("users").filter((q) =>
+      const users = await ctx.db.query("users").filter((q: any) =>
         q.and(q.neq(q.field("role"), undefined), q.neq(q.field("isDisabled"), true))
       ).collect();
       if (users.length > 0) {
@@ -415,16 +472,16 @@ export const autoAssignLead = mutation({
         case "round_robin":
           // Inline round robin
           {
-            const rrUsers = await ctx.db.query("users").filter((q) =>
+            const rrUsers = await ctx.db.query("users").filter((q: any) =>
               q.and(q.neq(q.field("role"), undefined), q.neq(q.field("isDisabled"), true))
             ).collect();
             if (rrUsers.length > 0 && lead.ownerId !== rrUsers[0]._id) {
               const rrLeads = await ctx.db.query("leadMaster").collect();
-              const rrWorkload = rrUsers.map((u) => ({
+              const rrWorkload = rrUsers.map((u: any) => ({
                 id: u._id,
-                count: rrLeads.filter((l) => l.ownerId === u._id && l.status === "active").length,
+                count: rrLeads.filter((l: any) => l.ownerId === u._id && l.status === "active").length,
               }));
-              rrWorkload.sort((a, b) => a.count - b.count);
+              rrWorkload.sort((a: any, b: any) => a.count - b.count);
               return recordAssignment(ctx, args.leadId, lead.ownerId || undefined, rrWorkload[0].id, args.assignedBy || lead.createdBy, "auto_assign_rule", rule.name);
             }
           }
@@ -432,16 +489,16 @@ export const autoAssignLead = mutation({
         case "branch_based":
           // Inline branch based
           if (lead.branchInterestId) {
-            const bbUsers = await ctx.db.query("users").filter((q) =>
+            const bbUsers = await ctx.db.query("users").filter((q: any) =>
               q.and(q.eq(q.field("branchId"), lead.branchInterestId!), q.neq(q.field("isDisabled"), true))
             ).collect();
             if (bbUsers.length > 0) {
               const bbLeads = await ctx.db.query("leadMaster").collect();
-              const bbWorkload = bbUsers.map((u) => ({
+              const bbWorkload = bbUsers.map((u: any) => ({
                 id: u._id,
-                count: bbLeads.filter((l) => l.ownerId === u._id && l.status === "active").length,
+                count: bbLeads.filter((l: any) => l.ownerId === u._id && l.status === "active").length,
               }));
-              bbWorkload.sort((a, b) => a.count - b.count);
+              bbWorkload.sort((a: any, b: any) => a.count - b.count);
               return recordAssignment(ctx, args.leadId, lead.ownerId || undefined, bbWorkload[0].id, args.assignedBy || lead.createdBy, "auto_assign_rule", rule.name);
             }
           }
@@ -449,16 +506,16 @@ export const autoAssignLead = mutation({
         case "vertical_based":
           // Inline vertical based
           if (lead.verticalId) {
-            const vUsers = await ctx.db.query("users").filter((q) =>
+            const vUsers = await ctx.db.query("users").filter((q: any) =>
               q.and(q.eq(q.field("verticalId"), lead.verticalId!), q.neq(q.field("isDisabled"), true))
             ).collect();
             if (vUsers.length > 0) {
               const vLeads = await ctx.db.query("leadMaster").collect();
-              const vWorkload = vUsers.map((u) => ({
+              const vWorkload = vUsers.map((u: any) => ({
                 id: u._id,
-                count: vLeads.filter((l) => l.ownerId === u._id && l.status === "active").length,
+                count: vLeads.filter((l: any) => l.ownerId === u._id && l.status === "active").length,
               }));
-              vWorkload.sort((a, b) => a.count - b.count);
+              vWorkload.sort((a: any, b: any) => a.count - b.count);
               return recordAssignment(ctx, args.leadId, lead.ownerId || undefined, vWorkload[0].id, args.assignedBy || lead.createdBy, "auto_assign_rule", rule.name);
             }
           }
@@ -478,20 +535,20 @@ export const autoAssignLead = mutation({
     }
 
     // No rule matched — inlined round robin fallback
-    const fallbackUsers = await ctx.db.query("users").filter((q) =>
+    const fallbackUsers = await ctx.db.query("users").filter((q: any) =>
       q.and(q.neq(q.field("role"), undefined), q.neq(q.field("isDisabled"), true))
     ).collect();
     if (fallbackUsers.length > 0) {
       const fbAllLeads = await ctx.db.query("leadMaster").collect();
-      const fbWorkload = fallbackUsers.map((u) => ({
+      const fbWorkload = fallbackUsers.map((u: any) => ({
         userId: u._id as Id<"users">,
-        count: fbAllLeads.filter((l) => l.ownerId === u._id && l.status === "active").length,
+        count: fbAllLeads.filter((l: any) => l.ownerId === u._id && l.status === "active").length,
       }));
-      fbWorkload.sort((a, b) => a.count - b.count);
+      fbWorkload.sort((a: any, b: any) => a.count - b.count);
       return recordAssignment(ctx, args.leadId, lead.ownerId || undefined, fbWorkload[0].userId, args.assignedBy || lead.createdBy, "auto_assign_round_robin");
     }
     return { assignedTo: null };
-  },
+  }),
 });
 
 /* ────────────
@@ -500,26 +557,27 @@ export const autoAssignLead = mutation({
 
 export const calculateWorkload = mutation({
   args: {
+    token: v.optional(v.string()),
     userId: v.optional(v.id("users")),
     calculatedBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withAssignment("create", "workload", () => ({}), async (ctx, args) => {
     const now = Date.now();
 
     if (args.userId) {
       // Calculate workload for specific user
       const allLeads = await ctx.db.query("leadMaster").collect();
-      const userLeads = allLeads.filter((l) => l.ownerId === args.userId);
-      const activeLeads = userLeads.filter((l) => l.status === "active");
+      const userLeads = allLeads.filter((l: any) => l.ownerId === args.userId);
+      const activeLeads = userLeads.filter((l: any) => l.status === "active");
 
-      const userTasks = await ctx.db.query("leadTasks").filter((q) =>
+      const userTasks = await ctx.db.query("leadTasks").filter((q: any) =>
         q.and(
           q.eq(q.field("ownerId"), args.userId!),
           q.neq(q.field("status"), "completed"),
         )
       ).collect();
 
-      const overdueCount = userTasks.filter((t) => t.dueDate && t.dueDate < now).length;
+      const overdueCount = userTasks.filter((t: any) => t.dueDate && t.dueDate < now).length;
 
       await ctx.db.insert("counselorWorkloads", {
         userId: args.userId,
@@ -537,7 +595,7 @@ export const calculateWorkload = mutation({
 
     // Calculate for all counselors
     const allLeads = await ctx.db.query("leadMaster").collect();
-    const activeUsers = await ctx.db.query("users").filter((q) =>
+    const activeUsers = await ctx.db.query("users").filter((q: any) =>
       q.and(q.neq(q.field("role"), undefined), q.neq(q.field("isDisabled"), true))
     ).collect();
 
@@ -545,17 +603,17 @@ export const calculateWorkload = mutation({
     const results: any[] = [];
 
     for (const user of activeUsers) {
-      const userLeads = allLeads.filter((l) => l.ownerId === user._id);
-      const activeLeads = userLeads.filter((l) => l.status === "active");
+      const userLeads = allLeads.filter((l: any) => l.ownerId === user._id);
+      const activeLeads = userLeads.filter((l: any) => l.status === "active");
 
-      const userTasks = await ctx.db.query("leadTasks").filter((q) =>
+      const userTasks = await ctx.db.query("leadTasks").filter((q: any) =>
         q.and(
           q.eq(q.field("ownerId"), user._id),
           q.neq(q.field("status"), "completed"),
         )
       ).collect();
 
-      const overdueCount = userTasks.filter((t) => t.dueDate && t.dueDate < now).length;
+      const overdueCount = userTasks.filter((t: any) => t.dueDate && t.dueDate < now).length;
 
       await ctx.db.insert("counselorWorkloads", {
         userId: user._id,
@@ -572,7 +630,7 @@ export const calculateWorkload = mutation({
     }
 
     return results;
-  },
+  }),
 });
 
 /* ────────────
@@ -592,6 +650,7 @@ export const listAssignmentRules = query({
 
 export const createAssignmentRule = mutation({
   args: {
+    token: v.optional(v.string()),
     name: v.string(),
     description: v.optional(v.string()),
     conditions: v.string(),
@@ -607,9 +666,9 @@ export const createAssignmentRule = mutation({
     scopeId: v.optional(v.string()),
     createdBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withAssignment("create", "assignment_rule", () => ({}), async (ctx, args) => {
     const existing = await ctx.db.query("assignmentRules").collect();
-    const maxPriority = existing.reduce((m, r) => Math.max(m, r.priority), 0);
+    const maxPriority = existing.reduce((m: number, r: any) => Math.max(m, r.priority), 0);
 
     return ctx.db.insert("assignmentRules", {
       ...args,
@@ -618,11 +677,12 @@ export const createAssignmentRule = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const updateAssignmentRule = mutation({
   args: {
+    token: v.optional(v.string()),
     ruleId: v.id("assignmentRules"),
     name: v.optional(v.string()),
     description: v.optional(v.string()),
@@ -638,21 +698,21 @@ export const updateAssignmentRule = mutation({
     isActive: v.optional(v.boolean()),
     priority: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: withAssignment("update", "assignment_rule", () => ({}), async (ctx, args) => {
     const { ruleId, ...fields } = args;
     const existing = await ctx.db.get(ruleId);
     if (!existing) throw new Error("Assignment rule not found");
     return ctx.db.patch(ruleId, { ...fields, updatedAt: Date.now() });
-  },
+  }),
 });
 
 export const deleteAssignmentRule = mutation({
-  args: { ruleId: v.id("assignmentRules") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), ruleId: v.id("assignmentRules") },
+  handler: withAssignment("delete", "assignment_rule", () => ({}), async (ctx, args) => {
     const existing = await ctx.db.get(args.ruleId);
     if (!existing) throw new Error("Assignment rule not found");
     await ctx.db.delete(args.ruleId);
-  },
+  }),
 });
 
 /* ────────────
