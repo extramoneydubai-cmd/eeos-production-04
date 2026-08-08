@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 export const DELIVERY_MODES = [
   "Offline",
@@ -53,7 +54,7 @@ export const getAcademicBatchType = query({
 });
 
 export const createAcademicBatchType = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     deliveryMode: v.string(),
@@ -63,9 +64,9 @@ export const createAcademicBatchType = mutation({
     icon: v.string(),
     isActive: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "academicBatchTypes" }, async (ctx, args) => {
     const allItems = await ctx.db.query("academicBatchTypes").collect();
-    const maxSeq = allItems.reduce((max, b) => Math.max(max, b.displayOrder), 0);
+    const maxSeq = allItems.reduce((max: any, b: any) => Math.max(max, b.displayOrder), 0);
     const now = Date.now();
     return await ctx.db.insert("academicBatchTypes", {
       name: args.name,
@@ -80,11 +81,11 @@ export const createAcademicBatchType = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateAcademicBatchType = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     batchTypeId: v.id("academicBatchTypes"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -95,30 +96,30 @@ export const updateAcademicBatchType = mutation({
     icon: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { batchTypeId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "academicBatchTypes" }, async (ctx, args) => {
+    const { token: _token, batchTypeId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
     await ctx.db.patch(batchTypeId, updates);
-  },
+  }),
 });
 
 export const deleteAcademicBatchType = mutation({
-  args: { batchTypeId: v.id("academicBatchTypes") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), batchTypeId: v.id("academicBatchTypes") },
+  handler: withScopeAndEvents({ operation: "delete", module: "academic", entity: "academicBatchTypes" }, async (ctx, args) => {
     await ctx.db.delete(args.batchTypeId);
-  },
+  }),
 });
 
 export const duplicateAcademicBatchType = mutation({
-  args: { batchTypeId: v.id("academicBatchTypes") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), batchTypeId: v.id("academicBatchTypes") },
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "academicBatchTypes" }, async (ctx, args) => {
     const original = await ctx.db.get(args.batchTypeId);
     if (!original) throw new Error("Academic batch type not found");
     const allItems = await ctx.db.query("academicBatchTypes").collect();
-    const maxSeq = allItems.reduce((max, b) => Math.max(max, b.displayOrder), 0);
+    const maxSeq = allItems.reduce((max: any, b: any) => Math.max(max, b.displayOrder), 0);
     const now = Date.now();
     await ctx.db.insert("academicBatchTypes", {
       name: `${original.name} (Copy)`,
@@ -133,24 +134,24 @@ export const duplicateAcademicBatchType = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const reorderAcademicBatchTypes = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     batchTypeIds: v.array(v.id("academicBatchTypes")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "academicBatchTypes" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.batchTypeIds.length; i++) {
       await ctx.db.patch(args.batchTypeIds[i], { displayOrder: i + 1, updatedAt: now });
     }
-  },
+  }),
 });
 
 export const seedDefaultAcademicBatchTypes = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "academicBatchTypes" }, async (ctx) => {
     const existing = await ctx.db.query("academicBatchTypes").collect();
     if (existing.length > 0) return { seeded: 0, message: "Academic batch types already exist" };
 
@@ -172,5 +173,5 @@ export const seedDefaultAcademicBatchTypes = mutation({
       });
     }
     return { seeded: SEED_DATA.length, message: "Default academic batch types created" };
-  },
+  }),
 });

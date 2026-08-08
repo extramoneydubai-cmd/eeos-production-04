@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 const DEFAULT_STAGES = [
   { name: "New", color: "#9aa0a6", icon: "CircleDot", probability: 10, description: "New lead created", sequence: 1 },
@@ -29,7 +30,7 @@ export const getStage = query({
 });
 
 export const createStage = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     color: v.string(),
     icon: v.string(),
@@ -37,9 +38,9 @@ export const createStage = mutation({
     description: v.optional(v.string()),
     active: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmStages" }, async (ctx, args) => {
     const allStages = await ctx.db.query("crmStages").collect();
-    const maxSeq = allStages.reduce((max, s) => Math.max(max, s.sequence), 0);
+    const maxSeq = allStages.reduce((max: any, s: any) => Math.max(max, s.sequence), 0);
     const now = Date.now();
     return await ctx.db.insert("crmStages", {
       name: args.name,
@@ -52,11 +53,11 @@ export const createStage = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateStage = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     stageId: v.id("crmStages"),
     name: v.optional(v.string()),
     color: v.optional(v.string()),
@@ -65,30 +66,30 @@ export const updateStage = mutation({
     description: v.optional(v.string()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { stageId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmStages" }, async (ctx, args) => {
+    const { token: _token, stageId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
     await ctx.db.patch(stageId, updates);
-  },
+  }),
 });
 
 export const deleteStage = mutation({
-  args: { stageId: v.id("crmStages") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), stageId: v.id("crmStages") },
+  handler: withScopeAndEvents({ operation: "delete", module: "crm", entity: "crmStages" }, async (ctx, args) => {
     await ctx.db.delete(args.stageId);
-  },
+  }),
 });
 
 export const duplicateStage = mutation({
-  args: { stageId: v.id("crmStages") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), stageId: v.id("crmStages") },
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmStages" }, async (ctx, args) => {
     const original = await ctx.db.get(args.stageId);
     if (!original) throw new Error("Stage not found");
     const allStages = await ctx.db.query("crmStages").collect();
-    const maxSeq = allStages.reduce((max, s) => Math.max(max, s.sequence), 0);
+    const maxSeq = allStages.reduce((max: any, s: any) => Math.max(max, s.sequence), 0);
     const now = Date.now();
     await ctx.db.insert("crmStages", {
       name: `${original.name} (Copy)`,
@@ -101,24 +102,24 @@ export const duplicateStage = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const reorderStages = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     stageIds: v.array(v.id("crmStages")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmStages" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.stageIds.length; i++) {
       await ctx.db.patch(args.stageIds[i], { sequence: i + 1, updatedAt: now });
     }
-  },
+  }),
 });
 
 export const seedDefaultStages = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmStages" }, async (ctx) => {
     const existing = await ctx.db.query("crmStages").collect();
     if (existing.length > 0) return { seeded: 0, message: "Stages already exist" };
 
@@ -132,5 +133,5 @@ export const seedDefaultStages = mutation({
       });
     }
     return { seeded: DEFAULT_STAGES.length, message: "Default stages created" };
-  },
+  }),
 });

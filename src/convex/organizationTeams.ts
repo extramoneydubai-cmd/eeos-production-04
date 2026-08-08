@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 const DEFAULT_TEAMS = [
   { name: "Admissions Team A", code: "ADM_A", color: "#4285f4", icon: "Users", description: "Primary admissions processing team", sequence: 1 },
@@ -38,7 +39,7 @@ export const getTeam = query({
 });
 
 export const createTeam = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     color: v.string(),
@@ -46,9 +47,9 @@ export const createTeam = mutation({
     description: v.optional(v.string()),
     active: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "organization", entity: "organizationTeams" }, async (ctx, args) => {
     const allItems = await ctx.db.query("orgTeams").collect();
-    const maxSeq = allItems.reduce((max, t) => Math.max(max, t.sequence), 0);
+    const maxSeq = allItems.reduce((max: any, t: any) => Math.max(max, t.sequence), 0);
     const now = Date.now();
     return await ctx.db.insert("orgTeams", {
       name: args.name,
@@ -61,11 +62,11 @@ export const createTeam = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateTeam = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     teamId: v.id("orgTeams"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -74,30 +75,30 @@ export const updateTeam = mutation({
     description: v.optional(v.string()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { teamId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "organization", entity: "organizationTeams" }, async (ctx, args) => {
+    const { token: _token, teamId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
     await ctx.db.patch(teamId, updates);
-  },
+  }),
 });
 
 export const deleteTeam = mutation({
-  args: { teamId: v.id("orgTeams") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), teamId: v.id("orgTeams") },
+  handler: withScopeAndEvents({ operation: "delete", module: "organization", entity: "organizationTeams" }, async (ctx, args) => {
     await ctx.db.delete(args.teamId);
-  },
+  }),
 });
 
 export const duplicateTeam = mutation({
-  args: { teamId: v.id("orgTeams") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), teamId: v.id("orgTeams") },
+  handler: withScopeAndEvents({ operation: "create", module: "organization", entity: "organizationTeams" }, async (ctx, args) => {
     const original = await ctx.db.get(args.teamId);
     if (!original) throw new Error("Team not found");
     const allItems = await ctx.db.query("orgTeams").collect();
-    const maxSeq = allItems.reduce((max, t) => Math.max(max, t.sequence), 0);
+    const maxSeq = allItems.reduce((max: any, t: any) => Math.max(max, t.sequence), 0);
     const now = Date.now();
     await ctx.db.insert("orgTeams", {
       name: `${original.name} (Copy)`,
@@ -110,24 +111,24 @@ export const duplicateTeam = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const reorderTeams = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     teamIds: v.array(v.id("orgTeams")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "organization", entity: "organizationTeams" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.teamIds.length; i++) {
       await ctx.db.patch(args.teamIds[i], { sequence: i + 1, updatedAt: now });
     }
-  },
+  }),
 });
 
 export const seedDefaultTeams = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "organization", entity: "organizationTeams" }, async (ctx) => {
     const existing = await ctx.db.query("orgTeams").collect();
     if (existing.length > 0) return { seeded: 0, message: "Teams already exist" };
 
@@ -141,5 +142,5 @@ export const seedDefaultTeams = mutation({
       });
     }
     return { seeded: DEFAULT_TEAMS.length, message: "Default teams created" };
-  },
+  }),
 });

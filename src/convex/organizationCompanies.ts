@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 const DEFAULT_COMPANIES = [
   {
@@ -74,7 +75,7 @@ export const getCompany = query({
 });
 
 export const createCompany = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     color: v.string(),
@@ -93,9 +94,9 @@ export const createCompany = mutation({
     description: v.optional(v.string()),
     isActive: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "organization", entity: "organizationCompanies" }, async (ctx, args) => {
     const allItems = await ctx.db.query("orgCompanies").collect();
-    const maxSeq = allItems.reduce((max, c) => Math.max(max, c.displayOrder), 0);
+    const maxSeq = allItems.reduce((max: any, c: any) => Math.max(max, c.displayOrder), 0);
     const now = Date.now();
     return await ctx.db.insert("orgCompanies", {
       name: args.name,
@@ -119,11 +120,11 @@ export const createCompany = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateCompany = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     companyId: v.id("orgCompanies"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -143,30 +144,30 @@ export const updateCompany = mutation({
     description: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { companyId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "organization", entity: "organizationCompanies" }, async (ctx, args) => {
+    const { token: _token, companyId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
     await ctx.db.patch(companyId, updates);
-  },
+  }),
 });
 
 export const deleteCompany = mutation({
-  args: { companyId: v.id("orgCompanies") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), companyId: v.id("orgCompanies") },
+  handler: withScopeAndEvents({ operation: "delete", module: "organization", entity: "organizationCompanies" }, async (ctx, args) => {
     await ctx.db.delete(args.companyId);
-  },
+  }),
 });
 
 export const duplicateCompany = mutation({
-  args: { companyId: v.id("orgCompanies") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), companyId: v.id("orgCompanies") },
+  handler: withScopeAndEvents({ operation: "create", module: "organization", entity: "organizationCompanies" }, async (ctx, args) => {
     const original = await ctx.db.get(args.companyId);
     if (!original) throw new Error("Company not found");
     const allItems = await ctx.db.query("orgCompanies").collect();
-    const maxSeq = allItems.reduce((max, c) => Math.max(max, c.displayOrder), 0);
+    const maxSeq = allItems.reduce((max: any, c: any) => Math.max(max, c.displayOrder), 0);
     const now = Date.now();
     await ctx.db.insert("orgCompanies", {
       name: `${original.name} (Copy)`,
@@ -190,24 +191,24 @@ export const duplicateCompany = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const reorderCompanies = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     companyIds: v.array(v.id("orgCompanies")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "organization", entity: "organizationCompanies" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.companyIds.length; i++) {
       await ctx.db.patch(args.companyIds[i], { displayOrder: i + 1, updatedAt: now });
     }
-  },
+  }),
 });
 
 export const seedDefaultCompanies = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "organization", entity: "organizationCompanies" }, async (ctx) => {
     const existing = await ctx.db.query("orgCompanies").collect();
     if (existing.length > 0) return { seeded: 0, message: "Companies already exist" };
 
@@ -226,5 +227,5 @@ export const seedDefaultCompanies = mutation({
       });
     }
     return { seeded: DEFAULT_COMPANIES.length, message: "Default companies created" };
-  },
+  }),
 });

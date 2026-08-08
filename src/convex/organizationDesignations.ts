@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 const DEFAULT_DESIGNATIONS = [
   { name: "CEO", code: "CEO", color: "#1a1a2e", icon: "Crown", description: "Chief Executive Officer — top-level leadership", sequence: 1 },
@@ -41,7 +42,7 @@ export const getDesignation = query({
 });
 
 export const createDesignation = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     color: v.string(),
@@ -49,9 +50,9 @@ export const createDesignation = mutation({
     description: v.optional(v.string()),
     active: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "organization", entity: "organizationDesignations" }, async (ctx, args) => {
     const allItems = await ctx.db.query("orgDesignations").collect();
-    const maxSeq = allItems.reduce((max, d) => Math.max(max, d.sequence), 0);
+    const maxSeq = allItems.reduce((max: any, d: any) => Math.max(max, d.sequence), 0);
     const now = Date.now();
     return await ctx.db.insert("orgDesignations", {
       name: args.name,
@@ -64,11 +65,11 @@ export const createDesignation = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateDesignation = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     designationId: v.id("orgDesignations"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -77,30 +78,30 @@ export const updateDesignation = mutation({
     description: v.optional(v.string()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { designationId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "organization", entity: "organizationDesignations" }, async (ctx, args) => {
+    const { token: _token, designationId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
     await ctx.db.patch(designationId, updates);
-  },
+  }),
 });
 
 export const deleteDesignation = mutation({
-  args: { designationId: v.id("orgDesignations") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), designationId: v.id("orgDesignations") },
+  handler: withScopeAndEvents({ operation: "delete", module: "organization", entity: "organizationDesignations" }, async (ctx, args) => {
     await ctx.db.delete(args.designationId);
-  },
+  }),
 });
 
 export const duplicateDesignation = mutation({
-  args: { designationId: v.id("orgDesignations") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), designationId: v.id("orgDesignations") },
+  handler: withScopeAndEvents({ operation: "create", module: "organization", entity: "organizationDesignations" }, async (ctx, args) => {
     const original = await ctx.db.get(args.designationId);
     if (!original) throw new Error("Designation not found");
     const allItems = await ctx.db.query("orgDesignations").collect();
-    const maxSeq = allItems.reduce((max, d) => Math.max(max, d.sequence), 0);
+    const maxSeq = allItems.reduce((max: any, d: any) => Math.max(max, d.sequence), 0);
     const now = Date.now();
     await ctx.db.insert("orgDesignations", {
       name: `${original.name} (Copy)`,
@@ -113,24 +114,24 @@ export const duplicateDesignation = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const reorderDesignations = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     designationIds: v.array(v.id("orgDesignations")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "organization", entity: "organizationDesignations" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.designationIds.length; i++) {
       await ctx.db.patch(args.designationIds[i], { sequence: i + 1, updatedAt: now });
     }
-  },
+  }),
 });
 
 export const seedDefaultDesignations = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "organization", entity: "organizationDesignations" }, async (ctx) => {
     const existing = await ctx.db.query("orgDesignations").collect();
     if (existing.length > 0) return { seeded: 0, message: "Designations already exist" };
 
@@ -144,5 +145,5 @@ export const seedDefaultDesignations = mutation({
       });
     }
     return { seeded: DEFAULT_DESIGNATIONS.length, message: "Default designations created" };
-  },
+  }),
 });

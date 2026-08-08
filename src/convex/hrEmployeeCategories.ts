@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 /* ────────────
    SEED DATA
@@ -33,8 +34,8 @@ function baseFields(data: (typeof SEED_DATA)[number], sequence: number) {
    ──────────── */
 
 export const seedDefault = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "hr", entity: "hrEmployeeCategories" }, async (ctx) => {
     const existing = await ctx.db
       .query("hrEmployeeCategories")
       .withIndex("sequence")
@@ -46,11 +47,11 @@ export const seedDefault = mutation({
       count++;
     }
     return { seeded: count };
-  },
+  }),
 });
 
 export const create = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     color: v.string(),
@@ -58,12 +59,12 @@ export const create = mutation({
     description: v.optional(v.string()),
     categoryType: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "hr", entity: "hrEmployeeCategories" }, async (ctx, args) => {
     const all = await ctx.db
       .query("hrEmployeeCategories")
       .withIndex("sequence")
       .collect();
-    const maxSeq = all.reduce((m, r) => Math.max(m, r.sequence), -1);
+    const maxSeq = all.reduce((m: any, r: any) => Math.max(m, r.sequence), -1);
     return ctx.db.insert("hrEmployeeCategories", {
       ...args,
       description: args.description ?? "",
@@ -72,11 +73,11 @@ export const create = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const update = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("hrEmployeeCategories"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -85,33 +86,33 @@ export const update = mutation({
     description: v.optional(v.string()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { id, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "hr", entity: "hrEmployeeCategories" }, async (ctx, args) => {
+    const { token: _token, id, ...fields } = args;
     const existing = await ctx.db.get(id);
     if (!existing) throw new Error("EmployeeCategory not found");
     return ctx.db.patch(id, { ...fields, updatedAt: Date.now() });
-  },
+  }),
 });
 
 export const remove = mutation({
-  args: { id: v.id("hrEmployeeCategories") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("hrEmployeeCategories") },
+  handler: withScopeAndEvents({ operation: "delete", module: "hr", entity: "hrEmployeeCategories" }, async (ctx, args) => {
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("EmployeeCategory not found");
     await ctx.db.delete(args.id);
-  },
+  }),
 });
 
 export const duplicate = mutation({
-  args: { id: v.id("hrEmployeeCategories") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("hrEmployeeCategories") },
+  handler: withScopeAndEvents({ operation: "create", module: "hr", entity: "hrEmployeeCategories" }, async (ctx, args) => {
     const source = await ctx.db.get(args.id);
     if (!source) throw new Error("EmployeeCategory not found");
     const all = await ctx.db
       .query("hrEmployeeCategories")
       .withIndex("sequence")
       .collect();
-    const maxSeq = all.reduce((m, r) => Math.max(m, r.sequence), -1);
+    const maxSeq = all.reduce((m: any, r: any) => Math.max(m, r.sequence), -1);
     return ctx.db.insert("hrEmployeeCategories", {
       name: `${source.name} (Copy)`,
       code: `${source.code}_COPY`,
@@ -124,16 +125,16 @@ export const duplicate = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const reorder = mutation({
-  args: { orderedIds: v.array(v.id("hrEmployeeCategories")) },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), orderedIds: v.array(v.id("hrEmployeeCategories")) },
+  handler: withScopeAndEvents({ operation: "update", module: "hr", entity: "hrEmployeeCategories" }, async (ctx, args) => {
     for (let i = 0; i < args.orderedIds.length; i++) {
       await ctx.db.patch(args.orderedIds[i], { sequence: i, updatedAt: Date.now() });
     }
-  },
+  }),
 });
 
 /* ────────────

@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 const DEFAULT_CAMPAIGNS = [
   { name: "Admission 2026", code: "ADM2026", campaignTypeCode: "ADM", color: "#4285f4", icon: "GraduationCap", description: "Main admission campaign for academic year 2026" },
@@ -30,7 +31,7 @@ export const getUtmCampaign = query({
 });
 
 export const createUtmCampaign = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     campaignTypeId: v.id("crmCampaignTypes"),
@@ -41,9 +42,9 @@ export const createUtmCampaign = mutation({
     description: v.optional(v.string()),
     active: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmUtmCampaigns" }, async (ctx, args) => {
     const all = await ctx.db.query("crmUtmCampaigns").collect();
-    const maxSeq = all.reduce((max, c) => Math.max(max, c.sequence), 0);
+    const maxSeq = all.reduce((max: any, c: any) => Math.max(max, c.sequence), 0);
     const now = Date.now();
     return await ctx.db.insert("crmUtmCampaigns", {
       name: args.name,
@@ -59,11 +60,11 @@ export const createUtmCampaign = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateUtmCampaign = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     utmCampaignId: v.id("crmUtmCampaigns"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -75,30 +76,30 @@ export const updateUtmCampaign = mutation({
     description: v.optional(v.string()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { utmCampaignId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmUtmCampaigns" }, async (ctx, args) => {
+    const { token: _token, utmCampaignId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
     await ctx.db.patch(utmCampaignId, updates);
-  },
+  }),
 });
 
 export const deleteUtmCampaign = mutation({
-  args: { utmCampaignId: v.id("crmUtmCampaigns") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), utmCampaignId: v.id("crmUtmCampaigns") },
+  handler: withScopeAndEvents({ operation: "delete", module: "crm", entity: "crmUtmCampaigns" }, async (ctx, args) => {
     await ctx.db.delete(args.utmCampaignId);
-  },
+  }),
 });
 
 export const duplicateUtmCampaign = mutation({
-  args: { utmCampaignId: v.id("crmUtmCampaigns") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), utmCampaignId: v.id("crmUtmCampaigns") },
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmUtmCampaigns" }, async (ctx, args) => {
     const original = await ctx.db.get(args.utmCampaignId);
     if (!original) throw new Error("UTM campaign not found");
     const all = await ctx.db.query("crmUtmCampaigns").collect();
-    const maxSeq = all.reduce((max, c) => Math.max(max, c.sequence), 0);
+    const maxSeq = all.reduce((max: any, c: any) => Math.max(max, c.sequence), 0);
     const now = Date.now();
     await ctx.db.insert("crmUtmCampaigns", {
       name: `${original.name} (Copy)`,
@@ -114,29 +115,29 @@ export const duplicateUtmCampaign = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const reorderUtmCampaigns = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     utmCampaignIds: v.array(v.id("crmUtmCampaigns")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmUtmCampaigns" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.utmCampaignIds.length; i++) {
       await ctx.db.patch(args.utmCampaignIds[i], { sequence: i + 1, updatedAt: now });
     }
-  },
+  }),
 });
 
 export const seedDefaultUtmCampaigns = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmUtmCampaigns" }, async (ctx) => {
     const existing = await ctx.db.query("crmUtmCampaigns").collect();
     if (existing.length > 0) return { seeded: 0, message: "UTM campaigns already exist" };
 
     const campaignTypes = await ctx.db.query("crmCampaignTypes").collect();
-    const typeByCode = new Map(campaignTypes.map((t) => [t.code, t._id]));
+    const typeByCode = new Map(campaignTypes.map((t: any) => [t.code, t._id]));
 
     const now = Date.now();
     let seeded = 0;
@@ -158,5 +159,5 @@ export const seedDefaultUtmCampaigns = mutation({
       seeded++;
     }
     return { seeded, message: `Default UTM campaigns created (${seeded} of ${DEFAULT_CAMPAIGNS.length} linked)` };
-  },
+  }),
 });

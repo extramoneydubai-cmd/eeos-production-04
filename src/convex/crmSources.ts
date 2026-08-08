@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 const DEFAULT_SOURCES = [
   { name: "Website", code: "WEB", color: "#4285f4", icon: "Globe", description: "Organic website visits and form submissions", sequence: 1 },
@@ -32,7 +33,7 @@ export const getSource = query({
 });
 
 export const createSource = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     color: v.string(),
@@ -40,9 +41,9 @@ export const createSource = mutation({
     description: v.optional(v.string()),
     active: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmSources" }, async (ctx, args) => {
     const allSources = await ctx.db.query("crmSources").collect();
-    const maxSeq = allSources.reduce((max, s) => Math.max(max, s.sequence), 0);
+    const maxSeq = allSources.reduce((max: any, s: any) => Math.max(max, s.sequence), 0);
     const now = Date.now();
     return await ctx.db.insert("crmSources", {
       name: args.name,
@@ -55,11 +56,11 @@ export const createSource = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateSource = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     sourceId: v.id("crmSources"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -68,30 +69,30 @@ export const updateSource = mutation({
     description: v.optional(v.string()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { sourceId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmSources" }, async (ctx, args) => {
+    const { token: _token, sourceId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
     await ctx.db.patch(sourceId, updates);
-  },
+  }),
 });
 
 export const deleteSource = mutation({
-  args: { sourceId: v.id("crmSources") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), sourceId: v.id("crmSources") },
+  handler: withScopeAndEvents({ operation: "delete", module: "crm", entity: "crmSources" }, async (ctx, args) => {
     await ctx.db.delete(args.sourceId);
-  },
+  }),
 });
 
 export const duplicateSource = mutation({
-  args: { sourceId: v.id("crmSources") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), sourceId: v.id("crmSources") },
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmSources" }, async (ctx, args) => {
     const original = await ctx.db.get(args.sourceId);
     if (!original) throw new Error("Source not found");
     const allSources = await ctx.db.query("crmSources").collect();
-    const maxSeq = allSources.reduce((max, s) => Math.max(max, s.sequence), 0);
+    const maxSeq = allSources.reduce((max: any, s: any) => Math.max(max, s.sequence), 0);
     const now = Date.now();
     await ctx.db.insert("crmSources", {
       name: `${original.name} (Copy)`,
@@ -104,24 +105,24 @@ export const duplicateSource = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const reorderSources = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     sourceIds: v.array(v.id("crmSources")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmSources" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.sourceIds.length; i++) {
       await ctx.db.patch(args.sourceIds[i], { sequence: i + 1, updatedAt: now });
     }
-  },
+  }),
 });
 
 export const seedDefaultSources = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmSources" }, async (ctx) => {
     const existing = await ctx.db.query("crmSources").collect();
     if (existing.length > 0) return { seeded: 0, message: "Sources already exist" };
 
@@ -135,5 +136,5 @@ export const seedDefaultSources = mutation({
       });
     }
     return { seeded: DEFAULT_SOURCES.length, message: "Default sources created" };
-  },
+  }),
 });

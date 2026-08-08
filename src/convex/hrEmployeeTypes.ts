@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 const EMPLOYMENT_CATEGORIES = [
   "Full-Time",
@@ -127,7 +128,7 @@ export const getEmployeeType = query({
 });
 
 export const createEmployeeType = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     employmentCategory: v.string(),
@@ -137,9 +138,9 @@ export const createEmployeeType = mutation({
     icon: v.string(),
     active: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "hr", entity: "hrEmployeeTypes" }, async (ctx, args) => {
     const allItems = await ctx.db.query("hrEmployeeTypes").collect();
-    const maxSeq = allItems.reduce((max, t) => Math.max(max, t.sequence), 0);
+    const maxSeq = allItems.reduce((max: any, t: any) => Math.max(max, t.sequence), 0);
     const now = Date.now();
     return await ctx.db.insert("hrEmployeeTypes", {
       name: args.name,
@@ -154,11 +155,11 @@ export const createEmployeeType = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateEmployeeType = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     employeeTypeId: v.id("hrEmployeeTypes"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -169,30 +170,30 @@ export const updateEmployeeType = mutation({
     icon: v.optional(v.string()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { employeeTypeId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "hr", entity: "hrEmployeeTypes" }, async (ctx, args) => {
+    const { token: _token, employeeTypeId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
     await ctx.db.patch(employeeTypeId, updates);
-  },
+  }),
 });
 
 export const deleteEmployeeType = mutation({
-  args: { employeeTypeId: v.id("hrEmployeeTypes") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), employeeTypeId: v.id("hrEmployeeTypes") },
+  handler: withScopeAndEvents({ operation: "delete", module: "hr", entity: "hrEmployeeTypes" }, async (ctx, args) => {
     await ctx.db.delete(args.employeeTypeId);
-  },
+  }),
 });
 
 export const duplicateEmployeeType = mutation({
-  args: { employeeTypeId: v.id("hrEmployeeTypes") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), employeeTypeId: v.id("hrEmployeeTypes") },
+  handler: withScopeAndEvents({ operation: "create", module: "hr", entity: "hrEmployeeTypes" }, async (ctx, args) => {
     const original = await ctx.db.get(args.employeeTypeId);
     if (!original) throw new Error("Employee type not found");
     const allItems = await ctx.db.query("hrEmployeeTypes").collect();
-    const maxSeq = allItems.reduce((max, t) => Math.max(max, t.sequence), 0);
+    const maxSeq = allItems.reduce((max: any, t: any) => Math.max(max, t.sequence), 0);
     const now = Date.now();
     await ctx.db.insert("hrEmployeeTypes", {
       name: `${original.name} (Copy)`,
@@ -207,24 +208,24 @@ export const duplicateEmployeeType = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const reorderEmployeeTypes = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     employeeTypeIds: v.array(v.id("hrEmployeeTypes")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "hr", entity: "hrEmployeeTypes" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.employeeTypeIds.length; i++) {
       await ctx.db.patch(args.employeeTypeIds[i], { sequence: i + 1, updatedAt: now });
     }
-  },
+  }),
 });
 
 export const seedDefaultEmployeeTypes = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "hr", entity: "hrEmployeeTypes" }, async (ctx) => {
     const existing = await ctx.db.query("hrEmployeeTypes").collect();
     if (existing.length > 0) return { seeded: 0, message: "Employee types already exist" };
 
@@ -246,5 +247,5 @@ export const seedDefaultEmployeeTypes = mutation({
       });
     }
     return { seeded: SEED_DATA.length, message: "Default employee types created" };
-  },
+  }),
 });

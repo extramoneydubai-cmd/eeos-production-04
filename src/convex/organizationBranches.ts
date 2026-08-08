@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 const DEFAULT_BRANCHES = [
   {
@@ -90,7 +91,7 @@ export const getBranch = query({
 });
 
 export const createBranch = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     color: v.string(),
@@ -104,9 +105,9 @@ export const createBranch = mutation({
     managerName: v.optional(v.string()),
     isActive: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "organization", entity: "organizationBranches" }, async (ctx, args) => {
     const allItems = await ctx.db.query("orgBranches").collect();
-    const maxSeq = allItems.reduce((max, b) => Math.max(max, b.displayOrder), 0);
+    const maxSeq = allItems.reduce((max: any, b: any) => Math.max(max, b.displayOrder), 0);
     const now = Date.now();
     return await ctx.db.insert("orgBranches", {
       name: args.name,
@@ -125,11 +126,11 @@ export const createBranch = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateBranch = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     branchId: v.id("orgBranches"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -144,30 +145,30 @@ export const updateBranch = mutation({
     managerName: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { branchId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "organization", entity: "organizationBranches" }, async (ctx, args) => {
+    const { token: _token, branchId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
     await ctx.db.patch(branchId, updates);
-  },
+  }),
 });
 
 export const deleteBranch = mutation({
-  args: { branchId: v.id("orgBranches") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), branchId: v.id("orgBranches") },
+  handler: withScopeAndEvents({ operation: "delete", module: "organization", entity: "organizationBranches" }, async (ctx, args) => {
     await ctx.db.delete(args.branchId);
-  },
+  }),
 });
 
 export const duplicateBranch = mutation({
-  args: { branchId: v.id("orgBranches") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), branchId: v.id("orgBranches") },
+  handler: withScopeAndEvents({ operation: "create", module: "organization", entity: "organizationBranches" }, async (ctx, args) => {
     const original = await ctx.db.get(args.branchId);
     if (!original) throw new Error("Branch not found");
     const allItems = await ctx.db.query("orgBranches").collect();
-    const maxSeq = allItems.reduce((max, b) => Math.max(max, b.displayOrder), 0);
+    const maxSeq = allItems.reduce((max: any, b: any) => Math.max(max, b.displayOrder), 0);
     const now = Date.now();
     await ctx.db.insert("orgBranches", {
       name: `${original.name} (Copy)`,
@@ -186,24 +187,24 @@ export const duplicateBranch = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const reorderBranches = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     branchIds: v.array(v.id("orgBranches")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "organization", entity: "organizationBranches" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.branchIds.length; i++) {
       await ctx.db.patch(args.branchIds[i], { displayOrder: i + 1, updatedAt: now });
     }
-  },
+  }),
 });
 
 export const seedDefaultBranches = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "organization", entity: "organizationBranches" }, async (ctx) => {
     const existing = await ctx.db.query("orgBranches").collect();
     if (existing.length > 0) return { seeded: 0, message: "Branches already exist" };
 
@@ -217,5 +218,5 @@ export const seedDefaultBranches = mutation({
       });
     }
     return { seeded: DEFAULT_BRANCHES.length, message: "Default branches created" };
-  },
+  }),
 });

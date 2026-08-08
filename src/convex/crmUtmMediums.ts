@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 const DEFAULT_UTM_MEDIUMS = [
   { name: "CPC", code: "cpc", color: "#4285f4", icon: "DollarSign", description: "Cost-per-click paid advertising medium", sequence: 1 },
@@ -32,7 +33,7 @@ export const getUtmMedium = query({
 });
 
 export const createUtmMedium = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     color: v.string(),
@@ -40,9 +41,9 @@ export const createUtmMedium = mutation({
     description: v.optional(v.string()),
     active: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmUtmMediums" }, async (ctx, args) => {
     const all = await ctx.db.query("crmUtmMediums").collect();
-    const maxSeq = all.reduce((max, m) => Math.max(max, m.sequence), 0);
+    const maxSeq = all.reduce((max: any, m: any) => Math.max(max, m.sequence), 0);
     const now = Date.now();
     return await ctx.db.insert("crmUtmMediums", {
       name: args.name,
@@ -55,11 +56,11 @@ export const createUtmMedium = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateUtmMedium = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     utmMediumId: v.id("crmUtmMediums"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -68,30 +69,30 @@ export const updateUtmMedium = mutation({
     description: v.optional(v.string()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { utmMediumId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmUtmMediums" }, async (ctx, args) => {
+    const { token: _token, utmMediumId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
     await ctx.db.patch(utmMediumId, updates);
-  },
+  }),
 });
 
 export const deleteUtmMedium = mutation({
-  args: { utmMediumId: v.id("crmUtmMediums") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), utmMediumId: v.id("crmUtmMediums") },
+  handler: withScopeAndEvents({ operation: "delete", module: "crm", entity: "crmUtmMediums" }, async (ctx, args) => {
     await ctx.db.delete(args.utmMediumId);
-  },
+  }),
 });
 
 export const duplicateUtmMedium = mutation({
-  args: { utmMediumId: v.id("crmUtmMediums") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), utmMediumId: v.id("crmUtmMediums") },
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmUtmMediums" }, async (ctx, args) => {
     const original = await ctx.db.get(args.utmMediumId);
     if (!original) throw new Error("UTM medium not found");
     const all = await ctx.db.query("crmUtmMediums").collect();
-    const maxSeq = all.reduce((max, m) => Math.max(max, m.sequence), 0);
+    const maxSeq = all.reduce((max: any, m: any) => Math.max(max, m.sequence), 0);
     const now = Date.now();
     await ctx.db.insert("crmUtmMediums", {
       name: `${original.name} (Copy)`,
@@ -104,24 +105,24 @@ export const duplicateUtmMedium = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const reorderUtmMediums = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     utmMediumIds: v.array(v.id("crmUtmMediums")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmUtmMediums" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.utmMediumIds.length; i++) {
       await ctx.db.patch(args.utmMediumIds[i], { sequence: i + 1, updatedAt: now });
     }
-  },
+  }),
 });
 
 export const seedDefaultUtmMediums = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmUtmMediums" }, async (ctx) => {
     const existing = await ctx.db.query("crmUtmMediums").collect();
     if (existing.length > 0) return { seeded: 0, message: "UTM mediums already exist" };
 
@@ -135,5 +136,5 @@ export const seedDefaultUtmMediums = mutation({
       });
     }
     return { seeded: DEFAULT_UTM_MEDIUMS.length, message: "Default UTM mediums created" };
-  },
+  }),
 });

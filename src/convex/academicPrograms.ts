@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 export const PROGRAM_TYPES = [
   "Regular",
@@ -144,7 +145,7 @@ export const getAcademicProgram = query({
 });
 
 export const createAcademicProgram = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     subVerticalId: v.id("academicSubVerticals"),
     name: v.string(),
     code: v.string(),
@@ -157,9 +158,9 @@ export const createAcademicProgram = mutation({
     icon: v.string(),
     isActive: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "academicPrograms" }, async (ctx, args) => {
     const allItems = await ctx.db.query("academicPrograms").collect();
-    const maxSeq = allItems.reduce((max, p) => Math.max(max, p.displayOrder), 0);
+    const maxSeq = allItems.reduce((max: any, p: any) => Math.max(max, p.displayOrder), 0);
     const now = Date.now();
     return await ctx.db.insert("academicPrograms", {
       subVerticalId: args.subVerticalId,
@@ -177,11 +178,11 @@ export const createAcademicProgram = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateAcademicProgram = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     programId: v.id("academicPrograms"),
     subVerticalId: v.optional(v.id("academicSubVerticals")),
     name: v.optional(v.string()),
@@ -195,30 +196,30 @@ export const updateAcademicProgram = mutation({
     icon: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { programId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "academicPrograms" }, async (ctx, args) => {
+    const { token: _token, programId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
     await ctx.db.patch(programId, updates);
-  },
+  }),
 });
 
 export const deleteAcademicProgram = mutation({
-  args: { programId: v.id("academicPrograms") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), programId: v.id("academicPrograms") },
+  handler: withScopeAndEvents({ operation: "delete", module: "academic", entity: "academicPrograms" }, async (ctx, args) => {
     await ctx.db.delete(args.programId);
-  },
+  }),
 });
 
 export const duplicateAcademicProgram = mutation({
-  args: { programId: v.id("academicPrograms") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), programId: v.id("academicPrograms") },
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "academicPrograms" }, async (ctx, args) => {
     const original = await ctx.db.get(args.programId);
     if (!original) throw new Error("Academic program not found");
     const allItems = await ctx.db.query("academicPrograms").collect();
-    const maxSeq = allItems.reduce((max, p) => Math.max(max, p.displayOrder), 0);
+    const maxSeq = allItems.reduce((max: any, p: any) => Math.max(max, p.displayOrder), 0);
     const now = Date.now();
     await ctx.db.insert("academicPrograms", {
       subVerticalId: original.subVerticalId,
@@ -236,24 +237,24 @@ export const duplicateAcademicProgram = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const reorderAcademicPrograms = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     programIds: v.array(v.id("academicPrograms")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "academicPrograms" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.programIds.length; i++) {
       await ctx.db.patch(args.programIds[i], { displayOrder: i + 1, updatedAt: now });
     }
-  },
+  }),
 });
 
 export const seedDefaultAcademicPrograms = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "academicPrograms" }, async (ctx) => {
     const existing = await ctx.db.query("academicPrograms").collect();
     if (existing.length > 0) return { seeded: 0, message: "Academic programs already exist" };
 
@@ -288,5 +289,5 @@ export const seedDefaultAcademicPrograms = mutation({
       });
     }
     return { seeded: idx, message: "Default academic programs created" };
-  },
+  }),
 });

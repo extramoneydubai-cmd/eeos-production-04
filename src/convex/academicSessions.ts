@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 const DEFAULT_SESSIONS = [
   {
@@ -84,7 +85,7 @@ export const getAcademicSession = query({
 });
 
 export const createAcademicSession = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     academicYear: v.string(),
@@ -98,9 +99,9 @@ export const createAcademicSession = mutation({
     isCurrent: v.boolean(),
     active: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "academicSessions" }, async (ctx, args) => {
     const allItems = await ctx.db.query("academicSessions").collect();
-    const maxSeq = allItems.reduce((max, s) => Math.max(max, s.sequence), 0);
+    const maxSeq = allItems.reduce((max: any, s: any) => Math.max(max, s.sequence), 0);
     const now = Date.now();
 
     // If marking as current, unset all others first
@@ -129,11 +130,11 @@ export const createAcademicSession = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateAcademicSession = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     sessionId: v.id("academicSessions"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -148,8 +149,8 @@ export const updateAcademicSession = mutation({
     isCurrent: v.optional(v.boolean()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { sessionId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "academicSessions" }, async (ctx, args) => {
+    const { token: _token, sessionId, ...fields } = args;
     const now = Date.now();
 
     // If marking as current, unset all others first
@@ -169,23 +170,23 @@ export const updateAcademicSession = mutation({
       }
       await ctx.db.patch(sessionId, updates);
     }
-  },
+  }),
 });
 
 export const deleteAcademicSession = mutation({
-  args: { sessionId: v.id("academicSessions") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), sessionId: v.id("academicSessions") },
+  handler: withScopeAndEvents({ operation: "delete", module: "academic", entity: "academicSessions" }, async (ctx, args) => {
     await ctx.db.delete(args.sessionId);
-  },
+  }),
 });
 
 export const duplicateAcademicSession = mutation({
-  args: { sessionId: v.id("academicSessions") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), sessionId: v.id("academicSessions") },
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "academicSessions" }, async (ctx, args) => {
     const original = await ctx.db.get(args.sessionId);
     if (!original) throw new Error("Academic session not found");
     const allItems = await ctx.db.query("academicSessions").collect();
-    const maxSeq = allItems.reduce((max, s) => Math.max(max, s.sequence), 0);
+    const maxSeq = allItems.reduce((max: any, s: any) => Math.max(max, s.sequence), 0);
     const now = Date.now();
     await ctx.db.insert("academicSessions", {
       name: `${original.name} (Copy)`,
@@ -204,24 +205,24 @@ export const duplicateAcademicSession = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const reorderAcademicSessions = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     sessionIds: v.array(v.id("academicSessions")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "academicSessions" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.sessionIds.length; i++) {
       await ctx.db.patch(args.sessionIds[i], { sequence: i + 1, updatedAt: now });
     }
-  },
+  }),
 });
 
 export const seedDefaultAcademicSessions = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "academicSessions" }, async (ctx) => {
     const existing = await ctx.db.query("academicSessions").collect();
     if (existing.length > 0) return { seeded: 0, message: "Academic sessions already exist" };
 
@@ -238,5 +239,5 @@ export const seedDefaultAcademicSessions = mutation({
       });
     }
     return { seeded: DEFAULT_SESSIONS.length, message: "Default academic sessions created" };
-  },
+  }),
 });

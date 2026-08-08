@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 /* ────────────
    SEED DATA
@@ -45,8 +46,8 @@ function baseFields(data: (typeof SEED_DATA)[number], sequence: number) {
    ──────────── */
 
 export const seedDefault = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmLeadScoringRules" }, async (ctx) => {
     const existing = await ctx.db
       .query("crmLeadScoringRules")
       .withIndex("sequence")
@@ -58,11 +59,11 @@ export const seedDefault = mutation({
       count++;
     }
     return { seeded: count };
-  },
+  }),
 });
 
 export const createLeadScoringRule = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     scoreValue: v.number(),
@@ -71,12 +72,12 @@ export const createLeadScoringRule = mutation({
     color: v.string(),
     icon: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmLeadScoringRules" }, async (ctx, args) => {
     const all = await ctx.db
       .query("crmLeadScoringRules")
       .withIndex("sequence")
       .collect();
-    const maxSeq = all.reduce((m, r) => Math.max(m, r.sequence), -1);
+    const maxSeq = all.reduce((m: any, r: any) => Math.max(m, r.sequence), -1);
     return ctx.db.insert("crmLeadScoringRules", {
       ...args,
       description: args.description ?? "",
@@ -85,11 +86,11 @@ export const createLeadScoringRule = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const updateLeadScoringRule = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("crmLeadScoringRules"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -100,33 +101,33 @@ export const updateLeadScoringRule = mutation({
     icon: v.optional(v.string()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { id, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmLeadScoringRules" }, async (ctx, args) => {
+    const { token: _token, id, ...fields } = args;
     const existing = await ctx.db.get(id);
     if (!existing) throw new Error("Lead scoring rule not found");
     return ctx.db.patch(id, { ...fields, updatedAt: Date.now() });
-  },
+  }),
 });
 
 export const deleteLeadScoringRule = mutation({
-  args: { id: v.id("crmLeadScoringRules") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("crmLeadScoringRules") },
+  handler: withScopeAndEvents({ operation: "delete", module: "crm", entity: "crmLeadScoringRules" }, async (ctx, args) => {
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Lead scoring rule not found");
     await ctx.db.delete(args.id);
-  },
+  }),
 });
 
 export const duplicateLeadScoringRule = mutation({
-  args: { id: v.id("crmLeadScoringRules") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("crmLeadScoringRules") },
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmLeadScoringRules" }, async (ctx, args) => {
     const source = await ctx.db.get(args.id);
     if (!source) throw new Error("Lead scoring rule not found");
     const all = await ctx.db
       .query("crmLeadScoringRules")
       .withIndex("sequence")
       .collect();
-    const maxSeq = all.reduce((m, r) => Math.max(m, r.sequence), -1);
+    const maxSeq = all.reduce((m: any, r: any) => Math.max(m, r.sequence), -1);
     return ctx.db.insert("crmLeadScoringRules", {
       name: `${source.name} (Copy)`,
       code: `${source.code}_COPY`,
@@ -140,16 +141,16 @@ export const duplicateLeadScoringRule = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const reorderLeadScoringRules = mutation({
-  args: { orderedIds: v.array(v.id("crmLeadScoringRules")) },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), orderedIds: v.array(v.id("crmLeadScoringRules")) },
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmLeadScoringRules" }, async (ctx, args) => {
     for (let i = 0; i < args.orderedIds.length; i++) {
       await ctx.db.patch(args.orderedIds[i], { sequence: i, updatedAt: Date.now() });
     }
-  },
+  }),
 });
 
 /* ────────────

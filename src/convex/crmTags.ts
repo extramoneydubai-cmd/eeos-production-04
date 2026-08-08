@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 const DEFAULT_TAGS = [
   { name: "Scholarship", code: "SCHOLAR", color: "#34a853", icon: "GraduationCap", description: "Students eligible for scholarship programs", sequence: 1 },
@@ -35,7 +36,7 @@ export const getTag = query({
 });
 
 export const createTag = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     color: v.string(),
@@ -43,9 +44,9 @@ export const createTag = mutation({
     description: v.optional(v.string()),
     active: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmTags" }, async (ctx, args) => {
     const allTags = await ctx.db.query("crmTags").collect();
-    const maxSeq = allTags.reduce((max, t) => Math.max(max, t.sequence), 0);
+    const maxSeq = allTags.reduce((max: any, t: any) => Math.max(max, t.sequence), 0);
     const now = Date.now();
     return await ctx.db.insert("crmTags", {
       name: args.name,
@@ -58,11 +59,11 @@ export const createTag = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateTag = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     tagId: v.id("crmTags"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -71,30 +72,30 @@ export const updateTag = mutation({
     description: v.optional(v.string()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { tagId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmTags" }, async (ctx, args) => {
+    const { token: _token, tagId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
     await ctx.db.patch(tagId, updates);
-  },
+  }),
 });
 
 export const deleteTag = mutation({
-  args: { tagId: v.id("crmTags") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), tagId: v.id("crmTags") },
+  handler: withScopeAndEvents({ operation: "delete", module: "crm", entity: "crmTags" }, async (ctx, args) => {
     await ctx.db.delete(args.tagId);
-  },
+  }),
 });
 
 export const duplicateTag = mutation({
-  args: { tagId: v.id("crmTags") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), tagId: v.id("crmTags") },
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmTags" }, async (ctx, args) => {
     const original = await ctx.db.get(args.tagId);
     if (!original) throw new Error("Tag not found");
     const allTags = await ctx.db.query("crmTags").collect();
-    const maxSeq = allTags.reduce((max, t) => Math.max(max, t.sequence), 0);
+    const maxSeq = allTags.reduce((max: any, t: any) => Math.max(max, t.sequence), 0);
     const now = Date.now();
     await ctx.db.insert("crmTags", {
       name: `${original.name} (Copy)`,
@@ -107,24 +108,24 @@ export const duplicateTag = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const reorderTags = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     tagIds: v.array(v.id("crmTags")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmTags" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.tagIds.length; i++) {
       await ctx.db.patch(args.tagIds[i], { sequence: i + 1, updatedAt: now });
     }
-  },
+  }),
 });
 
 export const seedDefaultTags = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmTags" }, async (ctx) => {
     const existing = await ctx.db.query("crmTags").collect();
     if (existing.length > 0) return { seeded: 0, message: "Tags already exist" };
 
@@ -138,5 +139,5 @@ export const seedDefaultTags = mutation({
       });
     }
     return { seeded: DEFAULT_TAGS.length, message: "Default tags created" };
-  },
+  }),
 });

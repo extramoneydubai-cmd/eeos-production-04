@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 const DEFAULT_REASONS = [
   { name: "Joined Another Institute", code: "JOINED_OTHER", color: "#4285f4", icon: "ArrowRightFromLine", description: "Lead enrolled with a competitor institute", sequence: 1 },
@@ -35,7 +36,7 @@ export const getLostReason = query({
 });
 
 export const createLostReason = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     color: v.string(),
@@ -43,9 +44,9 @@ export const createLostReason = mutation({
     description: v.optional(v.string()),
     active: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmLostReasons" }, async (ctx, args) => {
     const allReasons = await ctx.db.query("crmLostReasons").collect();
-    const maxSeq = allReasons.reduce((max, r) => Math.max(max, r.sequence), 0);
+    const maxSeq = allReasons.reduce((max: any, r: any) => Math.max(max, r.sequence), 0);
     const now = Date.now();
     return await ctx.db.insert("crmLostReasons", {
       name: args.name,
@@ -58,11 +59,11 @@ export const createLostReason = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateLostReason = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     reasonId: v.id("crmLostReasons"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -71,30 +72,30 @@ export const updateLostReason = mutation({
     description: v.optional(v.string()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { reasonId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmLostReasons" }, async (ctx, args) => {
+    const { token: _token, reasonId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
     await ctx.db.patch(reasonId, updates);
-  },
+  }),
 });
 
 export const deleteLostReason = mutation({
-  args: { reasonId: v.id("crmLostReasons") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), reasonId: v.id("crmLostReasons") },
+  handler: withScopeAndEvents({ operation: "delete", module: "crm", entity: "crmLostReasons" }, async (ctx, args) => {
     await ctx.db.delete(args.reasonId);
-  },
+  }),
 });
 
 export const duplicateLostReason = mutation({
-  args: { reasonId: v.id("crmLostReasons") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), reasonId: v.id("crmLostReasons") },
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmLostReasons" }, async (ctx, args) => {
     const original = await ctx.db.get(args.reasonId);
     if (!original) throw new Error("Lost reason not found");
     const allReasons = await ctx.db.query("crmLostReasons").collect();
-    const maxSeq = allReasons.reduce((max, r) => Math.max(max, r.sequence), 0);
+    const maxSeq = allReasons.reduce((max: any, r: any) => Math.max(max, r.sequence), 0);
     const now = Date.now();
     await ctx.db.insert("crmLostReasons", {
       name: `${original.name} (Copy)`,
@@ -107,24 +108,24 @@ export const duplicateLostReason = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const reorderLostReasons = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     reasonIds: v.array(v.id("crmLostReasons")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmLostReasons" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.reasonIds.length; i++) {
       await ctx.db.patch(args.reasonIds[i], { sequence: i + 1, updatedAt: now });
     }
-  },
+  }),
 });
 
 export const seedDefaultLostReasons = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmLostReasons" }, async (ctx) => {
     const existing = await ctx.db.query("crmLostReasons").collect();
     if (existing.length > 0) return { seeded: 0, message: "Lost reasons already exist" };
 
@@ -138,5 +139,5 @@ export const seedDefaultLostReasons = mutation({
       });
     }
     return { seeded: DEFAULT_REASONS.length, message: "Default lost reasons created" };
-  },
+  }),
 });

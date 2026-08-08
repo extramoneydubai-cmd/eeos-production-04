@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 const DEFAULT_DEPARTMENTS = [
   { name: "Administration", code: "ADMIN", color: "#1a1a2e", icon: "Building2", description: "Central administration and governance", sequence: 1 },
@@ -38,7 +39,7 @@ export const getDepartment = query({
 });
 
 export const createDepartment = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     color: v.string(),
@@ -46,9 +47,9 @@ export const createDepartment = mutation({
     description: v.optional(v.string()),
     active: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "organization", entity: "organizationDepartments" }, async (ctx, args) => {
     const allItems = await ctx.db.query("orgDepartments").collect();
-    const maxSeq = allItems.reduce((max, d) => Math.max(max, d.sequence), 0);
+    const maxSeq = allItems.reduce((max: any, d: any) => Math.max(max, d.sequence), 0);
     const now = Date.now();
     return await ctx.db.insert("orgDepartments", {
       name: args.name,
@@ -61,11 +62,11 @@ export const createDepartment = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateDepartment = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     departmentId: v.id("orgDepartments"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -74,30 +75,30 @@ export const updateDepartment = mutation({
     description: v.optional(v.string()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { departmentId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "organization", entity: "organizationDepartments" }, async (ctx, args) => {
+    const { token: _token, departmentId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
     await ctx.db.patch(departmentId, updates);
-  },
+  }),
 });
 
 export const deleteDepartment = mutation({
-  args: { departmentId: v.id("orgDepartments") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), departmentId: v.id("orgDepartments") },
+  handler: withScopeAndEvents({ operation: "delete", module: "organization", entity: "organizationDepartments" }, async (ctx, args) => {
     await ctx.db.delete(args.departmentId);
-  },
+  }),
 });
 
 export const duplicateDepartment = mutation({
-  args: { departmentId: v.id("orgDepartments") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), departmentId: v.id("orgDepartments") },
+  handler: withScopeAndEvents({ operation: "create", module: "organization", entity: "organizationDepartments" }, async (ctx, args) => {
     const original = await ctx.db.get(args.departmentId);
     if (!original) throw new Error("Department not found");
     const allItems = await ctx.db.query("orgDepartments").collect();
-    const maxSeq = allItems.reduce((max, d) => Math.max(max, d.sequence), 0);
+    const maxSeq = allItems.reduce((max: any, d: any) => Math.max(max, d.sequence), 0);
     const now = Date.now();
     await ctx.db.insert("orgDepartments", {
       name: `${original.name} (Copy)`,
@@ -110,24 +111,24 @@ export const duplicateDepartment = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const reorderDepartments = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     departmentIds: v.array(v.id("orgDepartments")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "organization", entity: "organizationDepartments" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.departmentIds.length; i++) {
       await ctx.db.patch(args.departmentIds[i], { sequence: i + 1, updatedAt: now });
     }
-  },
+  }),
 });
 
 export const seedDefaultDepartments = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "organization", entity: "organizationDepartments" }, async (ctx) => {
     const existing = await ctx.db.query("orgDepartments").collect();
     if (existing.length > 0) return { seeded: 0, message: "Departments already exist" };
 
@@ -141,5 +142,5 @@ export const seedDefaultDepartments = mutation({
       });
     }
     return { seeded: DEFAULT_DEPARTMENTS.length, message: "Default departments created" };
-  },
+  }),
 });

@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 const DEFAULT_OUTCOMES = [
   { name: "Interested", code: "INT", category: "Positive", pipeline: true, positive: true, color: "#34a853", icon: "ThumbsUp", description: "Lead showed interest in the offering" },
@@ -35,7 +36,7 @@ export const getFollowUpOutcome = query({
 });
 
 export const createFollowUpOutcome = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     outcomeCategory: v.string(),
@@ -46,9 +47,9 @@ export const createFollowUpOutcome = mutation({
     description: v.optional(v.string()),
     active: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmFollowUpOutcomes" }, async (ctx, args) => {
     const all = await ctx.db.query("crmFollowUpOutcomes").collect();
-    const maxSeq = all.reduce((max, o) => Math.max(max, o.sequence), 0);
+    const maxSeq = all.reduce((max: any, o: any) => Math.max(max, o.sequence), 0);
     const now = Date.now();
     return await ctx.db.insert("crmFollowUpOutcomes", {
       name: args.name,
@@ -64,11 +65,11 @@ export const createFollowUpOutcome = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateFollowUpOutcome = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     followUpOutcomeId: v.id("crmFollowUpOutcomes"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -80,30 +81,30 @@ export const updateFollowUpOutcome = mutation({
     description: v.optional(v.string()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { followUpOutcomeId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmFollowUpOutcomes" }, async (ctx, args) => {
+    const { token: _token, followUpOutcomeId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
     await ctx.db.patch(followUpOutcomeId, updates);
-  },
+  }),
 });
 
 export const deleteFollowUpOutcome = mutation({
-  args: { followUpOutcomeId: v.id("crmFollowUpOutcomes") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), followUpOutcomeId: v.id("crmFollowUpOutcomes") },
+  handler: withScopeAndEvents({ operation: "delete", module: "crm", entity: "crmFollowUpOutcomes" }, async (ctx, args) => {
     await ctx.db.delete(args.followUpOutcomeId);
-  },
+  }),
 });
 
 export const duplicateFollowUpOutcome = mutation({
-  args: { followUpOutcomeId: v.id("crmFollowUpOutcomes") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), followUpOutcomeId: v.id("crmFollowUpOutcomes") },
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmFollowUpOutcomes" }, async (ctx, args) => {
     const original = await ctx.db.get(args.followUpOutcomeId);
     if (!original) throw new Error("Follow-up outcome not found");
     const all = await ctx.db.query("crmFollowUpOutcomes").collect();
-    const maxSeq = all.reduce((max, o) => Math.max(max, o.sequence), 0);
+    const maxSeq = all.reduce((max: any, o: any) => Math.max(max, o.sequence), 0);
     const now = Date.now();
     await ctx.db.insert("crmFollowUpOutcomes", {
       name: `${original.name} (Copy)`,
@@ -119,24 +120,24 @@ export const duplicateFollowUpOutcome = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const reorderFollowUpOutcomes = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     followUpOutcomeIds: v.array(v.id("crmFollowUpOutcomes")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmFollowUpOutcomes" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.followUpOutcomeIds.length; i++) {
       await ctx.db.patch(args.followUpOutcomeIds[i], { sequence: i + 1, updatedAt: now });
     }
-  },
+  }),
 });
 
 export const seedDefaultFollowUpOutcomes = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmFollowUpOutcomes" }, async (ctx) => {
     const existing = await ctx.db.query("crmFollowUpOutcomes").collect();
     if (existing.length > 0) return { seeded: 0, message: "Follow-up outcomes already exist" };
 
@@ -159,5 +160,5 @@ export const seedDefaultFollowUpOutcomes = mutation({
       });
     }
     return { seeded: DEFAULT_OUTCOMES.length, message: "Default follow-up outcomes created" };
-  },
+  }),
 });

@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 const DEFAULT_PRIORITIES = [
   { name: "VIP", code: "VIP", color: "#a855f7", icon: "Crown", description: "Very important persons — immediate attention required", sequence: 1 },
@@ -25,7 +26,7 @@ export const getPriority = query({
 });
 
 export const createPriority = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     color: v.string(),
@@ -33,9 +34,9 @@ export const createPriority = mutation({
     description: v.optional(v.string()),
     active: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmPriorities" }, async (ctx, args) => {
     const allPriorities = await ctx.db.query("crmPriorities").collect();
-    const maxSeq = allPriorities.reduce((max, p) => Math.max(max, p.sequence), 0);
+    const maxSeq = allPriorities.reduce((max: any, p: any) => Math.max(max, p.sequence), 0);
     const now = Date.now();
     return await ctx.db.insert("crmPriorities", {
       name: args.name,
@@ -48,11 +49,11 @@ export const createPriority = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updatePriority = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     priorityId: v.id("crmPriorities"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -61,30 +62,30 @@ export const updatePriority = mutation({
     description: v.optional(v.string()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { priorityId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmPriorities" }, async (ctx, args) => {
+    const { token: _token, priorityId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
     await ctx.db.patch(priorityId, updates);
-  },
+  }),
 });
 
 export const deletePriority = mutation({
-  args: { priorityId: v.id("crmPriorities") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), priorityId: v.id("crmPriorities") },
+  handler: withScopeAndEvents({ operation: "delete", module: "crm", entity: "crmPriorities" }, async (ctx, args) => {
     await ctx.db.delete(args.priorityId);
-  },
+  }),
 });
 
 export const duplicatePriority = mutation({
-  args: { priorityId: v.id("crmPriorities") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), priorityId: v.id("crmPriorities") },
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmPriorities" }, async (ctx, args) => {
     const original = await ctx.db.get(args.priorityId);
     if (!original) throw new Error("Priority not found");
     const allPriorities = await ctx.db.query("crmPriorities").collect();
-    const maxSeq = allPriorities.reduce((max, p) => Math.max(max, p.sequence), 0);
+    const maxSeq = allPriorities.reduce((max: any, p: any) => Math.max(max, p.sequence), 0);
     const now = Date.now();
     await ctx.db.insert("crmPriorities", {
       name: `${original.name} (Copy)`,
@@ -97,24 +98,24 @@ export const duplicatePriority = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const reorderPriorities = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     priorityIds: v.array(v.id("crmPriorities")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmPriorities" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.priorityIds.length; i++) {
       await ctx.db.patch(args.priorityIds[i], { sequence: i + 1, updatedAt: now });
     }
-  },
+  }),
 });
 
 export const seedDefaultPriorities = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmPriorities" }, async (ctx) => {
     const existing = await ctx.db.query("crmPriorities").collect();
     if (existing.length > 0) return { seeded: 0, message: "Priorities already exist" };
 
@@ -128,5 +129,5 @@ export const seedDefaultPriorities = mutation({
       });
     }
     return { seeded: DEFAULT_PRIORITIES.length, message: "Default priorities created" };
-  },
+  }),
 });

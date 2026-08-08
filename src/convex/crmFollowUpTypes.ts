@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 const DEFAULT_TYPES = [
   { name: "Phone Call", code: "PHONE", category: "Call", reminder: true, days: 1, color: "#4285f4", icon: "Phone", description: "Standard phone call follow-up" },
@@ -35,7 +36,7 @@ export const getFollowUpType = query({
 });
 
 export const createFollowUpType = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     followUpCategory: v.string(),
@@ -46,9 +47,9 @@ export const createFollowUpType = mutation({
     description: v.optional(v.string()),
     active: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmFollowUpTypes" }, async (ctx, args) => {
     const all = await ctx.db.query("crmFollowUpTypes").collect();
-    const maxSeq = all.reduce((max, t) => Math.max(max, t.sequence), 0);
+    const maxSeq = all.reduce((max: any, t: any) => Math.max(max, t.sequence), 0);
     const now = Date.now();
     return await ctx.db.insert("crmFollowUpTypes", {
       name: args.name,
@@ -64,11 +65,11 @@ export const createFollowUpType = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateFollowUpType = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     followUpTypeId: v.id("crmFollowUpTypes"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -80,30 +81,30 @@ export const updateFollowUpType = mutation({
     description: v.optional(v.string()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { followUpTypeId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmFollowUpTypes" }, async (ctx, args) => {
+    const { token: _token, followUpTypeId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
     await ctx.db.patch(followUpTypeId, updates);
-  },
+  }),
 });
 
 export const deleteFollowUpType = mutation({
-  args: { followUpTypeId: v.id("crmFollowUpTypes") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), followUpTypeId: v.id("crmFollowUpTypes") },
+  handler: withScopeAndEvents({ operation: "delete", module: "crm", entity: "crmFollowUpTypes" }, async (ctx, args) => {
     await ctx.db.delete(args.followUpTypeId);
-  },
+  }),
 });
 
 export const duplicateFollowUpType = mutation({
-  args: { followUpTypeId: v.id("crmFollowUpTypes") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), followUpTypeId: v.id("crmFollowUpTypes") },
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmFollowUpTypes" }, async (ctx, args) => {
     const original = await ctx.db.get(args.followUpTypeId);
     if (!original) throw new Error("Follow-up type not found");
     const all = await ctx.db.query("crmFollowUpTypes").collect();
-    const maxSeq = all.reduce((max, t) => Math.max(max, t.sequence), 0);
+    const maxSeq = all.reduce((max: any, t: any) => Math.max(max, t.sequence), 0);
     const now = Date.now();
     await ctx.db.insert("crmFollowUpTypes", {
       name: `${original.name} (Copy)`,
@@ -119,24 +120,24 @@ export const duplicateFollowUpType = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const reorderFollowUpTypes = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     followUpTypeIds: v.array(v.id("crmFollowUpTypes")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmFollowUpTypes" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.followUpTypeIds.length; i++) {
       await ctx.db.patch(args.followUpTypeIds[i], { sequence: i + 1, updatedAt: now });
     }
-  },
+  }),
 });
 
 export const seedDefaultFollowUpTypes = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmFollowUpTypes" }, async (ctx) => {
     const existing = await ctx.db.query("crmFollowUpTypes").collect();
     if (existing.length > 0) return { seeded: 0, message: "Follow-up types already exist" };
 
@@ -158,5 +159,5 @@ export const seedDefaultFollowUpTypes = mutation({
       });
     }
     return { seeded: DEFAULT_TYPES.length, message: "Default follow-up types created" };
-  },
+  }),
 });

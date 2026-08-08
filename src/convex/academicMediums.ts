@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 const SEED_DATA: Array<{
   name: string;
@@ -40,7 +41,7 @@ export const getAcademicMedium = query({
 });
 
 export const createAcademicMedium = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     description: v.optional(v.string()),
@@ -48,9 +49,9 @@ export const createAcademicMedium = mutation({
     icon: v.string(),
     active: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "academicMediums" }, async (ctx, args) => {
     const allItems = await ctx.db.query("academicMediums").collect();
-    const maxSeq = allItems.reduce((max, s) => Math.max(max, s.sequence), 0);
+    const maxSeq = allItems.reduce((max: any, s: any) => Math.max(max, s.sequence), 0);
     const now = Date.now();
     return await ctx.db.insert("academicMediums", {
       name: args.name,
@@ -63,11 +64,11 @@ export const createAcademicMedium = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateAcademicMedium = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     mediumId: v.id("academicMediums"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -76,30 +77,30 @@ export const updateAcademicMedium = mutation({
     icon: v.optional(v.string()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { mediumId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "academicMediums" }, async (ctx, args) => {
+    const { token: _token, mediumId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
     await ctx.db.patch(mediumId, updates);
-  },
+  }),
 });
 
 export const deleteAcademicMedium = mutation({
-  args: { mediumId: v.id("academicMediums") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), mediumId: v.id("academicMediums") },
+  handler: withScopeAndEvents({ operation: "delete", module: "academic", entity: "academicMediums" }, async (ctx, args) => {
     await ctx.db.delete(args.mediumId);
-  },
+  }),
 });
 
 export const duplicateAcademicMedium = mutation({
-  args: { mediumId: v.id("academicMediums") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), mediumId: v.id("academicMediums") },
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "academicMediums" }, async (ctx, args) => {
     const original = await ctx.db.get(args.mediumId);
     if (!original) throw new Error("Academic medium not found");
     const allItems = await ctx.db.query("academicMediums").collect();
-    const maxSeq = allItems.reduce((max, s) => Math.max(max, s.sequence), 0);
+    const maxSeq = allItems.reduce((max: any, s: any) => Math.max(max, s.sequence), 0);
     const now = Date.now();
     await ctx.db.insert("academicMediums", {
       name: `${original.name} (Copy)`,
@@ -112,24 +113,24 @@ export const duplicateAcademicMedium = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const reorderAcademicMediums = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     mediumIds: v.array(v.id("academicMediums")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "academicMediums" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.mediumIds.length; i++) {
       await ctx.db.patch(args.mediumIds[i], { sequence: i + 1, updatedAt: now });
     }
-  },
+  }),
 });
 
 export const seedDefaultAcademicMediums = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "academicMediums" }, async (ctx) => {
     const existing = await ctx.db.query("academicMediums").collect();
     if (existing.length > 0) return { seeded: 0, message: "Academic mediums already exist" };
 
@@ -149,5 +150,5 @@ export const seedDefaultAcademicMediums = mutation({
       });
     }
     return { seeded: SEED_DATA.length, message: "Default academic mediums created" };
-  },
+  }),
 });

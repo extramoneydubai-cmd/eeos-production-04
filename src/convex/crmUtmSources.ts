@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 const DEFAULT_UTM_SOURCES = [
   { name: "Google", code: "google", color: "#4285f4", icon: "Search", description: "UTM source for Google organic and paid traffic", sequence: 1 },
@@ -32,7 +33,7 @@ export const getUtmSource = query({
 });
 
 export const createUtmSource = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     color: v.string(),
@@ -40,9 +41,9 @@ export const createUtmSource = mutation({
     description: v.optional(v.string()),
     active: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmUtmSources" }, async (ctx, args) => {
     const all = await ctx.db.query("crmUtmSources").collect();
-    const maxSeq = all.reduce((max, s) => Math.max(max, s.sequence), 0);
+    const maxSeq = all.reduce((max: any, s: any) => Math.max(max, s.sequence), 0);
     const now = Date.now();
     return await ctx.db.insert("crmUtmSources", {
       name: args.name,
@@ -55,11 +56,11 @@ export const createUtmSource = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateUtmSource = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     utmSourceId: v.id("crmUtmSources"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -68,30 +69,30 @@ export const updateUtmSource = mutation({
     description: v.optional(v.string()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { utmSourceId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmUtmSources" }, async (ctx, args) => {
+    const { token: _token, utmSourceId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
     await ctx.db.patch(utmSourceId, updates);
-  },
+  }),
 });
 
 export const deleteUtmSource = mutation({
-  args: { utmSourceId: v.id("crmUtmSources") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), utmSourceId: v.id("crmUtmSources") },
+  handler: withScopeAndEvents({ operation: "delete", module: "crm", entity: "crmUtmSources" }, async (ctx, args) => {
     await ctx.db.delete(args.utmSourceId);
-  },
+  }),
 });
 
 export const duplicateUtmSource = mutation({
-  args: { utmSourceId: v.id("crmUtmSources") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), utmSourceId: v.id("crmUtmSources") },
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmUtmSources" }, async (ctx, args) => {
     const original = await ctx.db.get(args.utmSourceId);
     if (!original) throw new Error("UTM source not found");
     const all = await ctx.db.query("crmUtmSources").collect();
-    const maxSeq = all.reduce((max, s) => Math.max(max, s.sequence), 0);
+    const maxSeq = all.reduce((max: any, s: any) => Math.max(max, s.sequence), 0);
     const now = Date.now();
     await ctx.db.insert("crmUtmSources", {
       name: `${original.name} (Copy)`,
@@ -104,24 +105,24 @@ export const duplicateUtmSource = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const reorderUtmSources = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     utmSourceIds: v.array(v.id("crmUtmSources")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmUtmSources" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.utmSourceIds.length; i++) {
       await ctx.db.patch(args.utmSourceIds[i], { sequence: i + 1, updatedAt: now });
     }
-  },
+  }),
 });
 
 export const seedDefaultUtmSources = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmUtmSources" }, async (ctx) => {
     const existing = await ctx.db.query("crmUtmSources").collect();
     if (existing.length > 0) return { seeded: 0, message: "UTM sources already exist" };
 
@@ -135,5 +136,5 @@ export const seedDefaultUtmSources = mutation({
       });
     }
     return { seeded: DEFAULT_UTM_SOURCES.length, message: "Default UTM sources created" };
-  },
+  }),
 });

@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 const SEED_DATA: Array<{
   name: string;
@@ -72,7 +73,7 @@ export const getAcademicTerm = query({
 });
 
 export const createAcademicTerm = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     academicSessionId: v.id("academicSessions"),
@@ -84,9 +85,9 @@ export const createAcademicTerm = mutation({
     icon: v.string(),
     active: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "academicTerms" }, async (ctx, args) => {
     const allItems = await ctx.db.query("academicTerms").collect();
-    const maxSeq = allItems.reduce((max, t) => Math.max(max, t.sequence), 0);
+    const maxSeq = allItems.reduce((max: any, t: any) => Math.max(max, t.sequence), 0);
     const now = Date.now();
     return await ctx.db.insert("academicTerms", {
       name: args.name,
@@ -103,11 +104,11 @@ export const createAcademicTerm = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateAcademicTerm = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     termId: v.id("academicTerms"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -120,30 +121,30 @@ export const updateAcademicTerm = mutation({
     icon: v.optional(v.string()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { termId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "academicTerms" }, async (ctx, args) => {
+    const { token: _token, termId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
     await ctx.db.patch(termId, updates);
-  },
+  }),
 });
 
 export const deleteAcademicTerm = mutation({
-  args: { termId: v.id("academicTerms") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), termId: v.id("academicTerms") },
+  handler: withScopeAndEvents({ operation: "delete", module: "academic", entity: "academicTerms" }, async (ctx, args) => {
     await ctx.db.delete(args.termId);
-  },
+  }),
 });
 
 export const duplicateAcademicTerm = mutation({
-  args: { termId: v.id("academicTerms") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), termId: v.id("academicTerms") },
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "academicTerms" }, async (ctx, args) => {
     const original = await ctx.db.get(args.termId);
     if (!original) throw new Error("Academic term not found");
     const allItems = await ctx.db.query("academicTerms").collect();
-    const maxSeq = allItems.reduce((max, t) => Math.max(max, t.sequence), 0);
+    const maxSeq = allItems.reduce((max: any, t: any) => Math.max(max, t.sequence), 0);
     const now = Date.now();
     await ctx.db.insert("academicTerms", {
       name: `${original.name} (Copy)`,
@@ -160,24 +161,24 @@ export const duplicateAcademicTerm = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const reorderAcademicTerms = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     termIds: v.array(v.id("academicTerms")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "academicTerms" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.termIds.length; i++) {
       await ctx.db.patch(args.termIds[i], { sequence: i + 1, updatedAt: now });
     }
-  },
+  }),
 });
 
 export const seedDefaultAcademicTerms = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "academicTerms" }, async (ctx) => {
     const existing = await ctx.db.query("academicTerms").collect();
     if (existing.length > 0) return { seeded: 0, message: "Academic terms already exist" };
 
@@ -208,5 +209,5 @@ export const seedDefaultAcademicTerms = mutation({
       });
     }
     return { seeded: idx, message: "Default academic terms created" };
-  },
+  }),
 });

@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 const DEFAULT_TYPES = [
   { name: "Admission", code: "ADM", campaignCategory: "Enrollment", color: "#4285f4", icon: "GraduationCap", description: "Campaigns targeting new student admissions", sequence: 1 },
@@ -35,7 +36,7 @@ export const getCampaignType = query({
 });
 
 export const createCampaignType = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     campaignCategory: v.string(),
@@ -44,9 +45,9 @@ export const createCampaignType = mutation({
     description: v.optional(v.string()),
     active: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmCampaignTypes" }, async (ctx, args) => {
     const all = await ctx.db.query("crmCampaignTypes").collect();
-    const maxSeq = all.reduce((max, t) => Math.max(max, t.sequence), 0);
+    const maxSeq = all.reduce((max: any, t: any) => Math.max(max, t.sequence), 0);
     const now = Date.now();
     return await ctx.db.insert("crmCampaignTypes", {
       name: args.name,
@@ -60,11 +61,11 @@ export const createCampaignType = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateCampaignType = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     campaignTypeId: v.id("crmCampaignTypes"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -74,30 +75,30 @@ export const updateCampaignType = mutation({
     description: v.optional(v.string()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { campaignTypeId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmCampaignTypes" }, async (ctx, args) => {
+    const { token: _token, campaignTypeId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
     await ctx.db.patch(campaignTypeId, updates);
-  },
+  }),
 });
 
 export const deleteCampaignType = mutation({
-  args: { campaignTypeId: v.id("crmCampaignTypes") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), campaignTypeId: v.id("crmCampaignTypes") },
+  handler: withScopeAndEvents({ operation: "delete", module: "crm", entity: "crmCampaignTypes" }, async (ctx, args) => {
     await ctx.db.delete(args.campaignTypeId);
-  },
+  }),
 });
 
 export const duplicateCampaignType = mutation({
-  args: { campaignTypeId: v.id("crmCampaignTypes") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), campaignTypeId: v.id("crmCampaignTypes") },
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmCampaignTypes" }, async (ctx, args) => {
     const original = await ctx.db.get(args.campaignTypeId);
     if (!original) throw new Error("Campaign type not found");
     const all = await ctx.db.query("crmCampaignTypes").collect();
-    const maxSeq = all.reduce((max, t) => Math.max(max, t.sequence), 0);
+    const maxSeq = all.reduce((max: any, t: any) => Math.max(max, t.sequence), 0);
     const now = Date.now();
     await ctx.db.insert("crmCampaignTypes", {
       name: `${original.name} (Copy)`,
@@ -111,24 +112,24 @@ export const duplicateCampaignType = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const reorderCampaignTypes = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     campaignTypeIds: v.array(v.id("crmCampaignTypes")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmCampaignTypes" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.campaignTypeIds.length; i++) {
       await ctx.db.patch(args.campaignTypeIds[i], { sequence: i + 1, updatedAt: now });
     }
-  },
+  }),
 });
 
 export const seedDefaultTypes = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmCampaignTypes" }, async (ctx) => {
     const existing = await ctx.db.query("crmCampaignTypes").collect();
     if (existing.length > 0) return { seeded: 0, message: "Campaign types already exist" };
 
@@ -142,5 +143,5 @@ export const seedDefaultTypes = mutation({
       });
     }
     return { seeded: DEFAULT_TYPES.length, message: "Default campaign types created" };
-  },
+  }),
 });

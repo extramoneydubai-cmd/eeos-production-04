@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 const DEFAULT_CHANNELS = [
   { name: "Facebook", code: "FB", channelCategory: "Social Media", isDigital: true, color: "#1877F2", icon: "Facebook", description: "Facebook organic and paid campaigns", sequence: 1 },
@@ -36,7 +37,7 @@ export const getCampaignChannel = query({
 });
 
 export const createCampaignChannel = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     channelCategory: v.string(),
@@ -46,9 +47,9 @@ export const createCampaignChannel = mutation({
     description: v.optional(v.string()),
     active: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmCampaignChannels" }, async (ctx, args) => {
     const all = await ctx.db.query("crmCampaignChannels").collect();
-    const maxSeq = all.reduce((max, c) => Math.max(max, c.sequence), 0);
+    const maxSeq = all.reduce((max: any, c: any) => Math.max(max, c.sequence), 0);
     const now = Date.now();
     return await ctx.db.insert("crmCampaignChannels", {
       name: args.name,
@@ -63,11 +64,11 @@ export const createCampaignChannel = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateCampaignChannel = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     campaignChannelId: v.id("crmCampaignChannels"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -78,30 +79,30 @@ export const updateCampaignChannel = mutation({
     description: v.optional(v.string()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { campaignChannelId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmCampaignChannels" }, async (ctx, args) => {
+    const { token: _token, campaignChannelId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
     await ctx.db.patch(campaignChannelId, updates);
-  },
+  }),
 });
 
 export const deleteCampaignChannel = mutation({
-  args: { campaignChannelId: v.id("crmCampaignChannels") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), campaignChannelId: v.id("crmCampaignChannels") },
+  handler: withScopeAndEvents({ operation: "delete", module: "crm", entity: "crmCampaignChannels" }, async (ctx, args) => {
     await ctx.db.delete(args.campaignChannelId);
-  },
+  }),
 });
 
 export const duplicateCampaignChannel = mutation({
-  args: { campaignChannelId: v.id("crmCampaignChannels") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), campaignChannelId: v.id("crmCampaignChannels") },
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmCampaignChannels" }, async (ctx, args) => {
     const original = await ctx.db.get(args.campaignChannelId);
     if (!original) throw new Error("Campaign channel not found");
     const all = await ctx.db.query("crmCampaignChannels").collect();
-    const maxSeq = all.reduce((max, c) => Math.max(max, c.sequence), 0);
+    const maxSeq = all.reduce((max: any, c: any) => Math.max(max, c.sequence), 0);
     const now = Date.now();
     await ctx.db.insert("crmCampaignChannels", {
       name: `${original.name} (Copy)`,
@@ -116,24 +117,24 @@ export const duplicateCampaignChannel = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const reorderCampaignChannels = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     campaignChannelIds: v.array(v.id("crmCampaignChannels")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmCampaignChannels" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.campaignChannelIds.length; i++) {
       await ctx.db.patch(args.campaignChannelIds[i], { sequence: i + 1, updatedAt: now });
     }
-  },
+  }),
 });
 
 export const seedDefaultChannels = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmCampaignChannels" }, async (ctx) => {
     const existing = await ctx.db.query("crmCampaignChannels").collect();
     if (existing.length > 0) return { seeded: 0, message: "Campaign channels already exist" };
 
@@ -147,5 +148,5 @@ export const seedDefaultChannels = mutation({
       });
     }
     return { seeded: DEFAULT_CHANNELS.length, message: "Default campaign channels created" };
-  },
+  }),
 });

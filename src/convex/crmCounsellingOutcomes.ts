@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 /* ────────────
    SEED DATA
@@ -123,8 +124,8 @@ function baseFields(data: (typeof SEED_DATA)[number], sequence: number) {
    ──────────── */
 
 export const seedDefault = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmCounsellingOutcomes" }, async (ctx) => {
     const existing = await ctx.db
       .query("crmCounsellingOutcomes")
       .withIndex("sequence")
@@ -138,11 +139,11 @@ export const seedDefault = mutation({
       count++;
     }
     return { seeded: count };
-  },
+  }),
 });
 
 export const createCounsellingOutcome = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     outcomeCategory: v.string(),
@@ -151,12 +152,12 @@ export const createCounsellingOutcome = mutation({
     color: v.string(),
     icon: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmCounsellingOutcomes" }, async (ctx, args) => {
     const all = await ctx.db
       .query("crmCounsellingOutcomes")
       .withIndex("sequence")
       .collect();
-    const maxSeq = all.reduce((m, r) => Math.max(m, r.sequence), -1);
+    const maxSeq = all.reduce((m: any, r: any) => Math.max(m, r.sequence), -1);
     return ctx.db.insert("crmCounsellingOutcomes", {
       ...args,
       description: args.description ?? "",
@@ -165,11 +166,11 @@ export const createCounsellingOutcome = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const updateCounsellingOutcome = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("crmCounsellingOutcomes"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -180,33 +181,33 @@ export const updateCounsellingOutcome = mutation({
     icon: v.optional(v.string()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { id, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmCounsellingOutcomes" }, async (ctx, args) => {
+    const { token: _token, id, ...fields } = args;
     const existing = await ctx.db.get(id);
     if (!existing) throw new Error("Counselling outcome not found");
     return ctx.db.patch(id, { ...fields, updatedAt: Date.now() });
-  },
+  }),
 });
 
 export const deleteCounsellingOutcome = mutation({
-  args: { id: v.id("crmCounsellingOutcomes") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("crmCounsellingOutcomes") },
+  handler: withScopeAndEvents({ operation: "delete", module: "crm", entity: "crmCounsellingOutcomes" }, async (ctx, args) => {
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Counselling outcome not found");
     await ctx.db.delete(args.id);
-  },
+  }),
 });
 
 export const duplicateCounsellingOutcome = mutation({
-  args: { id: v.id("crmCounsellingOutcomes") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("crmCounsellingOutcomes") },
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmCounsellingOutcomes" }, async (ctx, args) => {
     const source = await ctx.db.get(args.id);
     if (!source) throw new Error("Counselling outcome not found");
     const all = await ctx.db
       .query("crmCounsellingOutcomes")
       .withIndex("sequence")
       .collect();
-    const maxSeq = all.reduce((m, r) => Math.max(m, r.sequence), -1);
+    const maxSeq = all.reduce((m: any, r: any) => Math.max(m, r.sequence), -1);
     return ctx.db.insert("crmCounsellingOutcomes", {
       name: `${source.name} (Copy)`,
       code: `${source.code}_COPY`,
@@ -220,21 +221,21 @@ export const duplicateCounsellingOutcome = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const reorderCounsellingOutcomes = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     orderedIds: v.array(v.id("crmCounsellingOutcomes")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmCounsellingOutcomes" }, async (ctx, args) => {
     for (let i = 0; i < args.orderedIds.length; i++) {
       await ctx.db.patch(args.orderedIds[i], {
         sequence: i,
         updatedAt: Date.now(),
       });
     }
-  },
+  }),
 });
 
 /* ────────────

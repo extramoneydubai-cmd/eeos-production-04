@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 const DEFAULT_VERTICALS = [
   {
@@ -100,7 +101,7 @@ export const getAcademicVertical = query({
 });
 
 export const createAcademicVertical = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     color: v.string(),
@@ -111,9 +112,9 @@ export const createAcademicVertical = mutation({
     maximumAge: v.optional(v.number()),
     isActive: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "academicVerticals" }, async (ctx, args) => {
     const allItems = await ctx.db.query("academicVerticals").collect();
-    const maxSeq = allItems.reduce((max, v) => Math.max(max, v.displayOrder), 0);
+    const maxSeq = allItems.reduce((max: any, v: any) => Math.max(max, v.displayOrder), 0);
     const now = Date.now();
     return await ctx.db.insert("academicVerticals", {
       name: args.name,
@@ -129,11 +130,11 @@ export const createAcademicVertical = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateAcademicVertical = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     verticalId: v.id("academicVerticals"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -145,30 +146,30 @@ export const updateAcademicVertical = mutation({
     maximumAge: v.optional(v.number()),
     isActive: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { verticalId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "academicVerticals" }, async (ctx, args) => {
+    const { token: _token, verticalId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
     await ctx.db.patch(verticalId, updates);
-  },
+  }),
 });
 
 export const deleteAcademicVertical = mutation({
-  args: { verticalId: v.id("academicVerticals") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), verticalId: v.id("academicVerticals") },
+  handler: withScopeAndEvents({ operation: "delete", module: "academic", entity: "academicVerticals" }, async (ctx, args) => {
     await ctx.db.delete(args.verticalId);
-  },
+  }),
 });
 
 export const duplicateAcademicVertical = mutation({
-  args: { verticalId: v.id("academicVerticals") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), verticalId: v.id("academicVerticals") },
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "academicVerticals" }, async (ctx, args) => {
     const original = await ctx.db.get(args.verticalId);
     if (!original) throw new Error("Academic vertical not found");
     const allItems = await ctx.db.query("academicVerticals").collect();
-    const maxSeq = allItems.reduce((max, v) => Math.max(max, v.displayOrder), 0);
+    const maxSeq = allItems.reduce((max: any, v: any) => Math.max(max, v.displayOrder), 0);
     const now = Date.now();
     await ctx.db.insert("academicVerticals", {
       name: `${original.name} (Copy)`,
@@ -184,24 +185,24 @@ export const duplicateAcademicVertical = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const reorderAcademicVerticals = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     verticalIds: v.array(v.id("academicVerticals")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "academicVerticals" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.verticalIds.length; i++) {
       await ctx.db.patch(args.verticalIds[i], { displayOrder: i + 1, updatedAt: now });
     }
-  },
+  }),
 });
 
 export const seedDefaultAcademicVerticals = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "academicVerticals" }, async (ctx) => {
     const existing = await ctx.db.query("academicVerticals").collect();
     if (existing.length > 0) return { seeded: 0, message: "Academic verticals already exist" };
 
@@ -218,5 +219,5 @@ export const seedDefaultAcademicVerticals = mutation({
       });
     }
     return { seeded: DEFAULT_VERTICALS.length, message: "Default academic verticals created" };
-  },
+  }),
 });

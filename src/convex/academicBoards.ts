@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 const DEFAULT_BOARDS = [
   {
@@ -130,7 +131,7 @@ export const getAcademicBoard = query({
 });
 
 export const createAcademicBoard = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     shortName: v.string(),
@@ -142,9 +143,9 @@ export const createAcademicBoard = mutation({
     description: v.optional(v.string()),
     isActive: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "academicBoards" }, async (ctx, args) => {
     const allItems = await ctx.db.query("academicBoards").collect();
-    const maxSeq = allItems.reduce((max, b) => Math.max(max, b.displayOrder), 0);
+    const maxSeq = allItems.reduce((max: any, b: any) => Math.max(max, b.displayOrder), 0);
     const now = Date.now();
     return await ctx.db.insert("academicBoards", {
       name: args.name,
@@ -161,11 +162,11 @@ export const createAcademicBoard = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateAcademicBoard = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     boardId: v.id("academicBoards"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -178,30 +179,30 @@ export const updateAcademicBoard = mutation({
     description: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { boardId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "academicBoards" }, async (ctx, args) => {
+    const { token: _token, boardId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
     await ctx.db.patch(boardId, updates);
-  },
+  }),
 });
 
 export const deleteAcademicBoard = mutation({
-  args: { boardId: v.id("academicBoards") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), boardId: v.id("academicBoards") },
+  handler: withScopeAndEvents({ operation: "delete", module: "academic", entity: "academicBoards" }, async (ctx, args) => {
     await ctx.db.delete(args.boardId);
-  },
+  }),
 });
 
 export const duplicateAcademicBoard = mutation({
-  args: { boardId: v.id("academicBoards") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), boardId: v.id("academicBoards") },
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "academicBoards" }, async (ctx, args) => {
     const original = await ctx.db.get(args.boardId);
     if (!original) throw new Error("Academic board not found");
     const allItems = await ctx.db.query("academicBoards").collect();
-    const maxSeq = allItems.reduce((max, b) => Math.max(max, b.displayOrder), 0);
+    const maxSeq = allItems.reduce((max: any, b: any) => Math.max(max, b.displayOrder), 0);
     const now = Date.now();
     await ctx.db.insert("academicBoards", {
       name: `${original.name} (Copy)`,
@@ -218,24 +219,24 @@ export const duplicateAcademicBoard = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const reorderAcademicBoards = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     boardIds: v.array(v.id("academicBoards")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "academicBoards" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.boardIds.length; i++) {
       await ctx.db.patch(args.boardIds[i], { displayOrder: i + 1, updatedAt: now });
     }
-  },
+  }),
 });
 
 export const seedDefaultAcademicBoards = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "academicBoards" }, async (ctx) => {
     const existing = await ctx.db.query("academicBoards").collect();
     if (existing.length > 0) return { seeded: 0, message: "Academic boards already exist" };
 
@@ -252,5 +253,5 @@ export const seedDefaultAcademicBoards = mutation({
       });
     }
     return { seeded: DEFAULT_BOARDS.length, message: "Default academic boards created" };
-  },
+  }),
 });

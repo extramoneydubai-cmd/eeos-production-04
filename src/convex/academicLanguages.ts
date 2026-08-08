@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 const SEED_DATA: Array<{
   name: string;
@@ -44,7 +45,7 @@ export const getAcademicLanguage = query({
 });
 
 export const createAcademicLanguage = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     isoCode: v.string(),
@@ -55,9 +56,9 @@ export const createAcademicLanguage = mutation({
     isRTL: v.boolean(),
     active: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "academicLanguages" }, async (ctx, args) => {
     const allItems = await ctx.db.query("academicLanguages").collect();
-    const maxSeq = allItems.reduce((max, l) => Math.max(max, l.sequence), 0);
+    const maxSeq = allItems.reduce((max: any, l: any) => Math.max(max, l.sequence), 0);
     const now = Date.now();
     return await ctx.db.insert("academicLanguages", {
       name: args.name,
@@ -73,11 +74,11 @@ export const createAcademicLanguage = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateAcademicLanguage = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     languageId: v.id("academicLanguages"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -89,30 +90,30 @@ export const updateAcademicLanguage = mutation({
     isRTL: v.optional(v.boolean()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { languageId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "academicLanguages" }, async (ctx, args) => {
+    const { token: _token, languageId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
     await ctx.db.patch(languageId, updates);
-  },
+  }),
 });
 
 export const deleteAcademicLanguage = mutation({
-  args: { languageId: v.id("academicLanguages") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), languageId: v.id("academicLanguages") },
+  handler: withScopeAndEvents({ operation: "delete", module: "academic", entity: "academicLanguages" }, async (ctx, args) => {
     await ctx.db.delete(args.languageId);
-  },
+  }),
 });
 
 export const duplicateAcademicLanguage = mutation({
-  args: { languageId: v.id("academicLanguages") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), languageId: v.id("academicLanguages") },
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "academicLanguages" }, async (ctx, args) => {
     const original = await ctx.db.get(args.languageId);
     if (!original) throw new Error("Academic language not found");
     const allItems = await ctx.db.query("academicLanguages").collect();
-    const maxSeq = allItems.reduce((max, l) => Math.max(max, l.sequence), 0);
+    const maxSeq = allItems.reduce((max: any, l: any) => Math.max(max, l.sequence), 0);
     const now = Date.now();
     await ctx.db.insert("academicLanguages", {
       name: `${original.name} (Copy)`,
@@ -128,24 +129,24 @@ export const duplicateAcademicLanguage = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const reorderAcademicLanguages = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     languageIds: v.array(v.id("academicLanguages")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "academicLanguages" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.languageIds.length; i++) {
       await ctx.db.patch(args.languageIds[i], { sequence: i + 1, updatedAt: now });
     }
-  },
+  }),
 });
 
 export const seedDefaultAcademicLanguages = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "academicLanguages" }, async (ctx) => {
     const existing = await ctx.db.query("academicLanguages").collect();
     if (existing.length > 0) return { seeded: 0, message: "Academic languages already exist" };
 
@@ -168,5 +169,5 @@ export const seedDefaultAcademicLanguages = mutation({
       });
     }
     return { seeded: SEED_DATA.length, message: "Default academic languages created" };
-  },
+  }),
 });

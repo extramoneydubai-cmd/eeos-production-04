@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 /* ────────────
    SEED DATA
@@ -160,8 +161,8 @@ function baseFields(data: (typeof SEED_DATA)[number], sequence: number) {
    ──────────── */
 
 export const seedDefault = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmReferralSources" }, async (ctx) => {
     const existing = await ctx.db
       .query("crmReferralSources")
       .withIndex("sequence")
@@ -175,11 +176,11 @@ export const seedDefault = mutation({
       count++;
     }
     return { seeded: count };
-  },
+  }),
 });
 
 export const createReferralSource = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     referralCategory: v.string(),
@@ -188,12 +189,12 @@ export const createReferralSource = mutation({
     color: v.string(),
     icon: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmReferralSources" }, async (ctx, args) => {
     const all = await ctx.db
       .query("crmReferralSources")
       .withIndex("sequence")
       .collect();
-    const maxSeq = all.reduce((m, r) => Math.max(m, r.sequence), -1);
+    const maxSeq = all.reduce((m: any, r: any) => Math.max(m, r.sequence), -1);
     return ctx.db.insert("crmReferralSources", {
       ...args,
       description: args.description ?? "",
@@ -202,11 +203,11 @@ export const createReferralSource = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const updateReferralSource = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("crmReferralSources"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -217,33 +218,33 @@ export const updateReferralSource = mutation({
     icon: v.optional(v.string()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { id, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmReferralSources" }, async (ctx, args) => {
+    const { token: _token, id, ...fields } = args;
     const existing = await ctx.db.get(id);
     if (!existing) throw new Error("Referral source not found");
     return ctx.db.patch(id, { ...fields, updatedAt: Date.now() });
-  },
+  }),
 });
 
 export const deleteReferralSource = mutation({
-  args: { id: v.id("crmReferralSources") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("crmReferralSources") },
+  handler: withScopeAndEvents({ operation: "delete", module: "crm", entity: "crmReferralSources" }, async (ctx, args) => {
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Referral source not found");
     await ctx.db.delete(args.id);
-  },
+  }),
 });
 
 export const duplicateReferralSource = mutation({
-  args: { id: v.id("crmReferralSources") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("crmReferralSources") },
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmReferralSources" }, async (ctx, args) => {
     const source = await ctx.db.get(args.id);
     if (!source) throw new Error("Referral source not found");
     const all = await ctx.db
       .query("crmReferralSources")
       .withIndex("sequence")
       .collect();
-    const maxSeq = all.reduce((m, r) => Math.max(m, r.sequence), -1);
+    const maxSeq = all.reduce((m: any, r: any) => Math.max(m, r.sequence), -1);
     return ctx.db.insert("crmReferralSources", {
       name: `${source.name} (Copy)`,
       code: `${source.code}_COPY`,
@@ -257,21 +258,21 @@ export const duplicateReferralSource = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const reorderReferralSources = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     orderedIds: v.array(v.id("crmReferralSources")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmReferralSources" }, async (ctx, args) => {
     for (let i = 0; i < args.orderedIds.length; i++) {
       await ctx.db.patch(args.orderedIds[i], {
         sequence: i,
         updatedAt: Date.now(),
       });
     }
-  },
+  }),
 });
 
 /* ────────────

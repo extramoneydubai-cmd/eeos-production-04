@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 const DEFAULT_TYPES = [
   { name: "Course Enquiry", code: "COURSE", category: "Academic", color: "#4285f4", icon: "BookOpen", description: "Enquiry about course details, syllabus, and curriculum" },
@@ -32,7 +33,7 @@ export const getEnquiryType = query({
 });
 
 export const createEnquiryType = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     educationCategory: v.string(),
@@ -41,9 +42,9 @@ export const createEnquiryType = mutation({
     description: v.optional(v.string()),
     active: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmEnquiryTypes" }, async (ctx, args) => {
     const all = await ctx.db.query("crmEnquiryTypes").collect();
-    const maxSeq = all.reduce((max, t) => Math.max(max, t.sequence), 0);
+    const maxSeq = all.reduce((max: any, t: any) => Math.max(max, t.sequence), 0);
     const now = Date.now();
     return await ctx.db.insert("crmEnquiryTypes", {
       name: args.name,
@@ -57,11 +58,11 @@ export const createEnquiryType = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateEnquiryType = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     enquiryTypeId: v.id("crmEnquiryTypes"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -71,30 +72,30 @@ export const updateEnquiryType = mutation({
     description: v.optional(v.string()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { enquiryTypeId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmEnquiryTypes" }, async (ctx, args) => {
+    const { token: _token, enquiryTypeId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
     await ctx.db.patch(enquiryTypeId, updates);
-  },
+  }),
 });
 
 export const deleteEnquiryType = mutation({
-  args: { enquiryTypeId: v.id("crmEnquiryTypes") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), enquiryTypeId: v.id("crmEnquiryTypes") },
+  handler: withScopeAndEvents({ operation: "delete", module: "crm", entity: "crmEnquiryTypes" }, async (ctx, args) => {
     await ctx.db.delete(args.enquiryTypeId);
-  },
+  }),
 });
 
 export const duplicateEnquiryType = mutation({
-  args: { enquiryTypeId: v.id("crmEnquiryTypes") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), enquiryTypeId: v.id("crmEnquiryTypes") },
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmEnquiryTypes" }, async (ctx, args) => {
     const original = await ctx.db.get(args.enquiryTypeId);
     if (!original) throw new Error("Enquiry type not found");
     const all = await ctx.db.query("crmEnquiryTypes").collect();
-    const maxSeq = all.reduce((max, t) => Math.max(max, t.sequence), 0);
+    const maxSeq = all.reduce((max: any, t: any) => Math.max(max, t.sequence), 0);
     const now = Date.now();
     await ctx.db.insert("crmEnquiryTypes", {
       name: `${original.name} (Copy)`,
@@ -108,24 +109,24 @@ export const duplicateEnquiryType = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const reorderEnquiryTypes = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     enquiryTypeIds: v.array(v.id("crmEnquiryTypes")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmEnquiryTypes" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.enquiryTypeIds.length; i++) {
       await ctx.db.patch(args.enquiryTypeIds[i], { sequence: i + 1, updatedAt: now });
     }
-  },
+  }),
 });
 
 export const seedDefaultEnquiryTypes = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmEnquiryTypes" }, async (ctx) => {
     const existing = await ctx.db.query("crmEnquiryTypes").collect();
     if (existing.length > 0) return { seeded: 0, message: "Enquiry types already exist" };
 
@@ -146,5 +147,5 @@ export const seedDefaultEnquiryTypes = mutation({
       });
     }
     return { seeded: DEFAULT_TYPES.length, message: "Default enquiry types created" };
-  },
+  }),
 });

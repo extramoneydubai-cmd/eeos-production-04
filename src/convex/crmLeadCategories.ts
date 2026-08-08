@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 const SEED_DATA = [
   { name: "Student", code: "STUDENT", categoryType: "Individual", description: "Prospective or current student", color: "#1a73e8", icon: "GraduationCap" },
@@ -32,8 +33,8 @@ function baseFields(data: (typeof SEED_DATA)[number], sequence: number) {
 }
 
 export const seedDefault = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmLeadCategories" }, async (ctx) => {
     const existing = await ctx.db.query("crmLeadCategories").withIndex("sequence").collect();
     if (existing.length > 0) return { seeded: 0, message: "Already seeded" };
     let count = 0;
@@ -42,11 +43,11 @@ export const seedDefault = mutation({
       count++;
     }
     return { seeded: count };
-  },
+  }),
 });
 
 export const createLeadCategory = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     categoryType: v.string(),
@@ -54,9 +55,9 @@ export const createLeadCategory = mutation({
     color: v.string(),
     icon: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmLeadCategories" }, async (ctx, args) => {
     const all = await ctx.db.query("crmLeadCategories").withIndex("sequence").collect();
-    const maxSeq = all.reduce((m, r) => Math.max(m, r.sequence), -1);
+    const maxSeq = all.reduce((m: any, r: any) => Math.max(m, r.sequence), -1);
     return ctx.db.insert("crmLeadCategories", {
       ...args,
       description: args.description ?? "",
@@ -65,11 +66,11 @@ export const createLeadCategory = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const updateLeadCategory = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("crmLeadCategories"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -79,30 +80,30 @@ export const updateLeadCategory = mutation({
     icon: v.optional(v.string()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { id, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmLeadCategories" }, async (ctx, args) => {
+    const { token: _token, id, ...fields } = args;
     const existing = await ctx.db.get(id);
     if (!existing) throw new Error("Lead category not found");
     return ctx.db.patch(id, { ...fields, updatedAt: Date.now() });
-  },
+  }),
 });
 
 export const deleteLeadCategory = mutation({
-  args: { id: v.id("crmLeadCategories") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("crmLeadCategories") },
+  handler: withScopeAndEvents({ operation: "delete", module: "crm", entity: "crmLeadCategories" }, async (ctx, args) => {
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Lead category not found");
     await ctx.db.delete(args.id);
-  },
+  }),
 });
 
 export const duplicateLeadCategory = mutation({
-  args: { id: v.id("crmLeadCategories") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("crmLeadCategories") },
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmLeadCategories" }, async (ctx, args) => {
     const source = await ctx.db.get(args.id);
     if (!source) throw new Error("Lead category not found");
     const all = await ctx.db.query("crmLeadCategories").withIndex("sequence").collect();
-    const maxSeq = all.reduce((m, r) => Math.max(m, r.sequence), -1);
+    const maxSeq = all.reduce((m: any, r: any) => Math.max(m, r.sequence), -1);
     return ctx.db.insert("crmLeadCategories", {
       name: `${source.name} (Copy)`,
       code: `${source.code}_COPY`,
@@ -115,16 +116,16 @@ export const duplicateLeadCategory = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const reorderLeadCategories = mutation({
-  args: { orderedIds: v.array(v.id("crmLeadCategories")) },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), orderedIds: v.array(v.id("crmLeadCategories")) },
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmLeadCategories" }, async (ctx, args) => {
     for (let i = 0; i < args.orderedIds.length; i++) {
       await ctx.db.patch(args.orderedIds[i], { sequence: i, updatedAt: Date.now() });
     }
-  },
+  }),
 });
 
 export const listLeadCategories = query({

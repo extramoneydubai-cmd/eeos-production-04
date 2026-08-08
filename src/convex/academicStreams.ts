@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 const EDUCATION_LEVELS = [
   "Secondary",
@@ -51,7 +52,7 @@ export const getAcademicStream = query({
 });
 
 export const createAcademicStream = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     educationLevel: v.string(),
@@ -60,9 +61,9 @@ export const createAcademicStream = mutation({
     icon: v.string(),
     active: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "academicStreams" }, async (ctx, args) => {
     const allItems = await ctx.db.query("academicStreams").collect();
-    const maxSeq = allItems.reduce((max, s) => Math.max(max, s.sequence), 0);
+    const maxSeq = allItems.reduce((max: any, s: any) => Math.max(max, s.sequence), 0);
     const now = Date.now();
     return await ctx.db.insert("academicStreams", {
       name: args.name,
@@ -76,11 +77,11 @@ export const createAcademicStream = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateAcademicStream = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     streamId: v.id("academicStreams"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -90,30 +91,30 @@ export const updateAcademicStream = mutation({
     icon: v.optional(v.string()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { streamId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "academicStreams" }, async (ctx, args) => {
+    const { token: _token, streamId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
     await ctx.db.patch(streamId, updates);
-  },
+  }),
 });
 
 export const deleteAcademicStream = mutation({
-  args: { streamId: v.id("academicStreams") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), streamId: v.id("academicStreams") },
+  handler: withScopeAndEvents({ operation: "delete", module: "academic", entity: "academicStreams" }, async (ctx, args) => {
     await ctx.db.delete(args.streamId);
-  },
+  }),
 });
 
 export const duplicateAcademicStream = mutation({
-  args: { streamId: v.id("academicStreams") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), streamId: v.id("academicStreams") },
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "academicStreams" }, async (ctx, args) => {
     const original = await ctx.db.get(args.streamId);
     if (!original) throw new Error("Academic stream not found");
     const allItems = await ctx.db.query("academicStreams").collect();
-    const maxSeq = allItems.reduce((max, s) => Math.max(max, s.sequence), 0);
+    const maxSeq = allItems.reduce((max: any, s: any) => Math.max(max, s.sequence), 0);
     const now = Date.now();
     await ctx.db.insert("academicStreams", {
       name: `${original.name} (Copy)`,
@@ -127,24 +128,24 @@ export const duplicateAcademicStream = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const reorderAcademicStreams = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     streamIds: v.array(v.id("academicStreams")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "academicStreams" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.streamIds.length; i++) {
       await ctx.db.patch(args.streamIds[i], { sequence: i + 1, updatedAt: now });
     }
-  },
+  }),
 });
 
 export const seedDefaultAcademicStreams = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "academicStreams" }, async (ctx) => {
     const existing = await ctx.db.query("academicStreams").collect();
     if (existing.length > 0) return { seeded: 0, message: "Academic streams already exist" };
 
@@ -165,5 +166,5 @@ export const seedDefaultAcademicStreams = mutation({
       });
     }
     return { seeded: SEED_DATA.length, message: "Default academic streams created" };
-  },
+  }),
 });
