@@ -8,9 +8,10 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 export const initiateExit = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     employeeId: v.id("users"),
     resignationDate: v.number(),
     lastWorkingDay: v.number(),
@@ -18,8 +19,8 @@ export const initiateExit = mutation({
     reasonCategory: v.union(v.literal("resignation"), v.literal("retirement"), v.literal("termination"), v.literal("mutual"), v.literal("end_of_contract")),
     comments: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "update", module: "hr", entity: "exitEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const exitId = await ctx.db.insert("exitRecords", {
@@ -50,17 +51,17 @@ export const initiateExit = mutation({
     }
 
     return exitId;
-  },
+  }),
 });
 
 export const updateClearanceItem = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("exitClearanceItems"),
     status: v.union(v.literal("cleared"), v.literal("pending"), v.literal("waived")),
     clearedBy: v.optional(v.id("users")),
     comments: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "hr", entity: "exitEngine" }, async (ctx, args) => {
     await ctx.db.patch(args.id, {
       status: args.status,
       clearedBy: args.clearedBy,
@@ -69,11 +70,11 @@ export const updateClearanceItem = mutation({
       updatedAt: Date.now(),
     });
     return args.id;
-  },
+  }),
 });
 
 export const processFullFinal = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     exitId: v.id("exitRecords"),
     salaryDues: v.number(),
     noticePeriodDeduction: v.optional(v.number()),
@@ -81,7 +82,7 @@ export const processFullFinal = mutation({
     netPayable: v.number(),
     paymentReference: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "hr", entity: "exitEngine" }, async (ctx, args) => {
     await ctx.db.patch(args.exitId, {
       fullFinalAmount: args.netPayable,
       fullFinalStatus: "processed",
@@ -94,7 +95,7 @@ export const processFullFinal = mutation({
       salaryDues: args.salaryDues,
       noticePeriodDeduction: args.noticePeriodDeduction || 0,
       otherDeductions: args.otherDeductions,
-      totalDeductions: (args.noticePeriodDeduction || 0) + (args.otherDeductions || []).reduce((s: number, d) => s + d.amount, 0),
+      totalDeductions: (args.noticePeriodDeduction || 0) + (args.otherDeductions || []).reduce((s: number, d: any) => s + d.amount, 0),
       netPayable: args.netPayable,
       paymentReference: args.paymentReference,
       status: "pending_payment",
@@ -103,18 +104,18 @@ export const processFullFinal = mutation({
     });
 
     return args.exitId;
-  },
+  }),
 });
 
 export const completeExit = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     exitId: v.id("exitRecords"),
     eligibleForExperienceLetter: v.optional(v.boolean()),
     feedbackScore: v.optional(v.number()),
     rehireEligible: v.optional(v.boolean()),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "hr", entity: "exitEngine" }, async (ctx, args) => {
     const exit = await ctx.db.get(args.exitId);
     if (!exit) throw new Error("Exit record not found");
 
@@ -142,7 +143,7 @@ export const completeExit = mutation({
     }
 
     return args.exitId;
-  },
+  }),
 });
 
 export const listExitRecords = query({

@@ -1,10 +1,11 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Profile CRUD ────────────────────────────────────────
 
 export const addProfile = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     personId: v.id("personMaster"),
     profileType: v.string(),
     profileReferenceId: v.optional(v.string()),
@@ -16,7 +17,7 @@ export const addProfile = mutation({
     endDate: v.optional(v.number()),
     metadata: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "hr", entity: "profileEngine" }, async (ctx, args) => {
     const now = Date.now();
     const isActive = args.active !== undefined ? args.active : true;
     const isPrimary = args.primaryProfile !== undefined ? args.primaryProfile : false;
@@ -25,7 +26,7 @@ export const addProfile = mutation({
     if (isPrimary) {
       const existingProfiles = await ctx.db
         .query("personProfiles")
-        .withIndex("personId_profileType", (q) =>
+        .withIndex("personId_profileType", (q: any) =>
           q.eq("personId", args.personId).eq("profileType", args.profileType)
         )
         .collect();
@@ -50,11 +51,11 @@ export const addProfile = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateProfile = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     profileId: v.id("personProfiles"),
     profileType: v.optional(v.string()),
     profileReferenceId: v.optional(v.string()),
@@ -66,8 +67,8 @@ export const updateProfile = mutation({
     endDate: v.optional(v.number()),
     metadata: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const { profileId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "hr", entity: "profileEngine" }, async (ctx, args) => {
+    const { token: _token, profileId, ...fields } = args;
     const existing = await ctx.db.get(profileId);
     if (!existing) throw new Error("Profile not found");
 
@@ -82,7 +83,7 @@ export const updateProfile = mutation({
       const profileType = args.profileType || existing.profileType;
       const allProfiles = await ctx.db
         .query("personProfiles")
-        .withIndex("personId_profileType", (q) =>
+        .withIndex("personId_profileType", (q: any) =>
           q.eq("personId", existing.personId).eq("profileType", profileType)
         )
         .collect();
@@ -95,30 +96,30 @@ export const updateProfile = mutation({
 
     await ctx.db.patch(profileId, updates);
     return profileId;
-  },
+  }),
 });
 
 export const removeProfile = mutation({
-  args: { profileId: v.id("personProfiles") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), profileId: v.id("personProfiles") },
+  handler: withScopeAndEvents({ operation: "delete", module: "hr", entity: "profileEngine" }, async (ctx, args) => {
     const existing = await ctx.db.get(args.profileId);
     if (!existing) throw new Error("Profile not found");
     await ctx.db.delete(args.profileId);
     return args.profileId;
-  },
+  }),
 });
 
 export const setPrimaryProfile = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     personId: v.id("personMaster"),
     profileType: v.string(),
     profileId: v.id("personProfiles"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "hr", entity: "profileEngine" }, async (ctx, args) => {
     const now = Date.now();
     const allProfiles = await ctx.db
       .query("personProfiles")
-      .withIndex("personId_profileType", (q) =>
+      .withIndex("personId_profileType", (q: any) =>
         q.eq("personId", args.personId).eq("profileType", args.profileType)
       )
       .collect();
@@ -130,7 +131,7 @@ export const setPrimaryProfile = mutation({
       });
     }
     return args.profileId;
-  },
+  }),
 });
 
 // ─── Queries ────────────────────────────────────────────

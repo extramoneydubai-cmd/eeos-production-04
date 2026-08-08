@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── HELPERS ───────────────────────────────────────────────
 
@@ -38,10 +39,10 @@ function wrapHtmlBody(body: string, subject?: string): string {
 // ─── EMAIL QUEUE PROCESSING ────────────────────────────────
 
 export const processEmailQueue = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     batchSize: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "communication", entity: "emailEngine" }, async (ctx, args) => {
     const batchSize = args.batchSize || 10;
 
     // Get queued emails that need processing
@@ -112,7 +113,7 @@ export const processEmailQueue = mutation({
     }
 
     return { processed: results.length, results };
-  },
+  }),
 });
 
 // ─── EMAIL PROVIDER STATUS ─────────────────────────────────
@@ -138,13 +139,13 @@ export const getEmailStats = query({
 // ─── PROVIDER CALLBACK (WEBHOOK RECEIVER PLACEHOLDER) ──────
 
 export const handleProviderCallback = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     queueId: v.id("communicationQueue"),
     status: v.union(v.literal("delivered"), v.literal("read"), v.literal("failed"), v.literal("bounced"), v.literal("spam")),
     providerMessageId: v.optional(v.string()),
     errorMessage: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "communication", entity: "emailEngine" }, async (ctx, args) => {
     const msg = await ctx.db.get(args.queueId);
     if (!msg) throw new Error("Message not found");
 
@@ -174,5 +175,5 @@ export const handleProviderCallback = mutation({
     });
 
     return args.queueId;
-  },
+  }),
 });

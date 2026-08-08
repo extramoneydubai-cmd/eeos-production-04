@@ -9,6 +9,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ═══════════════════════════════════════════════════════════════════
 // FINANCIAL YEARS & PERIODS
@@ -33,14 +34,14 @@ export const getCurrentFinancialYear = query({
 });
 
 export const createFinancialYear = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(), code: v.string(),
     startDate: v.number(), endDate: v.number(),
     isCurrent: v.boolean(),
     description: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "finance", entity: "financialClosingEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
     const now = Date.now();
     return await ctx.db.insert("financeFinancialYears", {
@@ -49,18 +50,18 @@ export const createFinancialYear = mutation({
       color: "#3b82f6", icon: "Calendar",
       createdAt: now, updatedAt: now,
     });
-  },
+  }),
 });
 
 export const setCurrentFinancialYear = mutation({
-  args: { id: v.id("financeFinancialYears") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("financeFinancialYears") },
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "financialClosingEngine" }, async (ctx, args) => {
     const all = await ctx.db.query("financeFinancialYears").collect();
     for (const fy of all) {
       await ctx.db.patch(fy._id, { isCurrent: fy._id === args.id });
     }
     return args.id;
-  },
+  }),
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -81,15 +82,15 @@ export const listClosingPeriods = query({
 });
 
 export const initiateClosing = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     periodType: v.union(v.literal("month"), v.literal("quarter"), v.literal("year")),
     periodLabel: v.string(),
     periodStart: v.number(),
     periodEnd: v.number(),
     financialYearId: v.optional(v.id("financeFinancialYears")),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "financialClosingEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
     const now = Date.now();
 
@@ -126,16 +127,16 @@ export const initiateClosing = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const completeClosing = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("financialClosings"),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "financialClosingEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
     const now = Date.now();
 
@@ -151,16 +152,16 @@ export const completeClosing = mutation({
     // (Convex-level enforcement would check closing status)
 
     return args.id;
-  },
+  }),
 });
 
 export const reopenPeriod = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("financialClosings"),
     reason: v.string(),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "financialClosingEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const closing = await ctx.db.get(args.id);
@@ -174,21 +175,21 @@ export const reopenPeriod = mutation({
     });
 
     return args.id;
-  },
+  }),
 });
 
 export const updateClosingChecklist = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("financialClosings"),
     checklistItems: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "financialClosingEngine" }, async (ctx, args) => {
     await ctx.db.patch(args.id, {
       checklistItems: args.checklistItems,
       updatedAt: Date.now(),
     });
     return args.id;
-  },
+  }),
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -237,7 +238,7 @@ export const listSalaryComponents = query({
 });
 
 export const createSalaryComponent = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(), code: v.string(),
     componentType: v.union(v.literal("earning"), v.literal("deduction"), v.literal("employer_contribution")),
     calculationType: v.union(v.literal("fixed"), v.literal("percentage"), v.literal("formula")),
@@ -245,16 +246,16 @@ export const createSalaryComponent = mutation({
     isTaxable: v.boolean(),
     description: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "finance", entity: "financialClosingEngine" }, async (ctx, args) => {
     const now = Date.now();
     return await ctx.db.insert("hrSalaryComponents", {
       ...args, isActive: true, createdAt: now, updatedAt: now,
     });
-  },
+  }),
 });
 
 export const createEmployeeAdvance = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     employeeId: v.id("users"),
     amount: v.number(),
     reason: v.string(),
@@ -262,8 +263,8 @@ export const createEmployeeAdvance = mutation({
     installmentCount: v.optional(v.number()),
     installmentAmount: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "finance", entity: "financialClosingEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
     const now = Date.now();
     return await ctx.db.insert("employeeAdvances", {
@@ -274,7 +275,7 @@ export const createEmployeeAdvance = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const listEmployeeAdvances = query({
@@ -288,11 +289,11 @@ export const listEmployeeAdvances = query({
 });
 
 export const repayEmployeeAdvance = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("employeeAdvances"),
     amount: v.number(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "financialClosingEngine" }, async (ctx, args) => {
     const advance = await ctx.db.get(args.id);
     if (!advance) throw new Error("Advance not found");
     const advanceData = advance as any;
@@ -307,5 +308,5 @@ export const repayEmployeeAdvance = mutation({
     });
 
     return args.id;
-  },
+  }),
 });

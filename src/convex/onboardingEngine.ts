@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── DEFAULT ONBOARDING CHECKLIST ITEMS ────────────────────
 
@@ -20,15 +21,15 @@ export const DEFAULT_ONBOARDING_ITEMS = [
 // ─── ONBOARDING TASK MANAGEMENT ────────────────────────────
 
 export const createOnboardingTask = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     candidateId: v.id("candidates"),
     checklistItem: v.string(),
     assignedTo: v.optional(v.id("users")),
     dueDate: v.optional(v.number()),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "create", module: "hr", entity: "onboardingEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
 
     const id = await ctx.db.insert("onboardingTasks", {
@@ -42,16 +43,16 @@ export const createOnboardingTask = mutation({
     });
 
     return id;
-  },
+  }),
 });
 
 export const generateDefaultOnboarding = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     candidateId: v.id("candidates"),
     employeeId: v.optional(v.id("employeeMaster")),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "create", module: "hr", entity: "onboardingEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
 
     const now = Date.now();
@@ -74,33 +75,33 @@ export const generateDefaultOnboarding = mutation({
       eventType: "onboarding_started",
       title: "Onboarding Started",
       description: `${DEFAULT_ONBOARDING_ITEMS.length} onboarding tasks created`,
-      performedBy: identity.subject as any,
+      performedBy: ctx.__performerUserId as any,
       createdAt: now,
     });
 
     return taskIds;
-  },
+  }),
 });
 
 export const updateOnboardingTask = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     taskId: v.id("onboardingTasks"),
     assignedTo: v.optional(v.id("users")),
     dueDate: v.optional(v.number()),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const { taskId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "hr", entity: "onboardingEngine" }, async (ctx, args) => {
+    const { token: _token, taskId, ...fields } = args;
     await ctx.db.patch(taskId, { ...fields });
     return taskId;
-  },
+  }),
 });
 
 export const completeOnboardingTask = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     taskId: v.id("onboardingTasks"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "hr", entity: "onboardingEngine" }, async (ctx, args) => {
     const task = await ctx.db.get(args.taskId);
     if (!task) throw new Error("Task not found");
 
@@ -110,35 +111,35 @@ export const completeOnboardingTask = mutation({
     });
 
     return args.taskId;
-  },
+  }),
 });
 
 export const uncompleteOnboardingTask = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     taskId: v.id("onboardingTasks"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "hr", entity: "onboardingEngine" }, async (ctx, args) => {
     await ctx.db.patch(args.taskId, {
       completed: false,
       completedAt: undefined,
     });
     return args.taskId;
-  },
+  }),
 });
 
 export const deleteOnboardingTask = mutation({
-  args: { taskId: v.id("onboardingTasks") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), taskId: v.id("onboardingTasks") },
+  handler: withScopeAndEvents({ operation: "delete", module: "hr", entity: "onboardingEngine" }, async (ctx, args) => {
     await ctx.db.delete(args.taskId);
-  },
+  }),
 });
 
 export const linkEmployeeToOnboarding = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     candidateId: v.id("candidates"),
     employeeId: v.id("employeeMaster"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "hr", entity: "onboardingEngine" }, async (ctx, args) => {
     const tasks = await ctx.db
       .query("onboardingTasks")
       .withIndex("candidateId", (q: any) => q.eq("candidateId", args.candidateId))
@@ -149,7 +150,7 @@ export const linkEmployeeToOnboarding = mutation({
     }
 
     return tasks.length;
-  },
+  }),
 });
 
 // ─── QUERIES ───────────────────────────────────────────────

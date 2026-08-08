@@ -14,6 +14,7 @@ import { v } from "convex/values";
 import { mutation, query, QueryCtx } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { ScopeEngine } from "./scopeEngine";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Scope Types ───────────────────────────────────────────────
 
@@ -411,12 +412,12 @@ export const getAcademicTree = query({
 });
 
 export const simulateLogin = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     adminUserId: v.id("users"),
     targetUserId: v.id("users"),
     reason: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "platform", entity: "accessEngine" }, async (ctx, args) => {
     const admin = await ctx.db.get(args.adminUserId);
     if (!admin) throw new Error("Admin not found");
     if ((admin as any).role !== "super_admin" && (admin as any).role !== "admin") {
@@ -449,7 +450,7 @@ export const simulateLogin = mutation({
         role: (target as any).role,
       },
     };
-  },
+  }),
 });
 
 export const getAccessAnalytics = query({

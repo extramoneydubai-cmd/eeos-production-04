@@ -1,11 +1,12 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── KPI DEFINITIONS CRUD ─────────────────────────
 
 export const createKpiDefinition = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     description: v.optional(v.string()),
@@ -27,7 +28,7 @@ export const createKpiDefinition = mutation({
     color: v.optional(v.string()),
     displayOrder: v.number(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "reports", entity: "analyticsEngine" }, async (ctx, args) => {
     const { aggregation, targetValue, ...rest } = args;
     return ctx.db.insert("kpiDefinitions", {
       ...rest,
@@ -39,7 +40,7 @@ export const createKpiDefinition = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     } as any);
-  },
+  }),
 });
 
 export const listKpiDefinitions = query({
@@ -63,13 +64,13 @@ export const listKpiDefinitions = query({
 // ─── KPI VALUE CALCULATION ──────────────────────
 
 export const calculateKpi = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     kpiId: v.id("kpiDefinitions"),
     period: v.string(),
     periodStart: v.number(),
     periodEnd: v.number(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "reports", entity: "analyticsEngine" }, async (ctx, args) => {
     const kpi = await ctx.db.get(args.kpiId);
     if (!kpi) throw new Error("KPI not found");
 
@@ -85,7 +86,7 @@ export const calculateKpi = mutation({
     });
 
     return { snapshotId, value };
-  },
+  }),
 });
 
 async function computeKpiValue(ctx: any, dataSource: string, aggregation: string, periodStart: number, periodEnd: number): Promise<number> {
@@ -292,12 +293,12 @@ export const getKpiDashboardCards = query({
 // ─── BULK GENERATE ALL KPI SNAPSHOTS ────────────
 
 export const generateAllKpiSnapshots = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     period: v.string(),
     periodStart: v.number(),
     periodEnd: v.number(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "reports", entity: "analyticsEngine" }, async (ctx, args) => {
     const kpis = await ctx.db.query("kpiDefinitions")
       .filter((q: any) => q.eq(q.field("isActive"), true))
       .collect();
@@ -319,7 +320,7 @@ export const generateAllKpiSnapshots = mutation({
     }
 
     return results;
-  },
+  }),
 });
 
 // ─── MODULE-SPECIFIC DASHBOARD AGGREGATORS ──────

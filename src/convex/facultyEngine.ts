@@ -8,6 +8,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Faculty Schedule ──────────────────────────────────────
 
@@ -35,15 +36,15 @@ export const getFacultyClasses = query({
 // ─── Homework Management ───────────────────────────────────
 
 export const createHomework = mutation({
-  args: { title: v.string(), description: v.string(), batchId: v.id("academicBatches"), subjectId: v.id("academicSubjects"), dueDate: v.number(), attachments: v.optional(v.array(v.string())), createdBy: v.id("users") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), title: v.string(), description: v.string(), batchId: v.id("academicBatches"), subjectId: v.id("academicSubjects"), dueDate: v.number(), attachments: v.optional(v.array(v.string())), createdBy: v.id("users") },
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "facultyEngine" }, async (ctx, args) => {
     const now = Date.now();
     return ctx.db.insert("homework", {
       title: args.title, description: args.description, batchId: args.batchId,
       subjectId: args.subjectId, dueDate: args.dueDate, attachments: args.attachments,
       status: "assigned", createdBy: args.createdBy, createdAt: now, updatedAt: now,
     });
-  },
+  }),
 });
 
 export const listHomework = query({
@@ -59,10 +60,10 @@ export const listHomework = query({
 // ─── Question Bank ─────────────────────────────────────────
 
 export const createQuestion = mutation({
-  args: { question: v.string(), questionType: v.union(v.literal("mcq"), v.literal("true_false"), v.literal("short_answer"), v.literal("long_answer"), v.literal("numerical")), options: v.optional(v.array(v.string())), correctAnswer: v.optional(v.string()), marks: v.number(), subjectId: v.id("academicSubjects"), difficulty: v.optional(v.union(v.literal("easy"), v.literal("medium"), v.literal("hard"))), tags: v.optional(v.array(v.string())), createdBy: v.id("users") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), question: v.string(), questionType: v.union(v.literal("mcq"), v.literal("true_false"), v.literal("short_answer"), v.literal("long_answer"), v.literal("numerical")), options: v.optional(v.array(v.string())), correctAnswer: v.optional(v.string()), marks: v.number(), subjectId: v.id("academicSubjects"), difficulty: v.optional(v.union(v.literal("easy"), v.literal("medium"), v.literal("hard"))), tags: v.optional(v.array(v.string())), createdBy: v.id("users") },
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "facultyEngine" }, async (ctx, args) => {
     return ctx.db.insert("questionBank", { ...args, createdAt: Date.now(), updatedAt: Date.now() });
-  },
+  }),
 });
 
 export const listQuestions = query({
@@ -79,18 +80,18 @@ export const listQuestions = query({
 // ─── Exam Creation ─────────────────────────────────────────
 
 export const createExam = mutation({
-  args: { title: v.string(), batchId: v.id("academicBatches"), subjectId: v.id("academicSubjects"), examDate: v.number(), duration: v.number(), totalMarks: v.number(), passingMarks: v.number(), questionIds: v.optional(v.array(v.id("questionBank"))), instructions: v.optional(v.string()), createdBy: v.id("users") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), title: v.string(), batchId: v.id("academicBatches"), subjectId: v.id("academicSubjects"), examDate: v.number(), duration: v.number(), totalMarks: v.number(), passingMarks: v.number(), questionIds: v.optional(v.array(v.id("questionBank"))), instructions: v.optional(v.string()), createdBy: v.id("users") },
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "facultyEngine" }, async (ctx, args) => {
     return ctx.db.insert("exams", { ...args, status: "draft", createdAt: Date.now(), updatedAt: Date.now() });
-  },
+  }),
 });
 
 export const publishExam = mutation({
-  args: { id: v.id("exams") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("exams") },
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "facultyEngine" }, async (ctx, args) => {
     await ctx.db.patch(args.id, { status: "published", publishedAt: Date.now(), updatedAt: Date.now() });
     return args.id;
-  },
+  }),
 });
 
 export const listExams = query({

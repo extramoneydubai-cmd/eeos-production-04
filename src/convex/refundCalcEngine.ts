@@ -8,6 +8,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Refund Calculation ─────────────────────────────────────
 
@@ -126,7 +127,7 @@ export const calculateRefund = query({
 // ─── Refund Policy Management ──────────────────────────────
 
 export const createRefundPolicy = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     description: v.optional(v.string()),
     nonRefundableAmount: v.optional(v.number()),
@@ -138,7 +139,7 @@ export const createRefundPolicy = mutation({
     })),
     isDefault: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "finance", entity: "refundCalcEngine" }, async (ctx, args) => {
     if (args.isDefault) {
       // Deactivate all other policies
       const existing = await ctx.db.query("refundPolicies").collect();
@@ -156,7 +157,7 @@ export const createRefundPolicy = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const listRefundPolicies = query({
@@ -166,15 +167,15 @@ export const listRefundPolicies = query({
 // ─── Create Refund with Auto-Calculation ────────────────────
 
 export const createCalculatedRefund = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     withdrawalDate: v.number(),
     reasonCategory: v.union(v.literal("academic"), v.literal("administrative"), v.literal("financial"), v.literal("withdrawal"), v.literal("other")),
     reason: v.string(),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "finance", entity: "refundCalcEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     // Calculate refund
@@ -205,5 +206,5 @@ export const createCalculatedRefund = mutation({
       refundId,
       calculation,
     };
-  },
+  }),
 });

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ═══════════════════════════════════════════════════════════════════
 // REVALUATION QUERIES
@@ -73,7 +74,7 @@ export const getRevaluationStats = query({
 // ═══════════════════════════════════════════════════════════════════
 
 export const requestRevaluation = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     examSessionId: v.id("examSessions"),
     studentId: v.id("personMaster"),
     examSubjectId: v.id("examSubjects"),
@@ -87,8 +88,8 @@ export const requestRevaluation = mutation({
     fee: v.optional(v.number()),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "revaluationEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
 
     const now = Date.now();
@@ -96,7 +97,7 @@ export const requestRevaluation = mutation({
     // Get original marks
     const marksEntry = await ctx.db
       .query("examMarks")
-      .filter((q) => q.and(
+      .filter((q: any) => q.and(
         q.eq(q.field("examSessionId"), args.examSessionId),
         q.eq(q.field("studentId"), args.studentId),
         q.eq(q.field("examSubjectId"), args.examSubjectId),
@@ -126,23 +127,23 @@ export const requestRevaluation = mutation({
       examSessionId: args.examSessionId,
       eventType: "revaluation_requested",
       description: `${args.revaluationType} requested for student`,
-      userId: identity.subject as any,
+      userId: ctx.__performerUserId as any,
       createdAt: now,
     });
 
     return id;
-  },
+  }),
 });
 
 export const reviewRevaluation = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("examRevaluation"),
     status: v.union(v.literal("under_review"), v.literal("approved"), v.literal("rejected"), v.literal("completed")),
     revisedMarks: v.optional(v.number()),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "revaluationEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
 
     const now = Date.now();
@@ -150,7 +151,7 @@ export const reviewRevaluation = mutation({
 
     await ctx.db.patch(id, {
       ...updates,
-      reviewedBy: identity.subject as any,
+      reviewedBy: ctx.__performerUserId as any,
       reviewedAt: now,
       updatedAt: now,
     });
@@ -161,7 +162,7 @@ export const reviewRevaluation = mutation({
         examSessionId: reval.examSessionId,
         eventType: `revaluation_${args.status}`,
         description: `Revaluation ${args.status}`,
-        userId: identity.subject as any,
+        userId: ctx.__performerUserId as any,
         createdAt: now,
       });
 
@@ -169,7 +170,7 @@ export const reviewRevaluation = mutation({
       if ((args.status === "approved" || args.status === "completed") && args.revisedMarks != null) {
         const marksEntry = await ctx.db
           .query("examMarks")
-          .filter((q) => q.and(
+          .filter((q: any) => q.and(
             q.eq(q.field("examSessionId"), reval.examSessionId),
             q.eq(q.field("studentId"), reval.studentId),
             q.eq(q.field("examSubjectId"), reval.examSubjectId),
@@ -179,7 +180,7 @@ export const reviewRevaluation = mutation({
         if (marksEntry) {
           await ctx.db.patch(marksEntry._id, {
             moderatedMarks: args.revisedMarks,
-            moderatedBy: identity.subject as any,
+            moderatedBy: ctx.__performerUserId as any,
             moderatedAt: now,
             moderationNotes: "Revised via revaluation",
             updatedAt: now,
@@ -189,29 +190,29 @@ export const reviewRevaluation = mutation({
     }
 
     return id;
-  },
+  }),
 });
 
 export const bulkApproveRevaluation = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     ids: v.array(v.id("examRevaluation")),
     revisedMarks: v.optional(v.number()),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "revaluationEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
     const now = Date.now();
     let count = 0;
     for (const id of args.ids) {
       await ctx.db.patch(id, {
         status: "approved", revisedMarks: args.revisedMarks,
-        remarks: args.remarks, reviewedBy: identity.subject as any, reviewedAt: now, updatedAt: now,
+        remarks: args.remarks, reviewedBy: ctx.__performerUserId as any, reviewedAt: now, updatedAt: now,
       });
       count++;
     }
     return { count };
-  },
+  }),
 });
 
 // ═══════════════════════════════════════════════════════════════════

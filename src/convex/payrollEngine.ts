@@ -7,11 +7,12 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Salary Structure ────────────────────────────────────────
 
 export const createSalaryStructure = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     employeeId: v.id("users"),
     basicSalary: v.number(),
     hra: v.optional(v.number()),
@@ -19,12 +20,12 @@ export const createSalaryStructure = mutation({
     deductions: v.optional(v.array(v.object({ name: v.string(), amount: v.number() }))),
     effectiveFrom: v.number(),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "hr", entity: "payrollEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
-    const totalAllowances = (args.allowances || []).reduce((s: number, a) => s + a.amount, 0);
-    const totalDeductions = (args.deductions || []).reduce((s: number, d) => s + d.amount, 0);
+    const totalAllowances = (args.allowances || []).reduce((s: number, a: any) => s + a.amount, 0);
+    const totalDeductions = (args.deductions || []).reduce((s: number, d: any) => s + d.amount, 0);
     const grossSalary = args.basicSalary + (args.hra || 0) + totalAllowances;
     const netSalary = grossSalary - totalDeductions;
 
@@ -43,20 +44,20 @@ export const createSalaryStructure = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 // ─── Pay Run ─────────────────────────────────────────────────
 
 export const processPayRun = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     month: v.number(),
     year: v.number(),
     employeeIds: v.array(v.id("users")),
     processedBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "update", module: "hr", entity: "payrollEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const payslips: any[] = [];
@@ -106,19 +107,19 @@ export const processPayRun = mutation({
     }
 
     return payslips;
-  },
+  }),
 });
 
 export const approvePayRun = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     payslipIds: v.array(v.id("payslips")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "approve", module: "hr", entity: "payrollEngine" }, async (ctx, args) => {
     for (const id of args.payslipIds) {
       await ctx.db.patch(id, { status: "approved", approvedAt: Date.now(), updatedAt: Date.now() });
     }
     return args.payslipIds;
-  },
+  }),
 });
 
 export const listPayslips = query({

@@ -10,6 +10,7 @@ import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { withEventPipeline, entityIdFromResult, entityIdFromArg } from "../platform/eventPipeline";
 import { Events } from "./eventRegistry";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 function generateChequeRef(prefix: string, serial: number): string {
   return `${prefix}-${String(serial).padStart(6, "0")}`;
@@ -18,7 +19,7 @@ function generateChequeRef(prefix: string, serial: number): string {
 // ─── Create PDC Entry ────────────────────────────────────────
 
 export const createChequeEntry = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     studentId: v.optional(v.id("studentMaster")),
     invoiceId: v.optional(v.id("feeInvoices")),
     chequeNumber: v.string(),
@@ -69,9 +70,9 @@ export const createChequeEntry = mutation({
 // ─── Deposit Cheque ──────────────────────────────────────────
 
 export const depositCheque = mutation({
-  args: { id: v.id("chequeEntries"), depositDate: v.number() },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  args: { token: v.optional(v.string()), id: v.id("chequeEntries"), depositDate: v.number() },
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "chequeEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const cheque = await ctx.db.get(args.id);
@@ -86,15 +87,15 @@ export const depositCheque = mutation({
     });
 
     return args.id;
-  },
+  }),
 });
 
 // ─── Mark Cheque as Cleared ──────────────────────────────────
 
 export const clearCheque = mutation({
-  args: { id: v.id("chequeEntries"), clearanceDate: v.optional(v.number()) },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  args: { token: v.optional(v.string()), id: v.id("chequeEntries"), clearanceDate: v.optional(v.number()) },
+  handler: withScopeAndEvents({ operation: "delete", module: "finance", entity: "chequeEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const cheque = await ctx.db.get(args.id);
@@ -122,13 +123,13 @@ export const clearCheque = mutation({
     }
 
     return args.id;
-  },
+  }),
 });
 
 // ─── Cheque Bounce ───────────────────────────────────────────
 
 export const bounceCheque = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("chequeEntries"),
     bounceReason: v.string(),
     bounceDate: v.optional(v.number()),
@@ -185,9 +186,9 @@ export const bounceCheque = mutation({
 // ─── Re-present Cheque ───────────────────────────────────────
 
 export const rePresentCheque = mutation({
-  args: { id: v.id("chequeEntries"), newDepositDate: v.number() },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  args: { token: v.optional(v.string()), id: v.id("chequeEntries"), newDepositDate: v.number() },
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "chequeEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const cheque = await ctx.db.get(args.id);
@@ -203,7 +204,7 @@ export const rePresentCheque = mutation({
     });
 
     return args.id;
-  },
+  }),
 });
 
 // ─── List Cheques ────────────────────────────────────────────
@@ -264,17 +265,17 @@ export const listPenalties = query({
 });
 
 export const waivePenalty = mutation({
-  args: { id: v.id("penaltyEntries"), notes: v.optional(v.string()) },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("penaltyEntries"), notes: v.optional(v.string()) },
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "chequeEngine" }, async (ctx, args) => {
     await ctx.db.patch(args.id, { status: "waived", notes: args.notes, updatedAt: Date.now() });
     return args.id;
-  },
+  }),
 });
 
 export const collectPenalty = mutation({
-  args: { id: v.id("penaltyEntries") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("penaltyEntries") },
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "chequeEngine" }, async (ctx, args) => {
     await ctx.db.patch(args.id, { status: "collected", updatedAt: Date.now() });
     return args.id;
-  },
+  }),
 });

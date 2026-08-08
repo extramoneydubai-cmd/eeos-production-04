@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Queries ───
 
@@ -43,7 +44,7 @@ export const getVersions = query({
 // ─── Mutations ───
 
 export const create = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     opportunityId: v.id("opportunities"),
     leadId: v.id("leadMaster"),
     createdBy: v.id("users"),
@@ -63,7 +64,7 @@ export const create = mutation({
     discountPercent: v.optional(v.number()),
     gstPercent: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "sales", entity: "quotations" }, async (ctx, args) => {
     const now = Date.now();
 
     // Calculate line items
@@ -152,17 +153,17 @@ export const create = mutation({
     });
 
     return quoteId;
-  },
+  }),
 });
 
 export const updateStatus = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("quotations"),
     status: v.union(v.literal("draft"), v.literal("sent"), v.literal("accepted"), v.literal("rejected"), v.literal("expired"), v.literal("revised")),
     userId: v.id("users"),
     changeNotes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "sales", entity: "quotations" }, async (ctx, args) => {
     const now = Date.now();
     const quote = await ctx.db.get(args.id);
     if (!quote) throw new Error("Quotation not found");
@@ -170,19 +171,19 @@ export const updateStatus = mutation({
     if (args.status === "accepted") {
       await ctx.db.patch(args.id, { approvedBy: args.userId });
     }
-  },
+  }),
 });
 
 export const update = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("quotations"),
     notes: v.optional(v.string()),
     terms: v.optional(v.string()),
     userId: v.id("users"),
     changeNotes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const { id, userId, changeNotes, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "sales", entity: "quotations" }, async (ctx, args) => {
+    const { token: _token, id, userId, changeNotes, ...fields } = args;
     const quote = await ctx.db.get(id);
     if (!quote) throw new Error("Quotation not found");
     const now = Date.now();
@@ -203,12 +204,12 @@ export const update = mutation({
       changeNotes: changeNotes || `Updated to version ${newVersion}`,
       createdAt: now,
     });
-  },
+  }),
 });
 
 export const remove = mutation({
-  args: { id: v.id("quotations") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("quotations") },
+  handler: withScopeAndEvents({ operation: "delete", module: "sales", entity: "quotations" }, async (ctx, args) => {
     await ctx.db.patch(args.id, { isActive: false, updatedAt: Date.now() });
-  },
+  }),
 });

@@ -18,6 +18,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { ScopeEngine } from "./scopeEngine";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Fuzzy Matching ─────────────────────────────────────────
 
@@ -468,13 +469,13 @@ export const globalSearchV2 = query({
 // ─── Recent Searches ────────────────────────────────────────
 
 export const recordRecentSearch = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     userId: v.id("users"),
     query: v.string(),
     entityType: v.optional(v.string()),
     resultCount: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "platform", entity: "searchEngineV2" }, async (ctx, args) => {
     // Keep last 20 recent searches
     const existing = await ctx.db.query("userPreferences")
       .withIndex("userId", (q: any) => q.eq("userId", args.userId))
@@ -500,7 +501,7 @@ export const recordRecentSearch = mutation({
         updatedAt: Date.now(),
       });
     }
-  },
+  }),
 });
 
 export const getRecentSearches = query({
@@ -516,14 +517,14 @@ export const getRecentSearches = query({
 // ─── Saved Searches (Favorites) ─────────────────────────────
 
 export const saveSearch = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     userId: v.id("users"),
     name: v.string(),
     query: v.string(),
     entityTypes: v.optional(v.array(v.string())),
     filters: v.optional(v.any()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "platform", entity: "searchEngineV2" }, async (ctx, args) => {
     const prefs = await ctx.db.query("userPreferences")
       .withIndex("userId", (q: any) => q.eq("userId", args.userId))
       .first();
@@ -543,7 +544,7 @@ export const saveSearch = mutation({
         updatedAt: Date.now(),
       });
     }
-  },
+  }),
 });
 
 export const getSavedSearches = query({
@@ -557,11 +558,11 @@ export const getSavedSearches = query({
 });
 
 export const deleteSavedSearch = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     userId: v.id("users"),
     searchName: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "delete", module: "platform", entity: "searchEngineV2" }, async (ctx, args) => {
     const prefs = await ctx.db.query("userPreferences")
       .withIndex("userId", (q: any) => q.eq("userId", args.userId))
       .first();
@@ -571,7 +572,7 @@ export const deleteSavedSearch = mutation({
       );
       await ctx.db.patch(prefs._id, { savedSearches, updatedAt: Date.now() });
     }
-  },
+  }),
 });
 
 // ─── Global Search Suggestions (lightweight, for autocomplete) ──

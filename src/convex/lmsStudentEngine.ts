@@ -1,15 +1,16 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── STUDENT ENROLLMENT ─────────────────────────────
 
 export const enrollStudent = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     courseId: v.id("lmsCourses"),
     studentId: v.id("studentMaster"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "lmsStudentEngine" }, async (ctx, args) => {
     // Check if already enrolled
     const existing = await ctx.db.query("lmsEnrollments")
       .withIndex("studentId_courseId", (q: any) =>
@@ -34,7 +35,7 @@ export const enrollStudent = mutation({
     await ctx.db.patch(args.courseId, { enrolledCount: enrollments.length });
 
     return id;
-  },
+  }),
 });
 
 export const getStudentEnrollments = query({
@@ -69,14 +70,14 @@ export const getStudentEnrollments = query({
 // ─── LESSON PROGRESS ────────────────────────────────
 
 export const trackLessonProgress = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     lessonId: v.id("lmsLessons"),
     courseId: v.id("lmsCourses"),
     studentId: v.id("studentMaster"),
     watchedDuration: v.optional(v.number()),
     completed: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "lmsStudentEngine" }, async (ctx, args) => {
     const existing = await ctx.db.query("lmsLessonProgress")
       .withIndex("studentId_lessonId", (q: any) =>
         q.eq("studentId", args.studentId).eq("lessonId", args.lessonId)
@@ -139,7 +140,7 @@ export const trackLessonProgress = mutation({
     }
 
     return { progress, lessonTracked: true };
-  },
+  }),
 });
 
 export const getStudentProgress = query({
@@ -179,13 +180,13 @@ export const getStudentProgress = query({
 // ─── ASSIGNMENT SUBMISSION ──────────────────────────
 
 export const submitAssignment = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     assignmentId: v.id("lmsAssignments"),
     studentId: v.id("studentMaster"),
     submissionUrl: v.optional(v.string()),
     submissionData: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "lmsStudentEngine" }, async (ctx, args) => {
     const existing = await ctx.db.query("lmsSubmissions")
       .withIndex("studentId", (q: any) => q.eq("studentId", args.studentId))
       .filter((q: any) => q.eq(q.field("assignmentId"), args.assignmentId))
@@ -211,13 +212,13 @@ export const submitAssignment = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 // ─── QUIZ ATTEMPTS ──────────────────────────────────
 
 export const submitQuizAttempt = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     quizId: v.id("lmsQuizzes"),
     studentId: v.id("studentMaster"),
     answers: v.string(),
@@ -226,7 +227,7 @@ export const submitQuizAttempt = mutation({
     totalPoints: v.number(),
     startedAt: v.number(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "lmsStudentEngine" }, async (ctx, args) => {
     const percentage = args.totalPoints > 0 ? Math.round((args.score / args.totalPoints) * 100) : 0;
     const passed = percentage >= 60; // Default passing
 
@@ -245,7 +246,7 @@ export const submitQuizAttempt = mutation({
     });
 
     return { id, percentage, passed };
-  },
+  }),
 });
 
 export const getQuizAttempts = query({

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ═══════════════════════════════════════════════════════════════════
 // INCIDENT QUERIES (Part 8)
@@ -60,7 +61,7 @@ export const getIncidentStats = query({
 // ═══════════════════════════════════════════════════════════════════
 
 export const reportIncident = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     examSessionId: v.id("examSessions"),
     timetableId: v.optional(v.id("examTimetable")),
     incidentType: v.union(
@@ -75,14 +76,14 @@ export const reportIncident = mutation({
     studentIds: v.optional(v.array(v.id("personMaster"))),
     invigilatorId: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "examIncidentEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
 
     const now = Date.now();
     const id = await ctx.db.insert("examIncidents", {
       ...args,
-      reportedBy: identity.subject as any,
+      reportedBy: ctx.__performerUserId as any,
       reportedAt: now,
       status: "reported",
       createdAt: now,
@@ -93,16 +94,16 @@ export const reportIncident = mutation({
       examSessionId: args.examSessionId,
       eventType: "incident_reported",
       description: `${args.incidentType} incident reported (${args.severity})`,
-      userId: identity.subject as any,
+      userId: ctx.__performerUserId as any,
       createdAt: now,
     });
 
     return id;
-  },
+  }),
 });
 
 export const updateIncidentStatus = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("examIncidents"),
     status: v.union(
       v.literal("reported"), v.literal("under_review"),
@@ -114,8 +115,8 @@ export const updateIncidentStatus = mutation({
     resolution: v.optional(v.string()),
     committeeMembers: v.optional(v.array(v.id("users"))),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "examIncidentEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
 
     const now = Date.now();
@@ -123,7 +124,7 @@ export const updateIncidentStatus = mutation({
     const patchFields: any = { ...updates, updatedAt: now };
 
     if (args.status === "resolved" || args.status === "closed") {
-      patchFields.resolvedBy = identity.subject as any;
+      patchFields.resolvedBy = ctx.__performerUserId as any;
       patchFields.resolvedAt = now;
     }
 
@@ -135,21 +136,21 @@ export const updateIncidentStatus = mutation({
         examSessionId: incident.examSessionId,
         eventType: `incident_${args.status}`,
         description: `Incident status changed to ${args.status}`,
-        userId: identity.subject as any,
+        userId: ctx.__performerUserId as any,
         createdAt: now,
       });
     }
 
     return id;
-  },
+  }),
 });
 
 export const appealIncident = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("examIncidents"),
     appealDetails: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "examIncidentEngine" }, async (ctx, args) => {
     const { id, appealDetails } = args;
     await ctx.db.patch(id, {
       status: "appealed",
@@ -158,16 +159,16 @@ export const appealIncident = mutation({
       updatedAt: Date.now(),
     });
     return id;
-  },
+  }),
 });
 
 export const resolveAppeal = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("examIncidents"),
     appealStatus: v.union(v.literal("accepted"), v.literal("rejected")),
     resolution: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "examIncidentEngine" }, async (ctx, args) => {
     const { id, appealStatus, resolution } = args;
     await ctx.db.patch(id, {
       appealStatus,
@@ -176,5 +177,5 @@ export const resolveAppeal = mutation({
       updatedAt: Date.now(),
     });
     return id;
-  },
+  }),
 });

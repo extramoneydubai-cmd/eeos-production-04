@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ═══════════════════════════════════════════════════════════════════
 // PROMOTION QUERIES (Part 10)
@@ -43,7 +44,7 @@ export const getPromotion = query({
 // ═══════════════════════════════════════════════════════════════════
 
 export const createPromotion = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     studentId: v.id("personMaster"),
     fromCourseId: v.optional(v.id("courses")),
     fromBatchId: v.optional(v.id("academicBatches")),
@@ -66,14 +67,14 @@ export const createPromotion = mutation({
     decision: v.string(),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "create", module: "hr", entity: "promotionEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
 
     const now = Date.now();
     const id = await ctx.db.insert("examPromotions", {
       ...args,
-      approvedBy: identity.subject as any,
+      approvedBy: ctx.__performerUserId as any,
       approvedAt: now,
       createdAt: now,
       updatedAt: now,
@@ -84,7 +85,7 @@ export const createPromotion = mutation({
       try {
         const studentRecord = await ctx.db
           .query("studentMaster")
-          .filter((q) => q.eq(q.field("personId"), args.studentId))
+          .filter((q: any) => q.eq(q.field("personId"), args.studentId))
           .first();
         if (studentRecord) {
           const updates: Record<string, any> = { updatedAt: now };
@@ -96,11 +97,11 @@ export const createPromotion = mutation({
     }
 
     return id;
-  },
+  }),
 });
 
 export const bulkPromote = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     studentIds: v.array(v.id("personMaster")),
     fromCourseId: v.optional(v.id("courses")),
     fromBatchId: v.optional(v.id("academicBatches")),
@@ -112,8 +113,8 @@ export const bulkPromote = mutation({
     decision: v.string(),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "update", module: "hr", entity: "promotionEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
 
     const now = Date.now();
@@ -131,7 +132,7 @@ export const bulkPromote = mutation({
         examSessionId: args.examSessionId,
         promotionType: "promote",
         decision: args.decision,
-        approvedBy: identity.subject as any,
+        approvedBy: ctx.__performerUserId as any,
         approvedAt: now,
         remarks: args.remarks,
         createdAt: now,
@@ -142,7 +143,7 @@ export const bulkPromote = mutation({
       try {
         const studentRecord = await ctx.db
           .query("studentMaster")
-          .filter((q) => q.eq(q.field("personId"), studentId))
+          .filter((q: any) => q.eq(q.field("personId"), studentId))
           .first();
         if (studentRecord) {
           const updates: Record<string, any> = { updatedAt: now };
@@ -156,11 +157,11 @@ export const bulkPromote = mutation({
     }
 
     return { promoted: count };
-  },
+  }),
 });
 
 export const bulkDetain = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     studentIds: v.array(v.id("personMaster")),
     fromCourseId: v.optional(v.id("courses")),
     fromBatchId: v.optional(v.id("academicBatches")),
@@ -169,8 +170,8 @@ export const bulkDetain = mutation({
     decision: v.string(),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "update", module: "hr", entity: "promotionEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
 
     const now = Date.now();
@@ -185,7 +186,7 @@ export const bulkDetain = mutation({
         examSessionId: args.examSessionId,
         promotionType: "detain",
         decision: args.decision,
-        approvedBy: identity.subject as any,
+        approvedBy: ctx.__performerUserId as any,
         approvedAt: now,
         remarks: args.remarks,
         createdAt: now,
@@ -195,7 +196,7 @@ export const bulkDetain = mutation({
     }
 
     return { detained: count };
-  },
+  }),
 });
 
 export const getPromotionEligibleStudents = query({

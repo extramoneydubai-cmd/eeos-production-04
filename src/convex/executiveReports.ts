@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── HELPERS ───────────────────────────────────────────────
 
@@ -72,8 +73,9 @@ async function storeReport(
 // ─── DAILY EXECUTIVE SUMMARY ───────────────────────────────
 
 export const generateDailySummary = mutation({
-  handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
+  args: { token: v.optional(v.string()) },
+  handler: withScopeAndEvents({ operation: "create", module: "reports", entity: "executiveReports" }, async (ctx) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const leads = await ctx.db.query("leadMaster").collect();
@@ -119,14 +121,15 @@ export const generateDailySummary = mutation({
 
     const id = await storeReport(ctx, "daily_summary", today.toISOString().substring(0, 10), report.title, report, userId);
     return { reportId: id, report };
-  },
+  }),
 });
 
 // ─── WEEKLY OPERATIONS REVIEW ──────────────────────────────
 
 export const generateWeeklyReview = mutation({
-  handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
+  args: { token: v.optional(v.string()) },
+  handler: withScopeAndEvents({ operation: "create", module: "reports", entity: "executiveReports" }, async (ctx) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const dates = getPeriodDates("weekly");
@@ -178,7 +181,7 @@ export const generateWeeklyReview = mutation({
       },
       highlights: [
         weekLeads.length > 0 ? `${weekLeads.length} new leads this week` : null,
-        weekPayments.length > 0 ? `₹${weekPayments.reduce((s, p: any) => s + p.amount, 0)} revenue collected` : null,
+        weekPayments.length > 0 ? `₹${weekPayments.reduce((s: any, p: any) => s + p.amount, 0)} revenue collected` : null,
         weekTasks.filter((t: any) => t.status === "done").length > 0
           ? `${weekTasks.filter((t: any) => t.status === "done").length} tasks completed` : null,
       ].filter(Boolean),
@@ -186,14 +189,15 @@ export const generateWeeklyReview = mutation({
 
     const id = await storeReport(ctx, "weekly_review", "weekly", report.title, report, userId);
     return { reportId: id, report };
-  },
+  }),
 });
 
 // ─── MONTHLY BUSINESS REVIEW ───────────────────────────────
 
 export const generateMonthlyReview = mutation({
-  handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
+  args: { token: v.optional(v.string()) },
+  handler: withScopeAndEvents({ operation: "create", module: "reports", entity: "executiveReports" }, async (ctx) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const dates = getPeriodDates("monthly");
@@ -309,14 +313,15 @@ export const generateMonthlyReview = mutation({
 
     const id = await storeReport(ctx, "monthly_review", new Date().toISOString().substring(0, 7), report.title, report, userId);
     return { reportId: id, report };
-  },
+  }),
 });
 
 // ─── QUARTERLY PERFORMANCE REVIEW ──────────────────────────
 
 export const generateQuarterlyReview = mutation({
-  handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
+  args: { token: v.optional(v.string()) },
+  handler: withScopeAndEvents({ operation: "create", module: "reports", entity: "executiveReports" }, async (ctx) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const dates = getPeriodDates("quarterly");
@@ -387,17 +392,17 @@ export const generateQuarterlyReview = mutation({
 
     const id = await storeReport(ctx, "quarterly_review", `Q${Math.floor(new Date().getMonth() / 3) + 1}_${new Date().getFullYear()}`, report.title, report, userId);
     return { reportId: id, report };
-  },
+  }),
 });
 
 // ─── ANNUAL GROWTH REPORT ──────────────────────────────────
 
 export const generateAnnualReport = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     year: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "reports", entity: "executiveReports" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const year = args.year || new Date().getFullYear();
@@ -466,7 +471,7 @@ export const generateAnnualReport = mutation({
           ? Math.round((invoices.filter((i: any) => i.status === "paid").length / invoices.length) * 100)
           : 0,
         monthlyRevenue,
-        averageMonthlyRevenue: Math.round(monthlyRevenue.reduce((s, v) => s + v, 0) / 12),
+        averageMonthlyRevenue: Math.round(monthlyRevenue.reduce((s: any, v: any) => s + v, 0) / 12),
         bestMonth: monthlyRevenue.indexOf(Math.max(...monthlyRevenue)) + 1,
       },
       monthlyTrends: {
@@ -491,7 +496,7 @@ export const generateAnnualReport = mutation({
 
     const id = await storeReport(ctx, "annual_report", String(year), report.title, report, userId);
     return { reportId: id, report };
-  },
+  }),
 });
 
 // ─── REPORT RETRIEVAL ──────────────────────────────────────
@@ -542,8 +547,9 @@ export const listReports = query({
 // ─── GENERATE ALL EXECUTIVE REPORTS ────────────────────────
 
 export const generateAllExecutiveReports = mutation({
-  handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
+  args: { token: v.optional(v.string()) },
+  handler: withScopeAndEvents({ operation: "create", module: "reports", entity: "executiveReports" }, async (ctx) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     // Generate all report types in sequence
@@ -566,5 +572,5 @@ export const generateAllExecutiveReports = mutation({
       quarterlyId: quarterly,
       annualId: annual,
     };
-  },
+  }),
 });

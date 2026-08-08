@@ -12,6 +12,7 @@
 
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Configuration Categories ─────────────────────────────────
 
@@ -115,7 +116,7 @@ export const exportAllConfigs = query({
 // ─── CRUD Mutations ──────────────────────────────────────────
 
 export const setConfiguration = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     scopeType: v.union(
       v.literal("platform"), v.literal("company"),
       v.literal("branch"), v.literal("department"),
@@ -133,7 +134,7 @@ export const setConfiguration = mutation({
     inherited: v.optional(v.boolean()),
     createdBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "platform", entity: "configurationStudioEngine" }, async (ctx, args) => {
     const now = Date.now();
 
     // Check if config already exists
@@ -162,19 +163,20 @@ export const setConfiguration = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const deleteConfiguration = mutation({
-  args: { configId: v.id("configOverrides") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), configId: v.id("configOverrides") },
+  handler: withScopeAndEvents({ operation: "delete", module: "platform", entity: "configurationStudioEngine" }, async (ctx, args) => {
     await ctx.db.delete(args.configId);
-  },
+  }),
 });
 
 /** Initialize default platform-level configurations */
 export const initializeDefaultConfigs = mutation({
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()) },
+  handler: withScopeAndEvents({ operation: "create", module: "platform", entity: "configurationStudioEngine" }, async (ctx) => {
     const existing = await ctx.db.query("configOverrides")
       .withIndex("by_scope", (q: any) => q.eq("scopeType", "platform").eq("scopeId", "default"))
       .collect();
@@ -246,5 +248,5 @@ export const initializeDefaultConfigs = mutation({
       count++;
     }
     return { created: true, count, message: `Initialized ${count} default configurations` };
-  },
+  }),
 });

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Default Action Definitions ──────────────────────────
 
@@ -15,16 +16,16 @@ export const MODULE_ACTIONS: Record<string, string[]> = {
 // ─── Action Permission CRUD ───────────────────────────────
 
 export const setActionPermission = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     designationId: v.id("designations"),
     module: v.string(),
     action: v.string(),
     allowed: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "security", entity: "actionPermissions" }, async (ctx, args) => {
     const existing = await ctx.db
       .query("actionPermissions")
-      .withIndex("designationId_module_action", (q) =>
+      .withIndex("designationId_module_action", (q: any) =>
         q.eq("designationId", args.designationId)
           .eq("module", args.module)
           .eq("action", args.action)
@@ -45,15 +46,15 @@ export const setActionPermission = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const removeActionPermission = mutation({
-  args: { permissionId: v.id("actionPermissions") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), permissionId: v.id("actionPermissions") },
+  handler: withScopeAndEvents({ operation: "delete", module: "security", entity: "actionPermissions" }, async (ctx, args) => {
     await ctx.db.delete(args.permissionId);
     return args.permissionId;
-  },
+  }),
 });
 
 export const listActionPermissions = query({
@@ -96,19 +97,19 @@ export const getDesignationActionPermissions = query({
 // ─── Section Permission CRUD ──────────────────────────────
 
 export const setSectionPermission = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     designationId: v.id("designations"),
     module: v.string(),
     sectionName: v.string(),
     visible: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "security", entity: "actionPermissions" }, async (ctx, args) => {
     const existing = await ctx.db
       .query("sectionPermissions")
-      .withIndex("designationId_module", (q) =>
+      .withIndex("designationId_module", (q: any) =>
         q.eq("designationId", args.designationId).eq("module", args.module)
       )
-      .filter((q) => q.eq(q.field("sectionName"), args.sectionName))
+      .filter((q: any) => q.eq(q.field("sectionName"), args.sectionName))
       .first();
 
     const now = Date.now();
@@ -125,7 +126,7 @@ export const setSectionPermission = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const listSectionPermissions = query({
@@ -150,7 +151,7 @@ export const listSectionPermissions = query({
 // ─── Category Permission CRUD ─────────────────────────────
 
 export const setCategoryPermission = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     designationId: v.id("designations"),
     category: v.string(),
     canDiscover: v.optional(v.boolean()),
@@ -161,10 +162,10 @@ export const setCategoryPermission = mutation({
     canExport: v.optional(v.boolean()),
     canPrint: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "security", entity: "actionPermissions" }, async (ctx, args) => {
     const existing = await ctx.db
       .query("categoryPermissions")
-      .withIndex("designationId_category", (q) =>
+      .withIndex("designationId_category", (q: any) =>
         q.eq("designationId", args.designationId).eq("category", args.category)
       )
       .first();
@@ -197,7 +198,7 @@ export const setCategoryPermission = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const listCategoryPermissions = query({

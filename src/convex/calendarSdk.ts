@@ -8,6 +8,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 /** Events with start time within [startTime, endTime]. */
 export const getEventsInRange = query({
@@ -48,7 +49,7 @@ export const getEntityEvents = query({
 
 /** Create a calendar event. Returns the new event id. */
 export const createEvent = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     title: v.string(),
     description: v.optional(v.string()),
     eventType: v.string(),
@@ -65,8 +66,8 @@ export const createEvent = mutation({
     companyId: v.optional(v.id("companies")),
     branchId: v.optional(v.id("branches")),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "platform", entity: "calendarSdk" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     const now = Date.now();
     return await ctx.db.insert("calendarEvents", {
       title: args.title,
@@ -87,12 +88,12 @@ export const createEvent = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 /** Update an existing calendar event. */
 export const updateEvent = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     eventId: v.id("calendarEvents"),
     title: v.optional(v.string()),
     description: v.optional(v.string()),
@@ -105,8 +106,8 @@ export const updateEvent = mutation({
     status: v.optional(v.string()),
     reminderMinutes: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
-    const { eventId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "platform", entity: "calendarSdk" }, async (ctx, args) => {
+    const { token: _token, eventId, ...fields } = args;
     const event = await ctx.db.get(eventId);
     if (!event) throw new Error("Event not found");
     const updates: Record<string, any> = { updatedAt: Date.now() };
@@ -115,16 +116,16 @@ export const updateEvent = mutation({
     }
     await ctx.db.patch(eventId, updates);
     return eventId;
-  },
+  }),
 });
 
 /** Delete a calendar event. */
 export const removeEvent = mutation({
-  args: { eventId: v.id("calendarEvents") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), eventId: v.id("calendarEvents") },
+  handler: withScopeAndEvents({ operation: "delete", module: "platform", entity: "calendarSdk" }, async (ctx, args) => {
     const event = await ctx.db.get(args.eventId);
     if (!event) throw new Error("Event not found");
     await ctx.db.delete(args.eventId);
     return args.eventId;
-  },
+  }),
 });

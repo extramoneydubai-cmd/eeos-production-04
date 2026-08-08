@@ -5,24 +5,25 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 export const createCategory = mutation({
-  args: { name: v.string(), slug: v.string(), description: v.optional(v.string()), parentId: v.optional(v.id("knowledgeCategories")), icon: v.optional(v.string()) },
-  handler: async (ctx, args) => ctx.db.insert("knowledgeCategories", { name: args.name, description: args.description, parentId: args.parentId, icon: args.icon, articleCount: 0, createdAt: Date.now(), updatedAt: Date.now() }),
+  args: { token: v.optional(v.string()), name: v.string(), slug: v.string(), description: v.optional(v.string()), parentId: v.optional(v.id("knowledgeCategories")), icon: v.optional(v.string()) },
+  handler: withScopeAndEvents({ operation: "create", module: "knowledge", entity: "knowledgeEngine" }, async (ctx, args) => { return ctx.db.insert("knowledgeCategories", { name: args.name, description: args.description, parentId: args.parentId, icon: args.icon, articleCount: 0, createdAt: Date.now(), updatedAt: Date.now() }); }),
 });
 
 export const listCategories = query({ handler: async (ctx) => ctx.db.query("knowledgeCategories").collect() });
 
 export const createArticle = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     title: v.string(), slug: v.string(), content: v.string(), categoryId: v.id("knowledgeCategories"),
     articleType: v.union(v.literal("wiki"), v.literal("sop"), v.literal("article"), v.literal("faq"), v.literal("policy"), v.literal("playbook")),
     tags: v.optional(v.array(v.string())), isPublished: v.optional(v.boolean()),
     relatedArticleIds: v.optional(v.array(v.id("knowledgeArticles"))), module: v.optional(v.string()),
     createdBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "knowledge", entity: "knowledgeEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
     const articleId = await ctx.db.insert("knowledgeArticles", {
       title: args.title, slug: args.slug, body: args.content || "", content: args.content, categoryId: args.categoryId,
@@ -33,23 +34,23 @@ export const createArticle = mutation({
     const cat = await ctx.db.get(args.categoryId);
     if (cat) await ctx.db.patch(args.categoryId, { articleCount: ((cat as any).articleCount || 0) + 1 });
     return articleId;
-  },
+  }),
 });
 
 export const updateArticle = mutation({
-  args: { id: v.id("knowledgeArticles"), title: v.optional(v.string()), content: v.optional(v.string()), tags: v.optional(v.array(v.string())), isPublished: v.optional(v.boolean()), relatedArticleIds: v.optional(v.array(v.id("knowledgeArticles"))) },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("knowledgeArticles"), title: v.optional(v.string()), content: v.optional(v.string()), tags: v.optional(v.array(v.string())), isPublished: v.optional(v.boolean()), relatedArticleIds: v.optional(v.array(v.id("knowledgeArticles"))) },
+  handler: withScopeAndEvents({ operation: "update", module: "knowledge", entity: "knowledgeEngine" }, async (ctx, args) => {
     const article = await ctx.db.get(args.id);
     if (!article) throw new Error("Article not found");
     await ctx.db.insert("knowledgeArticleVersions", {
       articleId: args.id, title: article.title, content: article.content, version: (article as any).version || 1,
-      updatedBy: await getAuthUserId(ctx), updatedAt: Date.now(),
+      updatedBy: ctx.__performerUserId, updatedAt: Date.now(),
     });
     const { id } = args;
     const updates: Record<string, any> = { title: args.title, content: args.content, tags: args.tags, isPublished: args.isPublished };
     await ctx.db.patch(id, { ...updates, version: ((article as any).version || 1) + 1, updatedAt: Date.now() });
     return id;
-  },
+  }),
 });
 
 export const listArticles = query({
@@ -81,13 +82,13 @@ export const getArticle = query({
 });
 
 export const markHelpful = mutation({
-  args: { id: v.id("knowledgeArticles"), helpful: v.boolean() },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("knowledgeArticles"), helpful: v.boolean() },
+  handler: withScopeAndEvents({ operation: "update", module: "knowledge", entity: "knowledgeEngine" }, async (ctx, args) => {
     const article = await ctx.db.get(args.id);
     if (!article) throw new Error("Article not found");
     await ctx.db.patch(args.id, args.helpful ? { helpfulCount: ((article as any).helpfulCount || 0) + 1 } : { notHelpfulCount: ((article as any).notHelpfulCount || 0) + 1 });
     return args.id;
-  },
+  }),
 });
 
 export const getKnowledgeDashboard = query({

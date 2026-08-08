@@ -9,6 +9,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ═══════════════════════════════════════════════════════════════════
 // TAX GROUP CRUD
@@ -29,7 +30,7 @@ export const getTaxGroup = query({
 });
 
 export const createTaxGroup = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(), code: v.string(),
     taxType: v.union(v.literal("gst"), v.literal("vat"), v.literal("service_tax"), v.literal("sales_tax"), v.literal("withholding"), v.literal("custom")),
     rate: v.number(),
@@ -40,29 +41,29 @@ export const createTaxGroup = mutation({
     effectiveFrom: v.optional(v.number()),
     effectiveTo: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "finance", entity: "taxEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
     const now = Date.now();
     return await ctx.db.insert("taxGroups", {
       ...args, isActive: true, createdAt: now, updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateTaxGroup = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("taxGroups"),
     rate: v.optional(v.number()),
     description: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
     effectiveTo: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "taxEngine" }, async (ctx, args) => {
     const { id, ...updates } = args;
     await ctx.db.patch(id, { ...updates, updatedAt: Date.now() });
     return id;
-  },
+  }),
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -113,7 +114,7 @@ export const calculateTax = query({
 // ═══════════════════════════════════════════════════════════════════
 
 export const createGstRate = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(), code: v.string(),
     cgstRate: v.number(), sgstRate: v.number(),
     igstRate: v.optional(v.number()),
@@ -121,7 +122,7 @@ export const createGstRate = mutation({
     effectiveFrom: v.optional(v.number()),
     effectiveTo: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "finance", entity: "taxEngine" }, async (ctx, args) => {
     const now = Date.now();
     return await ctx.db.insert("financeGstRates", {
       ...args,
@@ -131,7 +132,7 @@ export const createGstRate = mutation({
       color: "#10b981", icon: "Receipt",
       createdAt: now, updatedAt: now,
     });
-  },
+  }),
 });
 
 export const listGstRates = query({

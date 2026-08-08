@@ -23,6 +23,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Template Types ─────────────────────────────────────────
 
@@ -40,7 +41,7 @@ const DOCUMENT_TYPES = [
 // ─── Template CRUD ──────────────────────────────────────────
 
 export const createTemplate = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     documentType: v.union(...DOCUMENT_TYPES.map((t) => v.literal(t))),
     name: v.string(),
     content: v.string(),
@@ -55,8 +56,8 @@ export const createTemplate = mutation({
     branchId: v.optional(v.id("branches")),
     isDefault: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "templates", entity: "documentTemplateEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     return ctx.db.insert("documentTemplates", {
@@ -73,11 +74,11 @@ export const createTemplate = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const updateTemplate = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     templateId: v.id("documentTemplates"),
     name: v.optional(v.string()),
     content: v.optional(v.string()),
@@ -90,8 +91,8 @@ export const updateTemplate = mutation({
     }))),
     isDefault: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { templateId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "templates", entity: "documentTemplateEngine" }, async (ctx, args) => {
+    const { token: _token, templateId, ...fields } = args;
     const template = await ctx.db.get(templateId);
     if (!template) throw new Error("Template not found");
 
@@ -107,7 +108,7 @@ export const updateTemplate = mutation({
 
     await ctx.db.patch(templateId, updates);
     return templateId;
-  },
+  }),
 });
 
 export const listTemplates = query({
@@ -165,11 +166,11 @@ export const getDefaultTemplate = query({
 });
 
 export const deleteTemplate = mutation({
-  args: { templateId: v.id("documentTemplates") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), templateId: v.id("documentTemplates") },
+  handler: withScopeAndEvents({ operation: "delete", module: "templates", entity: "documentTemplateEngine" }, async (ctx, args) => {
     await ctx.db.delete(args.templateId);
     return args.templateId;
-  },
+  }),
 });
 
 // ─── Template Rendering Engine ──────────────────────────────
@@ -244,14 +245,14 @@ export interface RenderContext {
 
 /** Render a template with the given context */
 export const renderTemplate = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     templateId: v.optional(v.id("documentTemplates")),
     documentType: v.optional(v.union(...DOCUMENT_TYPES.map((t) => v.literal(t)))),
     context: v.any(), // RenderContext as JSON
     companyId: v.optional(v.id("companies")),
     branchId: v.optional(v.id("branches")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "templates", entity: "documentTemplateEngine" }, async (ctx, args) => {
     // Get template
     let template;
     if (args.templateId) {
@@ -311,14 +312,14 @@ export const renderTemplate = mutation({
       rendered,
       templateName: (template as any).name,
       documentType: (template as any).documentType,
-      variables: Object.keys(enrichedContext).filter((k) => content.includes(`{{${k}}}`)),
+      variables: Object.keys(enrichedContext).filter((k: any) => content.includes(`{{${k}}}`)),
     };
-  },
+  }),
 });
 
 /** Generate a fee receipt from template */
 export const generateReceipt = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     receiptNumber: v.string(),
     amount: v.number(),
@@ -327,7 +328,7 @@ export const generateReceipt = mutation({
     companyId: v.optional(v.id("companies")),
     branchId: v.optional(v.id("branches")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "templates", entity: "documentTemplateEngine" }, async (ctx, args) => {
     const student = await ctx.db.get(args.studentId);
     if (!student) throw new Error("Student not found");
 
@@ -357,12 +358,12 @@ export const generateReceipt = mutation({
     });
 
     return result;
-  },
+  }),
 });
 
 /** Generate a bounce notice from template */
 export const generateBounceNotice = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     parentName: v.string(),
     chequeNumber: v.string(),
@@ -374,7 +375,7 @@ export const generateBounceNotice = mutation({
     companyId: v.optional(v.id("companies")),
     branchId: v.optional(v.id("branches")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "templates", entity: "documentTemplateEngine" }, async (ctx, args) => {
     const student = await ctx.db.get(args.studentId);
     const context: RenderContext = {
       studentName: student ? `${(student as any).firstName || ""} ${(student as any).lastName || ""}`.trim() : "",
@@ -393,12 +394,12 @@ export const generateBounceNotice = mutation({
       companyId: args.companyId,
       branchId: args.branchId,
     });
-  },
+  }),
 });
 
 /** Generate an offer letter from template */
 export const generateOfferLetter = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     employeeName: v.string(),
     designation: v.string(),
     department: v.string(),
@@ -407,7 +408,7 @@ export const generateOfferLetter = mutation({
     companyId: v.optional(v.id("companies")),
     branchId: v.optional(v.id("branches")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "templates", entity: "documentTemplateEngine" }, async (ctx, args) => {
     const context: RenderContext = {
       employeeName: args.employeeName,
       designation: args.designation,
@@ -422,12 +423,12 @@ export const generateOfferLetter = mutation({
       companyId: args.companyId,
       branchId: args.branchId,
     });
-  },
+  }),
 });
 
 /** Generate a consent form from template */
 export const generateConsentForm = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     documentType: v.union(v.literal("consent_form"), v.literal("admission_agreement"), v.literal("pdc_agreement"), v.literal("privacy_policy")),
     studentName: v.string(),
     parentName: v.string(),
@@ -435,7 +436,7 @@ export const generateConsentForm = mutation({
     companyId: v.optional(v.id("companies")),
     branchId: v.optional(v.id("branches")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "templates", entity: "documentTemplateEngine" }, async (ctx, args) => {
     const context: RenderContext = {
       studentName: args.studentName,
       parentName: args.parentName,
@@ -448,5 +449,5 @@ export const generateConsentForm = mutation({
       companyId: args.companyId,
       branchId: args.branchId,
     });
-  },
+  }),
 });

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ═══════════════════════════════════════════════════════════════════
 // CERTIFICATE QUERIES (Part 11)
@@ -94,7 +95,7 @@ function generateCertificateNumber(type: string): string {
 }
 
 export const issueCertificate = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     studentId: v.id("personMaster"),
     examSessionId: v.id("examSessions"),
     certificateType: v.union(
@@ -109,8 +110,8 @@ export const issueCertificate = mutation({
     metadata: v.optional(v.string()),
     expiryDate: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "certificateEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
 
     const now = Date.now();
@@ -122,7 +123,7 @@ export const issueCertificate = mutation({
       certificateNumber,
       digitalVerificationId,
       issuedDate: now,
-      issuedBy: identity.subject as any,
+      issuedBy: ctx.__performerUserId as any,
       isVerified: true,
       downloadCount: 0,
       createdAt: now,
@@ -130,11 +131,11 @@ export const issueCertificate = mutation({
     });
 
     return id;
-  },
+  }),
 });
 
 export const bulkIssueCertificates = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     examSessionId: v.id("examSessions"),
     certificateType: v.union(
       v.literal("marksheet"), v.literal("passing_certificate"),
@@ -147,22 +148,22 @@ export const bulkIssueCertificates = mutation({
     description: v.optional(v.string()),
     metadata: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "certificateEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
 
     const now = Date.now();
     let results = await ctx.db
       .query("examResults")
-      .filter((q) => q.eq(q.field("examSessionId"), args.examSessionId))
+      .filter((q: any) => q.eq(q.field("examSessionId"), args.examSessionId))
       .collect();
 
     if (args.onlyPassedStudents) {
-      results = results.filter((r) => r.passFail === "pass");
+      results = results.filter((r: any) => r.passFail === "pass");
     }
 
     if (args.limitToRank) {
-      results = results.filter((r) => r.rank != null && r.rank <= args.limitToRank!);
+      results = results.filter((r: any) => r.rank != null && r.rank <= args.limitToRank!);
     }
 
     let count = 0;
@@ -179,7 +180,7 @@ export const bulkIssueCertificates = mutation({
         certificateNumber,
         digitalVerificationId,
         issuedDate: now,
-        issuedBy: identity.subject as any,
+        issuedBy: ctx.__performerUserId as any,
         isVerified: true,
         downloadCount: 0,
         metadata: args.metadata,
@@ -190,12 +191,12 @@ export const bulkIssueCertificates = mutation({
     }
 
     return { issued: count };
-  },
+  }),
 });
 
 export const recordCertificateDownload = mutation({
-  args: { id: v.id("examCertificates") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("examCertificates") },
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "certificateEngine" }, async (ctx, args) => {
     const cert = await ctx.db.get(args.id);
     if (!cert) throw new Error("Certificate not found");
     await ctx.db.patch(args.id, {
@@ -203,5 +204,5 @@ export const recordCertificateDownload = mutation({
       updatedAt: Date.now(),
     });
     return args.id;
-  },
+  }),
 });

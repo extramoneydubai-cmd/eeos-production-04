@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── CANDIDATE STATUS LIFECYCLE ────────────────────────────
 
@@ -80,7 +81,7 @@ async function insertCandidateStatusHistory(
 // ─── CRUD ──────────────────────────────────────────────────
 
 export const createCandidate = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     personId: v.id("personMaster"),
     jobPostingId: v.optional(v.id("jobPostings")),
     source: v.string(),
@@ -91,8 +92,8 @@ export const createCandidate = mutation({
     experience: v.optional(v.number()),
     resumeUrl: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "create", module: "recruitment", entity: "candidateEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
 
     const now = Date.now();
@@ -108,15 +109,15 @@ export const createCandidate = mutation({
       eventType: "created",
       title: "Candidate Created",
       description: `Applied for ${args.appliedPosition}`,
-      performedBy: identity.subject as any,
+      performedBy: ctx.__performerUserId as any,
     });
 
     return id;
-  },
+  }),
 });
 
 export const updateCandidate = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("candidates"),
     expectedSalary: v.optional(v.number()),
     currentSalary: v.optional(v.number()),
@@ -124,11 +125,11 @@ export const updateCandidate = mutation({
     experience: v.optional(v.number()),
     resumeUrl: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const { id, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "recruitment", entity: "candidateEngine" }, async (ctx, args) => {
+    const { token: _token, id, ...fields } = args;
     await ctx.db.patch(id, { ...fields, updatedAt: Date.now() });
     return id;
-  },
+  }),
 });
 
 export const getCandidate = query({
@@ -178,13 +179,13 @@ export const searchCandidates = query({
 // ─── STATUS LIFECYCLE ──────────────────────────────────────
 
 export const transitionCandidateStatus = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     candidateId: v.id("candidates"),
     newStatus: v.string(),
     rejectionReason: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "update", module: "recruitment", entity: "candidateEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
 
     const candidate = await ctx.db.get(args.candidateId);
@@ -217,7 +218,7 @@ export const transitionCandidateStatus = mutation({
       args.candidateId,
       fromStatus,
       toStatus,
-      identity.subject as any,
+      ctx.__performerUserId as any,
       args.rejectionReason
     );
 
@@ -227,35 +228,35 @@ export const transitionCandidateStatus = mutation({
       eventType: "status_changed",
       title: `Status: ${fromStatus} → ${toStatus}`,
       description: args.rejectionReason ? `Reason: ${args.rejectionReason}` : undefined,
-      performedBy: identity.subject as any,
+      performedBy: ctx.__performerUserId as any,
     });
 
     return args.candidateId;
-  },
+  }),
 });
 
 export const rejectCandidate = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     candidateId: v.id("candidates"),
     reason: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "recruitment", entity: "candidateEngine" }, async (ctx, args) => {
     return (transitionCandidateStatus as any)(ctx, {
       candidateId: args.candidateId,
       newStatus: "rejected",
       rejectionReason: args.reason,
     });
-  },
+  }),
 });
 
 export const archiveCandidate = mutation({
-  args: { candidateId: v.id("candidates") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), candidateId: v.id("candidates") },
+  handler: withScopeAndEvents({ operation: "update", module: "recruitment", entity: "candidateEngine" }, async (ctx, args) => {
     return (transitionCandidateStatus as any)(ctx, {
       candidateId: args.candidateId,
       newStatus: "archived",
     });
-  },
+  }),
 });
 
 // ─── PIPELINE VIEW ─────────────────────────────────────────

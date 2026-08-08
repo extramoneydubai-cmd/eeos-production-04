@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { logActivity, createNotification, checkAutoConversion } from "./crmHelpers";
 import { insertVerificationRequest } from "./verification";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ============================
 // PAYMENT ENGINE
@@ -36,8 +37,8 @@ export const getAllLeadsPayments = query({
 });
 
 export const addPayment = mutation({
-  args: { leadId: v.id("leadMaster"), amount: v.number(), mode: v.union(v.literal("cash"), v.literal("upi"), v.literal("bank"), v.literal("card"), v.literal("cheque"), v.literal("online")), reference: v.optional(v.string()), receiptUrl: v.optional(v.string()), notes: v.optional(v.string()), enteredBy: v.id("users") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), leadId: v.id("leadMaster"), amount: v.number(), mode: v.union(v.literal("cash"), v.literal("upi"), v.literal("bank"), v.literal("card"), v.literal("cheque"), v.literal("online")), reference: v.optional(v.string()), receiptUrl: v.optional(v.string()), notes: v.optional(v.string()), enteredBy: v.id("users") },
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmPayments" }, async (ctx, args) => {
     const now = Date.now();
     const paymentId = await ctx.db.insert("leadPayments", { leadId: args.leadId, amount: args.amount, mode: args.mode, reference: args.reference, receiptUrl: args.receiptUrl, enteredBy: args.enteredBy, status: "pending", notes: args.notes, createdAt: now, updatedAt: now });
     await logActivity(ctx, args.leadId, "payment_added", `Payment added: ₹${args.amount} via ${args.mode}`, args.enteredBy);
@@ -53,12 +54,12 @@ export const addPayment = mutation({
       }
     } catch (e) {}
     return paymentId;
-  },
+  }),
 });
 
 export const verifyPayment = mutation({
-  args: { paymentId: v.id("leadPayments"), verifiedBy: v.id("users"), status: v.union(v.literal("verified"), v.literal("rejected")), rejectionReason: v.optional(v.string()) },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), paymentId: v.id("leadPayments"), verifiedBy: v.id("users"), status: v.union(v.literal("verified"), v.literal("rejected")), rejectionReason: v.optional(v.string()) },
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmPayments" }, async (ctx, args) => {
     const payment = await ctx.db.get(args.paymentId);
     if (!payment) throw new Error("Payment not found");
     const now = Date.now();
@@ -70,5 +71,5 @@ export const verifyPayment = mutation({
     } else {
       await logActivity(ctx, payment.leadId, "payment_rejected", `Payment rejected: ${args.rejectionReason || "No reason"}`, args.verifiedBy);
     }
-  },
+  }),
 });

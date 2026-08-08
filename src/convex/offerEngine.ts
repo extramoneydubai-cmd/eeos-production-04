@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── HELPERS ───────────────────────────────────────────────
 
@@ -27,15 +28,15 @@ async function createTimelineEvent(
 // ─── OFFER CRUD ────────────────────────────────────────────
 
 export const createOffer = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     candidateId: v.id("candidates"),
     offeredSalary: v.number(),
     joiningDate: v.number(),
     offerLetter: v.optional(v.string()),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "offerEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
 
     // Check candidate exists and is in offerable state
@@ -68,38 +69,38 @@ export const createOffer = mutation({
       eventType: "offer_created",
       title: "Offer Created",
       description: `Offered salary: ${args.offeredSalary}, Joining: ${new Date(args.joiningDate).toLocaleDateString()}`,
-      performedBy: identity.subject as any,
+      performedBy: ctx.__performerUserId as any,
     });
 
     return id;
-  },
+  }),
 });
 
 export const updateOffer = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("offers"),
     offeredSalary: v.optional(v.number()),
     joiningDate: v.optional(v.number()),
     offerLetter: v.optional(v.string()),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const { id, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "offerEngine" }, async (ctx, args) => {
+    const { token: _token, id, ...fields } = args;
     await ctx.db.patch(id, { ...fields, updatedAt: Date.now() });
     return id;
-  },
+  }),
 });
 
 // ─── OFFER APPROVAL ────────────────────────────────────────
 
 export const approveOffer = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     offerId: v.id("offers"),
     approved: v.boolean(),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "approve", module: "academic", entity: "offerEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
 
     const offer = await ctx.db.get(args.offerId);
@@ -108,7 +109,7 @@ export const approveOffer = mutation({
 
     await ctx.db.patch(args.offerId, {
       status: args.approved ? "approved" : "rejected",
-      approvedBy: identity.subject as any,
+      approvedBy: ctx.__performerUserId as any,
       notes: args.notes || offer.notes,
       updatedAt: Date.now(),
     });
@@ -120,21 +121,21 @@ export const approveOffer = mutation({
       eventType: args.approved ? "offer_approved" : "offer_rejected",
       title: args.approved ? "Offer Approved" : "Offer Rejected",
       description: args.notes || (args.approved ? "Offer has been approved" : "Offer has been rejected"),
-      performedBy: identity.subject as any,
+      performedBy: ctx.__performerUserId as any,
     });
 
     return args.offerId;
-  },
+  }),
 });
 
 // ─── OFFER RESPONSE ────────────────────────────────────────
 
 export const acceptOffer = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     offerId: v.id("offers"),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "offerEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
 
     const offer = await ctx.db.get(args.offerId);
@@ -157,20 +158,20 @@ export const acceptOffer = mutation({
       eventType: "offer_accepted",
       title: "Offer Accepted",
       description: `Candidate accepted the offer`,
-      performedBy: identity.subject as any,
+      performedBy: ctx.__performerUserId as any,
     });
 
     return args.offerId;
-  },
+  }),
 });
 
 export const declineOffer = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     offerId: v.id("offers"),
     reason: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "offerEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
 
     const offer = await ctx.db.get(args.offerId);
@@ -194,20 +195,20 @@ export const declineOffer = mutation({
       eventType: "offer_declined",
       title: "Offer Declined",
       description: args.reason || "Candidate declined the offer",
-      performedBy: identity.subject as any,
+      performedBy: ctx.__performerUserId as any,
     });
 
     return args.offerId;
-  },
+  }),
 });
 
 export const withdrawOffer = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     offerId: v.id("offers"),
     reason: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "offerEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
 
     const offer = await ctx.db.get(args.offerId);
@@ -224,11 +225,11 @@ export const withdrawOffer = mutation({
       eventType: "offer_withdrawn",
       title: "Offer Withdrawn",
       description: args.reason || "Offer was withdrawn",
-      performedBy: identity.subject as any,
+      performedBy: ctx.__performerUserId as any,
     });
 
     return args.offerId;
-  },
+  }),
 });
 
 // ─── QUERIES ───────────────────────────────────────────────

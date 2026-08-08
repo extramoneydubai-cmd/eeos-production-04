@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ═══════════════════════════════════════════════════════════════════
 // BOARD RULE PROFILES (Part 3)
@@ -35,7 +36,7 @@ export const getBoardRuleByCode = query({
 });
 
 export const createBoardRule = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(), code: v.string(), description: v.optional(v.string()),
     boardType: v.union(
       v.literal("cbse"), v.literal("icse"), v.literal("state_board"),
@@ -52,18 +53,18 @@ export const createBoardRule = mutation({
     rankingRules: v.optional(v.string()),
     supplementaryRules: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "boardRulesEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
     const now = Date.now();
     return await ctx.db.insert("boardRules", {
-      ...args, isActive: true, createdBy: identity.subject as any, createdAt: now, updatedAt: now,
+      ...args, isActive: true, createdBy: ctx.__performerUserId as any, createdAt: now, updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateBoardRule = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("boardRules"),
     name: v.optional(v.string()), description: v.optional(v.string()),
     passingPercentage: v.optional(v.number()),
@@ -73,19 +74,19 @@ export const updateBoardRule = mutation({
     promotionRules: v.optional(v.string()), rankingRules: v.optional(v.string()),
     supplementaryRules: v.optional(v.string()), isActive: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "boardRulesEngine" }, async (ctx, args) => {
     const { id, ...updates } = args;
     await ctx.db.patch(id, { ...updates, updatedAt: Date.now() });
     return id;
-  },
+  }),
 });
 
 export const deleteBoardRule = mutation({
-  args: { id: v.id("boardRules") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("boardRules") },
+  handler: withScopeAndEvents({ operation: "delete", module: "academic", entity: "boardRulesEngine" }, async (ctx, args) => {
     await ctx.db.delete(args.id);
     return { success: true };
-  },
+  }),
 });
 
 // ═══════════════════════════════════════════════════════════════════

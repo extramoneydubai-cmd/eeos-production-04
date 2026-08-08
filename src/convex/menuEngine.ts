@@ -11,6 +11,7 @@
 
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Queries ──────────────────────────────────────────────────
 
@@ -86,7 +87,7 @@ export const getMenuGroups = query({
 // ─── CRUD Mutations ──────────────────────────────────────────
 
 export const createMenu = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     label: v.string(),
     href: v.string(),
     icon: v.string(),
@@ -107,7 +108,7 @@ export const createMenu = mutation({
     isPlaceholder: v.optional(v.boolean()),
     createdBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "platform", entity: "menuEngine" }, async (ctx, args) => {
     const now = Date.now();
     return ctx.db.insert("dynamicMenus", {
       ...args,
@@ -116,11 +117,11 @@ export const createMenu = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateMenu = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     menuId: v.id("dynamicMenus"),
     label: v.optional(v.string()),
     href: v.optional(v.string()),
@@ -142,19 +143,19 @@ export const updateMenu = mutation({
     isPlaceholder: v.optional(v.boolean()),
     isActive: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { menuId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "platform", entity: "menuEngine" }, async (ctx, args) => {
+    const { token: _token, menuId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) {
       if (value !== undefined) updates[key] = value;
     }
     await ctx.db.patch(menuId, updates);
-  },
+  }),
 });
 
 export const deleteMenu = mutation({
-  args: { menuId: v.id("dynamicMenus") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), menuId: v.id("dynamicMenus") },
+  handler: withScopeAndEvents({ operation: "delete", module: "platform", entity: "menuEngine" }, async (ctx, args) => {
     // Delete children first
     const children = await ctx.db.query("dynamicMenus")
       .withIndex("by_parent", (q: any) => q.eq("parentId", args.menuId))
@@ -163,26 +164,27 @@ export const deleteMenu = mutation({
       await ctx.db.delete(child._id);
     }
     await ctx.db.delete(args.menuId);
-  },
+  }),
 });
 
 export const reorderMenus = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     menuIds: v.array(v.id("dynamicMenus")),
     group: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "platform", entity: "menuEngine" }, async (ctx, args) => {
     const now = Date.now();
     for (let i = 0; i < args.menuIds.length; i++) {
       await ctx.db.patch(args.menuIds[i], { order: i + 1, group: args.group, updatedAt: now });
     }
-  },
+  }),
 });
 
 // ─── Seed Default Menus from Routes ─────────────────────────
 
 export const seedDefaultMenus = mutation({
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()) },
+  handler: withScopeAndEvents({ operation: "create", module: "platform", entity: "menuEngine" }, async (ctx) => {
     const existing = await ctx.db.query("dynamicMenus").collect();
     if (existing.length > 0) return { seeded: 0, message: "Menus already exist" };
 
@@ -245,5 +247,5 @@ export const seedDefaultMenus = mutation({
       count++;
     }
     return { seeded: count, message: `Seeded ${count} default menus` };
-  },
+  }),
 });

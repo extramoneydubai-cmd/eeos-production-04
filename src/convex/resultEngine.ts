@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { calculateGrade, calculateCgpa, GradeResult } from "./marksEngine";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ═══════════════════════════════════════════════════════════════════
 // RESULT QUERIES
@@ -161,15 +162,15 @@ export const getDivisionDistribution = query({
 // ═══════════════════════════════════════════════════════════════════
 
 export const calculateResults = mutation({
-  args: { examSessionId: v.id("examSessions") },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  args: { token: v.optional(v.string()), examSessionId: v.id("examSessions") },
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "resultEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
 
     const subjectIds = await ctx.db
-      .query("examSubjects").filter((q) => q.eq(q.field("examSessionId"), args.examSessionId)).collect();
+      .query("examSubjects").filter((q: any) => q.eq(q.field("examSessionId"), args.examSessionId)).collect();
     const allMarks = await ctx.db
-      .query("examMarks").filter((q) => q.eq(q.field("examSessionId"), args.examSessionId)).collect();
+      .query("examMarks").filter((q: any) => q.eq(q.field("examSessionId"), args.examSessionId)).collect();
     const session = await ctx.db.get(args.examSessionId);
 
     // Determine pass percentage from template or default
@@ -226,7 +227,7 @@ export const calculateResults = mutation({
         : 0;
 
       const { grade, gradePoint, division } = calculateGrade(overallPercentage);
-      const gradePoints = subjectResults.map((s) => s.gradePoint);
+      const gradePoints = subjectResults.map((s: any) => s.gradePoint);
       const cgpa = calculateCgpa(gradePoints);
 
       const passFail = overallPercentage >= passPercentage ? "pass" : "fail";
@@ -234,7 +235,7 @@ export const calculateResults = mutation({
       // Delete existing result for this student + session
       const existing = await ctx.db
         .query("examResults")
-        .filter((q) => q.and(q.eq(q.field("examSessionId"), args.examSessionId), q.eq(q.field("studentId"), studentId)))
+        .filter((q: any) => q.and(q.eq(q.field("examSessionId"), args.examSessionId), q.eq(q.field("studentId"), studentId)))
         .first();
       if (existing) await ctx.db.delete(existing._id);
 
@@ -258,7 +259,7 @@ export const calculateResults = mutation({
 
       const existingReport = await ctx.db
         .query("examReportCards")
-        .filter((q) => q.and(q.eq(q.field("examSessionId"), args.examSessionId), q.eq(q.field("studentId"), studentId)))
+        .filter((q: any) => q.and(q.eq(q.field("examSessionId"), args.examSessionId), q.eq(q.field("studentId"), studentId)))
         .first();
       if (existingReport) {
         await ctx.db.patch(existingReport._id, { resultId, reportData: JSON.stringify(reportData), generatedAt: now, updatedAt: now });
@@ -276,11 +277,11 @@ export const calculateResults = mutation({
     await ctx.db.insert("examTimeline", {
       examSessionId: args.examSessionId, eventType: "result_calculated",
       description: `Results calculated for ${resultIds.length} students`,
-      userId: identity.subject as any, createdAt: now,
+      userId: ctx.__performerUserId as any, createdAt: now,
     });
 
     return { resultCount: resultIds.length, message: `Results calculated for ${resultIds.length} students` };
-  },
+  }),
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -308,15 +309,15 @@ async function calculateAndSetRanks(ctx: any, examSessionId: Id<"examSessions">)
 }
 
 export const calculateRanks = mutation({
-  args: { examSessionId: v.id("examSessions") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), examSessionId: v.id("examSessions") },
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "resultEngine" }, async (ctx, args) => {
     await calculateAndSetRanks(ctx, args.examSessionId);
     await ctx.db.insert("examTimeline", {
       examSessionId: args.examSessionId, eventType: "ranks_calculated",
       description: "Ranks calculated", createdAt: Date.now(),
     });
     return { success: true };
-  },
+  }),
 });
 
 export const getTopPerformers = query({
@@ -344,31 +345,31 @@ export const getTopPerformers = query({
 // ═══════════════════════════════════════════════════════════════════
 
 export const publishResults = mutation({
-  args: { examSessionId: v.id("examSessions") },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  args: { token: v.optional(v.string()), examSessionId: v.id("examSessions") },
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "resultEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
     const now = Date.now();
 
     const results = await ctx.db
-      .query("examResults").filter((q) => q.eq(q.field("examSessionId"), args.examSessionId)).collect();
+      .query("examResults").filter((q: any) => q.eq(q.field("examSessionId"), args.examSessionId)).collect();
     for (const result of results) {
-      await ctx.db.patch(result._id, { publishedAt: now, publishedBy: identity.subject as any, updatedAt: now });
+      await ctx.db.patch(result._id, { publishedAt: now, publishedBy: ctx.__performerUserId as any, updatedAt: now });
     }
 
     await ctx.db.patch(args.examSessionId, { status: "published", updatedAt: now });
     await ctx.db.insert("examTimeline", {
       examSessionId: args.examSessionId, eventType: "result_published",
       description: `Results published for ${results.length} students`,
-      userId: identity.subject as any, createdAt: now,
+      userId: ctx.__performerUserId as any, createdAt: now,
     });
     await ctx.db.insert("examPublishLog", {
       examSessionId: args.examSessionId, action: "published",
-      performedBy: identity.subject as any, createdAt: now,
+      performedBy: ctx.__performerUserId as any, createdAt: now,
     });
 
     return { publishedCount: results.length, message: `Results published for ${results.length} students` };
-  },
+  }),
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -399,9 +400,9 @@ export const getStudentResultCard = query({
 });
 
 export const trackReportDownload = mutation({
-  args: { reportCardId: v.id("examReportCards") },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  args: { token: v.optional(v.string()), reportCardId: v.id("examReportCards") },
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "resultEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
 
     const report = await ctx.db.get(args.reportCardId);
@@ -412,10 +413,10 @@ export const trackReportDownload = mutation({
     });
     await ctx.db.insert("examTimeline", {
       examSessionId: report.examSessionId, eventType: "report_downloaded",
-      description: "Report card downloaded", userId: identity.subject as any, createdAt: Date.now(),
+      description: "Report card downloaded", userId: ctx.__performerUserId as any, createdAt: Date.now(),
     });
     return args.reportCardId;
-  },
+  }),
 });
 
 // ═══════════════════════════════════════════════════════════════════

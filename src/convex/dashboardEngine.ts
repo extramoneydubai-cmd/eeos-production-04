@@ -1,11 +1,12 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── WIDGET CRUD ───────────────────────────────────────────
 
 export const createWidget = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     description: v.optional(v.string()),
@@ -18,8 +19,8 @@ export const createWidget = mutation({
     category: v.optional(v.string()),
     displayOrder: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "platform", entity: "dashboardEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     return ctx.db.insert("dashboardWidgets", {
@@ -38,7 +39,7 @@ export const createWidget = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const listWidgets = query({
@@ -66,7 +67,7 @@ export const listWidgets = query({
 // ─── LAYOUT CRUD ───────────────────────────────────────────
 
 export const saveLayout = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     userId: v.optional(v.id("users")),
     role: v.optional(v.string()),
@@ -75,8 +76,8 @@ export const saveLayout = mutation({
     layoutConfig: v.optional(v.string()),
     filters: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "update", module: "platform", entity: "dashboardEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     // If setting as default, unset any existing defaults for this user/role
@@ -104,7 +105,7 @@ export const saveLayout = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const getMyLayout = query({
@@ -151,11 +152,11 @@ export const listLayouts = query({
 });
 
 export const deleteLayout = mutation({
-  args: { layoutId: v.id("dashboardLayouts") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), layoutId: v.id("dashboardLayouts") },
+  handler: withScopeAndEvents({ operation: "delete", module: "platform", entity: "dashboardEngine" }, async (ctx, args) => {
     await ctx.db.delete(args.layoutId);
     return args.layoutId;
-  },
+  }),
 });
 
 // ─── ENTERPRISE OVERVIEW ───────────────────────────────────

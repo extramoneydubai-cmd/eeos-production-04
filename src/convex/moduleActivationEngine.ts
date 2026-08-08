@@ -10,6 +10,7 @@
 
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 export type ModuleName = string;
 export interface ModuleActivationResult {
@@ -117,7 +118,7 @@ export const getCustomActivations = query({
 // ─── CRUD Mutations ──────────────────────────────────────────
 
 export const setModuleActivation = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     module: v.string(),
     companyId: v.id("companies"),
     branchId: v.optional(v.id("branches")),
@@ -125,7 +126,7 @@ export const setModuleActivation = mutation({
     config: v.optional(v.any()),
     createdBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "platform", entity: "moduleActivationEngine" }, async (ctx, args) => {
     const now = Date.now();
 
     // Check if an activation record already exists
@@ -161,12 +162,12 @@ export const setModuleActivation = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const deleteModuleActivation = mutation({
-  args: { activationId: v.id("moduleActivations") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), activationId: v.id("moduleActivations") },
+  handler: withScopeAndEvents({ operation: "delete", module: "platform", entity: "moduleActivationEngine" }, async (ctx, args) => {
     await ctx.db.delete(args.activationId);
-  },
+  }),
 });

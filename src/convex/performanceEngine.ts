@@ -7,9 +7,10 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 export const createReview = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     employeeId: v.id("users"),
     reviewerId: v.id("users"),
     reviewPeriod: v.string(),
@@ -18,8 +19,8 @@ export const createReview = mutation({
     overallComments: v.optional(v.string()),
     goals: v.optional(v.array(v.object({ title: v.string(), description: v.optional(v.string()), targetDate: v.optional(v.number()), status: v.optional(v.string()) }))),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "hr", entity: "performanceEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const reviewId = await ctx.db.insert("performanceReviews", {
@@ -29,7 +30,7 @@ export const createReview = mutation({
       reviewType: args.reviewType,
       ratings: args.ratings,
       overallRating: args.ratings
-        ? Math.round(args.ratings.reduce((s: number, r) => s + r.score, 0) / args.ratings.length)
+        ? Math.round(args.ratings.reduce((s: number, r: any) => s + r.score, 0) / args.ratings.length)
         : 0,
       overallComments: args.overallComments,
       status: "draft",
@@ -53,23 +54,23 @@ export const createReview = mutation({
     }
 
     return reviewId;
-  },
+  }),
 });
 
 export const submitReview = mutation({
-  args: { id: v.id("performanceReviews") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("performanceReviews") },
+  handler: withScopeAndEvents({ operation: "create", module: "hr", entity: "performanceEngine" }, async (ctx, args) => {
     await ctx.db.patch(args.id, { status: "submitted", submittedAt: Date.now(), updatedAt: Date.now() });
     return args.id;
-  },
+  }),
 });
 
 export const acknowledgeReview = mutation({
-  args: { id: v.id("performanceReviews"), comments: v.optional(v.string()) },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("performanceReviews"), comments: v.optional(v.string()) },
+  handler: withScopeAndEvents({ operation: "update", module: "hr", entity: "performanceEngine" }, async (ctx, args) => {
     await ctx.db.patch(args.id, { status: "acknowledged", employeeComments: args.comments, updatedAt: Date.now() });
     return args.id;
-  },
+  }),
 });
 
 export const listReviews = query({

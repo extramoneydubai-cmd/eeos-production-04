@@ -1,10 +1,11 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Address CRUD ───────────────────────────────────────
 
 export const addAddress = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     personId: v.id("personMaster"),
     addressType: v.union(
       v.literal("home"),
@@ -27,7 +28,7 @@ export const addAddress = mutation({
     isPrimary: v.optional(v.boolean()),
     label: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "people", entity: "addressEngine" }, async (ctx, args) => {
     const now = Date.now();
     const isPrimary = args.isPrimary || false;
 
@@ -35,7 +36,7 @@ export const addAddress = mutation({
     if (isPrimary) {
       const existing = await ctx.db
         .query("addresses")
-        .withIndex("personId", (q) => q.eq("personId", args.personId))
+        .withIndex("personId", (q: any) => q.eq("personId", args.personId))
         .collect();
       for (const addr of existing) {
         if (addr.isPrimary) {
@@ -61,11 +62,11 @@ export const addAddress = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateAddress = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     addressId: v.id("addresses"),
     addressType: v.optional(
       v.union(
@@ -90,8 +91,8 @@ export const updateAddress = mutation({
     isPrimary: v.optional(v.boolean()),
     label: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const { addressId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "people", entity: "addressEngine" }, async (ctx, args) => {
+    const { token: _token, addressId, ...fields } = args;
     const existing = await ctx.db.get(addressId);
     if (!existing) throw new Error("Address not found");
 
@@ -105,7 +106,7 @@ export const updateAddress = mutation({
     if (args.isPrimary) {
       const allAddresses = await ctx.db
         .query("addresses")
-        .withIndex("personId", (q) => q.eq("personId", existing.personId))
+        .withIndex("personId", (q: any) => q.eq("personId", existing.personId))
         .collect();
       for (const addr of allAddresses) {
         if (addr._id !== addressId && addr.isPrimary) {
@@ -116,29 +117,29 @@ export const updateAddress = mutation({
 
     await ctx.db.patch(addressId, updates);
     return addressId;
-  },
+  }),
 });
 
 export const removeAddress = mutation({
-  args: { addressId: v.id("addresses") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), addressId: v.id("addresses") },
+  handler: withScopeAndEvents({ operation: "delete", module: "people", entity: "addressEngine" }, async (ctx, args) => {
     const existing = await ctx.db.get(args.addressId);
     if (!existing) throw new Error("Address not found");
     await ctx.db.delete(args.addressId);
     return args.addressId;
-  },
+  }),
 });
 
 export const setPrimaryAddress = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     personId: v.id("personMaster"),
     addressId: v.id("addresses"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "people", entity: "addressEngine" }, async (ctx, args) => {
     const now = Date.now();
     const allAddresses = await ctx.db
       .query("addresses")
-      .withIndex("personId", (q) => q.eq("personId", args.personId))
+      .withIndex("personId", (q: any) => q.eq("personId", args.personId))
       .collect();
 
     for (const addr of allAddresses) {
@@ -148,7 +149,7 @@ export const setPrimaryAddress = mutation({
       });
     }
     return args.addressId;
-  },
+  }),
 });
 
 // ─── Queries ────────────────────────────────────────────

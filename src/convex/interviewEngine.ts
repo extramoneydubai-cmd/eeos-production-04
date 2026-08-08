@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── HELPERS ───────────────────────────────────────────────
 
@@ -27,7 +28,7 @@ async function createTimelineEvent(
 // ─── INTERVIEW CRUD ────────────────────────────────────────
 
 export const scheduleInterview = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     candidateId: v.id("candidates"),
     roundName: v.string(),
     interviewerIds: v.array(v.id("users")),
@@ -35,8 +36,8 @@ export const scheduleInterview = mutation({
     mode: v.union(v.literal("online"), v.literal("offline"), v.literal("phone")),
     duration: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "create", module: "recruitment", entity: "interviewEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
 
     const now = Date.now();
@@ -57,19 +58,19 @@ export const scheduleInterview = mutation({
       eventType: "interview_scheduled",
       title: `Interview Scheduled: ${args.roundName}`,
       description: `Mode: ${args.mode}, ${args.interviewerIds.length} interviewer(s)`,
-      performedBy: identity.subject as any,
+      performedBy: ctx.__performerUserId as any,
     });
 
     return id;
-  },
+  }),
 });
 
 export const rescheduleInterview = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     interviewId: v.id("interviewRounds"),
     schedule: v.number(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "recruitment", entity: "interviewEngine" }, async (ctx, args) => {
     const interview = await ctx.db.get(args.interviewId);
     if (!interview) throw new Error("Interview not found");
 
@@ -80,18 +81,18 @@ export const rescheduleInterview = mutation({
     });
 
     return args.interviewId;
-  },
+  }),
 });
 
 export const recordInterview = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     interviewId: v.id("interviewRounds"),
     result: v.union(v.literal("passed"), v.literal("failed"), v.literal("pending"), v.literal("rescheduled")),
     score: v.optional(v.number()),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "update", module: "recruitment", entity: "interviewEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
 
     const interview = await ctx.db.get(args.interviewId);
@@ -109,11 +110,11 @@ export const recordInterview = mutation({
       eventType: "interview_completed",
       title: `Interview ${args.result === "passed" ? "Passed" : "Failed"}: ${interview.roundName}`,
       description: args.remarks || `Score: ${args.score || "N/A"}`,
-      performedBy: identity.subject as any,
+      performedBy: ctx.__performerUserId as any,
     });
 
     return args.interviewId;
-  },
+  }),
 });
 
 export const getInterview = query({
@@ -150,7 +151,7 @@ export const listInterviews = query({
 // ─── ASSESSMENTS ───────────────────────────────────────────
 
 export const createAssessment = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     candidateId: v.id("candidates"),
     assessmentType: v.string(),
     score: v.optional(v.number()),
@@ -158,8 +159,8 @@ export const createAssessment = mutation({
     evaluator: v.id("users"),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "create", module: "recruitment", entity: "interviewEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
 
     const id = await ctx.db.insert("assessments", {
@@ -178,22 +179,22 @@ export const createAssessment = mutation({
       eventType: "assessment_created",
       title: `Assessment: ${args.assessmentType}`,
       description: `Max score: ${args.maxScore || "N/A"}`,
-      performedBy: identity.subject as any,
+      performedBy: ctx.__performerUserId as any,
     });
 
     return id;
-  },
+  }),
 });
 
 export const recordAssessmentResult = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     assessmentId: v.id("assessments"),
     score: v.optional(v.number()),
     result: v.union(v.literal("pass"), v.literal("fail"), v.literal("pending")),
     remarks: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "update", module: "recruitment", entity: "interviewEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
 
     const assessment = await ctx.db.get(args.assessmentId);
@@ -213,11 +214,11 @@ export const recordAssessmentResult = mutation({
       eventType: "assessment_completed",
       title: `Assessment ${args.result === "pass" ? "Passed" : "Failed"}: ${assessment.assessmentType}`,
       description: `Score: ${args.score || "N/A"} - ${args.remarks || ""}`,
-      performedBy: identity.subject as any,
+      performedBy: ctx.__performerUserId as any,
     });
 
     return args.assessmentId;
-  },
+  }),
 });
 
 export const listAssessments = query({

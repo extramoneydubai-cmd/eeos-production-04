@@ -9,6 +9,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ═══════════════════════════════════════════════════════════════════
 // COST CENTER CRUD
@@ -34,7 +35,7 @@ export const getCostCenter = query({
 });
 
 export const createCostCenter = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(), code: v.string(),
     scopeType: v.union(
       v.literal("company"), v.literal("branch"), v.literal("department"),
@@ -47,27 +48,27 @@ export const createCostCenter = mutation({
     description: v.optional(v.string()),
     budgetAmount: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "finance", entity: "costCenterEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
     const now = Date.now();
     return await ctx.db.insert("costCenters", {
       ...args, isActive: true, createdAt: now, updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateCostCenter = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("costCenters"),
     name: v.optional(v.string()), description: v.optional(v.string()),
     budgetAmount: v.optional(v.number()), isActive: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "costCenterEngine" }, async (ctx, args) => {
     const { id, ...updates } = args;
     await ctx.db.patch(id, { ...updates, updatedAt: Date.now() });
     return id;
-  },
+  }),
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -89,26 +90,26 @@ export const getBankAccount = query({
 });
 
 export const createBankAccount = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(), code: v.string(),
     accountNumber: v.string(), bankName: v.string(),
     branchName: v.optional(v.string()), ifscCode: v.optional(v.string()),
     swiftCode: v.optional(v.string()), accountType: v.string(),
     isDefault: v.boolean(), description: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "finance", entity: "costCenterEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
     const now = Date.now();
     return await ctx.db.insert("financeBankAccounts", {
       ...args, color: "#3b82f6", icon: "Landmark", sequence: 0,
       active: true, createdAt: now, updatedAt: now,
     });
-  },
+  }),
 });
 
 export const recordBankDeposit = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     bankAccountId: v.id("financeBankAccounts"),
     amount: v.number(),
     description: v.string(),
@@ -116,8 +117,8 @@ export const recordBankDeposit = mutation({
     depositDate: v.number(),
     branchId: v.optional(v.id("orgBranches")),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "costCenterEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
     const now = Date.now();
     return await ctx.db.insert("bankTransactions", {
@@ -133,11 +134,11 @@ export const recordBankDeposit = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const recordBankWithdrawal = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     bankAccountId: v.id("financeBankAccounts"),
     amount: v.number(),
     description: v.string(),
@@ -145,8 +146,8 @@ export const recordBankWithdrawal = mutation({
     withdrawalDate: v.number(),
     branchId: v.optional(v.id("orgBranches")),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "costCenterEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
     const now = Date.now();
     return await ctx.db.insert("bankTransactions", {
@@ -162,19 +163,19 @@ export const recordBankWithdrawal = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const recordInternalTransfer = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     fromBankAccountId: v.id("financeBankAccounts"),
     toBankAccountId: v.id("financeBankAccounts"),
     amount: v.number(),
     description: v.string(),
     transferDate: v.number(),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "costCenterEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
     const now = Date.now();
     return await ctx.db.insert("bankTransactions", {
@@ -189,7 +190,7 @@ export const recordInternalTransfer = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const listBankTransactions = query({

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── QR Code Generation ──────────────────────────────────
 
@@ -14,11 +15,11 @@ async function generateQRToken(personId: string): Promise<string> {
 }
 
 export const generateQRCode = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     personId: v.id("personMaster"),
     baseUrl: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "people", entity: "personQRCode" }, async (ctx, args) => {
     const person = await ctx.db.get(args.personId);
     if (!person || person.status === "archived") {
       throw new Error("Person not found or archived");
@@ -27,7 +28,7 @@ export const generateQRCode = mutation({
     // Deactivate any existing QR codes
     const existingQR = await ctx.db
       .query("personQRCode")
-      .withIndex("personId", (q) => q.eq("personId", args.personId))
+      .withIndex("personId", (q: any) => q.eq("personId", args.personId))
       .collect();
 
     const now = Date.now();
@@ -55,15 +56,15 @@ export const generateQRCode = mutation({
       deepLink,
       deepLinkFallback: `eeos://person/${args.personId}`,
     };
-  },
+  }),
 });
 
 export const regenerateQRCode = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     personId: v.id("personMaster"),
     baseUrl: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "people", entity: "personQRCode" }, async (ctx, args) => {
     const person = await ctx.db.get(args.personId);
     if (!person || person.status === "archived") {
       throw new Error("Person not found or archived");
@@ -72,7 +73,7 @@ export const regenerateQRCode = mutation({
     // Deactivate any existing QR codes
     const existingQR = await ctx.db
       .query("personQRCode")
-      .withIndex("personId", (q) => q.eq("personId", args.personId))
+      .withIndex("personId", (q: any) => q.eq("personId", args.personId))
       .collect();
 
     const now = Date.now();
@@ -101,17 +102,17 @@ export const regenerateQRCode = mutation({
       deepLink,
       deepLinkFallback: `eeos://person/${args.personId}`,
     };
-  },
+  }),
 });
 
 export const deactivateQRCode = mutation({
-  args: { qrId: v.id("personQRCode") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), qrId: v.id("personQRCode") },
+  handler: withScopeAndEvents({ operation: "update", module: "people", entity: "personQRCode" }, async (ctx, args) => {
     const qr = await ctx.db.get(args.qrId);
     if (!qr) throw new Error("QR code not found");
     await ctx.db.patch(args.qrId, { active: false, updatedAt: Date.now() });
     return args.qrId;
-  },
+  }),
 });
 
 // ─── QR Code Lookup ──────────────────────────────────────

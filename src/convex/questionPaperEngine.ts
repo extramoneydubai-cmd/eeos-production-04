@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ═══════════════════════════════════════════════════════════════════
 // QUESTION PAPER QUERIES (Part 9)
@@ -43,7 +44,7 @@ export const getQuestionPaperHistory = query({
 // ═══════════════════════════════════════════════════════════════════
 
 export const createQuestionPaper = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     examSessionId: v.id("examSessions"),
     examSubjectId: v.id("examSubjects"),
     title: v.string(),
@@ -54,8 +55,8 @@ export const createQuestionPaper = mutation({
     sections: v.optional(v.string()),
     fileUrl: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "questionPaperEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
 
     const now = Date.now();
@@ -63,7 +64,7 @@ export const createQuestionPaper = mutation({
       ...args,
       version: 1,
       status: "draft",
-      createdBy: identity.subject as any,
+      createdBy: ctx.__performerUserId as any,
       createdAt: now,
       updatedAt: now,
     });
@@ -72,16 +73,16 @@ export const createQuestionPaper = mutation({
       examSessionId: args.examSessionId,
       eventType: "question_paper_created",
       description: `Question paper "${args.title}" created (v1)`,
-      userId: identity.subject as any,
+      userId: ctx.__performerUserId as any,
       createdAt: now,
     });
 
     return id;
-  },
+  }),
 });
 
 export const updateQuestionPaper = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("examQuestionPapers"),
     title: v.optional(v.string()),
     totalMarks: v.optional(v.number()),
@@ -91,7 +92,7 @@ export const updateQuestionPaper = mutation({
     sections: v.optional(v.string()),
     fileUrl: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "questionPaperEngine" }, async (ctx, args) => {
     const { id, ...updates } = args;
     const existing = await ctx.db.get(id);
     if (!existing) throw new Error("Question paper not found");
@@ -105,12 +106,12 @@ export const updateQuestionPaper = mutation({
       updatedAt: Date.now(),
     });
     return id;
-  },
+  }),
 });
 
 export const submitQuestionPaperForReview = mutation({
-  args: { id: v.id("examQuestionPapers") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("examQuestionPapers") },
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "questionPaperEngine" }, async (ctx, args) => {
     await ctx.db.patch(args.id, { status: "review", updatedAt: Date.now() });
     const paper = await ctx.db.get(args.id);
     if (paper) {
@@ -122,52 +123,52 @@ export const submitQuestionPaperForReview = mutation({
       });
     }
     return args.id;
-  },
+  }),
 });
 
 export const approveQuestionPaper = mutation({
-  args: { id: v.id("examQuestionPapers") },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  args: { token: v.optional(v.string()), id: v.id("examQuestionPapers") },
+  handler: withScopeAndEvents({ operation: "approve", module: "academic", entity: "questionPaperEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
     const now = Date.now();
     await ctx.db.patch(args.id, {
       status: "approved",
-      approvedBy: identity.subject as any,
+      approvedBy: ctx.__performerUserId as any,
       approvedAt: now,
       updatedAt: now,
     });
     return args.id;
-  },
+  }),
 });
 
 export const releaseQuestionPaper = mutation({
-  args: { id: v.id("examQuestionPapers") },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  args: { token: v.optional(v.string()), id: v.id("examQuestionPapers") },
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "questionPaperEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
     const now = Date.now();
     await ctx.db.patch(args.id, {
       status: "released",
-      releasedBy: identity.subject as any,
+      releasedBy: ctx.__performerUserId as any,
       releasedAt: now,
       updatedAt: now,
     });
     return args.id;
-  },
+  }),
 });
 
 export const lockQuestionPaper = mutation({
-  args: { id: v.id("examQuestionPapers") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("examQuestionPapers") },
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "questionPaperEngine" }, async (ctx, args) => {
     await ctx.db.patch(args.id, { status: "locked", updatedAt: Date.now() });
     return args.id;
-  },
+  }),
 });
 
 export const recordQuestionPaperPrint = mutation({
-  args: { id: v.id("examQuestionPapers") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("examQuestionPapers") },
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "questionPaperEngine" }, async (ctx, args) => {
     const paper = await ctx.db.get(args.id);
     if (!paper) throw new Error("Paper not found");
     await ctx.db.patch(args.id, {
@@ -176,16 +177,16 @@ export const recordQuestionPaperPrint = mutation({
       updatedAt: Date.now(),
     });
     return args.id;
-  },
+  }),
 });
 
 export const approveQuestionPaperWithReview = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("examQuestionPapers"),
     reviewedBy: v.id("users"),
     reviewedAt: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "approve", module: "academic", entity: "questionPaperEngine" }, async (ctx, args) => {
     const now = Date.now();
     const { id, ...updates } = args;
     await ctx.db.patch(id, {
@@ -195,5 +196,5 @@ export const approveQuestionPaperWithReview = mutation({
       updatedAt: now,
     });
     return id;
-  },
+  }),
 });

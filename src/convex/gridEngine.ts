@@ -12,6 +12,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { ENTITY_REGISTRY } from "./entityEngine";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Grid Configuration ───────────────────────────────────────
 
@@ -189,14 +190,14 @@ export const getGridData = query({
 // ─── Export Grid Data ─────────────────────────────────────────
 
 export const exportGrid = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     entityType: v.string(),
     format: v.union(v.literal("csv"), v.literal("json")),
     filters: v.optional(v.any()),
     search: v.optional(v.string()),
     selectedFields: v.optional(v.array(v.string())),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "platform", entity: "gridEngine" }, async (ctx, args) => {
     const data = await (getGridData as any)(ctx, {
       entityType: args.entityType,
       filters: args.filters,
@@ -223,7 +224,7 @@ export const exportGrid = mutation({
     }
 
     return { format: "json", content: JSON.stringify(data.data, null, 2), rowCount: data.data.length };
-  },
+  }),
 });
 
 // ─── List All Available Grid Entities ────────────────────────

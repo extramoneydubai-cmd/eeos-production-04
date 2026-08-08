@@ -8,11 +8,12 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Receipt Templates ──────────────────────────────────────
 
 export const createReceiptTemplate = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     documentType: v.union(
       v.literal("fee_receipt"), v.literal("gst_invoice"), v.literal("credit_note"),
@@ -26,7 +27,7 @@ export const createReceiptTemplate = mutation({
     isDefault: v.optional(v.boolean()),
     variables: v.optional(v.array(v.string())),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "templates", entity: "receiptTemplateEngine" }, async (ctx, args) => {
     if (args.isDefault) {
       const existing = await ctx.db.query("receiptTemplates")
         .filter((q: any) => q.eq(q.field("documentType"), args.documentType))
@@ -46,7 +47,7 @@ export const createReceiptTemplate = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const listReceiptTemplates = query({
@@ -120,13 +121,13 @@ export const generateDocument = query({
 // ─── Certificate Issuance ───────────────────────────────────
 
 export const issueCertificate = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     certificateType: v.union(v.literal("bonafide"), v.literal("no_dues"), v.literal("transfer"), v.literal("completion"), v.literal("experience")),
     certificateData: v.optional(v.string()),
     issuedBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "templates", entity: "receiptTemplateEngine" }, async (ctx, args) => {
     const now = Date.now();
     const allCerts = await ctx.db.query("certificates").collect();
     const certNumber = `CERT-${new Date().getFullYear()}-${String(allCerts.length + 1).padStart(4, "0")}`;
@@ -142,7 +143,7 @@ export const issueCertificate = mutation({
       verificationUrl: `verify/${certNumber}`,
       createdAt: now,
     });
-  },
+  }),
 });
 
 export const listCertificates = query({

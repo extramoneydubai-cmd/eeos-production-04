@@ -8,11 +8,12 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Import Bank Statement ───────────────────────────────────
 
 export const importBankStatement = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     bankName: v.string(),
     accountNumber: v.string(),
     statementPeriod: v.string(),
@@ -24,8 +25,8 @@ export const importBankStatement = mutation({
       reference: v.optional(v.string()),
     })),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "finance", entity: "bankReconciliationEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const statementId = await ctx.db.insert("bankStatements", {
@@ -53,17 +54,17 @@ export const importBankStatement = mutation({
     }
 
     return statementId;
-  },
+  }),
 });
 
 // ─── Match Entry ─────────────────────────────────────────────
 
 export const matchBankEntry = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     bankEntryId: v.id("bankStatementEntries"),
     transactionId: v.id("paymentTransactions"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "bankReconciliationEngine" }, async (ctx, args) => {
     const bankEntry = await ctx.db.get(args.bankEntryId);
     if (!bankEntry) throw new Error("Bank entry not found");
 
@@ -74,14 +75,14 @@ export const matchBankEntry = mutation({
     });
 
     return args.bankEntryId;
-  },
+  }),
 });
 
 // ─── Reconcile Statement ─────────────────────────────────────
 
 export const reconcileStatement = mutation({
-  args: { statementId: v.id("bankStatements") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), statementId: v.id("bankStatements") },
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "bankReconciliationEngine" }, async (ctx, args) => {
     const entries = await ctx.db.query("bankStatementEntries")
       .withIndex("statementId", (q: any) => q.eq("statementId", args.statementId))
       .collect();
@@ -110,7 +111,7 @@ export const reconcileStatement = mutation({
       totalUnmatchedValue,
       status: unmatched === 0 ? "fully_matched" : "partial",
     };
-  },
+  }),
 });
 
 // ─── List Statements ─────────────────────────────────────────

@@ -15,6 +15,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── 360° View Types ───────────────────────────────────────
 
@@ -456,14 +457,14 @@ export const get360Summary = query({
  * Link two persons with a relationship type (e.g. family, guardian, colleague).
  */
 export const linkPersons = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     personA: v.id("personMaster"),
     personB: v.id("personMaster"),
     relationshipType: v.string(),
     notes: v.optional(v.string()),
     createdBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "people", entity: "relationshipEngine" }, async (ctx, args) => {
     const now = Date.now();
     const a = await ctx.db.get(args.personA);
     const b = await ctx.db.get(args.personB);
@@ -473,7 +474,7 @@ export const linkPersons = mutation({
     // Prevent duplicates
     const existing = await ctx.db
       .query("relationships")
-      .filter((q) =>
+      .filter((q: any) =>
         (q.eq(q.field("personA"), args.personA) && q.eq(q.field("personB"), args.personB)) ||
         (q.eq(q.field("personA"), args.personB) && q.eq(q.field("personB"), args.personA))
       )
@@ -494,20 +495,20 @@ export const linkPersons = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 /**
  * Unlink a person relationship (soft-remove by setting isActive = false).
  */
 export const unlinkPersons = mutation({
-  args: { relationshipId: v.id("relationships") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), relationshipId: v.id("relationships") },
+  handler: withScopeAndEvents({ operation: "update", module: "people", entity: "relationshipEngine" }, async (ctx, args) => {
     const rel = await ctx.db.get(args.relationshipId);
     if (!rel) throw new Error("Relationship not found");
     await ctx.db.patch(args.relationshipId, { isActive: false, updatedAt: Date.now() });
     return args.relationshipId;
-  },
+  }),
 });
 
 /**

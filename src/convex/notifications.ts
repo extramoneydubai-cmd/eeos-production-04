@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ============================
 // NOTIFICATIONS
@@ -35,7 +36,7 @@ export const getUnreadCount = query({
 });
 
 export const createNotification = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     userId: v.id("users"),
     type: v.string(),
     title: v.string(),
@@ -43,7 +44,7 @@ export const createNotification = mutation({
     referenceId: v.optional(v.string()),
     referenceType: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "notifications", entity: "notifications" }, async (ctx, args) => {
     await ctx.db.insert("notifications", {
       userId: args.userId,
       type: args.type as any,
@@ -54,39 +55,39 @@ export const createNotification = mutation({
       isRead: false,
       createdAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const markAsRead = mutation({
-  args: { notificationId: v.id("notifications") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), notificationId: v.id("notifications") },
+  handler: withScopeAndEvents({ operation: "update", module: "notifications", entity: "notifications" }, async (ctx, args) => {
     await ctx.db.patch(args.notificationId, { isRead: true });
-  },
+  }),
 });
 
 export const markAllAsRead = mutation({
-  args: { userId: v.id("users") },
-  handler: async (ctx, args) => {
-    const unread = await ctx.db.query("notifications").withIndex("userId_isRead", (q) => q.eq("userId", args.userId).eq("isRead", false)).collect();
+  args: { token: v.optional(v.string()), userId: v.id("users") },
+  handler: withScopeAndEvents({ operation: "update", module: "notifications", entity: "notifications" }, async (ctx, args) => {
+    const unread = await ctx.db.query("notifications").withIndex("userId_isRead", (q: any) => q.eq("userId", args.userId).eq("isRead", false)).collect();
     for (const n of unread) {
       await ctx.db.patch(n._id, { isRead: true });
     }
-  },
+  }),
 });
 
 export const deleteNotification = mutation({
-  args: { notificationId: v.id("notifications") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), notificationId: v.id("notifications") },
+  handler: withScopeAndEvents({ operation: "delete", module: "notifications", entity: "notifications" }, async (ctx, args) => {
     await ctx.db.delete(args.notificationId);
-  },
+  }),
 });
 
 export const clearAllNotifications = mutation({
-  args: { userId: v.id("users") },
-  handler: async (ctx, args) => {
-    const all = await ctx.db.query("notifications").withIndex("userId", (q) => q.eq("userId", args.userId)).collect();
+  args: { token: v.optional(v.string()), userId: v.id("users") },
+  handler: withScopeAndEvents({ operation: "delete", module: "notifications", entity: "notifications" }, async (ctx, args) => {
+    const all = await ctx.db.query("notifications").withIndex("userId", (q: any) => q.eq("userId", args.userId)).collect();
     for (const n of all) {
       await ctx.db.delete(n._id);
     }
-  },
+  }),
 });

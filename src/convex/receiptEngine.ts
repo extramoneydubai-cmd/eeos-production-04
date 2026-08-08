@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 function generateReceiptNumber(): string {
   const ts = Date.now().toString(36).toUpperCase();
@@ -11,7 +12,7 @@ function generateReceiptNumber(): string {
 // ─── GENERATE RECEIPT ────────────────────────────────────
 
 export const generateReceipt = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     invoiceId: v.optional(v.id("feeInvoices")),
     studentId: v.id("studentMaster"),
     transactionId: v.optional(v.id("paymentTransactions")),
@@ -19,8 +20,8 @@ export const generateReceipt = mutation({
     receiptType: v.union(v.literal("payment"), v.literal("refund"), v.literal("adjustment")),
     receiptData: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "finance", entity: "receiptEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const receiptNumber = generateReceiptNumber();
@@ -38,7 +39,7 @@ export const generateReceipt = mutation({
     });
 
     return { id, receiptNumber };
-  },
+  }),
 });
 
 // ─── GET RECEIPT DATA ────────────────────────────────────
@@ -108,17 +109,17 @@ export const listReceipts = query({
 // ─── MARK RECEIPT AS EMAILED / WHATSAPP ──────────────────
 
 export const markReceiptEmailed = mutation({
-  args: { id: v.id("receiptHistory") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("receiptHistory") },
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "receiptEngine" }, async (ctx, args) => {
     await ctx.db.patch(args.id, { emailedAt: Date.now() });
     return args.id;
-  },
+  }),
 });
 
 export const markReceiptWhatsApped = mutation({
-  args: { id: v.id("receiptHistory") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("receiptHistory") },
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "receiptEngine" }, async (ctx, args) => {
     await ctx.db.patch(args.id, { whatsappSentAt: Date.now() });
     return args.id;
-  },
+  }),
 });

@@ -12,6 +12,7 @@
 
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Full Entity Metadata Interface ───────────────────────────
 
@@ -1057,24 +1058,24 @@ export const searchEntities = query({
 // ─── Mutations ─────────────────────────────────────────────────
 
 export const archiveEntity = mutation({
-  args: { entityType: v.string(), entityId: v.id("_storage") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), entityType: v.string(), entityId: v.id("_storage") },
+  handler: withScopeAndEvents({ operation: "update", module: "platform", entity: "entityEngine" }, async (ctx, args) => {
     const def = ENTITY_REGISTRY[args.entityType];
     if (!def) throw new Error(`Unknown entity type: ${args.entityType}`);
     if (!def.isArchivable) throw new Error(`${def.displayName} does not support archiving`);
     await ctx.db.patch(args.entityId as any, { isArchived: true, archivedAt: Date.now() } as any);
     return { success: true, entityType: args.entityType, entityId: args.entityId };
-  },
+  }),
 });
 
 export const restoreEntity = mutation({
-  args: { entityType: v.string(), entityId: v.id("_storage") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), entityType: v.string(), entityId: v.id("_storage") },
+  handler: withScopeAndEvents({ operation: "update", module: "platform", entity: "entityEngine" }, async (ctx, args) => {
     const def = ENTITY_REGISTRY[args.entityType];
     if (!def) throw new Error(`Unknown entity type: ${args.entityType}`);
     await ctx.db.patch(args.entityId as any, { isArchived: false, archivedAt: undefined } as any);
     return { success: true };
-  },
+  }),
 });
 
 export const getEntityAudit = query({

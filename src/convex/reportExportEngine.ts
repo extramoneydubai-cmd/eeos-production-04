@@ -1,19 +1,20 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── EXPORT REPORT ─────────────────────────────
 
 export const exportReport = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     reportId: v.optional(v.id("reportDefinitions")),
     savedReportId: v.optional(v.id("savedReports")),
     format: v.union(v.literal("pdf"), v.literal("csv"), v.literal("excel"), v.literal("json")),
     filters: v.optional(v.string()),
     data: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "update", module: "reports", entity: "reportExportEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const exportId = await ctx.db.insert("reportExports", {
@@ -67,7 +68,7 @@ export const exportReport = mutation({
 
       return { exportId, error: err.message, format: args.format };
     }
-  },
+  }),
 });
 
 function generateCsvData(data: any[]): string {

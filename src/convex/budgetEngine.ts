@@ -8,6 +8,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ═══════════════════════════════════════════════════════════════════
 // BUDGET CRUD
@@ -35,7 +36,7 @@ export const getBudget = query({
 });
 
 export const createBudget = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(), code: v.string(),
     fiscalYear: v.string(),
     scopeType: v.union(
@@ -49,24 +50,24 @@ export const createBudget = mutation({
     endDate: v.number(),
     description: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "finance", entity: "budgetEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
     const now = Date.now();
     return await ctx.db.insert("budgets", {
       ...args, consumedAmount: 0, remainingAmount: args.totalAmount,
       status: "draft", createdBy: userId, createdAt: now, updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateBudget = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("budgets"),
     name: v.optional(v.string()), description: v.optional(v.string()),
     totalAmount: v.optional(v.number()), status: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "budgetEngine" }, async (ctx, args) => {
     const { id, ...updates } = args;
     const budget = await ctx.db.get(id);
     if (!budget) throw new Error("Budget not found");
@@ -76,35 +77,35 @@ export const updateBudget = mutation({
     }
     await ctx.db.patch(id, patch);
     return id;
-  },
+  }),
 });
 
 export const submitBudgetForApproval = mutation({
-  args: { id: v.id("budgets") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("budgets") },
+  handler: withScopeAndEvents({ operation: "create", module: "finance", entity: "budgetEngine" }, async (ctx, args) => {
     await ctx.db.patch(args.id, { status: "pending_approval", updatedAt: Date.now() });
     return args.id;
-  },
+  }),
 });
 
 export const approveBudget = mutation({
-  args: { id: v.id("budgets"), approved: v.boolean(), remarks: v.optional(v.string()) },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("budgets"), approved: v.boolean(), remarks: v.optional(v.string()) },
+  handler: withScopeAndEvents({ operation: "approve", module: "finance", entity: "budgetEngine" }, async (ctx, args) => {
     await ctx.db.patch(args.id, {
       status: args.approved ? "approved" : "rejected",
       updatedAt: Date.now(),
     });
     return args.id;
-  },
+  }),
 });
 
 export const reviseBudget = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("budgets"),
     newTotalAmount: v.number(),
     reason: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "budgetEngine" }, async (ctx, args) => {
     const budget = await ctx.db.get(args.id);
     if (!budget) throw new Error("Budget not found");
     const now = Date.now();
@@ -126,7 +127,7 @@ export const reviseBudget = mutation({
     });
 
     return args.id;
-  },
+  }),
 });
 
 export const getBudgetConsumption = query({
@@ -153,14 +154,14 @@ export const getBudgetConsumption = query({
 });
 
 export const recordBudgetConsumption = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     budgetId: v.id("budgets"),
     amount: v.number(),
     description: v.string(),
     referenceType: v.string(),
     referenceId: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "budgetEngine" }, async (ctx, args) => {
     const budget = await ctx.db.get(args.budgetId);
     if (!budget) throw new Error("Budget not found");
     const now = Date.now();
@@ -185,7 +186,7 @@ export const recordBudgetConsumption = mutation({
     });
 
     return { budgetId: args.budgetId, consumed: newConsumed, remaining: newRemaining };
-  },
+  }),
 });
 
 export const getBudgetVarianceReport = query({

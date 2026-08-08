@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Helpers ──────────────────────────────────────────────
 
@@ -22,7 +23,7 @@ async function generateQRToken(personId: string): Promise<string> {
 // ─── Person CRUD ─────────────────────────────────────────
 
 export const createPerson = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     firstName: v.string(),
     middleName: v.optional(v.string()),
     lastName: v.string(),
@@ -38,7 +39,7 @@ export const createPerson = mutation({
     timezone: v.optional(v.string()),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "people", entity: "personEngine" }, async (ctx, args) => {
     const now = Date.now();
     const displayName = args.displayName || `${args.firstName} ${args.lastName}`;
 
@@ -63,11 +64,11 @@ export const createPerson = mutation({
     });
 
     return personId;
-  },
+  }),
 });
 
 export const updatePerson = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     personId: v.id("personMaster"),
     firstName: v.optional(v.string()),
     middleName: v.optional(v.string()),
@@ -84,8 +85,8 @@ export const updatePerson = mutation({
     timezone: v.optional(v.string()),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const { personId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "people", entity: "personEngine" }, async (ctx, args) => {
+    const { token: _token, personId, ...fields } = args;
     const existing = await ctx.db.get(personId);
     if (!existing) throw new Error("Person not found");
 
@@ -102,7 +103,7 @@ export const updatePerson = mutation({
 
     await ctx.db.patch(personId, updates);
     return personId;
-  },
+  }),
 });
 
 export const getPerson = query({
@@ -189,33 +190,33 @@ export const listPersons = query({
 });
 
 export const archivePerson = mutation({
-  args: { personId: v.id("personMaster") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), personId: v.id("personMaster") },
+  handler: withScopeAndEvents({ operation: "update", module: "people", entity: "personEngine" }, async (ctx, args) => {
     const person = await ctx.db.get(args.personId);
     if (!person) throw new Error("Person not found");
     await ctx.db.patch(args.personId, { status: "archived", updatedAt: Date.now() });
     return args.personId;
-  },
+  }),
 });
 
 export const restorePerson = mutation({
-  args: { personId: v.id("personMaster") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), personId: v.id("personMaster") },
+  handler: withScopeAndEvents({ operation: "update", module: "people", entity: "personEngine" }, async (ctx, args) => {
     const person = await ctx.db.get(args.personId);
     if (!person) throw new Error("Person not found");
     await ctx.db.patch(args.personId, { status: "active", updatedAt: Date.now() });
     return args.personId;
-  },
+  }),
 });
 
 // ─── Person Merge ──────────────────────────────────────
 
 export const mergePersons = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     sourcePersonId: v.id("personMaster"),
     targetPersonId: v.id("personMaster"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "people", entity: "personEngine" }, async (ctx, args) => {
     const { sourcePersonId, targetPersonId } = args;
     const source = await ctx.db.get(sourcePersonId);
     const target = await ctx.db.get(targetPersonId);
@@ -224,7 +225,7 @@ export const mergePersons = mutation({
     // Move all profiles to target
     const sourceProfiles = await ctx.db
       .query("personProfiles")
-      .withIndex("personId", (q) => q.eq("personId", sourcePersonId))
+      .withIndex("personId", (q: any) => q.eq("personId", sourcePersonId))
       .collect();
     for (const profile of sourceProfiles) {
       await ctx.db.patch(profile._id, { personId: targetPersonId });
@@ -233,12 +234,12 @@ export const mergePersons = mutation({
     // Move all contacts to target (skip duplicates)
     const targetContacts = await ctx.db
       .query("contactMethods")
-      .withIndex("personId", (q) => q.eq("personId", targetPersonId))
+      .withIndex("personId", (q: any) => q.eq("personId", targetPersonId))
       .collect();
-    const targetValues = new Set(targetContacts.map((c) => `${c.type}:${c.value}`));
+    const targetValues = new Set(targetContacts.map((c: any) => `${c.type}:${c.value}`));
     const sourceContacts = await ctx.db
       .query("contactMethods")
-      .withIndex("personId", (q) => q.eq("personId", sourcePersonId))
+      .withIndex("personId", (q: any) => q.eq("personId", sourcePersonId))
       .collect();
     for (const contact of sourceContacts) {
       const key = `${contact.type}:${contact.value}`;
@@ -252,7 +253,7 @@ export const mergePersons = mutation({
     // Move all addresses to target
     const sourceAddresses = await ctx.db
       .query("addresses")
-      .withIndex("personId", (q) => q.eq("personId", sourcePersonId))
+      .withIndex("personId", (q: any) => q.eq("personId", sourcePersonId))
       .collect();
     for (const addr of sourceAddresses) {
       await ctx.db.patch(addr._id, { personId: targetPersonId });
@@ -261,7 +262,7 @@ export const mergePersons = mutation({
     // Move emergency contacts
     const sourceEmergencies = await ctx.db
       .query("emergencyContacts")
-      .withIndex("ownerPersonId", (q) => q.eq("ownerPersonId", sourcePersonId))
+      .withIndex("ownerPersonId", (q: any) => q.eq("ownerPersonId", sourcePersonId))
       .collect();
     for (const ec of sourceEmergencies) {
       await ctx.db.patch(ec._id, { ownerPersonId: targetPersonId });
@@ -270,14 +271,14 @@ export const mergePersons = mutation({
     // Move relationships
     const sourceRelationshipsA = await ctx.db
       .query("relationships")
-      .withIndex("personA", (q) => q.eq("personA", sourcePersonId))
+      .withIndex("personA", (q: any) => q.eq("personA", sourcePersonId))
       .collect();
     for (const rel of sourceRelationshipsA) {
       await ctx.db.patch(rel._id, { personA: targetPersonId });
     }
     const sourceRelationshipsB = await ctx.db
       .query("relationships")
-      .withIndex("personB", (q) => q.eq("personB", sourcePersonId))
+      .withIndex("personB", (q: any) => q.eq("personB", sourcePersonId))
       .collect();
     for (const rel of sourceRelationshipsB) {
       await ctx.db.patch(rel._id, { personB: targetPersonId });
@@ -286,7 +287,7 @@ export const mergePersons = mutation({
     // Move social links
     const sourceSocial = await ctx.db
       .query("socialLinks")
-      .withIndex("personId", (q) => q.eq("personId", sourcePersonId))
+      .withIndex("personId", (q: any) => q.eq("personId", sourcePersonId))
       .collect();
     for (const sl of sourceSocial) {
       await ctx.db.patch(sl._id, { personId: targetPersonId });
@@ -295,7 +296,7 @@ export const mergePersons = mutation({
     // Move documents
     const sourceDocs = await ctx.db
       .query("personDocuments")
-      .withIndex("personId", (q) => q.eq("personId", sourcePersonId))
+      .withIndex("personId", (q: any) => q.eq("personId", sourcePersonId))
       .collect();
     for (const doc of sourceDocs) {
       await ctx.db.patch(doc._id, { personId: targetPersonId });
@@ -304,7 +305,7 @@ export const mergePersons = mutation({
     // Move QR code
     const sourceQR = await ctx.db
       .query("personQRCode")
-      .withIndex("personId", (q) => q.eq("personId", sourcePersonId))
+      .withIndex("personId", (q: any) => q.eq("personId", sourcePersonId))
       .first();
     if (sourceQR) {
       await ctx.db.patch(sourceQR._id, { personId: targetPersonId });
@@ -314,7 +315,7 @@ export const mergePersons = mutation({
     await ctx.db.delete(sourcePersonId);
 
     return targetPersonId;
-  },
+  }),
 });
 
 // ─── Person Search (basic) ──────────────────────────────

@@ -799,4 +799,496 @@ export const TOKEN_AWARE_FUNCTIONS = new Set<string>([
   "organizationTeams:duplicateTeam",
   "organizationTeams:reorderTeams",
   "organizationTeams:seedDefaultTeams",
+  // accessEngine
+  "accessEngine:simulateLogin",
+  // actionPermissions
+  "actionPermissions:setActionPermission",
+  "actionPermissions:removeActionPermission",
+  "actionPermissions:setSectionPermission",
+  "actionPermissions:setCategoryPermission",
+  // automationEngine
+  "automationEngine:setAutomation",
+  "automationEngine:deleteAutomation",
+  "automationEngine:toggleAutomation",
+  "automationEngine:executeAutomation",
+  // businessRulesEngine
+  "businessRulesEngine:setRule",
+  // calendarSdk
+  "calendarSdk:createEvent",
+  "calendarSdk:updateEvent",
+  "calendarSdk:removeEvent",
+  // configurationStudioEngine
+  "configurationStudioEngine:setConfiguration",
+  "configurationStudioEngine:deleteConfiguration",
+  // dashboardEngine
+  "dashboardEngine:createWidget",
+  "dashboardEngine:saveLayout",
+  "dashboardEngine:deleteLayout",
+  // dashboardLiveRefresh
+  "dashboardLiveRefresh:signalDashboardRefresh",
+  // entityEngine
+  "entityEngine:archiveEntity",
+  "entityEngine:restoreEntity",
+  // fieldSecurity
+  "fieldSecurity:setFieldPermission",
+  "fieldSecurity:removeFieldPermission",
+  "fieldSecurity:seedFieldPermissions",
+  // gridEngine
+  "gridEngine:exportGrid",
+  // integrationEngine
+  "integrationEngine:createConnector",
+  "integrationEngine:updateConnector",
+  "integrationEngine:deleteConnector",
+  "integrationEngine:testConnector",
+  // menuEngine
+  "menuEngine:createMenu",
+  "menuEngine:updateMenu",
+  "menuEngine:deleteMenu",
+  "menuEngine:reorderMenus",
+  // metadataRegistry
+  "metadataRegistry:registerEntity",
+  "metadataRegistry:incrementUsage",
+  // moduleActivationEngine
+  "moduleActivationEngine:setModuleActivation",
+  "moduleActivationEngine:deleteModuleActivation",
+  // recordScope
+  "recordScope:setRecordPolicy",
+  "recordScope:removeRecordPolicy",
+  "recordScope:bulkAssignRecordPolicies",
+  // searchEngineV2
+  "searchEngineV2:recordRecentSearch",
+  "searchEngineV2:saveSearch",
+  "searchEngineV2:deleteSavedSearch",
+  // securityPolicies
+  "securityPolicies:createPolicy",
+  "securityPolicies:updatePolicy",
+  "securityPolicies:deletePolicy",
+  "securityPolicies:seedDefaultPolicies",
+  "securityPolicies:seedDefaultCategoryPermissions",
+  "securityPolicies:assignPolicyToRecord",
+  // technologyEngine
+  "technologyEngine:recordDeployment",
+  "technologyEngine:recordTechMetric",
+  // whiteLabelEngine
+  "whiteLabelEngine:setWhiteLabelConfig",
+  // notifications
+  "notifications:createNotification",
+  "notifications:markAsRead",
+  "notifications:markAllAsRead",
+  "notifications:deleteNotification",
+  "notifications:clearAllNotifications",
+  // notificationMatrix
+  "notificationMatrix:setNotificationRule",
+  "notificationMatrix:deleteNotificationRule",
+  // pushEngine
+  "pushEngine:processPushQueue",
+  "pushEngine:registerDevice",
+  "pushEngine:unregisterDevice",
+  // emailEngine
+  "emailEngine:processEmailQueue",
+  "emailEngine:handleProviderCallback",
+  // smsEngine
+  "smsEngine:processSmsQueue",
+  "smsEngine:handleProviderCallback",
+  // whatsappEngine
+  "whatsappEngine:processWhatsAppQueue",
+  "whatsappEngine:handleProviderCallback",
+  // commEmailTemplates
+  "commEmailTemplates:seedDefault",
+  "commEmailTemplates:create",
+  "commEmailTemplates:update",
+  "commEmailTemplates:remove",
+  "commEmailTemplates:duplicate",
+  "commEmailTemplates:reorder",
+  // commSmsTemplates
+  "commSmsTemplates:seedDefault",
+  "commSmsTemplates:create",
+  "commSmsTemplates:update",
+  "commSmsTemplates:remove",
+  "commSmsTemplates:duplicate",
+  "commSmsTemplates:reorder",
+  // commWhatsAppTemplates
+  "commWhatsAppTemplates:seedDefault",
+  "commWhatsAppTemplates:create",
+  "commWhatsAppTemplates:update",
+  "commWhatsAppTemplates:remove",
+  "commWhatsAppTemplates:duplicate",
+  "commWhatsAppTemplates:reorder",
+  // commNotificationTypes
+  "commNotificationTypes:seedDefault",
+  "commNotificationTypes:create",
+  "commNotificationTypes:update",
+  "commNotificationTypes:remove",
+  "commNotificationTypes:duplicate",
+  "commNotificationTypes:reorder",
+  // documentTemplateEngine
+  "documentTemplateEngine:createTemplate",
+  "documentTemplateEngine:updateTemplate",
+  "documentTemplateEngine:deleteTemplate",
+  "documentTemplateEngine:renderTemplate",
+  "documentTemplateEngine:generateReceipt",
+  "documentTemplateEngine:generateBounceNotice",
+  "documentTemplateEngine:generateOfferLetter",
+  "documentTemplateEngine:generateConsentForm",
+  // receiptTemplateEngine
+  "receiptTemplateEngine:createReceiptTemplate",
+  "receiptTemplateEngine:issueCertificate",
+  // templateEngine
+  "templateEngine:create",
+  "templateEngine:update",
+  "templateEngine:remove",
+  "templateEngine:duplicate",
+  "templateEngine:render",
+  "templateEngine:renderFromCode",
+  // reportDesignerEngine
+  "reportDesignerEngine:generateExportQuery",
+  "reportDesignerEngine:registerCustomReport",
+  // reportEngine
+  "reportEngine:createReportDefinition",
+  "reportEngine:updateReportDefinition",
+  "reportEngine:saveReport",
+  "reportEngine:toggleFavoriteReport",
+  "reportEngine:deleteSavedReport",
+  "reportEngine:executeReport",
+  // reportExportEngine
+  "reportExportEngine:exportReport",
+  // executiveReports
+  "executiveReports:generateAnnualReport",
+  // kpiEngine
+  "kpiEngine:createKpi",
+  "kpiEngine:updateKpi",
+  "kpiEngine:deleteKpi",
+  "kpiEngine:recordKpiValue",
+  "kpiEngine:calculateKpiValues",
+  // analyticsEngine
+  "analyticsEngine:createKpiDefinition",
+  "analyticsEngine:calculateKpi",
+  "analyticsEngine:generateAllKpiSnapshots",
+  // bankReconciliationEngine
+  "bankReconciliationEngine:importBankStatement",
+  "bankReconciliationEngine:matchBankEntry",
+  "bankReconciliationEngine:reconcileStatement",
+  // budgetEngine
+  "budgetEngine:createBudget",
+  "budgetEngine:updateBudget",
+  "budgetEngine:submitBudgetForApproval",
+  "budgetEngine:approveBudget",
+  "budgetEngine:reviseBudget",
+  "budgetEngine:recordBudgetConsumption",
+  // chartOfAccountsEngine
+  "chartOfAccountsEngine:createAccountGroup",
+  "chartOfAccountsEngine:updateAccountGroup",
+  "chartOfAccountsEngine:createAccount",
+  "chartOfAccountsEngine:updateAccount",
+  // chequeEngine
+  "chequeEngine:depositCheque",
+  "chequeEngine:clearCheque",
+  "chequeEngine:rePresentCheque",
+  "chequeEngine:waivePenalty",
+  "chequeEngine:collectPenalty",
+  // costCenterEngine
+  "costCenterEngine:createCostCenter",
+  "costCenterEngine:updateCostCenter",
+  "costCenterEngine:createBankAccount",
+  "costCenterEngine:recordBankDeposit",
+  "costCenterEngine:recordBankWithdrawal",
+  "costCenterEngine:recordInternalTransfer",
+  // expenseEngine
+  "expenseEngine:createExpense",
+  "expenseEngine:updateExpense",
+  "expenseEngine:submitForApproval",
+  "expenseEngine:approveExpense",
+  "expenseEngine:markExpensePaid",
+  // financialClosingEngine
+  "financialClosingEngine:createFinancialYear",
+  "financialClosingEngine:setCurrentFinancialYear",
+  "financialClosingEngine:initiateClosing",
+  "financialClosingEngine:completeClosing",
+  "financialClosingEngine:reopenPeriod",
+  "financialClosingEngine:updateClosingChecklist",
+  "financialClosingEngine:createSalaryComponent",
+  "financialClosingEngine:createEmployeeAdvance",
+  "financialClosingEngine:repayEmployeeAdvance",
+  // financialTransactionEngine
+  "financialTransactionEngine:reverseTransaction",
+  // gstComplianceEngine
+  "gstComplianceEngine:createDebitNote",
+  "gstComplianceEngine:issueDebitNote",
+  // invoiceEngine
+  "invoiceEngine:autoGenerateInvoiceFromInstallments",
+  "invoiceEngine:generateBatchInvoices",
+  "invoiceEngine:generateInvoiceForInstallment",
+  // receiptEngine
+  "receiptEngine:generateReceipt",
+  "receiptEngine:markReceiptEmailed",
+  "receiptEngine:markReceiptWhatsApped",
+  // refundCalcEngine
+  "refundCalcEngine:createRefundPolicy",
+  "refundCalcEngine:createCalculatedRefund",
+  // taxEngine
+  "taxEngine:createTaxGroup",
+  "taxEngine:updateTaxGroup",
+  "taxEngine:createGstRate",
+  // exitEngine
+  "exitEngine:initiateExit",
+  "exitEngine:updateClearanceItem",
+  "exitEngine:processFullFinal",
+  "exitEngine:completeExit",
+  // onboardingEngine
+  "onboardingEngine:createOnboardingTask",
+  "onboardingEngine:generateDefaultOnboarding",
+  "onboardingEngine:updateOnboardingTask",
+  "onboardingEngine:completeOnboardingTask",
+  "onboardingEngine:uncompleteOnboardingTask",
+  "onboardingEngine:deleteOnboardingTask",
+  "onboardingEngine:linkEmployeeToOnboarding",
+  // performanceEngine
+  "performanceEngine:createReview",
+  "performanceEngine:submitReview",
+  "performanceEngine:acknowledgeReview",
+  // profileEngine
+  "profileEngine:addProfile",
+  "profileEngine:updateProfile",
+  "profileEngine:removeProfile",
+  "profileEngine:setPrimaryProfile",
+  // promotionEngine
+  "promotionEngine:createPromotion",
+  "promotionEngine:bulkPromote",
+  "promotionEngine:bulkDetain",
+  // payrollEngine
+  "payrollEngine:createSalaryStructure",
+  "payrollEngine:processPayRun",
+  "payrollEngine:approvePayRun",
+  // personEngine
+  "personEngine:createPerson",
+  "personEngine:updatePerson",
+  "personEngine:archivePerson",
+  "personEngine:restorePerson",
+  "personEngine:mergePersons",
+  // personQRCode
+  "personQRCode:generateQRCode",
+  "personQRCode:regenerateQRCode",
+  "personQRCode:deactivateQRCode",
+  // addressEngine
+  "addressEngine:addAddress",
+  "addressEngine:updateAddress",
+  "addressEngine:removeAddress",
+  "addressEngine:setPrimaryAddress",
+  // contactEngine
+  "contactEngine:addContactMethod",
+  "contactEngine:updateContactMethod",
+  "contactEngine:removeContactMethod",
+  "contactEngine:verifyContactMethod",
+  "contactEngine:setPreferredContact",
+  // emergencyContactEngine
+  "emergencyContactEngine:addEmergencyContact",
+  "emergencyContactEngine:updateEmergencyContact",
+  "emergencyContactEngine:removeEmergencyContact",
+  "emergencyContactEngine:deleteEmergencyContact",
+  "emergencyContactEngine:setEmergencyContactPriority",
+  // relationshipEngine
+  "relationshipEngine:linkPersons",
+  "relationshipEngine:unlinkPersons",
+  // consentEngine
+  "consentEngine:createConsentTemplate",
+  "consentEngine:recordConsent",
+  // crmApprovals
+  "crmApprovals:requestDiscountWithApproval",
+  "crmApprovals:createLeadApproval",
+  "crmApprovals:decideOnApproval",
+  // crmCalls
+  "crmCalls:logCallActivity",
+  // crmDiscounts
+  "crmDiscounts:createDiscount",
+  "crmDiscounts:approveDiscount",
+  "crmDiscounts:rejectDiscount",
+  // crmDocuments
+  "crmDocuments:addLeadDocument",
+  // crmNotes
+  "crmNotes:addLeadNote",
+  // crmPayments
+  "crmPayments:addPayment",
+  "crmPayments:verifyPayment",
+  // crmTasks
+  "crmTasks:createLeadTask",
+  "crmTasks:updateLeadTaskStatus",
+  "crmTasks:updateLeadTask",
+  // crmWhatsApp
+  "crmWhatsApp:sendWhatsAppMessage",
+  // opportunities
+  "opportunities:create",
+  "opportunities:update",
+  "opportunities:remove",
+  // quotations
+  "quotations:create",
+  "quotations:updateStatus",
+  "quotations:update",
+  "quotations:remove",
+  // salesInvoiceTypes
+  "salesInvoiceTypes:seedDefault",
+  "salesInvoiceTypes:create",
+  "salesInvoiceTypes:update",
+  "salesInvoiceTypes:remove",
+  "salesInvoiceTypes:duplicate",
+  "salesInvoiceTypes:reorder",
+  // salesOpportunityStages
+  "salesOpportunityStages:seedDefault",
+  "salesOpportunityStages:createOpportunityStage",
+  "salesOpportunityStages:updateOpportunityStage",
+  "salesOpportunityStages:deleteOpportunityStage",
+  "salesOpportunityStages:duplicateOpportunityStage",
+  "salesOpportunityStages:reorderOpportunityStages",
+  // salesOpportunityTypes
+  "salesOpportunityTypes:seedDefault",
+  "salesOpportunityTypes:create",
+  "salesOpportunityTypes:update",
+  "salesOpportunityTypes:remove",
+  "salesOpportunityTypes:duplicate",
+  "salesOpportunityTypes:reorder",
+  // salesPaymentStatuses
+  "salesPaymentStatuses:seedDefault",
+  "salesPaymentStatuses:create",
+  "salesPaymentStatuses:update",
+  "salesPaymentStatuses:remove",
+  "salesPaymentStatuses:duplicate",
+  "salesPaymentStatuses:reorder",
+  // salesQuotationStatuses
+  "salesQuotationStatuses:seedDefault",
+  "salesQuotationStatuses:create",
+  "salesQuotationStatuses:update",
+  "salesQuotationStatuses:remove",
+  "salesQuotationStatuses:duplicate",
+  "salesQuotationStatuses:reorder",
+  // salesTaxSlabs
+  "salesTaxSlabs:seedDefault",
+  "salesTaxSlabs:create",
+  "salesTaxSlabs:update",
+  "salesTaxSlabs:remove",
+  "salesTaxSlabs:duplicate",
+  "salesTaxSlabs:reorder",
+  // salesTerritories
+  "salesTerritories:seedDefault",
+  "salesTerritories:createTerritory",
+  "salesTerritories:updateTerritory",
+  "salesTerritories:deleteTerritory",
+  "salesTerritories:duplicateTerritory",
+  "salesTerritories:reorderTerritories",
+  // candidateEngine
+  "candidateEngine:createCandidate",
+  "candidateEngine:updateCandidate",
+  "candidateEngine:transitionCandidateStatus",
+  "candidateEngine:rejectCandidate",
+  "candidateEngine:archiveCandidate",
+  // interviewEngine
+  "interviewEngine:scheduleInterview",
+  "interviewEngine:rescheduleInterview",
+  "interviewEngine:recordInterview",
+  "interviewEngine:createAssessment",
+  "interviewEngine:recordAssessmentResult",
+  // assessmentFramework
+  "assessmentFramework:createAssessmentType",
+  "assessmentFramework:updateAssessmentType",
+  "assessmentFramework:deleteAssessmentType",
+  // attendanceVerificationEngine
+  "attendanceVerificationEngine:issueQrToken",
+  "attendanceVerificationEngine:saveGeofence",
+  "attendanceVerificationEngine:markWithGps",
+  "attendanceVerificationEngine:generateUploadUrl",
+  "attendanceVerificationEngine:registerFace",
+  "attendanceVerificationEngine:markWithFace",
+  // boardRulesEngine
+  "boardRulesEngine:createBoardRule",
+  "boardRulesEngine:updateBoardRule",
+  "boardRulesEngine:deleteBoardRule",
+  // certificateEngine
+  "certificateEngine:issueCertificate",
+  "certificateEngine:bulkIssueCertificates",
+  "certificateEngine:recordCertificateDownload",
+  // examIncidentEngine
+  "examIncidentEngine:reportIncident",
+  "examIncidentEngine:updateIncidentStatus",
+  "examIncidentEngine:appealIncident",
+  "examIncidentEngine:resolveAppeal",
+  // facultyEngine
+  "facultyEngine:createHomework",
+  "facultyEngine:createQuestion",
+  "facultyEngine:createExam",
+  "facultyEngine:publishExam",
+  // lmsFacultyEngine
+  "lmsFacultyEngine:createAssignment",
+  "lmsFacultyEngine:publishAssignment",
+  "lmsFacultyEngine:evaluateSubmission",
+  "lmsFacultyEngine:createQuiz",
+  "lmsFacultyEngine:addQuizQuestion",
+  "lmsFacultyEngine:publishQuiz",
+  // lmsStudentEngine
+  "lmsStudentEngine:enrollStudent",
+  "lmsStudentEngine:trackLessonProgress",
+  "lmsStudentEngine:submitAssignment",
+  "lmsStudentEngine:submitQuizAttempt",
+  // offerEngine
+  "offerEngine:createOffer",
+  "offerEngine:updateOffer",
+  "offerEngine:approveOffer",
+  "offerEngine:acceptOffer",
+  "offerEngine:declineOffer",
+  "offerEngine:withdrawOffer",
+  // parentEngine
+  "parentEngine:createParentTicket",
+  // questionPaperEngine
+  "questionPaperEngine:createQuestionPaper",
+  "questionPaperEngine:updateQuestionPaper",
+  "questionPaperEngine:submitQuestionPaperForReview",
+  "questionPaperEngine:approveQuestionPaper",
+  "questionPaperEngine:releaseQuestionPaper",
+  "questionPaperEngine:lockQuestionPaper",
+  "questionPaperEngine:recordQuestionPaperPrint",
+  "questionPaperEngine:approveQuestionPaperWithReview",
+  // reportCardEngine
+  "reportCardEngine:generateReportCard",
+  "reportCardEngine:bulkGenerateReportCards",
+  "reportCardEngine:recordReportCardDownload",
+  // resultEngine
+  "resultEngine:calculateResults",
+  "resultEngine:calculateRanks",
+  "resultEngine:publishResults",
+  "resultEngine:trackReportDownload",
+  // revaluationEngine
+  "revaluationEngine:requestRevaluation",
+  "revaluationEngine:reviewRevaluation",
+  "revaluationEngine:bulkApproveRevaluation",
+  // alumniEngine
+  "alumniEngine:createAlumniRecord",
+  "alumniEngine:updateAlumniEngagement",
+  // knowledgeEngine
+  "knowledgeEngine:createArticle",
+  "knowledgeEngine:updateArticle",
+  "knowledgeEngine:markHelpful",
+  // verification
+  "verification:createVerificationRequest",
+  "verification:decideOnVerification",
+  // businessRulesEngine
+  "businessRulesEngine:initializeDefaultRules",
+  // configurationStudioEngine
+  "configurationStudioEngine:initializeDefaultConfigs",
+  // menuEngine
+  "menuEngine:seedDefaultMenus",
+  // notificationMatrix
+  "notificationMatrix:initializeNotificationMatrix",
+  // templateEngine
+  "templateEngine:seedDefaults",
+  // executiveReports
+  "executiveReports:generateDailySummary",
+  "executiveReports:generateWeeklyReview",
+  "executiveReports:generateMonthlyReview",
+  "executiveReports:generateQuarterlyReview",
+  "executiveReports:generateAllExecutiveReports",
+  // crmDocuments
+  "crmDocuments:deleteLeadDocument",
+  // crmNotes
+  "crmNotes:deleteLeadNote",
+  // crmTasks
+  "crmTasks:deleteLeadTask",
+  // knowledgeEngine
+  "knowledgeEngine:createCategory",
 ]);

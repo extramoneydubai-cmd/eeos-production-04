@@ -17,6 +17,7 @@ import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { withEventPipeline, entityIdFromResult, entityIdFromArg, userIdFromArg } from "../platform/eventPipeline";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ═══════════════════════════════════════════════════════════════════
 // HELPERS
@@ -49,7 +50,7 @@ export interface TransactionLine {
  * This is the SINGLE entry point for ALL financial transactions.
  */
 export const createTransaction = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     transactionDate: v.number(),
     description: v.string(),
     voucherType: v.union(
@@ -174,12 +175,12 @@ export const createTransaction = mutation({
  * Creates a compensating transaction that nullifies the original.
  */
 export const reverseTransaction = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     transactionId: v.id("financialTransactions"),
     reason: v.string(),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "financialTransactionEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
 
     const txn = await ctx.db.get(args.transactionId);
@@ -191,7 +192,7 @@ export const reverseTransaction = mutation({
       JSON.parse(txn.lines || "[]");
 
     // Reverse each line (swap debits and credits)
-    const reversedLines = lines.map((l) => ({
+    const reversedLines = lines.map((l: any) => ({
       accountCode: l.accountCode,
       debit: l.credit,
       credit: l.debit,
@@ -232,17 +233,17 @@ export const reverseTransaction = mutation({
       referenceEntity: "transaction",
       referenceId: args.transactionId,
       lines: JSON.stringify(reversedLines),
-      totalDebit: reversedLines.reduce((s, l) => s + l.debit, 0),
-      totalCredit: reversedLines.reduce((s, l) => s + l.credit, 0),
+      totalDebit: reversedLines.reduce((s: any, l: any) => s + l.debit, 0),
+      totalCredit: reversedLines.reduce((s: any, l: any) => s + l.credit, 0),
       currency: txn.currency,
       status: "posted",
-      createdBy: identity.subject as any,
+      createdBy: ctx.__performerUserId as any,
       postedAt: now,
       notes: args.reason,
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 // ═══════════════════════════════════════════════════════════════════

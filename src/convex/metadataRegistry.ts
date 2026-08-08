@@ -14,6 +14,7 @@
 
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Types ─────────────────────────────────────────────────────
 
@@ -41,7 +42,7 @@ export interface EntityMetadata {
 // ─── Register / Update Metadata ──────────────────────────────
 
 export const registerEntity = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     entityType: v.union(
       v.literal("module"), v.literal("form"), v.literal("field"),
       v.literal("dashboard"), v.literal("menu"), v.literal("workflow"),
@@ -61,7 +62,7 @@ export const registerEntity = mutation({
       v.literal("deprecated"),
     )),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "platform", entity: "metadataRegistry" }, async (ctx, args) => {
     const now = Date.now();
 
     // Check if already registered
@@ -103,7 +104,7 @@ export const registerEntity = mutation({
       ...metadata,
       createdAt: now,
     });
-  },
+  }),
 });
 
 // ─── Queries ───────────────────────────────────────────────────
@@ -239,7 +240,7 @@ export const getDependencyGraph = query({
 // ─── Usage Tracking ─────────────────────────────────────────
 
 export const incrementUsage = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     entityType: v.union(
       v.literal("module"), v.literal("form"), v.literal("field"),
       v.literal("dashboard"), v.literal("menu"), v.literal("workflow"),
@@ -249,7 +250,7 @@ export const incrementUsage = mutation({
     ),
     entityId: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "platform", entity: "metadataRegistry" }, async (ctx, args) => {
     const entity = await ctx.db.query("metadataRegistry")
       .withIndex("by_entity", (q: any) =>
         q.eq("entityType", args.entityType).eq("entityId", args.entityId)
@@ -262,5 +263,5 @@ export const incrementUsage = mutation({
         updatedAt: Date.now(),
       });
     }
-  },
+  }),
 });

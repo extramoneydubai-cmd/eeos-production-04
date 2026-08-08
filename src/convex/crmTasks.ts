@@ -3,6 +3,7 @@ import { paginationOptsValidator } from "convex/server";
 import { mutation, query } from "./_generated/server";
 import { logActivity } from "./crmHelpers";
 import { paginatedQuery, applyStandardFilters, type PaginatedResponse } from "./queryHelpers";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ============================
 // SALES PENDING TASKS (Task Workspace)
@@ -112,34 +113,34 @@ export const getLeadTasks = query({
 });
 
 export const createLeadTask = mutation({
-  args: { leadId: v.id("leadMaster"), title: v.string(), description: v.optional(v.string()), ownerId: v.id("users"), assignedTo: v.optional(v.id("users")), dueDate: v.optional(v.number()), priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("critical"))), isApproved: v.optional(v.boolean()) },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), leadId: v.id("leadMaster"), title: v.string(), description: v.optional(v.string()), ownerId: v.id("users"), assignedTo: v.optional(v.id("users")), dueDate: v.optional(v.number()), priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("critical"))), isApproved: v.optional(v.boolean()) },
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmTasks" }, async (ctx, args) => {
     const now = Date.now();
     const taskId = await ctx.db.insert("leadTasks", { leadId: args.leadId, title: args.title, description: args.description, ownerId: args.ownerId, assignedTo: args.assignedTo, dueDate: args.dueDate, status: "pending", priority: args.priority || "medium", isApproved: args.isApproved, createdAt: now, updatedAt: now });
     await logActivity(ctx, args.leadId, "task_created", `task created: ${args.title}`, args.ownerId);
     return taskId;
-  },
+  }),
 });
 
 export const updateLeadTaskStatus = mutation({
-  args: { taskId: v.id("leadTasks"), status: v.union(v.literal("pending"), v.literal("in_progress"), v.literal("completed"), v.literal("cancelled")), userId: v.optional(v.id("users")) },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), taskId: v.id("leadTasks"), status: v.union(v.literal("pending"), v.literal("in_progress"), v.literal("completed"), v.literal("cancelled")), userId: v.optional(v.id("users")) },
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmTasks" }, async (ctx, args) => {
     await ctx.db.patch(args.taskId, { status: args.status, updatedAt: Date.now() });
     if (args.status === "completed" && args.userId) { const task = await ctx.db.get(args.taskId); if (task) await logActivity(ctx, task.leadId, "task_completed", `task completed`, args.userId); }
-  },
+  }),
 });
 
 export const updateLeadTask = mutation({
-  args: { taskId: v.id("leadTasks"), title: v.optional(v.string()), description: v.optional(v.string()), assignedTo: v.optional(v.id("users")), dueDate: v.optional(v.number()), status: v.optional(v.union(v.literal("pending"), v.literal("in_progress"), v.literal("completed"), v.literal("cancelled"))), priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("critical"))), isApproved: v.optional(v.boolean()) },
-  handler: async (ctx, args) => {
-    const { taskId, ...fields } = args;
+  args: { token: v.optional(v.string()), taskId: v.id("leadTasks"), title: v.optional(v.string()), description: v.optional(v.string()), assignedTo: v.optional(v.id("users")), dueDate: v.optional(v.number()), status: v.optional(v.union(v.literal("pending"), v.literal("in_progress"), v.literal("completed"), v.literal("cancelled"))), priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("critical"))), isApproved: v.optional(v.boolean()) },
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmTasks" }, async (ctx, args) => {
+    const { token: _token, taskId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     for (const [key, value] of Object.entries(fields)) { if (value !== undefined) updates[key] = value; }
     await ctx.db.patch(taskId, updates);
-  },
+  }),
 });
 
 export const deleteLeadTask = mutation({
-  args: { taskId: v.id("leadTasks") },
-  handler: async (ctx, args) => { await ctx.db.delete(args.taskId); },
+  args: { token: v.optional(v.string()), taskId: v.id("leadTasks") },
+  handler: withScopeAndEvents({ operation: "delete", module: "crm", entity: "crmTasks" }, async (ctx, args) => { await ctx.db.delete(args.taskId); }),
 });

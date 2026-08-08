@@ -1,11 +1,12 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── ASSIGNMENTS ─────────────────────────────────────
 
 export const createAssignment = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     lessonId: v.id("lmsLessons"),
     courseId: v.id("lmsCourses"),
     title: v.string(),
@@ -16,8 +17,8 @@ export const createAssignment = mutation({
     attachmentUrl: v.optional(v.string()),
     instructions: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "lmsFacultyEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     return ctx.db.insert("lmsAssignments", {
@@ -27,15 +28,15 @@ export const createAssignment = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const publishAssignment = mutation({
-  args: { id: v.id("lmsAssignments") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("lmsAssignments") },
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "lmsFacultyEngine" }, async (ctx, args) => {
     await ctx.db.patch(args.id, { status: "published", updatedAt: Date.now() });
     return args.id;
-  },
+  }),
 });
 
 export const listAssignments = query({
@@ -60,13 +61,13 @@ export const listAssignments = query({
 // ─── EVALUATION ──────────────────────────────────────
 
 export const evaluateSubmission = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     submissionId: v.id("lmsSubmissions"),
     score: v.number(),
     feedback: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "lmsFacultyEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const submission = await ctx.db.get(args.submissionId);
@@ -91,7 +92,7 @@ export const evaluateSubmission = mutation({
     });
 
     return args.submissionId;
-  },
+  }),
 });
 
 export const listSubmissions = query({
@@ -128,7 +129,7 @@ export const listSubmissions = query({
 // ─── QUIZZES ─────────────────────────────────────────
 
 export const createQuiz = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     lessonId: v.id("lmsLessons"),
     courseId: v.id("lmsCourses"),
     title: v.string(),
@@ -138,8 +139,8 @@ export const createQuiz = mutation({
     timeLimit: v.optional(v.number()),
     shuffleQuestions: v.boolean(),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "lmsFacultyEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     return ctx.db.insert("lmsQuizzes", {
@@ -149,11 +150,11 @@ export const createQuiz = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const addQuizQuestion = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     quizId: v.id("lmsQuizzes"),
     question: v.string(),
     questionType: v.union(
@@ -165,20 +166,20 @@ export const addQuizQuestion = mutation({
     points: v.number(),
     orderIndex: v.number(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "lmsFacultyEngine" }, async (ctx, args) => {
     return ctx.db.insert("lmsQuizQuestions", {
       ...args,
       createdAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const publishQuiz = mutation({
-  args: { id: v.id("lmsQuizzes") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("lmsQuizzes") },
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "lmsFacultyEngine" }, async (ctx, args) => {
     await ctx.db.patch(args.id, { status: "published", updatedAt: Date.now() });
     return args.id;
-  },
+  }),
 });
 
 export const getQuizWithQuestions = query({

@@ -1,14 +1,15 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── PUSH QUEUE PROCESSING ─────────────────────────────────
 
 export const processPushQueue = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     batchSize: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "notifications", entity: "pushEngine" }, async (ctx, args) => {
     const batchSize = args.batchSize || 20;
 
     const queued = await ctx.db.query("communicationQueue")
@@ -63,7 +64,7 @@ export const processPushQueue = mutation({
     }
 
     return { processed: results.length, results };
-  },
+  }),
 });
 
 // ─── DEVICE REGISTRATION (PLACEHOLDER) ─────────────────────
@@ -73,34 +74,34 @@ export const processPushQueue = mutation({
 // through the in-app notification center as a fallback.
 
 export const registerDevice = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     userId: v.id("users"),
     deviceType: v.union(v.literal("web"), v.literal("android"), v.literal("ios")),
     pushToken: v.string(),
     deviceInfo: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "notifications", entity: "pushEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     // Placeholder — in production, store device tokens in a new table
     // and use them to send push notifications via FCM/APNS
     return { registered: true, userId: args.userId, deviceType: args.deviceType };
-  },
+  }),
 });
 
 export const unregisterDevice = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     userId: v.id("users"),
     pushToken: v.string(),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "update", module: "notifications", entity: "pushEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     // Placeholder — remove device token
     return { unregistered: true };
-  },
+  }),
 });
 
 // ─── PUSH STATS ────────────────────────────────────────────

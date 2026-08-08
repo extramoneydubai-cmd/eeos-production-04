@@ -11,6 +11,7 @@
 
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Connector Types ──────────────────────────────────────────
 
@@ -816,7 +817,7 @@ export const listConnectorInstances = query({
 // ─── Mutations ─────────────────────────────────────────────────
 
 export const createConnector = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     connectorType: v.string(),
     name: v.string(),
     config: v.any(),
@@ -824,7 +825,7 @@ export const createConnector = mutation({
     branchId: v.optional(v.id("branches")),
     isActive: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "platform", entity: "integrationEngine" }, async (ctx, args) => {
     const def = CONNECTOR_REGISTRY[args.connectorType];
     if (!def) throw new Error(`Unknown connector type: ${args.connectorType}`);
 
@@ -847,37 +848,37 @@ export const createConnector = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateConnector = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     connectorId: v.id("integrationConnectors"),
     name: v.optional(v.string()),
     config: v.optional(v.any()),
     isActive: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { connectorId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "platform", entity: "integrationEngine" }, async (ctx, args) => {
+    const { token: _token, connectorId, ...fields } = args;
     const updates: Record<string, any> = { updatedAt: Date.now() };
     if (fields.name !== undefined) updates.name = fields.name;
     if (fields.config !== undefined) updates.config = fields.config;
     if (fields.isActive !== undefined) updates.isActive = fields.isActive;
     return ctx.db.patch(connectorId, updates);
-  },
+  }),
 });
 
 export const deleteConnector = mutation({
-  args: { connectorId: v.id("integrationConnectors") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), connectorId: v.id("integrationConnectors") },
+  handler: withScopeAndEvents({ operation: "delete", module: "platform", entity: "integrationEngine" }, async (ctx, args) => {
     await ctx.db.delete(args.connectorId);
     return { success: true };
-  },
+  }),
 });
 
 export const testConnector = mutation({
-  args: { connectorId: v.id("integrationConnectors") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), connectorId: v.id("integrationConnectors") },
+  handler: withScopeAndEvents({ operation: "update", module: "platform", entity: "integrationEngine" }, async (ctx, args) => {
     const inst = await ctx.db.get(args.connectorId);
     if (!inst) throw new Error("Connector not found");
 
@@ -887,7 +888,7 @@ export const testConnector = mutation({
     });
 
     return { success: true, message: "Connector configuration validated" };
-  },
+  }),
 });
 
 // ─── Integration Dashboard ────────────────────────────────────

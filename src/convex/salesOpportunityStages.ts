@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 /* ────────────
    SEED DATA
@@ -44,8 +45,8 @@ function baseFields(data: (typeof SEED_DATA)[number], sequence: number) {
    ──────────── */
 
 export const seedDefault = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "sales", entity: "salesOpportunityStages" }, async (ctx) => {
     const existing = await ctx.db
       .query("salesOpportunityStages")
       .withIndex("sequence")
@@ -57,11 +58,11 @@ export const seedDefault = mutation({
       count++;
     }
     return { seeded: count };
-  },
+  }),
 });
 
 export const createOpportunityStage = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     stageOrder: v.number(),
@@ -71,12 +72,12 @@ export const createOpportunityStage = mutation({
     color: v.string(),
     icon: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "sales", entity: "salesOpportunityStages" }, async (ctx, args) => {
     const all = await ctx.db
       .query("salesOpportunityStages")
       .withIndex("sequence")
       .collect();
-    const maxSeq = all.reduce((m, r) => Math.max(m, r.sequence), -1);
+    const maxSeq = all.reduce((m: any, r: any) => Math.max(m, r.sequence), -1);
     return ctx.db.insert("salesOpportunityStages", {
       ...args,
       description: args.description ?? "",
@@ -85,11 +86,11 @@ export const createOpportunityStage = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const updateOpportunityStage = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("salesOpportunityStages"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -101,33 +102,33 @@ export const updateOpportunityStage = mutation({
     icon: v.optional(v.string()),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { id, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "sales", entity: "salesOpportunityStages" }, async (ctx, args) => {
+    const { token: _token, id, ...fields } = args;
     const existing = await ctx.db.get(id);
     if (!existing) throw new Error("Opportunity stage not found");
     return ctx.db.patch(id, { ...fields, updatedAt: Date.now() });
-  },
+  }),
 });
 
 export const deleteOpportunityStage = mutation({
-  args: { id: v.id("salesOpportunityStages") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("salesOpportunityStages") },
+  handler: withScopeAndEvents({ operation: "delete", module: "sales", entity: "salesOpportunityStages" }, async (ctx, args) => {
     const existing = await ctx.db.get(args.id);
     if (!existing) throw new Error("Opportunity stage not found");
     await ctx.db.delete(args.id);
-  },
+  }),
 });
 
 export const duplicateOpportunityStage = mutation({
-  args: { id: v.id("salesOpportunityStages") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("salesOpportunityStages") },
+  handler: withScopeAndEvents({ operation: "create", module: "sales", entity: "salesOpportunityStages" }, async (ctx, args) => {
     const source = await ctx.db.get(args.id);
     if (!source) throw new Error("Opportunity stage not found");
     const all = await ctx.db
       .query("salesOpportunityStages")
       .withIndex("sequence")
       .collect();
-    const maxSeq = all.reduce((m, r) => Math.max(m, r.sequence), -1);
+    const maxSeq = all.reduce((m: any, r: any) => Math.max(m, r.sequence), -1);
     return ctx.db.insert("salesOpportunityStages", {
       name: `${source.name} (Copy)`,
       code: `${source.code}_COPY`,
@@ -142,16 +143,16 @@ export const duplicateOpportunityStage = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const reorderOpportunityStages = mutation({
-  args: { orderedIds: v.array(v.id("salesOpportunityStages")) },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), orderedIds: v.array(v.id("salesOpportunityStages")) },
+  handler: withScopeAndEvents({ operation: "update", module: "sales", entity: "salesOpportunityStages" }, async (ctx, args) => {
     for (let i = 0; i < args.orderedIds.length; i++) {
       await ctx.db.patch(args.orderedIds[i], { sequence: i, updatedAt: Date.now() });
     }
-  },
+  }),
 });
 
 /* ────────────

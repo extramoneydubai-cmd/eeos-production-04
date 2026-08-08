@@ -1,11 +1,12 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Record Policy CRUD ───────────────────────────────────
 
 export const setRecordPolicy = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     module: v.string(),
     recordId: v.string(),
     policyId: v.optional(v.id("visibilityPolicies")),
@@ -14,10 +15,10 @@ export const setRecordPolicy = mutation({
     branchId: v.optional(v.id("branches")),
     companyId: v.optional(v.id("companies")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "security", entity: "recordScope" }, async (ctx, args) => {
     const existing = await ctx.db
       .query("recordPolicies")
-      .withIndex("module_recordId", (q) =>
+      .withIndex("module_recordId", (q: any) =>
         q.eq("module", args.module).eq("recordId", args.recordId)
       )
       .first();
@@ -46,15 +47,15 @@ export const setRecordPolicy = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const removeRecordPolicy = mutation({
-  args: { policyId: v.id("recordPolicies") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), policyId: v.id("recordPolicies") },
+  handler: withScopeAndEvents({ operation: "delete", module: "security", entity: "recordScope" }, async (ctx, args) => {
     await ctx.db.delete(args.policyId);
     return args.policyId;
-  },
+  }),
 });
 
 export const getRecordPolicy = query({
@@ -232,7 +233,7 @@ export const getUserAccessibleRecords = query({
  * Bulk assign record policies to a list of records.
  */
 export const bulkAssignRecordPolicies = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     module: v.string(),
     recordIds: v.array(v.string()),
     policyId: v.optional(v.id("visibilityPolicies")),
@@ -241,14 +242,14 @@ export const bulkAssignRecordPolicies = mutation({
     branchId: v.optional(v.id("branches")),
     companyId: v.optional(v.id("companies")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "security", entity: "recordScope" }, async (ctx, args) => {
     const now = Date.now();
     const results: string[] = [];
 
     for (const recordId of args.recordIds) {
       const existing = await ctx.db
         .query("recordPolicies")
-        .withIndex("module_recordId", (q) =>
+        .withIndex("module_recordId", (q: any) =>
           q.eq("module", args.module).eq("recordId", recordId)
         )
         .first();
@@ -280,5 +281,5 @@ export const bulkAssignRecordPolicies = mutation({
     }
 
     return results;
-  },
+  }),
 });

@@ -9,19 +9,20 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── CRUD Operations ──────────────────────────────────────
 
 export const addEmergencyContact = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     ownerPersonId: v.id("personMaster"),
     contactPersonId: v.id("personMaster"),
     relationship: v.string(),
     priority: v.number(),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "people", entity: "emergencyContactEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     if (args.ownerPersonId === args.contactPersonId) {
@@ -51,22 +52,22 @@ export const addEmergencyContact = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateEmergencyContact = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     emergencyContactId: v.id("emergencyContacts"),
     relationship: v.optional(v.string()),
     priority: v.optional(v.number()),
     notes: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "update", module: "people", entity: "emergencyContactEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
-    const { emergencyContactId, ...fields } = args;
+    const { token: _token, emergencyContactId, ...fields } = args;
     const existing = await ctx.db.get(emergencyContactId);
     if (!existing) throw new Error("Emergency contact not found");
 
@@ -77,13 +78,13 @@ export const updateEmergencyContact = mutation({
 
     await ctx.db.patch(emergencyContactId, updates);
     return emergencyContactId;
-  },
+  }),
 });
 
 export const removeEmergencyContact = mutation({
-  args: { emergencyContactId: v.id("emergencyContacts") },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  args: { token: v.optional(v.string()), emergencyContactId: v.id("emergencyContacts") },
+  handler: withScopeAndEvents({ operation: "delete", module: "people", entity: "emergencyContactEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const existing = await ctx.db.get(args.emergencyContactId);
@@ -96,18 +97,18 @@ export const removeEmergencyContact = mutation({
     });
 
     return args.emergencyContactId;
-  },
+  }),
 });
 
 export const deleteEmergencyContact = mutation({
-  args: { emergencyContactId: v.id("emergencyContacts") },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  args: { token: v.optional(v.string()), emergencyContactId: v.id("emergencyContacts") },
+  handler: withScopeAndEvents({ operation: "delete", module: "people", entity: "emergencyContactEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     await ctx.db.delete(args.emergencyContactId);
     return args.emergencyContactId;
-  },
+  }),
 });
 
 // ─── Queries ────────────────────────────────────────────
@@ -193,11 +194,11 @@ export const getEmergencyContact = query({
 });
 
 export const setEmergencyContactPriority = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     emergencyContactId: v.id("emergencyContacts"),
     priority: v.number(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "people", entity: "emergencyContactEngine" }, async (ctx, args) => {
     const existing = await ctx.db.get(args.emergencyContactId);
     if (!existing) throw new Error("Emergency contact not found");
     await ctx.db.patch(args.emergencyContactId, {
@@ -205,7 +206,7 @@ export const setEmergencyContactPriority = mutation({
       updatedAt: Date.now(),
     });
     return args.emergencyContactId;
-  },
+  }),
 });
 
 export const getPersonEmergencyInfo = query({

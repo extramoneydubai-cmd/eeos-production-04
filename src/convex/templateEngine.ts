@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── HELPERS ───────────────────────────────────────────────
 
@@ -21,7 +22,7 @@ function renderTemplate(template: string, variables: Record<string, string>): st
 // ─── TEMPLATE CRUD ─────────────────────────────────────────
 
 export const create = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     description: v.optional(v.string()),
@@ -31,14 +32,14 @@ export const create = mutation({
     category: v.optional(v.string()),
     isSystem: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "templates", entity: "templateEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const variables = extractVariables(args.body);
     if (args.subject) {
       const subjectVars = extractVariables(args.subject);
-      variables.push(...subjectVars.filter((v) => !variables.includes(v)));
+      variables.push(...subjectVars.filter((v: any) => !variables.includes(v)));
     }
 
     const id = await ctx.db.insert("communicationTemplates", {
@@ -57,11 +58,11 @@ export const create = mutation({
       updatedAt: Date.now(),
     });
     return id;
-  },
+  }),
 });
 
 export const update = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("communicationTemplates"),
     name: v.optional(v.string()),
     code: v.optional(v.string()),
@@ -71,8 +72,8 @@ export const update = mutation({
     category: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { id, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "templates", entity: "templateEngine" }, async (ctx, args) => {
+    const { token: _token, id, ...fields } = args;
     const patch: Record<string, any> = { ...fields, updatedAt: Date.now() };
 
     if (fields.body) {
@@ -85,29 +86,29 @@ export const update = mutation({
       const subject = fields.subject;
       const allVars = extractVariables(body);
       const subjectVars = extractVariables(subject);
-      allVars.push(...subjectVars.filter((v) => !allVars.includes(v)));
+      allVars.push(...subjectVars.filter((v: any) => !allVars.includes(v)));
       patch.variables = allVars.length > 0 ? allVars : undefined;
     }
 
     await ctx.db.patch(id, patch);
     return id;
-  },
+  }),
 });
 
 export const remove = mutation({
-  args: { id: v.id("communicationTemplates") },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  args: { token: v.optional(v.string()), id: v.id("communicationTemplates") },
+  handler: withScopeAndEvents({ operation: "delete", module: "templates", entity: "templateEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
     await ctx.db.delete(args.id);
     return args.id;
-  },
+  }),
 });
 
 export const duplicate = mutation({
-  args: { id: v.id("communicationTemplates") },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  args: { token: v.optional(v.string()), id: v.id("communicationTemplates") },
+  handler: withScopeAndEvents({ operation: "create", module: "templates", entity: "templateEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const original = await ctx.db.get(args.id);
@@ -128,7 +129,7 @@ export const duplicate = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const list = query({
@@ -182,11 +183,11 @@ export const getByCode = query({
 // ─── TEMPLATE RENDERING ────────────────────────────────────
 
 export const render = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     templateId: v.id("communicationTemplates"),
     variables: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "templates", entity: "templateEngine" }, async (ctx, args) => {
     const template = await ctx.db.get(args.templateId);
     if (!template) throw new Error("Template not found");
 
@@ -202,15 +203,15 @@ export const render = mutation({
       channel: template.channel,
       templateCode: template.code,
     };
-  },
+  }),
 });
 
 export const renderFromCode = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     templateCode: v.string(),
     variables: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "templates", entity: "templateEngine" }, async (ctx, args) => {
     const template = await ctx.db.query("communicationTemplates")
       .withIndex("code", (q: any) => q.eq("code", args.templateCode))
       .first();
@@ -225,14 +226,15 @@ export const renderFromCode = mutation({
       channel: template.channel,
       templateCode: template.code,
     };
-  },
+  }),
 });
 
 // ─── SEED DEFAULT TEMPLATES ────────────────────────────────
 
 export const seedDefaults = mutation({
-  handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
+  args: { token: v.optional(v.string()) },
+  handler: withScopeAndEvents({ operation: "create", module: "templates", entity: "templateEngine" }, async (ctx) => {
+    const userId = ctx.__performerUserId;
     const seedTemplates = [
       {
         name: "Admission Confirmation",
@@ -335,5 +337,5 @@ export const seedDefaults = mutation({
       }
     }
     return { seeded: results };
-  },
+  }),
 });

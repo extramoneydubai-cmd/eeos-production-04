@@ -19,12 +19,13 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Signal a Dashboard Refresh ─────────────────────────────
 
 /** Signal that a module's dashboard data has changed. Dashboards subscribe to this. */
 export const signalDashboardRefresh = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     module: v.string(),
     companyId: v.optional(v.id("companies")),
     branchId: v.optional(v.id("branches")),
@@ -32,7 +33,7 @@ export const signalDashboardRefresh = mutation({
     entityId: v.optional(v.string()),
     metric: v.optional(v.string()),  // Which specific metric changed
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "platform", entity: "dashboardLiveRefresh" }, async (ctx, args) => {
     const now = Date.now();
     // Create a unique key per module + scope
     const scopeKey = [
@@ -67,7 +68,7 @@ export const signalDashboardRefresh = mutation({
         refreshCount: 1,
       });
     }
-  },
+  }),
 });
 
 // ─── Query: Get Last Refresh Timestamp ──────────────────────

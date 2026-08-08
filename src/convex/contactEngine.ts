@@ -1,11 +1,12 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Contact Method CRUD ─────────────────────────────────
 
 export const addContactMethod = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     personId: v.id("personMaster"),
     type: v.string(),
     label: v.optional(v.string()),
@@ -22,7 +23,7 @@ export const addContactMethod = mutation({
       )
     ),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "people", entity: "contactEngine" }, async (ctx, args) => {
     const now = Date.now();
     const contactId = await ctx.db.insert("contactMethods", {
       personId: args.personId,
@@ -42,7 +43,7 @@ export const addContactMethod = mutation({
     if (args.preferred) {
       const allContacts = await ctx.db
         .query("contactMethods")
-        .withIndex("personId_type", (q) =>
+        .withIndex("personId_type", (q: any) =>
           q.eq("personId", args.personId).eq("type", args.type)
         )
         .collect();
@@ -54,11 +55,11 @@ export const addContactMethod = mutation({
     }
 
     return contactId;
-  },
+  }),
 });
 
 export const updateContactMethod = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     contactId: v.id("contactMethods"),
     type: v.optional(v.string()),
     label: v.optional(v.string()),
@@ -76,8 +77,8 @@ export const updateContactMethod = mutation({
     ),
     isActive: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { contactId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "people", entity: "contactEngine" }, async (ctx, args) => {
+    const { token: _token, contactId, ...fields } = args;
     const existing = await ctx.db.get(contactId);
     if (!existing) throw new Error("Contact method not found");
 
@@ -95,7 +96,7 @@ export const updateContactMethod = mutation({
       const now = Date.now();
       const allContacts = await ctx.db
         .query("contactMethods")
-        .withIndex("personId_type", (q) =>
+        .withIndex("personId_type", (q: any) =>
           q.eq("personId", personId).eq("type", contactType)
         )
         .collect();
@@ -107,25 +108,25 @@ export const updateContactMethod = mutation({
     }
 
     return contactId;
-  },
+  }),
 });
 
 export const removeContactMethod = mutation({
-  args: { contactId: v.id("contactMethods") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), contactId: v.id("contactMethods") },
+  handler: withScopeAndEvents({ operation: "delete", module: "people", entity: "contactEngine" }, async (ctx, args) => {
     const existing = await ctx.db.get(args.contactId);
     if (!existing) throw new Error("Contact method not found");
     await ctx.db.delete(args.contactId);
     return args.contactId;
-  },
+  }),
 });
 
 export const verifyContactMethod = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     contactId: v.id("contactMethods"),
     verified: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "people", entity: "contactEngine" }, async (ctx, args) => {
     const existing = await ctx.db.get(args.contactId);
     if (!existing) throw new Error("Contact method not found");
     const now = Date.now();
@@ -135,20 +136,20 @@ export const verifyContactMethod = mutation({
       updatedAt: now,
     });
     return args.contactId;
-  },
+  }),
 });
 
 export const setPreferredContact = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     personId: v.id("personMaster"),
     type: v.string(),
     contactId: v.id("contactMethods"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "people", entity: "contactEngine" }, async (ctx, args) => {
     const now = Date.now();
     const allContacts = await ctx.db
       .query("contactMethods")
-      .withIndex("personId_type", (q) =>
+      .withIndex("personId_type", (q: any) =>
         q.eq("personId", args.personId).eq("type", args.type)
       )
       .collect();
@@ -160,7 +161,7 @@ export const setPreferredContact = mutation({
       });
     }
     return args.contactId;
-  },
+  }),
 });
 
 // ─── Queries ────────────────────────────────────────────

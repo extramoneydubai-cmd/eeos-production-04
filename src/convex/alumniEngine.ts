@@ -7,9 +7,10 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 export const createAlumniRecord = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     graduationYear: v.number(),
     currentOccupation: v.optional(v.string()),
@@ -21,8 +22,8 @@ export const createAlumniRecord = mutation({
     willingToMentor: v.optional(v.boolean()),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "alumniEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     // Update student status to alumni
@@ -36,7 +37,7 @@ export const createAlumniRecord = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const listAlumni = query({
@@ -55,12 +56,12 @@ export const listAlumni = query({
 });
 
 export const updateAlumniEngagement = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("alumniRecords"),
     engagementScore: v.number(),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "alumniEngine" }, async (ctx, args) => {
     await ctx.db.patch(args.id, {
       engagementScore: args.engagementScore,
       lastContactDate: Date.now(),
@@ -68,7 +69,7 @@ export const updateAlumniEngagement = mutation({
       updatedAt: Date.now(),
     });
     return args.id;
-  },
+  }),
 });
 
 export const getAlumniDashboard = query({

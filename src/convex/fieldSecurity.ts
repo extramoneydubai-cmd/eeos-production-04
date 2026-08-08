@@ -1,11 +1,12 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Field Permission CRUD ───────────────────────────────
 
 export const setFieldPermission = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     designationId: v.id("designations"),
     module: v.string(),
     fieldName: v.string(),
@@ -13,13 +14,13 @@ export const setFieldPermission = mutation({
     editable: v.optional(v.boolean()),
     masked: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "security", entity: "fieldSecurity" }, async (ctx, args) => {
     const existing = await ctx.db
       .query("fieldPermissions")
-      .withIndex("designationId_module", (q) =>
+      .withIndex("designationId_module", (q: any) =>
         q.eq("designationId", args.designationId).eq("module", args.module)
       )
-      .filter((q) => q.eq(q.field("fieldName"), args.fieldName))
+      .filter((q: any) => q.eq(q.field("fieldName"), args.fieldName))
       .first();
 
     const now = Date.now();
@@ -43,15 +44,15 @@ export const setFieldPermission = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const removeFieldPermission = mutation({
-  args: { permissionId: v.id("fieldPermissions") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), permissionId: v.id("fieldPermissions") },
+  handler: withScopeAndEvents({ operation: "delete", module: "security", entity: "fieldSecurity" }, async (ctx, args) => {
     await ctx.db.delete(args.permissionId);
     return args.permissionId;
-  },
+  }),
 });
 
 export const listFieldPermissions = query({
@@ -164,10 +165,10 @@ export const SENSITIVE_FIELDS: Record<string, Array<{ fieldName: string; maskMod
 // ─── Seed Field Permissions ───────────────────────────────
 
 export const seedFieldPermissions = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     designationId: v.id("designations"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "security", entity: "fieldSecurity" }, async (ctx, args) => {
     const now = Date.now();
     const results: string[] = [];
 
@@ -188,5 +189,5 @@ export const seedFieldPermissions = mutation({
     }
 
     return results;
-  },
+  }),
 });

@@ -23,6 +23,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Notification Rule Types ────────────────────────────────
 
@@ -222,7 +223,7 @@ export const listNotificationRules = query({
 });
 
 export const setNotificationRule = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     module: v.string(),
     eventType: v.string(),
     recipients: v.array(v.object({
@@ -235,7 +236,7 @@ export const setNotificationRule = mutation({
     isActive: v.optional(v.boolean()),
     priority: v.optional(v.union(v.literal("low"), v.literal("normal"), v.literal("high"), v.literal("critical"))),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "notifications", entity: "notificationMatrix" }, async (ctx, args) => {
     const key = `${args.module}.${args.eventType}`;
     const rule: NotificationRule = {
       module: args.module,
@@ -268,15 +269,15 @@ export const setNotificationRule = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const deleteNotificationRule = mutation({
-  args: { ruleId: v.id("businessRules") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), ruleId: v.id("businessRules") },
+  handler: withScopeAndEvents({ operation: "delete", module: "notifications", entity: "notificationMatrix" }, async (ctx, args) => {
     await ctx.db.delete(args.ruleId);
     return args.ruleId;
-  },
+  }),
 });
 
 // ─── Resolve Recipients for an Event ────────────────────────
@@ -500,7 +501,8 @@ function evaluateCondition(condition: string, context: Record<string, any>): boo
 // ─── Initialize Default Notification Matrix ─────────────────
 
 export const initializeNotificationMatrix = mutation({
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()) },
+  handler: withScopeAndEvents({ operation: "create", module: "notifications", entity: "notificationMatrix" }, async (ctx) => {
     const existing = await ctx.db.query("businessRules")
       .withIndex("domain", (q: any) => q.eq("domain", "notification_matrix"))
       .collect();
@@ -523,7 +525,7 @@ export const initializeNotificationMatrix = mutation({
       count++;
     }
     return { created: true, count };
-  },
+  }),
 });
 
 // ─── Convex Query to get notification matrix by module ──────

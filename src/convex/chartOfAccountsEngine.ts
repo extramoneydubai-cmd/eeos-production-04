@@ -12,6 +12,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ═══════════════════════════════════════════════════════════════════
 // ACCOUNT GROUP QUERIES
@@ -37,7 +38,7 @@ export const getAccountGroup = query({
 });
 
 export const createAccountGroup = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(), code: v.string(),
     category: v.union(
       v.literal("assets"), v.literal("liabilities"),
@@ -48,27 +49,27 @@ export const createAccountGroup = mutation({
     description: v.optional(v.string()),
     normalBalance: v.union(v.literal("debit"), v.literal("credit")),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "create", module: "finance", entity: "chartOfAccountsEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
     const now = Date.now();
     return await ctx.db.insert("accountGroups", {
       ...args, isActive: true, createdAt: now, updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateAccountGroup = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("accountGroups"),
     name: v.optional(v.string()), description: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "chartOfAccountsEngine" }, async (ctx, args) => {
     const { id, ...updates } = args;
     await ctx.db.patch(id, { ...updates, updatedAt: Date.now() });
     return id;
-  },
+  }),
 });
 
 // ═══════════════════════════════════════════════════════════════════
@@ -109,37 +110,37 @@ export const getAccountByCode = query({
 });
 
 export const createAccount = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(), code: v.string(),
     groupId: v.id("accountGroups"),
     description: v.optional(v.string()),
     openingBalance: v.optional(v.number()),
     currency: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "create", module: "finance", entity: "chartOfAccountsEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
     const now = Date.now();
     return await ctx.db.insert("chartOfAccounts", {
       ...args, isActive: true, currentBalance: args.openingBalance || 0,
       createdAt: now, updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateAccount = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("chartOfAccounts"),
     name: v.optional(v.string()),
     description: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
     openingBalance: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "chartOfAccountsEngine" }, async (ctx, args) => {
     const { id, ...updates } = args;
     await ctx.db.patch(id, { ...updates, updatedAt: Date.now() });
     return id;
-  },
+  }),
 });
 
 // ═══════════════════════════════════════════════════════════════════

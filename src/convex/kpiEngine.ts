@@ -1,11 +1,12 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── KPI DEFINITIONS ───────────────────────────────────────
 
 export const createKpi = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     description: v.optional(v.string()),
@@ -19,8 +20,8 @@ export const createKpi = mutation({
     dataSource: v.string(),
     isActive: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "reports", entity: "kpiEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     return ctx.db.insert("kpiDefinitions", {
@@ -39,11 +40,11 @@ export const createKpi = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const updateKpi = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("kpiDefinitions"),
     name: v.optional(v.string()),
     description: v.optional(v.string()),
@@ -53,19 +54,19 @@ export const updateKpi = mutation({
     frequency: v.optional(v.union(v.literal("daily"), v.literal("weekly"), v.literal("monthly"), v.literal("quarterly"), v.literal("yearly"))),
     isActive: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { id, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "reports", entity: "kpiEngine" }, async (ctx, args) => {
+    const { token: _token, id, ...fields } = args;
     await ctx.db.patch(id, { ...fields, updatedAt: Date.now() });
     return id;
-  },
+  }),
 });
 
 export const deleteKpi = mutation({
-  args: { id: v.id("kpiDefinitions") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("kpiDefinitions") },
+  handler: withScopeAndEvents({ operation: "delete", module: "reports", entity: "kpiEngine" }, async (ctx, args) => {
     await ctx.db.delete(args.id);
     return args.id;
-  },
+  }),
 });
 
 export const listKpis = query({
@@ -99,7 +100,7 @@ export const getKpi = query({
 // ─── KPI VALUES (STORED IN ANALYTICS SNAPSHOTS) ────────────
 
 export const recordKpiValue = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     kpiCode: v.string(),
     period: v.string(),
     value: v.number(),
@@ -108,8 +109,8 @@ export const recordKpiValue = mutation({
     unit: v.optional(v.string()),
     metadata: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "update", module: "reports", entity: "kpiEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     // Store KPI values in analyticsSnapshots for consistency
@@ -128,18 +129,18 @@ export const recordKpiValue = mutation({
       createdBy: userId,
       createdAt: Date.now(),
     });
-  },
+  }),
 });
 
 // ─── KPI CALCULATIONS ──────────────────────────────────────
 
 export const calculateKpiValues = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     period: v.string(),
     kpiCodes: v.optional(v.array(v.string())),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "update", module: "reports", entity: "kpiEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const allKpis = await ctx.db.query("kpiDefinitions")
@@ -182,7 +183,7 @@ export const calculateKpiValues = mutation({
     }
 
     return { calculated: results.length, results };
-  },
+  }),
 });
 
 async function computeKpiValue(ctx: any, kpi: any, period: string): Promise<{

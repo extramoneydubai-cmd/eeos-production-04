@@ -29,6 +29,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Automation Rule Type ───────────────────────────────────
 
@@ -125,7 +126,7 @@ export const getAutomation = query({
 });
 
 export const setAutomation = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     description: v.optional(v.string()),
     trigger: v.object({
@@ -158,8 +159,8 @@ export const setAutomation = mutation({
     })),
     isActive: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "update", module: "platform", entity: "automationEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     const key = `automation_${args.name.toLowerCase().replace(/[^a-z0-9]/g, "_")}`;
 
     const rule: AutomationRule & { metadata: any } = {
@@ -205,23 +206,23 @@ export const setAutomation = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const deleteAutomation = mutation({
-  args: { ruleId: v.id("businessRules") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), ruleId: v.id("businessRules") },
+  handler: withScopeAndEvents({ operation: "delete", module: "platform", entity: "automationEngine" }, async (ctx, args) => {
     await ctx.db.delete(args.ruleId);
     return args.ruleId;
-  },
+  }),
 });
 
 export const toggleAutomation = mutation({
-  args: { ruleId: v.id("businessRules"), isActive: v.boolean() },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), ruleId: v.id("businessRules"), isActive: v.boolean() },
+  handler: withScopeAndEvents({ operation: "update", module: "platform", entity: "automationEngine" }, async (ctx, args) => {
     await ctx.db.patch(args.ruleId, { isActive: args.isActive, updatedAt: Date.now() });
     return args.ruleId;
-  },
+  }),
 });
 
 // ─── Automation Execution Engine ────────────────────────────
@@ -232,11 +233,11 @@ export const toggleAutomation = mutation({
  * OR by scheduled jobs.
  */
 export const executeAutomation = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     ruleId: v.id("businessRules"),
     eventContext: v.optional(v.any()), // Pass event payload as context
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "platform", entity: "automationEngine" }, async (ctx, args) => {
     const record = await ctx.db.get(args.ruleId);
     if (!record) return { executed: false, error: "Rule not found" };
 
@@ -282,15 +283,15 @@ export const executeAutomation = mutation({
       existingValue.metadata = existingValue.metadata || {};
       existingValue.metadata.executionCount = (existingValue.metadata.executionCount || 0) + 1;
       existingValue.metadata.lastExecutedAt = Date.now();
-      const hasErrors = results.some((r) => r.status === "failed");
+      const hasErrors = results.some((r: any) => r.status === "failed");
       if (hasErrors) {
-        existingValue.metadata.lastError = results.find((r) => r.status === "failed")?.error;
+        existingValue.metadata.lastError = results.find((r: any) => r.status === "failed")?.error;
       }
       await ctx.db.patch(args.ruleId, { value: JSON.stringify(existingValue) });
     } catch {}
 
     return { executed: true, results };
-  },
+  }),
 });
 
 async function executeAutomationAction(

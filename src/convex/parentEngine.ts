@@ -14,6 +14,7 @@
 
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 /**
  * Load a parent's linked students.
@@ -259,14 +260,14 @@ export const getStudentResults = query({
 
 /** Create a support ticket from the parent portal (schema-correct ticketMaster insert). */
 export const createParentTicket = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     subject: v.string(),
     description: v.string(),
     category: v.optional(v.string()),
     studentId: v.optional(v.string()),
     createdBy: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "parentEngine" }, async (ctx, args) => {
     const now = Date.now();
     return ctx.db.insert("ticketMaster", {
       ticketNumber: `PRT-${now}`,
@@ -283,5 +284,5 @@ export const createParentTicket = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });

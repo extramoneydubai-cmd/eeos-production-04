@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ═══════════════════════════════════════════════════════════════════
 // REPORT CARD QUERIES (Part 5)
@@ -49,12 +50,12 @@ export const getStudentReportCards = query({
 // ═══════════════════════════════════════════════════════════════════
 
 export const generateReportCard = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     examSessionId: v.id("examSessions"),
     studentId: v.id("personMaster"),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "reportCardEngine" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
 
     const now = Date.now();
@@ -64,7 +65,7 @@ export const generateReportCard = mutation({
     // Get the result
     const result = await ctx.db
       .query("examResults")
-      .filter((q) => q.and(
+      .filter((q: any) => q.and(
         q.eq(q.field("examSessionId"), args.examSessionId),
         q.eq(q.field("studentId"), args.studentId),
       ))
@@ -74,12 +75,12 @@ export const generateReportCard = mutation({
     // Get all subjects and marks
     const subjects = await ctx.db
       .query("examSubjects")
-      .filter((q) => q.eq(q.field("examSessionId"), args.examSessionId))
+      .filter((q: any) => q.eq(q.field("examSessionId"), args.examSessionId))
       .collect();
 
     const marks = await ctx.db
       .query("examMarks")
-      .filter((q) => q.and(
+      .filter((q: any) => q.and(
         q.eq(q.field("examSessionId"), args.examSessionId),
         q.eq(q.field("studentId"), args.studentId),
       ))
@@ -88,7 +89,7 @@ export const generateReportCard = mutation({
     // Get attendance
     const attendance = await ctx.db
       .query("examAttendance")
-      .filter((q) => q.and(
+      .filter((q: any) => q.and(
         q.eq(q.field("examSessionId"), args.examSessionId),
         q.eq(q.field("studentId"), args.studentId),
       ))
@@ -96,14 +97,14 @@ export const generateReportCard = mutation({
 
     // Enrich subject names
     const subjectDetails = await Promise.all(
-      subjects.map(async (s) => {
+      subjects.map(async (s: any) => {
         let name = s.subjectId;
         try {
           const acadSubj = await ctx.db.get(s.subjectId);
           if (acadSubj) name = (acadSubj as any).name || acadSubj._id;
         } catch { /* ignore */ }
-        const mark = marks.find((m) => m.examSubjectId === s._id);
-        const att = attendance.find((a) => a.subjectId === s._id);
+        const mark = marks.find((m: any) => m.examSubjectId === s._id);
+        const att = attendance.find((a: any) => a.subjectId === s._id);
         return {
           subjectId: s._id,
           subjectName: name,
@@ -136,15 +137,15 @@ export const generateReportCard = mutation({
       subjects: subjectDetails,
       summary: {
         totalSubjects: subjects.length,
-        passed: subjectDetails.filter((s) => {
-          const subj = subjects.find((sub) => sub._id === s.subjectId);
+        passed: subjectDetails.filter((s: any) => {
+          const subj = subjects.find((sub: any) => sub._id === s.subjectId);
           const passPct = subj?.passPercentage ?? 33;
           return s.percentage >= passPct;
         }).length,
         attendance: {
-          present: attendance.filter((a) => a.status === "present").length,
-          absent: attendance.filter((a) => a.status === "absent").length,
-          medical: attendance.filter((a) => a.status === "medical").length,
+          present: attendance.filter((a: any) => a.status === "present").length,
+          absent: attendance.filter((a: any) => a.status === "absent").length,
+          medical: attendance.filter((a: any) => a.status === "medical").length,
         },
       },
     };
@@ -152,7 +153,7 @@ export const generateReportCard = mutation({
     // Check for existing card
     const existing = await ctx.db
       .query("examReportCards")
-      .filter((q) => q.and(
+      .filter((q: any) => q.and(
         q.eq(q.field("examSessionId"), args.examSessionId),
         q.eq(q.field("studentId"), args.studentId),
       ))
@@ -177,15 +178,15 @@ export const generateReportCard = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const bulkGenerateReportCards = mutation({
-  args: { examSessionId: v.id("examSessions") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), examSessionId: v.id("examSessions") },
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "reportCardEngine" }, async (ctx, args) => {
     const results = await ctx.db
       .query("examResults")
-      .filter((q) => q.eq(q.field("examSessionId"), args.examSessionId))
+      .filter((q: any) => q.eq(q.field("examSessionId"), args.examSessionId))
       .collect();
 
     let count = 0;
@@ -193,7 +194,7 @@ export const bulkGenerateReportCards = mutation({
       try {
         const existing = await ctx.db
           .query("examReportCards")
-          .filter((q) => q.and(
+          .filter((q: any) => q.and(
             q.eq(q.field("examSessionId"), args.examSessionId),
             q.eq(q.field("studentId"), result.studentId),
           ))
@@ -202,12 +203,12 @@ export const bulkGenerateReportCards = mutation({
       } catch { /* skip */ }
     }
     return { total: results.length, toGenerate: count };
-  },
+  }),
 });
 
 export const recordReportCardDownload = mutation({
-  args: { id: v.id("examReportCards") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("examReportCards") },
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "reportCardEngine" }, async (ctx, args) => {
     const card = await ctx.db.get(args.id);
     if (!card) throw new Error("Report card not found");
     await ctx.db.patch(args.id, {
@@ -216,7 +217,7 @@ export const recordReportCardDownload = mutation({
       updatedAt: Date.now(),
     });
     return args.id;
-  },
+  }),
 });
 
 function calculateGradeFromPct(percentage: number): string {

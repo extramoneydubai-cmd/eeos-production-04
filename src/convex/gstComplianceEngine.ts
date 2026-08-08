@@ -8,6 +8,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 function generateGstDocNumber(prefix: string, serial: number): string {
   return `${prefix}-${new Date().getFullYear()}-${String(serial).padStart(5, "0")}`;
@@ -16,7 +17,7 @@ function generateGstDocNumber(prefix: string, serial: number): string {
 // ─── Debit Notes ────────────────────────────────────────────
 
 export const createDebitNote = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     invoiceId: v.optional(v.id("feeInvoices")),
     studentId: v.id("studentMaster"),
     amount: v.number(),
@@ -25,8 +26,8 @@ export const createDebitNote = mutation({
     reasonCategory: v.union(v.literal("rate_difference"), v.literal("omission"), v.literal("correction"), v.literal("other")),
     originalInvoiceNumber: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "finance", entity: "gstComplianceEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const allNotes = await ctx.db.query("debitNotes").collect();
@@ -49,18 +50,18 @@ export const createDebitNote = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const issueDebitNote = mutation({
-  args: { id: v.id("debitNotes") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("debitNotes") },
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "gstComplianceEngine" }, async (ctx, args) => {
     const note = await ctx.db.get(args.id);
     if (!note) throw new Error("Debit note not found");
     if (note.status !== "draft") throw new Error("Only draft debit notes can be issued");
     await ctx.db.patch(args.id, { status: "issued", issuedAt: Date.now(), updatedAt: Date.now() });
     return args.id;
-  },
+  }),
 });
 
 export const listDebitNotes = query({

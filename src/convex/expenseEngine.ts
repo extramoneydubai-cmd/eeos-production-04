@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 function generateEntryNumber(prefix: string, serial: number): string {
   return `${prefix}-${String(serial).padStart(5, "0")}`;
@@ -9,7 +10,7 @@ function generateEntryNumber(prefix: string, serial: number): string {
 // ─── CREATE EXPENSE ──────────────────────────────────────
 
 export const createExpense = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     branchId: v.optional(v.id("branches")),
     departmentId: v.optional(v.id("departments")),
     expenseCategoryId: v.optional(v.id("financeExpenseCategories")),
@@ -22,8 +23,8 @@ export const createExpense = mutation({
     billReference: v.optional(v.string()),
     attachmentUrl: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "finance", entity: "expenseEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const allExpenses = await ctx.db.query("expenseRecords").collect();
@@ -38,13 +39,13 @@ export const createExpense = mutation({
     });
 
     return { id, entryNumber };
-  },
+  }),
 });
 
 // ─── UPDATE EXPENSE ──────────────────────────────────────
 
 export const updateExpense = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("expenseRecords"),
     amount: v.optional(v.number()),
     description: v.optional(v.string()),
@@ -56,22 +57,22 @@ export const updateExpense = mutation({
     attachmentUrl: v.optional(v.string()),
     expenseCategoryId: v.optional(v.id("financeExpenseCategories")),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "expenseEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
-    const { id, ...fields } = args;
+    const { token: _token, id, ...fields } = args;
     await ctx.db.patch(id, { ...fields, updatedAt: Date.now() });
     return id;
-  },
+  }),
 });
 
 // ─── SUBMIT FOR APPROVAL ─────────────────────────────────
 
 export const submitForApproval = mutation({
-  args: { id: v.id("expenseRecords") },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  args: { token: v.optional(v.string()), id: v.id("expenseRecords") },
+  handler: withScopeAndEvents({ operation: "create", module: "finance", entity: "expenseEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const expense = await ctx.db.get(args.id);
@@ -83,19 +84,19 @@ export const submitForApproval = mutation({
       updatedAt: Date.now(),
     });
     return args.id;
-  },
+  }),
 });
 
 // ─── APPROVE / REJECT EXPENSE ────────────────────────────
 
 export const approveExpense = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("expenseRecords"),
     approve: v.boolean(),
     notes: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "approve", module: "finance", entity: "expenseEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const expense = await ctx.db.get(args.id);
@@ -110,18 +111,18 @@ export const approveExpense = mutation({
     });
 
     return args.id;
-  },
+  }),
 });
 
 // ─── MARK AS PAID ────────────────────────────────────────
 
 export const markExpensePaid = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("expenseRecords"),
     paymentReference: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "expenseEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const expense = await ctx.db.get(args.id);
@@ -133,7 +134,7 @@ export const markExpensePaid = mutation({
       updatedAt: Date.now(),
     });
     return args.id;
-  },
+  }),
 });
 
 // ─── QUERIES ─────────────────────────────────────────────

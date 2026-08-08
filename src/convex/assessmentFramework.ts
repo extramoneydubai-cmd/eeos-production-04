@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ═══════════════════════════════════════════════════════════════════
 // ASSESSMENT TYPES (Part 1) — Fully configurable
@@ -26,7 +27,7 @@ export const getAssessmentType = query({
 });
 
 export const createAssessmentType = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(), code: v.string(),
     category: v.union(
       v.literal("unit_test"), v.literal("weekly_test"), v.literal("monthly_test"),
@@ -49,18 +50,18 @@ export const createAssessmentType = mutation({
     attendanceRequired: v.optional(v.boolean()),
     metadata: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "assessmentFramework" }, async (ctx, args) => {
+    const identity = ctx.__performerUserId;
     if (!identity) throw new Error("Not authenticated");
     const now = Date.now();
     return await ctx.db.insert("assessmentTypes", {
-      ...args, isActive: true, createdBy: identity.subject as any, createdAt: now, updatedAt: now,
+      ...args, isActive: true, createdBy: ctx.__performerUserId as any, createdAt: now, updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateAssessmentType = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("assessmentTypes"),
     name: v.optional(v.string()), description: v.optional(v.string()),
     maxMarks: v.optional(v.number()), passingMarks: v.optional(v.number()),
@@ -74,19 +75,19 @@ export const updateAssessmentType = mutation({
     attendanceRequired: v.optional(v.boolean()),
     isActive: v.optional(v.boolean()), metadata: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "assessmentFramework" }, async (ctx, args) => {
     const { id, ...updates } = args;
     await ctx.db.patch(id, { ...updates, updatedAt: Date.now() });
     return id;
-  },
+  }),
 });
 
 export const deleteAssessmentType = mutation({
-  args: { id: v.id("assessmentTypes") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("assessmentTypes") },
+  handler: withScopeAndEvents({ operation: "delete", module: "academic", entity: "assessmentFramework" }, async (ctx, args) => {
     await ctx.db.delete(args.id);
     return { success: true };
-  },
+  }),
 });
 
 // ═══════════════════════════════════════════════════════════════════

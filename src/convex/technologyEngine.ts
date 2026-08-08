@@ -30,6 +30,7 @@ import {
   getSystemHealth as getRuntimeSystemHealth,
 } from "./runtimeObservability";
 import { getIntegrationDashboard } from "./integrationEngine";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Deployment History ────────────────────────────────────
 
@@ -48,7 +49,7 @@ export const listDeployments = query({
 });
 
 export const recordDeployment = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     version: v.string(),
     environment: v.union(
       v.literal("production"),
@@ -66,14 +67,14 @@ export const recordDeployment = mutation({
     notes: v.optional(v.string()),
     durationMs: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "platform", entity: "technologyEngine" }, async (ctx, args) => {
     const now = Date.now();
     return ctx.db.insert("deploymentHistory", {
       ...args,
       deployedAt: now,
       createdAt: now,
     });
-  },
+  }),
 });
 
 // ─── Tech Usage Metrics (AI / Storage / Licenses / Latency) ─
@@ -93,12 +94,12 @@ export const listTechMetrics = query({
 });
 
 export const recordTechMetric = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     metric: v.string(),
     value: v.number(),
     unit: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "platform", entity: "technologyEngine" }, async (ctx, args) => {
     const now = Date.now();
     return ctx.db.insert("techMetrics", {
       metric: args.metric,
@@ -106,7 +107,7 @@ export const recordTechMetric = mutation({
       unit: args.unit,
       recordedAt: now,
     });
-  },
+  }),
 });
 
 // ─── Aggregate Technology Dashboard ────────────────────────

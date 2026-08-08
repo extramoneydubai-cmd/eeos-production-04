@@ -15,6 +15,7 @@
 
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Report Definitions (extendable via metadata) ─────────────
 
@@ -235,13 +236,13 @@ export const listAllReports = query({
 // ─── Export Support ────────────────────────────────────────────
 
 export const generateExportQuery = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     reportId: v.string(),
     format: v.union(v.literal("csv"), v.literal("excel"), v.literal("pdf"), v.literal("markdown")),
     filters: v.optional(v.any()),
     fields: v.optional(v.array(v.string())),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "templates", entity: "reportDesignerEngine" }, async (ctx, args) => {
     const def = REPORT_DEFINITIONS[args.reportId];
     if (!def) throw new Error(`Unknown report: ${args.reportId}`);
 
@@ -273,13 +274,13 @@ export const generateExportQuery = mutation({
     }
 
     return { success: true, format: args.format, content: output, reportName: def.name };
-  },
+  }),
 });
 
 // ─── Register Custom Report ────────────────────────────────────
 
 export const registerCustomReport = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     description: v.optional(v.string()),
     category: v.string(),
@@ -289,7 +290,7 @@ export const registerCustomReport = mutation({
     chartType: v.optional(v.string()),
     chartConfig: v.optional(v.any()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "templates", entity: "reportDesignerEngine" }, async (ctx, args) => {
     // Save to custom reports table
     const id = await ctx.db.insert("metadataRegistry", {
       entityType: "report",
@@ -326,5 +327,5 @@ export const registerCustomReport = mutation({
     });
 
     return { success: true, reportId: id };
-  },
+  }),
 });

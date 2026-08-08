@@ -9,11 +9,12 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Consent Templates ──────────────────────────────────────
 
 export const createConsentTemplate = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     documentType: v.union(
       v.literal("admission_agreement"), v.literal("refund_policy"), v.literal("cheque_terms"),
@@ -25,7 +26,7 @@ export const createConsentTemplate = mutation({
     version: v.optional(v.string()),
     createdBy: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "people", entity: "consentEngine" }, async (ctx, args) => {
     return ctx.db.insert("consentTemplates", {
       name: args.name,
       documentType: args.documentType,
@@ -37,7 +38,7 @@ export const createConsentTemplate = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const listActiveConsentTemplates = query({
@@ -52,7 +53,7 @@ export const listActiveConsentTemplates = query({
 // ─── Consent Records ────────────────────────────────────────
 
 export const recordConsent = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     consentTemplateId: v.id("consentTemplates"),
     parentSignature: v.optional(v.string()),
@@ -61,7 +62,7 @@ export const recordConsent = mutation({
     deviceInfo: v.optional(v.string()),
     ipAddress: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "people", entity: "consentEngine" }, async (ctx, args) => {
     const template = await ctx.db.get(args.consentTemplateId);
     if (!template) throw new Error("Consent template not found");
 
@@ -88,7 +89,7 @@ export const recordConsent = mutation({
     });
 
     return consentId;
-  },
+  }),
 });
 
 export const getStudentConsents = query({

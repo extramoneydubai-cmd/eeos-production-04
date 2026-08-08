@@ -1,11 +1,12 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Visibility Policy CRUD ───────────────────────────────
 
 export const createPolicy = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     policyName: v.string(),
     policyCode: v.string(),
     description: v.optional(v.string()),
@@ -19,7 +20,7 @@ export const createPolicy = mutation({
     ),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "security", entity: "securityPolicies" }, async (ctx, args) => {
     const now = Date.now();
     return await ctx.db.insert("visibilityPolicies", {
       policyName: args.policyName,
@@ -30,11 +31,11 @@ export const createPolicy = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updatePolicy = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     policyId: v.id("visibilityPolicies"),
     policyName: v.optional(v.string()),
     description: v.optional(v.string()),
@@ -50,8 +51,8 @@ export const updatePolicy = mutation({
     ),
     active: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { policyId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "security", entity: "securityPolicies" }, async (ctx, args) => {
+    const { token: _token, policyId, ...fields } = args;
     const existing = await ctx.db.get(policyId);
     if (!existing) throw new Error("Policy not found");
 
@@ -61,15 +62,15 @@ export const updatePolicy = mutation({
     }
     await ctx.db.patch(policyId, updates);
     return policyId;
-  },
+  }),
 });
 
 export const deletePolicy = mutation({
-  args: { policyId: v.id("visibilityPolicies") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), policyId: v.id("visibilityPolicies") },
+  handler: withScopeAndEvents({ operation: "delete", module: "security", entity: "securityPolicies" }, async (ctx, args) => {
     await ctx.db.delete(args.policyId);
     return args.policyId;
-  },
+  }),
 });
 
 export const listPolicies = query({
@@ -101,8 +102,8 @@ export const getPolicy = query({
 // ─── Default Policies ─────────────────────────────────────
 
 export const seedDefaultPolicies = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "security", entity: "securityPolicies" }, async (ctx) => {
     const now = Date.now();
     const defaults = [
       {
@@ -147,7 +148,7 @@ export const seedDefaultPolicies = mutation({
     for (const d of defaults) {
       const existing = await ctx.db
         .query("visibilityPolicies")
-        .withIndex("policyCode", (q) => q.eq("policyCode", d.policyCode))
+        .withIndex("policyCode", (q: any) => q.eq("policyCode", d.policyCode))
         .first();
 
       if (!existing) {
@@ -162,14 +163,14 @@ export const seedDefaultPolicies = mutation({
     }
 
     return results;
-  },
+  }),
 });
 
 // ─── Default Category Permissions ─────────────────────────
 
 export const seedDefaultCategoryPermissions = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "security", entity: "securityPolicies" }, async (ctx) => {
     const now = Date.now();
     const designations = await ctx.db.query("designations").collect();
     const results: string[] = [];
@@ -223,7 +224,7 @@ export const seedDefaultCategoryPermissions = mutation({
 
       // Find matching role
       for (const [role, titles] of Object.entries(roleToDesignation)) {
-        if (titles.some((t) => name.toLowerCase().includes(t.toLowerCase()))) {
+        if (titles.some((t: any) => name.toLowerCase().includes(t.toLowerCase()))) {
           defaults = categoryDefaults[role];
           break;
         }
@@ -244,7 +245,7 @@ export const seedDefaultCategoryPermissions = mutation({
       for (const [category, perms] of Object.entries(defaults)) {
         const existing = await ctx.db
           .query("categoryPermissions")
-          .withIndex("designationId_category", (q) =>
+          .withIndex("designationId_category", (q: any) =>
             q.eq("designationId", designation._id).eq("category", category)
           )
           .first();
@@ -269,28 +270,28 @@ export const seedDefaultCategoryPermissions = mutation({
     }
 
     return results;
-  },
+  }),
 });
 
 // ─── Set Policy on Record ─────────────────────────────────
 
 export const assignPolicyToRecord = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     module: v.string(),
     recordId: v.string(),
     policyCode: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "security", entity: "securityPolicies" }, async (ctx, args) => {
     const policy = await ctx.db
       .query("visibilityPolicies")
-      .withIndex("policyCode", (q) => q.eq("policyCode", args.policyCode))
+      .withIndex("policyCode", (q: any) => q.eq("policyCode", args.policyCode))
       .first();
 
     if (!policy) throw new Error(`Policy not found: ${args.policyCode}`);
 
     const existing = await ctx.db
       .query("recordPolicies")
-      .withIndex("module_recordId", (q) =>
+      .withIndex("module_recordId", (q: any) =>
         q.eq("module", args.module).eq("recordId", args.recordId)
       )
       .first();
@@ -308,7 +309,7 @@ export const assignPolicyToRecord = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 // ─── Get Policy Stats ─────────────────────────────────────

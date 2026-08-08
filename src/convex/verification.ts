@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 async function logActivity(ctx: any, leadId: string, action: string, description: string, userId: string) {
   await ctx.db.insert("leadActivity", { leadId, action, description, userId, createdAt: Date.now() });
@@ -184,19 +185,19 @@ export const getVerificationDecisions = query({
 });
 
 export const createVerificationRequest = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     entityType: v.string(),
     entityId: v.string(),
     requesterId: v.id("users"),
     metadata: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "verification" }, async (ctx, args) => {
     return await insertVerificationRequest(ctx, args);
-  },
+  }),
 });
 
 export const decideOnVerification = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     requestId: v.id("verification_requests"),
     userId: v.id("users"),
     decision: v.union(
@@ -207,7 +208,7 @@ export const decideOnVerification = mutation({
     ),
     comment: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "verification" }, async (ctx, args) => {
     const request = await ctx.db.get(args.requestId);
     if (!request) throw new Error("Verification request not found");
     if (request.status !== "pending") throw new Error("Request already decided");
@@ -308,7 +309,7 @@ export const decideOnVerification = mutation({
         }
       }
     }
-  },
+  }),
 });
 
 export const getVerificationCounts = query({

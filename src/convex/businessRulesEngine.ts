@@ -12,6 +12,7 @@
 
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Rule Categories / Domains ──────────────────────────────
 // Each domain groups related configuration keys.
@@ -38,7 +39,7 @@ const DOMAINS = {
 // ─── Create/Update Business Rule ────────────────────────────
 
 export const setRule = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     domain: v.string(),
     key: v.string(),
     value: v.any(),
@@ -49,7 +50,7 @@ export const setRule = mutation({
     branchId: v.optional(v.id("branches")),
     isActive: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "platform", entity: "businessRulesEngine" }, async (ctx, args) => {
     const existing = await ctx.db.query("businessRules")
       .withIndex("domain_key", (q: any) => q.eq("domain", args.domain).eq("key", args.key))
       .first();
@@ -81,7 +82,7 @@ export const setRule = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 // ─── Query Rules ─────────────────────────────────────────────
@@ -209,7 +210,8 @@ export const listRulesByDomain = query({
 // ─── Initialize Default Rules ───────────────────────────────
 
 export const initializeDefaultRules = mutation({
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()) },
+  handler: withScopeAndEvents({ operation: "create", module: "platform", entity: "businessRulesEngine" }, async (ctx) => {
     const existing = await ctx.db.query("businessRules").collect();
     if (existing.length > 0) return { skipped: true, count: existing.length };
 
@@ -243,5 +245,5 @@ export const initializeDefaultRules = mutation({
       count++;
     }
     return { created: true, count };
-  },
+  }),
 });

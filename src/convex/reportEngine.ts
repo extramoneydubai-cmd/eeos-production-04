@@ -1,11 +1,12 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── REPORT DEFINITIONS CRUD ─────────────────────────
 
 export const createReportDefinition = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     name: v.string(),
     description: v.optional(v.string()),
     module: v.union(
@@ -26,8 +27,8 @@ export const createReportDefinition = mutation({
     allowedRoles: v.optional(v.array(v.string())),
     isSystem: v.boolean(),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "reports", entity: "reportEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     return ctx.db.insert("reportDefinitions", {
@@ -37,11 +38,11 @@ export const createReportDefinition = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const updateReportDefinition = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("reportDefinitions"),
     name: v.optional(v.string()),
     description: v.optional(v.string()),
@@ -50,11 +51,11 @@ export const updateReportDefinition = mutation({
     allowedRoles: v.optional(v.array(v.string())),
     isActive: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
-    const { id, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "reports", entity: "reportEngine" }, async (ctx, args) => {
+    const { token: _token, id, ...fields } = args;
     await ctx.db.patch(id, { ...fields, updatedAt: Date.now() });
     return id;
-  },
+  }),
 });
 
 export const listReportDefinitions = query({
@@ -90,14 +91,14 @@ export const getReportDefinition = query({
 // ─── SAVED REPORTS ─────────────────────────────────
 
 export const saveReport = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     definitionId: v.id("reportDefinitions"),
     name: v.string(),
     filters: v.string(),
     chartConfig: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "update", module: "reports", entity: "reportEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     return ctx.db.insert("savedReports", {
@@ -107,24 +108,24 @@ export const saveReport = mutation({
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
-  },
+  }),
 });
 
 export const toggleFavoriteReport = mutation({
-  args: { id: v.id("savedReports") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("savedReports") },
+  handler: withScopeAndEvents({ operation: "update", module: "reports", entity: "reportEngine" }, async (ctx, args) => {
     const report = await ctx.db.get(args.id);
     if (!report) throw new Error("Saved report not found");
     await ctx.db.patch(args.id, { isFavorite: !(report as any).isFavorite, updatedAt: Date.now() });
     return args.id;
-  },
+  }),
 });
 
 export const deleteSavedReport = mutation({
-  args: { id: v.id("savedReports") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("savedReports") },
+  handler: withScopeAndEvents({ operation: "delete", module: "reports", entity: "reportEngine" }, async (ctx, args) => {
     await ctx.db.delete(args.id);
-  },
+  }),
 });
 
 export const listSavedReports = query({
@@ -159,13 +160,13 @@ export const listSavedReports = query({
 // ─── REPORT EXECUTION ─────────────────────────────
 
 export const executeReport = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     reportId: v.id("reportDefinitions"),
     filters: v.optional(v.string()),
     savedReportId: v.optional(v.id("savedReports")),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "update", module: "reports", entity: "reportEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const definition = await ctx.db.get(args.reportId);
@@ -216,7 +217,7 @@ export const executeReport = mutation({
 
       return { data: null, executionTime: Date.now() - startTime, success: false, error: err.message };
     }
-  },
+  }),
 });
 
 async function executeDataSource(ctx: any, dataSource: string, filtersJson: string): Promise<any> {

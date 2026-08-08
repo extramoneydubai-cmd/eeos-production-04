@@ -15,6 +15,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Shared validators ──────────────────────────────────────────
 
@@ -55,14 +56,14 @@ function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number)
  * Reuses an existing unused, unexpired token for the same entity+date.
  */
 export const issueQrToken = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     entityType: ATTENDANCE_ENTITY_TYPE,
     entityId: v.string(),
     date: v.number(),
     expiresInHours: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "attendanceVerificationEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const existing = await ctx.db.query("attendanceQrTokens")
@@ -86,7 +87,7 @@ export const issueQrToken = mutation({
       createdAt: now,
     });
     return { token, expiresAt, date: args.date, reused: false };
-  },
+  }),
 });
 
 /** Get the current active QR token for an entity+date (for display). */
@@ -112,8 +113,7 @@ export const getQrToken = query({
  * token marks attendance for the token's owner on the token's date.
  */
 export const verifyQrMark = mutation({
-  args: {
-    token: v.string(),
+  args: { token: v.string(),
     branchId: v.optional(v.id("branches")),
     latitude: v.optional(v.number()),
     longitude: v.optional(v.number()),
@@ -179,15 +179,15 @@ export const verifyQrMark = mutation({
 
 /** Save (upsert) the geofence config for a branch. */
 export const saveGeofence = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     branchId: v.id("branches"),
     name: v.string(),
     latitude: v.number(),
     longitude: v.number(),
     radiusM: v.number(),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "attendanceVerificationEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const existing = await ctx.db.query("geofences")
@@ -217,7 +217,7 @@ export const saveGeofence = mutation({
       updatedAt: now,
     });
     return { id, action: "created" };
-  },
+  }),
 });
 
 /** Get the active geofence for a branch. */
@@ -244,7 +244,7 @@ export const listGeofences = query({
  * with geofenceVerified=false and a note in the result.
  */
 export const markWithGps = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     entityType: ATTENDANCE_ENTITY_TYPE,
     entityId: v.string(),
     date: v.number(),
@@ -254,8 +254,8 @@ export const markWithGps = mutation({
     checkIn: v.optional(v.number()),
     deviceId: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "attendanceVerificationEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const now = Date.now();
@@ -314,28 +314,28 @@ export const markWithGps = mutation({
       updatedAt: now,
     });
     return { recordId: id, action: "created", geofenceVerified, geofenceDistanceM, geofenceConfigured: !!geofence };
-  },
+  }),
 });
 
 // ─── Face registration & verification ───────────────────────────
 
 /** Generate a file upload URL for face photos / selfies. */
 export const generateUploadUrl = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: { token: v.optional(v.string()),},
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "attendanceVerificationEngine" }, async (ctx) => {
     return ctx.storage.generateUploadUrl();
-  },
+  }),
 });
 
 /** Register (or replace) a face reference photo for an entity. */
 export const registerFace = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     entityType: ATTENDANCE_ENTITY_TYPE,
     entityId: v.string(),
     photoStorageId: v.string(),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "attendanceVerificationEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const now = Date.now();
@@ -361,7 +361,7 @@ export const registerFace = mutation({
       updatedAt: now,
     });
     return { id, action: "created" };
-  },
+  }),
 });
 
 /** Get the face registration for an entity, with a resolvable photo URL. */
@@ -387,7 +387,7 @@ export const getFaceRegistration = query({
  * mode="face_recognition".
  */
 export const markWithFace = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     entityType: ATTENDANCE_ENTITY_TYPE,
     entityId: v.string(),
     date: v.number(),
@@ -395,8 +395,8 @@ export const markWithFace = mutation({
     branchId: v.optional(v.id("branches")),
     checkIn: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "attendanceVerificationEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const registration = await ctx.db.query("faceRegistrations")
@@ -443,7 +443,7 @@ export const markWithFace = mutation({
       updatedAt: now,
     });
     return { recordId: id, action: "created", registrationId: registration._id };
-  },
+  }),
 });
 
 // ─── Records & stats for the UI ─────────────────────────────────

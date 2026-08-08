@@ -15,6 +15,7 @@
 
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Default Configuration ────────────────────────────────────
 
@@ -130,7 +131,7 @@ export const listWhiteLabelConfigs = query({
 // ─── Mutations ─────────────────────────────────────────────────
 
 export const setWhiteLabelConfig = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     companyId: v.optional(v.id("companies")),
     branchId: v.optional(v.id("branches")),
     config: v.object({
@@ -170,7 +171,7 @@ export const setWhiteLabelConfig = mutation({
       labels: v.optional(v.any()),
     }),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "update", module: "platform", entity: "whiteLabelEngine" }, async (ctx, args) => {
     const now = Date.now();
 
     // Determine scope for this config
@@ -216,7 +217,7 @@ export const setWhiteLabelConfig = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 // ─── Branding Info for Public Access ──────────────────────────

@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { logActivity, createNotification } from "./crmHelpers";
 import { Id } from "./_generated/dataModel";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Queries ───
 
@@ -46,7 +47,7 @@ export const getStageHistory = query({
 // ─── Mutations ───
 
 export const create = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     ownerId: v.id("users"),
     title: v.string(),
@@ -58,7 +59,7 @@ export const create = mutation({
     notes: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "sales", entity: "opportunities" }, async (ctx, args) => {
     const now = Date.now();
     const id = await ctx.db.insert("opportunities", {
       leadId: args.leadId,
@@ -83,11 +84,11 @@ export const create = mutation({
     });
     await logActivity(ctx, args.leadId, "opportunity_created", `Opportunity created: ${args.title}`, args.ownerId);
     return id;
-  },
+  }),
 });
 
 export const update = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     id: v.id("opportunities"),
     title: v.optional(v.string()),
     stageId: v.optional(v.id("salesOpportunityStages")),
@@ -104,8 +105,8 @@ export const update = mutation({
     isActive: v.optional(v.boolean()),
     userId: v.id("users"),
   },
-  handler: async (ctx, args) => {
-    const { id, userId, ...fields } = args;
+  handler: withScopeAndEvents({ operation: "update", module: "sales", entity: "opportunities" }, async (ctx, args) => {
+    const { token: _token, id, userId, ...fields } = args;
     const existing = await ctx.db.get(id);
     if (!existing) throw new Error("Opportunity not found");
     const now = Date.now();
@@ -129,16 +130,16 @@ export const update = mutation({
         `Opportunity stage changed for ${lead?.firstName || ""} ${lead?.lastName || ""}`, userId);
     }
     return id;
-  },
+  }),
 });
 
 export const remove = mutation({
-  args: { id: v.id("opportunities") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), id: v.id("opportunities") },
+  handler: withScopeAndEvents({ operation: "delete", module: "sales", entity: "opportunities" }, async (ctx, args) => {
     const opp = await ctx.db.get(args.id);
     if (!opp) throw new Error("Opportunity not found");
     // Soft delete
     await ctx.db.patch(args.id, { isActive: false, updatedAt: Date.now() });
     await logActivity(ctx, opp.leadId, "opportunity_removed", `Opportunity removed`, opp.ownerId);
-  },
+  }),
 });

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { logActivity, createNotification, recalculatePayable } from "./crmHelpers";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── Helper: Find users by role (for auto-routing approval rules) ───
 async function findUsersByRole(ctx: any, role: string) {
@@ -9,7 +10,7 @@ async function findUsersByRole(ctx: any, role: string) {
 }
 
 export const requestDiscountWithApproval = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     category: v.union(v.literal("discount"), v.literal("waiver"), v.literal("scholarship"), v.literal("adjustment")),
     amount: v.number(),
@@ -18,7 +19,7 @@ export const requestDiscountWithApproval = mutation({
     standardAmount: v.optional(v.number()),
     requestedBy: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmApprovals" }, async (ctx, args) => {
     const now = Date.now();
     const lead = await ctx.db.get(args.leadId);
     if (!lead) throw new Error("Lead not found");
@@ -79,7 +80,7 @@ export const requestDiscountWithApproval = mutation({
       `${requestType} Request Submitted`,
       `Your ${requestType.toLowerCase()} request for ₹${args.amount} has been submitted for approval`, approvalId, "lead_approval");
     return { discountId, approvalId };
-  },
+  }),
 });
 
 export const getLeadApprovals = query({
@@ -121,22 +122,22 @@ export const getAllCrmApprovals = query({
 });
 
 export const createLeadApproval = mutation({
-  args: { leadId: v.id("leadMaster"), title: v.string(), type: v.union(v.literal("discount"), v.literal("waiver"), v.literal("scholarship"), v.literal("admission"), v.literal("special_pricing"), v.literal("manual")), amount: v.number(), reason: v.string(), approverIds: v.array(v.id("users")), mode: v.union(v.literal("any_one"), v.literal("all_required"), v.literal("sequential"), v.literal("parallel")), fallbackApproverId: v.optional(v.id("users")), deadline: v.optional(v.number()), priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("critical"))), discountId: v.optional(v.id("leadDiscounts")), requestedBy: v.id("users") },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), leadId: v.id("leadMaster"), title: v.string(), type: v.union(v.literal("discount"), v.literal("waiver"), v.literal("scholarship"), v.literal("admission"), v.literal("special_pricing"), v.literal("manual")), amount: v.number(), reason: v.string(), approverIds: v.array(v.id("users")), mode: v.union(v.literal("any_one"), v.literal("all_required"), v.literal("sequential"), v.literal("parallel")), fallbackApproverId: v.optional(v.id("users")), deadline: v.optional(v.number()), priority: v.optional(v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("critical"))), discountId: v.optional(v.id("leadDiscounts")), requestedBy: v.id("users") },
+  handler: withScopeAndEvents({ operation: "create", module: "crm", entity: "crmApprovals" }, async (ctx, args) => {
     const now = Date.now();
     const approvalId = await ctx.db.insert("leadApprovals", { leadId: args.leadId, title: args.title, type: args.type, amount: args.amount, reason: args.reason, approverIds: args.approverIds, mode: args.mode, status: "pending", currentApproverIndex: 0, requestedBy: args.requestedBy, fallbackApproverId: args.fallbackApproverId, deadline: args.deadline, priority: args.priority || "medium", discountId: args.discountId, createdAt: now, updatedAt: now });
-    const typeLabel = args.type.replace("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    const typeLabel = args.type.replace("_", " ").replace(/\b\w/g, (c: any) => c.toUpperCase());
     await logActivity(ctx, args.leadId, "approval_requested", `${typeLabel} approval requested: ₹${args.amount} — ${args.reason}`, args.requestedBy);
     for (const approverId of args.approverIds) {
       await createNotification(ctx, approverId, "approval", "Approval Requested", `${args.title}: ₹${args.amount} — ${args.reason}`, approvalId, "lead_approval");
     }
     return approvalId;
-  },
+  }),
 });
 
 export const decideOnApproval = mutation({
-  args: { approvalId: v.id("leadApprovals"), userId: v.id("users"), decision: v.union(v.literal("approved"), v.literal("rejected"), v.literal("returned")), comment: v.optional(v.string()) },
-  handler: async (ctx, args) => {
+  args: { token: v.optional(v.string()), approvalId: v.id("leadApprovals"), userId: v.id("users"), decision: v.union(v.literal("approved"), v.literal("rejected"), v.literal("returned")), comment: v.optional(v.string()) },
+  handler: withScopeAndEvents({ operation: "update", module: "crm", entity: "crmApprovals" }, async (ctx, args) => {
     const approval = await ctx.db.get(args.approvalId);
     if (!approval || approval.status !== "pending") throw new Error("Approval not found or already decided");
     const now = Date.now();
@@ -155,8 +156,8 @@ export const decideOnApproval = mutation({
       if (nextIdx >= approval.approverIds.length) { shouldFinalize = true; }
       else { await ctx.db.patch(args.approvalId, { currentApproverIndex: nextIdx, updatedAt: now }); }
     } else {
-      const allDecisions = await ctx.db.query("leadApprovalDecisions").withIndex("approvalId", (q) => q.eq("approvalId", args.approvalId)).collect();
-      const approvedCount = allDecisions.filter((d) => d.status === "approved").length;
+      const allDecisions = await ctx.db.query("leadApprovalDecisions").withIndex("approvalId", (q: any) => q.eq("approvalId", args.approvalId)).collect();
+      const approvedCount = allDecisions.filter((d: any) => d.status === "approved").length;
       if (approvedCount >= approval.approverIds.length) { shouldFinalize = true; }
     }
     if (shouldFinalize) {
@@ -165,12 +166,12 @@ export const decideOnApproval = mutation({
       await createNotification(ctx, approval.requestedBy, "approval", "Approval Approved", `${approval.title} was approved`, approval.leadId, "lead");
       if (approval.discountId) {
         await ctx.db.patch(approval.discountId, { status: "approved", approvedBy: args.userId, approvedAt: now, updatedAt: now });
-        const allApproved = (await ctx.db.query("leadDiscounts").withIndex("leadId", (q) => q.eq("leadId", approval.leadId)).collect()).filter((d: any) => d.status === "approved");
+        const allApproved = (await ctx.db.query("leadDiscounts").withIndex("leadId", (q: any) => q.eq("leadId", approval.leadId)).collect()).filter((d: any) => d.status === "approved");
         const lead = await ctx.db.get(approval.leadId);
         const std = lead?.standardAmount || lead?.expectedRevenue || 0;
         const { discountAmount, waiverAmount, finalPayable } = recalculatePayable(std, allApproved);
         await ctx.db.patch(approval.leadId, { discountAmount, waiverAmount, finalPayable, updatedAt: now });
       }
     }
-  },
+  }),
 });

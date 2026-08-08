@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { withScopeAndEvents } from "./withScopeAndEvents";
 
 // ─── HELPERS ───────────────────────────────────────────────
 
@@ -27,14 +28,14 @@ function generateInvoiceNumber(prefix: string, serial: number): string {
 // ─── AUTO-GENERATE INVOICES FROM INSTALLMENTS ──────────────
 
 export const autoGenerateInvoiceFromInstallments = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     feeAccountId: v.id("studentFeeAccounts"),
     dueDate: v.number(),
     billingPeriod: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "update", module: "finance", entity: "invoiceEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     // Get unpaid installments
@@ -98,19 +99,19 @@ export const autoGenerateInvoiceFromInstallments = mutation({
     });
 
     return { invoiceId, invoiceNumber, totalAmount, installmentCount: installments.length };
-  },
+  }),
 });
 
 // ─── BATCH INVOICE GENERATION ──────────────────────────────
 
 export const generateBatchInvoices = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     studentIds: v.array(v.id("studentMaster")),
     dueDate: v.number(),
     billingPeriod: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "finance", entity: "invoiceEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const results: any[] = [];
@@ -181,20 +182,20 @@ export const generateBatchInvoices = mutation({
     }
 
     return results;
-  },
+  }),
 });
 
 // ─── GENERATE INVOICE FOR SPECIFIC INSTALLMENT ─────────────
 
 export const generateInvoiceForInstallment = mutation({
-  args: {
+  args: { token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     feeAccountId: v.id("studentFeeAccounts"),
     installmentId: v.id("feeInstallments"),
     dueDate: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+  handler: withScopeAndEvents({ operation: "create", module: "finance", entity: "invoiceEngine" }, async (ctx, args) => {
+    const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
     const installment = await ctx.db.get(args.installmentId);
@@ -242,7 +243,7 @@ export const generateInvoiceForInstallment = mutation({
     });
 
     return { invoiceId, invoiceNumber, totalAmount };
-  },
+  }),
 });
 
 // ─── INVOICE DATA / TEMPLATE ───────────────────────────────
