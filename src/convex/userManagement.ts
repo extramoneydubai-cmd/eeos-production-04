@@ -1,5 +1,24 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents, type ScopeAndEventsConfig } from "./withScopeAndEvents";
+
+function withUserPipeline<P = any, R = any>(
+  operation: ScopeAndEventsConfig<P, R>["operation"],
+  entity: string,
+  handler: (ctx: any, args: P) => Promise<R>,
+): (ctx: any, args: P) => Promise<R> {
+  return withScopeAndEvents<P, R>(
+    {
+      operation,
+      module: "organization",
+      entity,
+      notifyViaMatrix: true,
+      registerSearch: true,
+      signalDashboard: true,
+    },
+    handler,
+  );
+}
 
 // ============================
 // EMPLOYEE ID GENERATION
@@ -56,8 +75,9 @@ export const createUser = mutation({
     experienceLevelId: v.optional(v.id("hrExperienceLevels")),
     employmentStatus: v.optional(v.string()),
     employeeCode: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withUserPipeline("create", "user", async (ctx, args) => {
     const userRole = args.role as "super_admin" | "admin" | "manager" | "staff";
 
     // Auto-generate employee ID if not provided
@@ -103,7 +123,7 @@ export const createUser = mutation({
     });
 
     return userId;
-  },
+  }),
 });
 
 // ============================
@@ -138,8 +158,9 @@ export const updateUser = mutation({
     employmentStatus: v.optional(v.string()),
     employeeCode: v.optional(v.string()),
     isDisabled: v.optional(v.boolean()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withUserPipeline("update", "user", async (ctx, args) => {
     const { userId, ...fields } = args;
     const updates: Record<string, any> = {};
 
@@ -159,7 +180,7 @@ export const updateUser = mutation({
     }
 
     await ctx.db.patch(userId, updates);
-  },
+  }),
 });
 
 function calculateProfileCompletion(existing: any, updates: Record<string, any>): number {
@@ -196,17 +217,17 @@ function calculateProfileCompletion(existing: any, updates: Record<string, any>)
 // ============================
 
 export const disableUser = mutation({
-  args: { userId: v.id("users") },
-  handler: async (ctx, args) => {
+  args: { userId: v.id("users"), token: v.optional(v.string()) },
+  handler: withUserPipeline("update", "user", async (ctx, args) => {
     await ctx.db.patch(args.userId, { isDisabled: true, employmentStatus: "suspended" });
-  },
+  }),
 });
 
 export const enableUser = mutation({
-  args: { userId: v.id("users") },
-  handler: async (ctx, args) => {
+  args: { userId: v.id("users"), token: v.optional(v.string()) },
+  handler: withUserPipeline("update", "user", async (ctx, args) => {
     await ctx.db.patch(args.userId, { isDisabled: false, employmentStatus: "active" });
-  },
+  }),
 });
 
 // ============================
@@ -214,10 +235,10 @@ export const enableUser = mutation({
 // ============================
 
 export const resetPassword = mutation({
-  args: { userId: v.id("users") },
-  handler: async (ctx, args) => {
+  args: { userId: v.id("users"), token: v.optional(v.string()) },
+  handler: withUserPipeline("update", "user", async (ctx, args) => {
     // Auth system handles password reset via setPassword mutation
-  },
+  }),
 });
 
 // ============================
@@ -228,10 +249,11 @@ export const updateUserTeams = mutation({
   args: {
     userId: v.id("users"),
     teamIds: v.array(v.id("teams")),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withUserPipeline("update", "user", async (ctx, args) => {
     await ctx.db.patch(args.userId, { teamIds: args.teamIds });
-  },
+  }),
 });
 
 // ============================
@@ -242,8 +264,9 @@ export const cloneUserAccess = mutation({
   args: {
     sourceUserId: v.id("users"),
     targetUserId: v.id("users"),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withUserPipeline("update", "user", async (ctx, args) => {
     const source = await ctx.db.get(args.sourceUserId);
     if (!source) throw new Error("Source user not found");
     await ctx.db.patch(args.targetUserId, {
@@ -253,7 +276,7 @@ export const cloneUserAccess = mutation({
       verticalId: source.verticalId,
       teamIds: source.teamIds,
     });
-  },
+  }),
 });
 
 // ============================
@@ -265,8 +288,9 @@ export const transferUserAccess = mutation({
     fromUserId: v.id("users"),
     toUserId: v.id("users"),
     transferTeams: v.optional(v.boolean()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withUserPipeline("update", "user", async (ctx, args) => {
     const fromUser = await ctx.db.get(args.fromUserId);
     if (!fromUser) throw new Error("Source user not found");
 
@@ -277,7 +301,7 @@ export const transferUserAccess = mutation({
         await ctx.db.patch(args.toUserId, { teamIds: mergedTeams });
       }
     }
-  },
+  }),
 });
 
 // ============================
@@ -292,8 +316,9 @@ export const transferEmployee = mutation({
     newBranchId: v.optional(v.id("branches")),
     newDesignationId: v.optional(v.id("designations")),
     newTeamIds: v.optional(v.array(v.id("teams"))),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withUserPipeline("update", "user", async (ctx, args) => {
     const { userId, ...transfers } = args;
     const updates: Record<string, any> = {};
     if (transfers.newDepartmentId !== undefined) updates.departmentId = transfers.newDepartmentId;
@@ -304,7 +329,7 @@ export const transferEmployee = mutation({
     if (Object.keys(updates).length > 0) {
       await ctx.db.patch(userId, updates);
     }
-  },
+  }),
 });
 
 // ============================
@@ -315,8 +340,9 @@ export const changeReportingManager = mutation({
   args: {
     userId: v.id("users"),
     newManagerId: v.optional(v.id("users")),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withUserPipeline("update", "user", async (ctx, args) => {
     if (args.newManagerId === args.userId) {
       throw new Error("Cannot report to self");
     }
@@ -337,7 +363,7 @@ export const changeReportingManager = mutation({
     await ctx.db.patch(args.userId, {
       reportingManagerId: args.newManagerId,
     });
-  },
+  }),
 });
 
 // ============================
@@ -348,13 +374,14 @@ export const updateEmploymentStatus = mutation({
   args: {
     userId: v.id("users"),
     status: v.string(),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withUserPipeline("update", "user", async (ctx, args) => {
     await ctx.db.patch(args.userId, {
       employmentStatus: args.status,
       isDisabled: args.status === "suspended" || args.status === "terminated",
     });
-  },
+  }),
 });
 
 // ============================
@@ -366,8 +393,9 @@ export const promoteEmployee = mutation({
     userId: v.id("users"),
     newDesignationId: v.id("designations"),
     newRole: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withUserPipeline("update", "user", async (ctx, args) => {
     const updates: Record<string, any> = {
       designationId: args.newDesignationId,
     };
@@ -375,7 +403,7 @@ export const promoteEmployee = mutation({
       updates.role = args.newRole as "super_admin" | "admin" | "manager" | "staff";
     }
     await ctx.db.patch(args.userId, updates);
-  },
+  }),
 });
 
 // ============================
@@ -463,8 +491,9 @@ export const updateUserScope = mutation({
     verticalIds: v.optional(v.array(v.id("verticals"))),
     canAccessDashboard: v.optional(v.boolean()),
     canAccessCrm: v.optional(v.boolean()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withUserPipeline("update", "user_scope", async (ctx, args) => {
     const { userId, ...scopeData } = args;
     const existing = await ctx.db.query("userScopes").withIndex("userId", (q) => q.eq("userId", userId)).collect();
     const now = Date.now();
@@ -473,5 +502,5 @@ export const updateUserScope = mutation({
     } else {
       await ctx.db.insert("userScopes", { userId, ...scopeData, createdAt: now, updatedAt: now });
     }
-  },
+  }),
 });

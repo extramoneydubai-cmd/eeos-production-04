@@ -1,6 +1,25 @@
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { mutation, query } from "./_generated/server";
+import { withScopeAndEvents, type ScopeAndEventsConfig } from "./withScopeAndEvents";
+
+function withOrgPipeline<P = any, R = any>(
+  operation: ScopeAndEventsConfig<P, R>["operation"],
+  entity: string,
+  handler: (ctx: any, args: P) => Promise<R>,
+): (ctx: any, args: P) => Promise<R> {
+  return withScopeAndEvents<P, R>(
+    {
+      operation,
+      module: "organization",
+      entity,
+      notifyViaMatrix: true,
+      registerSearch: true,
+      signalDashboard: true,
+    },
+    handler,
+  );
+}
 
 // ============================
 // GROUP (organizations table — single record)
@@ -19,8 +38,9 @@ export const updateGroup = mutation({
     name: v.string(),
     code: v.string(),
     description: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withOrgPipeline("update", "organization", async (ctx, args) => {
     const orgs = await ctx.db.query("organizations").collect();
     const existing = orgs[0];
     const now = Date.now();
@@ -42,7 +62,7 @@ export const updateGroup = mutation({
         updatedAt: now,
       });
     }
-  },
+  }),
 });
 
 // ============================
@@ -65,8 +85,9 @@ export const createDesignation = mutation({
     reportsTo: v.optional(v.id("designations")),
     color: v.optional(v.string()),
     icon: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withOrgPipeline("create", "designation", async (ctx, args) => {
     const now = Date.now();
     return await ctx.db.insert("designations", {
       name: args.name,
@@ -79,7 +100,7 @@ export const createDesignation = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateDesignation = mutation({
@@ -92,18 +113,19 @@ export const updateDesignation = mutation({
     reportsTo: v.optional(v.id("designations")),
     color: v.optional(v.string()),
     icon: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withOrgPipeline("update", "designation", async (ctx, args) => {
     const { id, ...fields } = args;
     await ctx.db.patch(id, { ...fields, updatedAt: Date.now() });
-  },
+  }),
 });
 
 export const deleteDesignation = mutation({
-  args: { id: v.id("designations") },
-  handler: async (ctx, args) => {
+  args: { id: v.id("designations"), token: v.optional(v.string()) },
+  handler: withOrgPipeline("delete", "designation", async (ctx, args) => {
     await ctx.db.delete(args.id);
-  },
+  }),
 });
 
 // ============================
@@ -142,8 +164,9 @@ export const createDepartment = mutation({
     description: v.optional(v.string()),
     color: v.optional(v.string()),
     icon: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withOrgPipeline("create", "department", async (ctx, args) => {
     const now = Date.now();
     return await ctx.db.insert("departments", {
       name: args.name,
@@ -158,7 +181,7 @@ export const createDepartment = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateDepartment = mutation({
@@ -170,16 +193,17 @@ export const updateDepartment = mutation({
     color: v.optional(v.string()),
     icon: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withOrgPipeline("update", "department", async (ctx, args) => {
     const { id, ...fields } = args;
     await ctx.db.patch(id, { ...fields, updatedAt: Date.now() });
-  },
+  }),
 });
 
 export const deleteDepartment = mutation({
-  args: { id: v.id("departments") },
-  handler: async (ctx, args) => {
+  args: { id: v.id("departments"), token: v.optional(v.string()) },
+  handler: withOrgPipeline("delete", "department", async (ctx, args) => {
     // Check for dependent teams
     const teams = await ctx.db
       .query("teams")
@@ -191,7 +215,7 @@ export const deleteDepartment = mutation({
       );
     }
     await ctx.db.delete(args.id);
-  },
+  }),
 });
 
 // ============================
@@ -214,8 +238,9 @@ export const createCompany = mutation({
     description: v.optional(v.string()),
     color: v.optional(v.string()),
     icon: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withOrgPipeline("create", "company", async (ctx, args) => {
     // Get the single group
     const orgs = await ctx.db.query("organizations").collect();
     const groupId = orgs[0]?._id;
@@ -233,7 +258,7 @@ export const createCompany = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateCompany = mutation({
@@ -246,16 +271,17 @@ export const updateCompany = mutation({
     description: v.optional(v.string()),
     color: v.optional(v.string()),
     icon: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withOrgPipeline("update", "company", async (ctx, args) => {
     const { id, ...fields } = args;
     await ctx.db.patch(id, { ...fields, updatedAt: Date.now() });
-  },
+  }),
 });
 
 export const deleteCompany = mutation({
-  args: { id: v.id("companies") },
-  handler: async (ctx, args) => {
+  args: { id: v.id("companies"), token: v.optional(v.string()) },
+  handler: withOrgPipeline("delete", "company", async (ctx, args) => {
     // Check for dependent branches
     const branches = await ctx.db
       .query("branches")
@@ -281,7 +307,7 @@ export const deleteCompany = mutation({
       );
     }
     await ctx.db.delete(args.id);
-  },
+  }),
 });
 
 // ============================
@@ -319,8 +345,9 @@ export const createBranch = mutation({
     description: v.optional(v.string()),
     color: v.optional(v.string()),
     icon: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withOrgPipeline("create", "branch", async (ctx, args) => {
     const now = Date.now();
     return await ctx.db.insert("branches", {
       name: args.name,
@@ -334,7 +361,7 @@ export const createBranch = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateBranch = mutation({
@@ -346,18 +373,19 @@ export const updateBranch = mutation({
     color: v.optional(v.string()),
     icon: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withOrgPipeline("update", "branch", async (ctx, args) => {
     const { id, ...fields } = args;
     await ctx.db.patch(id, { ...fields, updatedAt: Date.now() });
-  },
+  }),
 });
 
 export const deleteBranch = mutation({
-  args: { id: v.id("branches") },
-  handler: async (ctx, args) => {
+  args: { id: v.id("branches"), token: v.optional(v.string()) },
+  handler: withOrgPipeline("delete", "branch", async (ctx, args) => {
     await ctx.db.delete(args.id);
-  },
+  }),
 });
 
 // ============================
@@ -400,8 +428,9 @@ export const createTeam = mutation({
     leadId: v.optional(v.id("users")),
     color: v.optional(v.string()),
     icon: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withOrgPipeline("create", "team", async (ctx, args) => {
     const now = Date.now();
     return await ctx.db.insert("teams", {
       name: args.name,
@@ -415,7 +444,7 @@ export const createTeam = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateTeam = mutation({
@@ -428,18 +457,19 @@ export const updateTeam = mutation({
     isActive: v.optional(v.boolean()),
     color: v.optional(v.string()),
     icon: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withOrgPipeline("update", "team", async (ctx, args) => {
     const { id, ...fields } = args;
     await ctx.db.patch(id, { ...fields, updatedAt: Date.now() });
-  },
+  }),
 });
 
 export const deleteTeam = mutation({
-  args: { id: v.id("teams") },
-  handler: async (ctx, args) => {
+  args: { id: v.id("teams"), token: v.optional(v.string()) },
+  handler: withOrgPipeline("delete", "team", async (ctx, args) => {
     await ctx.db.delete(args.id);
-  },
+  }),
 });
 
 // ============================
@@ -458,8 +488,9 @@ export const createVertical = mutation({
     name: v.string(),
     code: v.string(),
     description: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withOrgPipeline("create", "vertical", async (ctx, args) => {
     const now = Date.now();
     return await ctx.db.insert("verticals", {
       name: args.name,
@@ -468,7 +499,7 @@ export const createVertical = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateVertical = mutation({
@@ -477,18 +508,19 @@ export const updateVertical = mutation({
     name: v.optional(v.string()),
     code: v.optional(v.string()),
     description: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withOrgPipeline("update", "vertical", async (ctx, args) => {
     const { id, ...fields } = args;
     await ctx.db.patch(id, { ...fields, updatedAt: Date.now() });
-  },
+  }),
 });
 
 export const deleteVertical = mutation({
-  args: { id: v.id("verticals") },
-  handler: async (ctx, args) => {
+  args: { id: v.id("verticals"), token: v.optional(v.string()) },
+  handler: withOrgPipeline("delete", "vertical", async (ctx, args) => {
     await ctx.db.delete(args.id);
-  },
+  }),
 });
 
 // ============================
@@ -515,8 +547,9 @@ export const createSubVertical = mutation({
     verticalId: v.id("verticals"),
     description: v.optional(v.string()),
     status: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withOrgPipeline("create", "sub_vertical", async (ctx, args) => {
     const now = Date.now();
     return await ctx.db.insert("subVerticals", {
       name: args.name,
@@ -527,7 +560,7 @@ export const createSubVertical = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateSubVertical = mutation({
@@ -537,18 +570,19 @@ export const updateSubVertical = mutation({
     code: v.optional(v.string()),
     description: v.optional(v.string()),
     status: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withOrgPipeline("update", "sub_vertical", async (ctx, args) => {
     const { id, ...fields } = args;
     await ctx.db.patch(id, { ...fields, updatedAt: Date.now() });
-  },
+  }),
 });
 
 export const deleteSubVertical = mutation({
-  args: { id: v.id("subVerticals") },
-  handler: async (ctx, args) => {
+  args: { id: v.id("subVerticals"), token: v.optional(v.string()) },
+  handler: withOrgPipeline("delete", "sub_vertical", async (ctx, args) => {
     await ctx.db.delete(args.id);
-  },
+  }),
 });
 
 // ============================
@@ -582,8 +616,9 @@ export const createBoard = mutation({
     verticalId: v.optional(v.id("verticals")),
     description: v.optional(v.string()),
     status: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withOrgPipeline("create", "board", async (ctx, args) => {
     const now = Date.now();
     return await ctx.db.insert("boards", {
       name: args.name,
@@ -595,7 +630,7 @@ export const createBoard = mutation({
       createdAt: now,
       updatedAt: now,
     });
-  },
+  }),
 });
 
 export const updateBoard = mutation({
@@ -605,16 +640,17 @@ export const updateBoard = mutation({
     code: v.optional(v.string()),
     description: v.optional(v.string()),
     status: v.optional(v.string()),
+    token: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: withOrgPipeline("update", "board", async (ctx, args) => {
     const { id, ...fields } = args;
     await ctx.db.patch(id, { ...fields, updatedAt: Date.now() });
-  },
+  }),
 });
 
 export const deleteBoard = mutation({
-  args: { id: v.id("boards") },
-  handler: async (ctx, args) => {
+  args: { id: v.id("boards"), token: v.optional(v.string()) },
+  handler: withOrgPipeline("delete", "board", async (ctx, args) => {
     await ctx.db.delete(args.id);
-  },
+  }),
 });
