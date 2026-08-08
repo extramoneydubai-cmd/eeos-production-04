@@ -54,6 +54,7 @@ async function createTimelineEvent(
 
 export const addTimelineEvent = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     eventType: v.union(...EVENT_TYPES.map((t) => v.literal(t))),
     title: v.string(),
@@ -106,6 +107,7 @@ export const getNotes = query({
 
 export const addNote = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     content: v.string(),
     mentions: v.optional(v.array(v.id("users"))),
@@ -154,6 +156,7 @@ export const addNote = mutation({
 
 export const pinNote = mutation({
   args: {
+    token: v.optional(v.string()),
     noteId: v.id("leadNotes"),
     pinned: v.boolean(),
     userId: v.id("users"),
@@ -182,6 +185,7 @@ export const pinNote = mutation({
 
 export const deleteNote = mutation({
   args: {
+    token: v.optional(v.string()),
     noteId: v.id("leadNotes"),
     userId: v.id("users"),
     leadId: v.id("leadMaster"),
@@ -231,6 +235,7 @@ export const getTasks = query({
 
 export const createTask = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     title: v.string(),
     description: v.optional(v.string()),
@@ -288,6 +293,7 @@ export const createTask = mutation({
 
 export const completeTask = mutation({
   args: {
+    token: v.optional(v.string()),
     taskId: v.id("leadTasks"),
     userId: v.id("users"),
     leadId: v.id("leadMaster"),
@@ -344,6 +350,7 @@ export const getAttachments = query({
 
 export const uploadAttachment = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     fileName: v.string(),
     fileUrl: v.string(),
@@ -392,6 +399,7 @@ export const uploadAttachment = mutation({
 
 export const deleteAttachment = mutation({
   args: {
+    token: v.optional(v.string()),
     attachmentId: v.id("leadAttachments"),
     userId: v.id("users"),
     leadId: v.id("leadMaster"),

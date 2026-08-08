@@ -57,6 +57,7 @@ function withProcurement<P = any, R = any>(
 
 export const createVendor = mutation({
   args: {
+    token: v.optional(v.string()),
     vendorName: v.string(),
     vendorCode: v.string(),
     contactPerson: v.optional(v.string()),
@@ -99,6 +100,7 @@ export const createVendor = mutation({
 
 export const updateVendor = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("vendorMaster"),
     vendorName: v.optional(v.string()),
     contactPerson: v.optional(v.string()),
@@ -161,6 +163,7 @@ export const getVendor = query({
 
 export const createRequisition = mutation({
   args: {
+    token: v.optional(v.string()),
     departmentId: v.optional(v.id("departments")),
     branchId: v.optional(v.id("branches")),
     companyId: v.optional(v.id("companies")),
@@ -215,7 +218,7 @@ export const createRequisition = mutation({
 });
 
 export const submitRequisitionForApproval = mutation({
-  args: { id: v.id("purchaseRequisitions") },
+  args: { token: v.optional(v.string()), id: v.id("purchaseRequisitions") },
   handler: withProcurement("update", "purchase_requisition", () => ({}), async (ctx, args) => {
     const req = await ctx.db.get(args.id);
     if (!req) throw new Error("Requisition not found");
@@ -227,6 +230,7 @@ export const submitRequisitionForApproval = mutation({
 
 export const approveRequisition = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("purchaseRequisitions"),
     approve: v.boolean(),
     companyId: v.optional(v.id("companies")),
@@ -297,6 +301,7 @@ export const getRequisition = query({
 
 export const createPurchaseOrder = mutation({
   args: {
+    token: v.optional(v.string()),
     requisitionId: v.optional(v.id("purchaseRequisitions")),
     vendorId: v.id("vendorMaster"),
     departmentId: v.optional(v.id("departments")),
@@ -368,7 +373,7 @@ export const createPurchaseOrder = mutation({
 });
 
 export const submitPOForApproval = mutation({
-  args: { id: v.id("purchaseOrders") },
+  args: { token: v.optional(v.string()), id: v.id("purchaseOrders") },
   handler: withProcurement("update", "purchase_order", () => ({}), async (ctx, args) => {
     const po = await ctx.db.get(args.id);
     if (!po) throw new Error("PO not found");
@@ -380,6 +385,7 @@ export const submitPOForApproval = mutation({
 
 export const approvePurchaseOrder = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("purchaseOrders"),
     approve: v.boolean(),
     companyId: v.optional(v.id("companies")),
@@ -451,6 +457,7 @@ export const getPurchaseOrder = query({
 
 export const createGoodsReceipt = mutation({
   args: {
+    token: v.optional(v.string()),
     poId: v.id("purchaseOrders"),
     deliveryNote: v.optional(v.string()),
     companyId: v.optional(v.id("companies")),
@@ -564,6 +571,7 @@ export const listGoodsReceipts = query({
 
 export const createQuotationComparison = mutation({
   args: {
+    token: v.optional(v.string()),
     requisitionId: v.optional(v.id("purchaseRequisitions")),
     poId: v.optional(v.id("purchaseOrders")),
     comparisonData: v.string(),
@@ -589,6 +597,7 @@ export const createQuotationComparison = mutation({
 
 export const finalizeQuotationComparison = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("quotationComparisons"),
     companyId: v.optional(v.id("companies")),
     branchId: v.optional(v.id("branches")),

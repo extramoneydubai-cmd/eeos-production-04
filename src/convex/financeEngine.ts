@@ -54,6 +54,7 @@ function withFinance<P = any, R = any>(
 
 export const createJournalEntry = mutation({
   args: {
+    token: v.optional(v.string()),
     entryDate: v.number(),
     description: v.string(),
     debitAccount: v.string(),
@@ -90,6 +91,7 @@ export const createJournalEntry = mutation({
 
 export const postJournalEntry = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("journalEntries"),
     companyId: v.optional(v.id("companies")),
     branchId: v.optional(v.id("branches")),
@@ -113,6 +115,7 @@ export const postJournalEntry = mutation({
 
 export const reverseJournalEntry = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("journalEntries"),
     companyId: v.optional(v.id("companies")),
     branchId: v.optional(v.id("branches")),
@@ -178,6 +181,7 @@ export const getJournalEntry = query({
 
 export const createCashBookEntry = mutation({
   args: {
+    token: v.optional(v.string()),
     entryType: v.union(v.literal("debit"), v.literal("credit")),
     amount: v.number(),
     description: v.string(),
@@ -271,6 +275,7 @@ export const getCashBookBalance = query({
 
 export const createVendorBill = mutation({
   args: {
+    token: v.optional(v.string()),
     vendorName: v.string(),
     vendorContact: v.optional(v.string()),
     billNumber: v.string(),
@@ -302,6 +307,7 @@ export const createVendorBill = mutation({
 
 export const payVendorBill = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("vendorBills"),
     amount: v.number(),
     paymentReference: v.optional(v.string()),
@@ -358,6 +364,7 @@ export const getVendorBill = query({
 
 export const createCreditNote = mutation({
   args: {
+    token: v.optional(v.string()),
     invoiceId: v.optional(v.id("feeInvoices")),
     studentId: v.id("studentMaster"),
     amount: v.number(),
@@ -388,6 +395,7 @@ export const createCreditNote = mutation({
 
 export const issueCreditNote = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("creditNotes"),
     companyId: v.optional(v.id("companies")),
     branchId: v.optional(v.id("branches")),
@@ -406,6 +414,7 @@ export const issueCreditNote = mutation({
 
 export const applyCreditNoteToInvoice = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("creditNotes"),
     companyId: v.optional(v.id("companies")),
     branchId: v.optional(v.id("branches")),

@@ -61,6 +61,7 @@ export const getPaymentPlans = query({
 
 export const createPaymentPlan = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     totalAmount: v.number(),
     installmentCount: v.number(),
@@ -120,7 +121,7 @@ export const createPaymentPlan = mutation({
 });
 
 export const cancelPaymentPlan = mutation({
-  args: { planId: v.id("payment_plans"), userId: v.id("users") },
+  args: { token: v.optional(v.string()), planId: v.id("payment_plans"), userId: v.id("users") },
   handler: withScopeAndEvents(
     {
       operation: "delete",
@@ -157,7 +158,7 @@ export const getInstallments = query({
 });
 
 export const markInstallmentPaid = mutation({
-  args: { installmentId: v.id("payment_installments"), paymentId: v.id("leadPayments"), userId: v.id("users") },
+  args: { token: v.optional(v.string()), installmentId: v.id("payment_installments"), paymentId: v.id("leadPayments"), userId: v.id("users") },
   handler: withScopeAndEvents(
     {
       operation: "update",
@@ -201,6 +202,7 @@ export const getLeadPDCs = query({
 
 export const createPDC = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"), chequeNumber: v.string(), bank: v.string(),
     chequeDate: v.number(), amount: v.number(), attachment: v.optional(v.string()),
     createdBy: v.id("users"),
@@ -281,6 +283,7 @@ export const createPDC = mutation({
 
 export const updatePDCStatus = mutation({
   args: {
+    token: v.optional(v.string()),
     pdcId: v.id("payment_pdcs"),
     status: v.union(v.literal("deposited"), v.literal("cleared"), v.literal("bounced"), v.literal("cancelled")),
     userId: v.id("users"), bounceReason: v.optional(v.string()),
@@ -484,6 +487,7 @@ export const getLeadCommitments = query({
 
 export const createCommitment = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"), amount: v.number(), commitDate: v.number(),
     reason: v.optional(v.string()), confidence: v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
     ownerId: v.id("users"),

@@ -64,6 +64,7 @@ function withAdmission<P = any, R = any>(
 
 export const createAdmission = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.optional(v.id("leadMaster")),
     studentId: v.id("studentMaster"),
     academicSessionId: v.id("academicSessions"),
@@ -162,6 +163,7 @@ export const getAdmission = query({
 
 export const updateAdmissionStatus = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("admissions"),
     status: v.union(v.literal("enrolled"), v.literal("withdrawn"), v.literal("completed"), v.literal("cancelled")),
     reason: v.optional(v.string()),

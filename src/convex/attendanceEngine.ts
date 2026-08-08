@@ -28,6 +28,7 @@ const attendancePipeline = {
 
 export const markAttendance = mutation({
   args: {
+    token: v.optional(v.string()),
     entityType: v.union(v.literal("student"), v.literal("employee")),
     entityId: v.id("users"),
     date: v.number(),
@@ -85,6 +86,7 @@ export const markAttendance = mutation({
 
 export const bulkMarkAttendance = mutation({
   args: {
+    token: v.optional(v.string()),
     entityType: v.union(v.literal("student"), v.literal("employee")),
     date: v.number(),
     records: v.array(v.object({

@@ -60,6 +60,7 @@ function withRefund<P = any, R = any>(
 
 export const createRefundRequest = mutation({
   args: {
+    token: v.optional(v.string()),
     studentId: v.optional(v.id("studentMaster")),
     transactionId: v.optional(v.id("paymentTransactions")),
     invoiceId: v.optional(v.id("feeInvoices")),
@@ -89,6 +90,7 @@ export const createRefundRequest = mutation({
 
 export const submitRefundForApproval = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("refundRequests"),
     companyId: v.optional(v.id("companies")),
     branchId: v.optional(v.id("branches")),
@@ -109,6 +111,7 @@ export const submitRefundForApproval = mutation({
 
 export const approveRefund = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("refundRequests"),
     approve: v.boolean(),
     notes: v.optional(v.string()),
@@ -138,6 +141,7 @@ export const approveRefund = mutation({
 
 export const processRefund = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("refundRequests"),
     refundMethod: v.string(),
     refundReference: v.optional(v.string()),
@@ -167,6 +171,7 @@ export const processRefund = mutation({
 
 export const completeRefund = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("refundRequests"),
     notes: v.optional(v.string()),
     companyId: v.optional(v.id("companies")),

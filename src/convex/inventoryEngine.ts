@@ -28,6 +28,7 @@ const inventoryPipeline = {
 
 export const createCategory = mutation({
   args: {
+    token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     description: v.optional(v.string()),
@@ -69,6 +70,7 @@ export const listCategories = query({
 
 export const createWarehouse = mutation({
   args: {
+    token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     branchId: v.optional(v.id("branches")),
@@ -116,6 +118,7 @@ export const listWarehouses = query({
 
 export const createInventoryItem = mutation({
   args: {
+    token: v.optional(v.string()),
     sku: v.string(),
     name: v.string(),
     description: v.optional(v.string()),
@@ -178,6 +181,7 @@ export const createInventoryItem = mutation({
 
 export const updateInventoryItem = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("inventoryItems"),
     name: v.optional(v.string()),
     description: v.optional(v.string()),
@@ -209,6 +213,7 @@ export const updateInventoryItem = mutation({
 
 export const adjustStock = mutation({
   args: {
+    token: v.optional(v.string()),
     itemId: v.id("inventoryItems"),
     newStock: v.number(),
     notes: v.optional(v.string()),
@@ -334,6 +339,7 @@ export const getItemStockMovements = query({
 
 export const recordStockMovement = mutation({
   args: {
+    token: v.optional(v.string()),
     itemId: v.id("inventoryItems"),
     warehouseId: v.id("warehouses"),
     movementType: v.union(

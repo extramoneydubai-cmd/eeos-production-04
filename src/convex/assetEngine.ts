@@ -28,6 +28,7 @@ const assetPipeline = {
 
 export const issueItem = mutation({
   args: {
+    token: v.optional(v.string()),
     itemId: v.id("inventoryItems"),
     issuedTo: v.id("users"),
     quantity: v.number(),
@@ -95,6 +96,7 @@ export const issueItem = mutation({
 
 export const returnIssuedItem = mutation({
   args: {
+    token: v.optional(v.string()),
     issueId: v.id("issueRegister"),
     notes: v.optional(v.string()),
   },
@@ -169,6 +171,7 @@ export const listIssuedItems = query({
 
 export const allocateAsset = mutation({
   args: {
+    token: v.optional(v.string()),
     itemId: v.id("inventoryItems"),
     assetName: v.string(),
     assetTag: v.string(),
@@ -214,6 +217,7 @@ export const allocateAsset = mutation({
 
 export const returnAsset = mutation({
   args: {
+    token: v.optional(v.string()),
     assetId: v.id("assetAllocations"),
     condition: v.optional(v.union(v.literal("new"), v.literal("good"), v.literal("fair"), v.literal("damaged"))),
     notes: v.optional(v.string()),
@@ -282,6 +286,7 @@ export const getAssetAllocation = query({
 
 export const recordReturn = mutation({
   args: {
+    token: v.optional(v.string()),
     itemId: v.id("inventoryItems"),
     warehouseId: v.id("warehouses"),
     returnedBy: v.id("users"),

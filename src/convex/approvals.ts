@@ -37,6 +37,7 @@ export const listApprovalTemplates = query({
 
 export const createApprovalTemplate = mutation({
   args: {
+    token: v.optional(v.string()),
     name: v.string(),
     description: v.optional(v.string()),
     mode: v.string(),
@@ -74,6 +75,7 @@ export const createApprovalTemplate = mutation({
 
 export const updateApprovalTemplate = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("approvalTemplates"),
     name: v.optional(v.string()),
     description: v.optional(v.string()),
@@ -113,7 +115,7 @@ export const updateApprovalTemplate = mutation({
 });
 
 export const deleteApprovalTemplate = mutation({
-  args: { id: v.id("approvalTemplates") },
+  args: { token: v.optional(v.string()), id: v.id("approvalTemplates") },
   handler: withScopeAndEvents(
     {
       ...approvalPipeline,
@@ -162,6 +164,7 @@ export const getApprovalRequest = query({
 
 export const createApprovalRequest = mutation({
   args: {
+    token: v.optional(v.string()),
     templateId: v.optional(v.id("approvalTemplates")),
     taskId: v.optional(v.id("tasks")),
     requesterId: v.id("users"),
@@ -200,6 +203,7 @@ export const createApprovalRequest = mutation({
 
 export const approveRequest = mutation({
   args: {
+    token: v.optional(v.string()),
     requestId: v.id("approvalRequests"),
     userId: v.id("users"),
     phaseIndex: v.number(),
@@ -268,6 +272,7 @@ export const approveRequest = mutation({
 
 export const rejectRequest = mutation({
   args: {
+    token: v.optional(v.string()),
     requestId: v.id("approvalRequests"),
     userId: v.id("users"),
     phaseIndex: v.number(),

@@ -38,6 +38,7 @@ const campaignPipeline = {
 
 export const createCommTemplate = mutation({
   args: {
+    token: v.optional(v.string()),
     name: v.string(),
     channel: v.union(v.literal("email"), v.literal("sms"), v.literal("whatsapp"), v.literal("push")),
     subject: v.optional(v.string()),
@@ -72,6 +73,7 @@ export const createCommTemplate = mutation({
 
 export const createCampaign = mutation({
   args: {
+    token: v.optional(v.string()),
     name: v.string(),
     description: v.optional(v.string()),
     templateId: v.id("commTemplates"),
@@ -126,7 +128,7 @@ export const createCampaign = mutation({
 });
 
 export const launchCampaign = mutation({
-  args: { campaignId: v.id("commCampaigns"), userId: v.id("users") },
+  args: { token: v.optional(v.string()), campaignId: v.id("commCampaigns"), userId: v.id("users") },
   handler: withScopeAndEvents(
     {
       ...campaignPipeline,
@@ -239,6 +241,7 @@ export const launchCampaign = mutation({
 
 export const trackDelivery = mutation({
   args: {
+    token: v.optional(v.string()),
     messageId: v.id("communicationQueue"),
     status: v.union(v.literal("sent"), v.literal("delivered"), v.literal("read"), v.literal("failed"), v.literal("clicked")),
     campaignId: v.optional(v.id("commCampaigns")),
@@ -307,6 +310,7 @@ export const getCampaignAnalytics = query({
 /** Change a campaign's lifecycle status (draft → active → paused …). */
 export const updateCampaignStatus = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("commCampaigns"),
     status: v.string(),
   },

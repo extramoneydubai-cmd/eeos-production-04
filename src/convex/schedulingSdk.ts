@@ -188,6 +188,7 @@ export const get = query({
 /** Create a schedule. Returns the new schedule id. */
 export const create = mutation({
   args: {
+    token: v.optional(v.string()),
     title: v.string(),
     description: v.optional(v.string()),
     scheduleType: v.string(),
@@ -239,6 +240,7 @@ export const create = mutation({
 /** Confirm a pending schedule. */
 export const confirm = mutation({
   args: {
+    token: v.optional(v.string()),
     scheduleId: v.id("schedules"),
     approvedBy: v.optional(v.id("users")),
   },
@@ -268,6 +270,7 @@ export const confirm = mutation({
 /** Cancel a schedule. */
 export const cancel = mutation({
   args: {
+    token: v.optional(v.string()),
     scheduleId: v.id("schedules"),
     reason: v.optional(v.string()),
   },
@@ -296,7 +299,7 @@ export const cancel = mutation({
 
 /** Complete a schedule. */
 export const complete = mutation({
-  args: { scheduleId: v.id("schedules") },
+  args: { token: v.optional(v.string()), scheduleId: v.id("schedules") },
   handler: withScopeAndEvents(
     {
       ...schedulePipeline,
@@ -321,7 +324,7 @@ export const complete = mutation({
 
 /** Hard-delete a schedule. */
 export const remove = mutation({
-  args: { scheduleId: v.id("schedules") },
+  args: { token: v.optional(v.string()), scheduleId: v.id("schedules") },
   handler: withScopeAndEvents(
     {
       ...schedulePipeline,

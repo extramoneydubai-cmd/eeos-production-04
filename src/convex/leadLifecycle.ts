@@ -23,6 +23,7 @@ const LEAD_STATUS_TRANSITIONS: Record<string, string[]> = {
 
 export const createFromSubmission = mutation({
   args: {
+    token: v.optional(v.string()),
     submissionId: v.id("intakeSubmissions"),
     createdBy: v.id("users"),
   },
@@ -134,6 +135,7 @@ export const createFromSubmission = mutation({
 
 export const assignLeadWithRules = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     assignmentType: v.union(
       v.literal("manual"),
@@ -302,7 +304,7 @@ async function calculateHealthScoreInternal(ctx: any, leadId: Id<"leadMaster">) 
 }
 
 export const calculateHealthScore = mutation({
-  args: { leadId: v.id("leadMaster") },
+  args: { token: v.optional(v.string()), leadId: v.id("leadMaster") },
   handler: withScopeAndEvents(
     {
       operation: "update",
@@ -339,6 +341,7 @@ export const getHealthScore = query({
 
 export const scheduleFollowUp = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     action: v.string(),
     followupDate: v.number(),
@@ -397,6 +400,7 @@ export const scheduleFollowUp = mutation({
 
 export const startTrial = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     trialEndDate: v.number(),
     startedBy: v.id("users"),
@@ -459,6 +463,7 @@ export const startTrial = mutation({
 
 export const updateTrialPhase = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     phase: v.union(
       v.literal("not_started"),
@@ -513,6 +518,7 @@ export const updateTrialPhase = mutation({
 
 export const convertLead = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     conversionType: v.union(
       v.literal("trial"),
@@ -636,6 +642,7 @@ export const convertLead = mutation({
 
 export const updateLeadStatus = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     newStatus: v.union(v.literal("active"), v.literal("converted"), v.literal("lost"), v.literal("archived")),
     changedBy: v.id("users"),
@@ -758,6 +765,7 @@ export const getLeadLifecycle = query({
 
 export const bulkAssignWithRules = mutation({
   args: {
+    token: v.optional(v.string()),
     leadIds: v.array(v.id("leadMaster")),
     assignmentType: v.union(
       v.literal("manual"),
@@ -841,6 +849,7 @@ export const bulkAssignWithRules = mutation({
 
 export const bulkUpdateStatus = mutation({
   args: {
+    token: v.optional(v.string()),
     leadIds: v.array(v.id("leadMaster")),
     newStatus: v.union(v.literal("active"), v.literal("converted"), v.literal("lost"), v.literal("archived")),
     changedBy: v.id("users"),

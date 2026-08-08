@@ -38,6 +38,7 @@ async function createTimelineEvent(
 
 export const scheduleMeeting = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     meetingType: v.string(),
     meetingDate: v.number(),
@@ -121,6 +122,7 @@ export const scheduleMeeting = mutation({
 
 export const completeMeeting = mutation({
   args: {
+    token: v.optional(v.string()),
     meetingId: v.id("leadMeetings"),
     userId: v.id("users"),
     outcomeNotes: v.optional(v.string()),
@@ -171,6 +173,7 @@ export const completeMeeting = mutation({
 
 export const cancelMeeting = mutation({
   args: {
+    token: v.optional(v.string()),
     meetingId: v.id("leadMeetings"),
     userId: v.id("users"),
     reason: v.optional(v.string()),
@@ -220,6 +223,7 @@ export const cancelMeeting = mutation({
 
 export const rescheduleMeeting = mutation({
   args: {
+    token: v.optional(v.string()),
     meetingId: v.id("leadMeetings"),
     newDate: v.number(),
     userId: v.id("users"),

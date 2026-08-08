@@ -30,6 +30,7 @@ async function generateEmployeeCode(ctx: { db: { query: (table: string) => any }
 
 export const createEmployee = mutation({
   args: {
+    token: v.optional(v.string()),
     firstName: v.string(),
     lastName: v.string(),
     middleName: v.optional(v.string()),
@@ -217,6 +218,7 @@ export const getEmployee = query({
 
 export const updateEmployee = mutation({
   args: {
+    token: v.optional(v.string()),
     employeeId: v.id("employeeMaster"),
     companyId: v.optional(v.id("companies")),
     branchId: v.optional(v.id("branches")),
@@ -269,6 +271,7 @@ export const updateEmployee = mutation({
 
 export const archiveEmployee = mutation({
   args: {
+    token: v.optional(v.string()),
     employeeId: v.id("employeeMaster"),
     changedBy: v.id("users"),
     reason: v.optional(v.string()),
@@ -303,6 +306,7 @@ export const archiveEmployee = mutation({
 
 export const restoreEmployee = mutation({
   args: {
+    token: v.optional(v.string()),
     employeeId: v.id("employeeMaster"),
     changedBy: v.id("users"),
   },

@@ -87,6 +87,7 @@ export const listFollowUpRules = query({
 
 export const createFollowUpRule = mutation({
   args: {
+    token: v.optional(v.string()),
     name: v.string(),
     description: v.optional(v.string()),
     leadStage: v.optional(v.string()),
@@ -125,6 +126,7 @@ export const createFollowUpRule = mutation({
 
 export const updateFollowUpRule = mutation({
   args: {
+    token: v.optional(v.string()),
     ruleId: v.id("leadFollowUpRules"),
     name: v.optional(v.string()),
     description: v.optional(v.string()),
@@ -163,7 +165,7 @@ export const updateFollowUpRule = mutation({
 });
 
 export const deleteFollowUpRule = mutation({
-  args: { ruleId: v.id("leadFollowUpRules") },
+  args: { token: v.optional(v.string()), ruleId: v.id("leadFollowUpRules") },
   handler: withScopeAndEvents(
     {
       operation: "delete",
@@ -202,6 +204,7 @@ export const listStatusEngineRules = query({
 
 export const createStatusEngineRule = mutation({
   args: {
+    token: v.optional(v.string()),
     fromStatus: v.string(),
     toStatus: v.string(),
     allowed: v.boolean(),
@@ -240,6 +243,7 @@ export const createStatusEngineRule = mutation({
 
 export const updateStatusEngineRule = mutation({
   args: {
+    token: v.optional(v.string()),
     ruleId: v.id("leadStatusEngine"),
     allowed: v.optional(v.boolean()),
     requiresPayment: v.optional(v.boolean()),
@@ -270,7 +274,7 @@ export const updateStatusEngineRule = mutation({
 });
 
 export const deleteStatusEngineRule = mutation({
-  args: { ruleId: v.id("leadStatusEngine") },
+  args: { token: v.optional(v.string()), ruleId: v.id("leadStatusEngine") },
   handler: withScopeAndEvents(
     {
       operation: "delete",

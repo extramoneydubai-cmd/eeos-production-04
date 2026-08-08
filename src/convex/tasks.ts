@@ -78,6 +78,7 @@ export const getTaskById = query({
 
 export const createTask = mutation({
   args: {
+    token: v.optional(v.string()),
     title: v.string(),
     description: v.optional(v.string()),
     status: v.string(),
@@ -146,6 +147,7 @@ export const createTask = mutation({
 
 export const updateTask = mutation({
   args: {
+    token: v.optional(v.string()),
     taskId: v.id("tasks"),
     title: v.optional(v.string()),
     description: v.optional(v.string()),
@@ -184,6 +186,7 @@ export const updateTask = mutation({
 
 export const updateTaskStatus = mutation({
   args: {
+    token: v.optional(v.string()),
     taskId: v.id("tasks"),
     status: v.string(),
     order: v.optional(v.number()),
@@ -207,7 +210,7 @@ export const updateTaskStatus = mutation({
 });
 
 export const deleteTask = mutation({
-  args: { taskId: v.id("tasks") },
+  args: { token: v.optional(v.string()), taskId: v.id("tasks") },
   handler: withScopeAndEvents(
     {
       ...taskPipeline,
@@ -247,6 +250,7 @@ export const getTaskParticipants = query({
 
 export const addTaskParticipant = mutation({
   args: {
+    token: v.optional(v.string()),
     taskId: v.id("tasks"),
     userId: v.id("users"),
     role: v.string(),
@@ -275,7 +279,7 @@ export const addTaskParticipant = mutation({
 });
 
 export const removeTaskParticipant = mutation({
-  args: { participantId: v.id("taskParticipants") },
+  args: { token: v.optional(v.string()), participantId: v.id("taskParticipants") },
   handler: withScopeAndEvents(
     {
       ...taskPipeline,
@@ -307,6 +311,7 @@ export const getTaskChecklist = query({
 
 export const addChecklistItem = mutation({
   args: {
+    token: v.optional(v.string()),
     taskId: v.id("tasks"),
     text: v.string(),
   },
@@ -338,6 +343,7 @@ export const addChecklistItem = mutation({
 
 export const toggleChecklistItem = mutation({
   args: {
+    token: v.optional(v.string()),
     itemId: v.id("taskChecklistItems"),
     completed: v.boolean(),
   },
@@ -364,7 +370,7 @@ export const toggleChecklistItem = mutation({
 });
 
 export const deleteChecklistItem = mutation({
-  args: { itemId: v.id("taskChecklistItems") },
+  args: { token: v.optional(v.string()), itemId: v.id("taskChecklistItems") },
   handler: withScopeAndEvents(
     {
       ...taskPipeline,
@@ -397,6 +403,7 @@ export const getTaskComments = query({
 
 export const addComment = mutation({
   args: {
+    token: v.optional(v.string()),
     taskId: v.id("tasks"),
     userId: v.id("users"),
     content: v.string(),
@@ -427,7 +434,7 @@ export const addComment = mutation({
 });
 
 export const deleteComment = mutation({
-  args: { commentId: v.id("taskComments") },
+  args: { token: v.optional(v.string()), commentId: v.id("taskComments") },
   handler: withScopeAndEvents(
     {
       ...taskPipeline,

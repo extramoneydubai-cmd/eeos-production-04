@@ -38,6 +38,7 @@ async function createTimelineEvent(
 
 export const logCall = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     callType: v.union(v.literal("incoming"), v.literal("outgoing"), v.literal("missed")),
     outcome: v.optional(v.string()),
@@ -131,6 +132,7 @@ export const logCall = mutation({
 
 export const sendWhatsApp = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     message: v.string(),
     template: v.optional(v.string()),
@@ -200,6 +202,7 @@ export const sendWhatsApp = mutation({
 
 export const sendEmail = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     subject: v.string(),
     message: v.string(),
@@ -251,6 +254,7 @@ export const sendEmail = mutation({
 
 export const sendSMS = mutation({
   args: {
+    token: v.optional(v.string()),
     leadId: v.id("leadMaster"),
     message: v.string(),
     sentBy: v.id("users"),
@@ -300,6 +304,7 @@ export const sendSMS = mutation({
 
 export const markCommunicationRead = mutation({
   args: {
+    token: v.optional(v.string()),
     commId: v.id("leadCommunications"),
     userId: v.id("users"),
     leadId: v.id("leadMaster"),

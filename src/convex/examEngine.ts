@@ -29,6 +29,7 @@ export const getExamTemplate = query({
 
 export const createExamTemplate = mutation({
   args: {
+    token: v.optional(v.string()),
     name: v.string(), code: v.string(),
     examType: v.union(v.literal("unit_test"), v.literal("weekly_test"), v.literal("monthly_test"), v.literal("mid_term"), v.literal("final_exam"), v.literal("practical"), v.literal("viva"), v.literal("mock_test"), v.literal("custom")),
     description: v.optional(v.string()), duration: v.optional(v.number()),
@@ -149,6 +150,7 @@ export const getExamSessionDetail = query({
 
 export const createExamSession = mutation({
   args: {
+    token: v.optional(v.string()),
     templateId: v.id("examTemplates"), academicSessionId: v.id("academicSessions"),
     branchId: v.id("orgBranches"), courseId: v.optional(v.id("courses")),
     batchId: v.optional(v.id("academicBatches")), sectionId: v.optional(v.id("academicSections")),
@@ -185,6 +187,7 @@ export const createExamSession = mutation({
 
 export const updateExamSessionStatus = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("examSessions"),
     status: v.union(v.literal("draft"), v.literal("scheduled"), v.literal("in_progress"), v.literal("completed"), v.literal("published"), v.literal("archived")),
     performedBy: v.id("users"),

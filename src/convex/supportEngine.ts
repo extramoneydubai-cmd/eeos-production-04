@@ -255,6 +255,7 @@ export const getAssignableAgents = query({
 /** Create a ticket + default SLA row + timeline event. */
 export const createTicket = mutation({
   args: {
+    token: v.optional(v.string()),
     title: v.string(),
     description: v.optional(v.string()),
     type: v.optional(v.string()),
@@ -318,6 +319,7 @@ export const createTicket = mutation({
 /** Update status / priority / assignee with transition bookkeeping + timeline. */
 export const updateTicket = mutation({
   args: {
+    token: v.optional(v.string()),
     ticketId: v.id("ticketMaster"),
     status: v.optional(v.string()),
     priority: v.optional(v.string()),
@@ -394,6 +396,7 @@ export const updateTicket = mutation({
 /** Add a comment (or internal note) to a ticket. */
 export const addComment = mutation({
   args: {
+    token: v.optional(v.string()),
     ticketId: v.id("ticketMaster"),
     body: v.string(),
     isInternal: v.optional(v.boolean()),
@@ -433,6 +436,7 @@ export const addComment = mutation({
 /** Assign a ticket to an agent. */
 export const assignTicket = mutation({
   args: {
+    token: v.optional(v.string()),
     ticketId: v.id("ticketMaster"),
     assignedTo: v.id("users"),
     performerName: v.optional(v.string()),
@@ -465,6 +469,7 @@ export const assignTicket = mutation({
 /** Escalate a ticket. */
 export const escalateTicket = mutation({
   args: {
+    token: v.optional(v.string()),
     ticketId: v.id("ticketMaster"),
     reason: v.optional(v.string()),
     performerName: v.optional(v.string()),
@@ -495,6 +500,7 @@ export const escalateTicket = mutation({
 /** Mark a ticket resolved. */
 export const resolveTicket = mutation({
   args: {
+    token: v.optional(v.string()),
     ticketId: v.id("ticketMaster"),
     resolutionSummary: v.optional(v.string()),
     performerName: v.optional(v.string()),
@@ -525,6 +531,7 @@ export const resolveTicket = mutation({
 /** Reopen a resolved/closed ticket. */
 export const reopenTicket = mutation({
   args: {
+    token: v.optional(v.string()),
     ticketId: v.id("ticketMaster"),
     performerName: v.optional(v.string()),
   },
@@ -555,6 +562,7 @@ export const reopenTicket = mutation({
 /** Record customer satisfaction. */
 export const rateTicket = mutation({
   args: {
+    token: v.optional(v.string()),
     ticketId: v.id("ticketMaster"),
     rating: v.number(),
     comment: v.optional(v.string()),

@@ -74,6 +74,7 @@ export const listProductionTasks = query({
 /** Create a production task in the existing productionTasks table. */
 export const createProductionTask = mutation({
   args: {
+    token: v.optional(v.string()),
     title: v.string(),
     taskType: v.union(
       v.literal("content_writing"), v.literal("video_production"),
@@ -124,6 +125,7 @@ export const createProductionTask = mutation({
 /** Advance (or move) a production task to another pipeline stage. */
 export const updateProductionTaskStatus = mutation({
   args: {
+    token: v.optional(v.string()),
     taskId: v.id("productionTasks"),
     status: v.union(
       v.literal("assigned"), v.literal("in_progress"),

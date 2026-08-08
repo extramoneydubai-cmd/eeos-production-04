@@ -77,6 +77,7 @@ async function transitionStatus(
 
 export const admitStudent = mutation({
   args: {
+    token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     performedBy: v.id("users"),
     admissionType: v.optional(v.string()),
@@ -158,6 +159,7 @@ export const admitStudent = mutation({
 
 export const enrollStudent = mutation({
   args: {
+    token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     performedBy: v.id("users"),
     academicProfile: v.optional(
@@ -233,6 +235,7 @@ export const enrollStudent = mutation({
 
 export const promoteStudent = mutation({
   args: {
+    token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     performedBy: v.id("users"),
     nextYear: v.number(),
@@ -322,6 +325,7 @@ export const promoteStudent = mutation({
 
 export const transferStudent = mutation({
   args: {
+    token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     performedBy: v.id("users"),
     toBranchId: v.optional(v.id("branches")),
@@ -369,6 +373,7 @@ export const transferStudent = mutation({
 
 export const suspendStudent = mutation({
   args: {
+    token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     performedBy: v.id("users"),
     reason: v.string(),
@@ -395,6 +400,7 @@ export const suspendStudent = mutation({
 
 export const reinstateStudent = mutation({
   args: {
+    token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     performedBy: v.id("users"),
     remarks: v.optional(v.string()),
@@ -421,6 +427,7 @@ export const reinstateStudent = mutation({
 
 export const graduateStudent = mutation({
   args: {
+    token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     performedBy: v.id("users"),
     remarks: v.optional(v.string()),
@@ -458,6 +465,7 @@ export const graduateStudent = mutation({
 
 export const convertToAlumni = mutation({
   args: {
+    token: v.optional(v.string()),
     studentId: v.id("studentMaster"),
     performedBy: v.id("users"),
     remarks: v.optional(v.string()),

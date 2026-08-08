@@ -49,6 +49,7 @@ export const listVisitors = query({
 
 export const registerVisitor = mutation({
   args: {
+    token: v.optional(v.string()),
     name: v.string(),
     phone: v.optional(v.string()),
     email: v.optional(v.string()),
@@ -88,7 +89,7 @@ export const registerVisitor = mutation({
 });
 
 export const approveVisitor = mutation({
-  args: { visitorId: v.id("visitors"), performedBy: v.optional(v.id("users")) },
+  args: { token: v.optional(v.string()), visitorId: v.id("visitors"), performedBy: v.optional(v.id("users")) },
   handler: withScopeAndEvents(
     {
       ...adminPipeline,
@@ -105,7 +106,7 @@ export const approveVisitor = mutation({
 });
 
 export const denyVisitor = mutation({
-  args: { visitorId: v.id("visitors"), performedBy: v.optional(v.id("users")) },
+  args: { token: v.optional(v.string()), visitorId: v.id("visitors"), performedBy: v.optional(v.id("users")) },
   handler: withScopeAndEvents(
     {
       ...adminPipeline,
@@ -122,7 +123,7 @@ export const denyVisitor = mutation({
 });
 
 export const checkInVisitor = mutation({
-  args: { visitorId: v.id("visitors"), performedBy: v.optional(v.id("users")) },
+  args: { token: v.optional(v.string()), visitorId: v.id("visitors"), performedBy: v.optional(v.id("users")) },
   handler: withScopeAndEvents(
     {
       ...adminPipeline,
@@ -143,7 +144,7 @@ export const checkInVisitor = mutation({
 });
 
 export const checkOutVisitor = mutation({
-  args: { visitorId: v.id("visitors"), performedBy: v.optional(v.id("users")) },
+  args: { token: v.optional(v.string()), visitorId: v.id("visitors"), performedBy: v.optional(v.id("users")) },
   handler: withScopeAndEvents(
     {
       ...adminPipeline,
@@ -171,6 +172,7 @@ export const listMeetingRooms = query({
 
 export const createMeetingRoom = mutation({
   args: {
+    token: v.optional(v.string()),
     name: v.string(),
     code: v.optional(v.string()),
     capacity: v.optional(v.number()),
@@ -205,6 +207,7 @@ export const createMeetingRoom = mutation({
 
 export const updateMeetingRoomStatus = mutation({
   args: {
+    token: v.optional(v.string()),
     roomId: v.id("meetingRooms"),
     status: v.union(v.literal("available"), v.literal("booked"), v.literal("maintenance")),
   },
@@ -231,6 +234,7 @@ export const listOfficeAssets = query({
 
 export const createOfficeAsset = mutation({
   args: {
+    token: v.optional(v.string()),
     name: v.string(),
     assetCode: v.optional(v.string()),
     category: v.optional(v.string()),
@@ -271,6 +275,7 @@ export const createOfficeAsset = mutation({
 
 export const updateOfficeAssetStatus = mutation({
   args: {
+    token: v.optional(v.string()),
     assetId: v.id("officeAssets"),
     status: v.union(v.literal("active"), v.literal("in_use"), v.literal("maintenance"), v.literal("retired")),
   },
@@ -297,6 +302,7 @@ export const listStationery = query({
 
 export const createStationery = mutation({
   args: {
+    token: v.optional(v.string()),
     name: v.string(),
     sku: v.optional(v.string()),
     unit: v.optional(v.string()),
@@ -325,7 +331,7 @@ export const createStationery = mutation({
 });
 
 export const adjustStationery = mutation({
-  args: { itemId: v.id("stationery"), delta: v.number(), createdBy: v.optional(v.id("users")) },
+  args: { token: v.optional(v.string()), itemId: v.id("stationery"), delta: v.number(), createdBy: v.optional(v.id("users")) },
   handler: withScopeAndEvents(
     {
       ...adminPipeline,
@@ -354,6 +360,7 @@ export const listHousekeepingTasks = query({
 
 export const createHousekeepingTask = mutation({
   args: {
+    token: v.optional(v.string()),
     taskName: v.string(),
     area: v.optional(v.string()),
     assignee: v.optional(v.string()),
@@ -386,6 +393,7 @@ export const createHousekeepingTask = mutation({
 
 export const updateHousekeepingStatus = mutation({
   args: {
+    token: v.optional(v.string()),
     taskId: v.id("housekeepingTasks"),
     status: v.union(v.literal("pending"), v.literal("in_progress"), v.literal("completed")),
   },
@@ -417,6 +425,7 @@ export const listSecurityChecks = query({
 
 export const createSecurityCheck = mutation({
   args: {
+    token: v.optional(v.string()),
     checkName: v.string(),
     area: v.optional(v.string()),
     notes: v.optional(v.string()),
@@ -447,6 +456,7 @@ export const createSecurityCheck = mutation({
 
 export const completeSecurityCheck = mutation({
   args: {
+    token: v.optional(v.string()),
     checkId: v.id("securityChecks"),
     status: v.union(v.literal("pending"), v.literal("passed"), v.literal("failed")),
     performedBy: v.optional(v.string()),
@@ -480,6 +490,7 @@ export const listUtilityBills = query({
 
 export const createUtilityBill = mutation({
   args: {
+    token: v.optional(v.string()),
     utilityType: v.union(
       v.literal("electricity"),
       v.literal("water"),
@@ -517,7 +528,7 @@ export const createUtilityBill = mutation({
 });
 
 export const markBillPaid = mutation({
-  args: { billId: v.id("utilityBills"), performedBy: v.optional(v.id("users")) },
+  args: { token: v.optional(v.string()), billId: v.id("utilityBills"), performedBy: v.optional(v.id("users")) },
   handler: withScopeAndEvents(
     {
       ...adminPipeline,
@@ -541,6 +552,7 @@ export const listAmcContracts = query({
 
 export const createAmcContract = mutation({
   args: {
+    token: v.optional(v.string()),
     vendor: v.string(),
     assetType: v.optional(v.string()),
     contractNumber: v.optional(v.string()),
@@ -573,6 +585,7 @@ export const createAmcContract = mutation({
 
 export const updateAmcStatus = mutation({
   args: {
+    token: v.optional(v.string()),
     contractId: v.id("amcContracts"),
     status: v.union(v.literal("active"), v.literal("expiring"), v.literal("expired")),
   },
@@ -599,6 +612,7 @@ export const listVendorVisits = query({
 
 export const registerVendorVisit = mutation({
   args: {
+    token: v.optional(v.string()),
     vendorName: v.string(),
     purpose: v.optional(v.string()),
     hostUserId: v.optional(v.id("users")),
@@ -630,7 +644,7 @@ export const registerVendorVisit = mutation({
 });
 
 export const checkInVendorVisit = mutation({
-  args: { visitId: v.id("vendorVisits"), performedBy: v.optional(v.id("users")) },
+  args: { token: v.optional(v.string()), visitId: v.id("vendorVisits"), performedBy: v.optional(v.id("users")) },
   handler: withScopeAndEvents(
     {
       ...adminPipeline,
@@ -647,7 +661,7 @@ export const checkInVendorVisit = mutation({
 });
 
 export const checkOutVendorVisit = mutation({
-  args: { visitId: v.id("vendorVisits"), performedBy: v.optional(v.id("users")) },
+  args: { token: v.optional(v.string()), visitId: v.id("vendorVisits"), performedBy: v.optional(v.id("users")) },
   handler: withScopeAndEvents(
     {
       ...adminPipeline,
@@ -671,6 +685,7 @@ export const listIncidents = query({
 
 export const createIncident = mutation({
   args: {
+    token: v.optional(v.string()),
     incidentType: v.string(),
     severity: v.union(v.literal("low"), v.literal("medium"), v.literal("high"), v.literal("critical")),
     description: v.string(),
@@ -705,6 +720,7 @@ export const createIncident = mutation({
 
 export const updateIncidentStatus = mutation({
   args: {
+    token: v.optional(v.string()),
     incidentId: v.id("incidentRegister"),
     status: v.union(v.literal("open"), v.literal("investigating"), v.literal("resolved"), v.literal("closed")),
     resolution: v.optional(v.string()),

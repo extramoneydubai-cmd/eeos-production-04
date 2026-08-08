@@ -34,6 +34,7 @@ const leavePipeline = {
 
 export const createLeaveType = mutation({
   args: {
+    token: v.optional(v.string()),
     name: v.string(),
     code: v.string(),
     description: v.optional(v.string()),
@@ -70,6 +71,7 @@ export const listLeaveTypes = query({
 
 export const applyLeave = mutation({
   args: {
+    token: v.optional(v.string()),
     employeeId: v.id("users"),
     leaveTypeId: v.id("leaveTypes"),
     startDate: v.number(),
@@ -129,6 +131,7 @@ export const applyLeave = mutation({
 
 export const approveLeave = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("leaveApplications"),
     approve: v.boolean(),
     comments: v.optional(v.string()),

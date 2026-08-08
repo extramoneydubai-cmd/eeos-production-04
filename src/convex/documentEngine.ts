@@ -49,6 +49,7 @@ function withDoc<P = any, R = any>(
 
 export const createFolder = mutation({
   args: {
+    token: v.optional(v.string()),
     name: v.string(),
     parentId: v.optional(v.id("documentFolders")),
     description: v.optional(v.string()),
@@ -96,6 +97,7 @@ export const listFolders = query({
 
 export const createTag = mutation({
   args: {
+    token: v.optional(v.string()),
     name: v.string(),
     color: v.optional(v.string()),
     companyId: v.optional(v.id("companies")),
@@ -120,6 +122,7 @@ export const listTags = query({
 
 export const uploadDocument = mutation({
   args: {
+    token: v.optional(v.string()),
     name: v.string(),
     description: v.optional(v.string()),
     fileUrl: v.string(),
@@ -165,6 +168,7 @@ export const uploadDocument = mutation({
 
 export const updateDocument = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("documents"),
     name: v.optional(v.string()),
     description: v.optional(v.string()),
@@ -186,6 +190,7 @@ export const updateDocument = mutation({
 
 export const createNewVersion = mutation({
   args: {
+    token: v.optional(v.string()),
     documentId: v.id("documents"),
     fileUrl: v.string(),
     fileSize: v.number(),
@@ -228,7 +233,7 @@ export const createNewVersion = mutation({
 // ─── DOWNLOAD TRACKING ─────────────────────────────
 
 export const recordDownload = mutation({
-  args: { documentId: v.id("documents") },
+  args: { token: v.optional(v.string()), documentId: v.id("documents") },
   handler: withDoc("update", "document_download", () => ({}), async (ctx, args, userId) => {
     const doc = await ctx.db.get(args.documentId);
     if (!doc) throw new Error("Document not found");
@@ -246,6 +251,7 @@ export const recordDownload = mutation({
 
 export const archiveDocument = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("documents"),
     companyId: v.optional(v.id("companies")),
     branchId: v.optional(v.id("branches")),
@@ -261,6 +267,7 @@ export const archiveDocument = mutation({
 
 export const restoreDocument = mutation({
   args: {
+    token: v.optional(v.string()),
     id: v.id("documents"),
     companyId: v.optional(v.id("companies")),
     branchId: v.optional(v.id("branches")),
@@ -278,6 +285,7 @@ export const restoreDocument = mutation({
 
 export const setDocumentPermission = mutation({
   args: {
+    token: v.optional(v.string()),
     documentId: v.id("documents"),
     permissionType: v.union(v.literal("user"), v.literal("role"), v.literal("department"), v.literal("public")),
     targetId: v.string(),

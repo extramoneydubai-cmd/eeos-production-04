@@ -46,6 +46,7 @@ export const listChannels = query({
 
 export const createChannel = mutation({
   args: {
+    token: v.optional(v.string()),
     name: v.string(),
     description: v.optional(v.string()),
     type: v.string(),
@@ -98,6 +99,7 @@ export const createChannel = mutation({
 
 export const addChannelMember = mutation({
   args: {
+    token: v.optional(v.string()),
     channelId: v.id("channels"),
     userId: v.id("users"),
   },
@@ -121,7 +123,7 @@ export const addChannelMember = mutation({
 });
 
 export const removeChannelMember = mutation({
-  args: { membershipId: v.id("channelMembers") },
+  args: { token: v.optional(v.string()), membershipId: v.id("channelMembers") },
   handler: withScopeAndEvents(
     {
       ...messagePipeline,
@@ -163,6 +165,7 @@ export const listMessages = query({
 
 export const sendMessage = mutation({
   args: {
+    token: v.optional(v.string()),
     channelId: v.id("channels"),
     senderId: v.id("users"),
     content: v.string(),
@@ -208,7 +211,7 @@ export const sendMessage = mutation({
 });
 
 export const pinMessage = mutation({
-  args: { messageId: v.id("messages") },
+  args: { token: v.optional(v.string()), messageId: v.id("messages") },
   handler: withScopeAndEvents(
     {
       ...messagePipeline,
@@ -224,7 +227,7 @@ export const pinMessage = mutation({
 });
 
 export const unpinMessage = mutation({
-  args: { messageId: v.id("messages") },
+  args: { token: v.optional(v.string()), messageId: v.id("messages") },
   handler: withScopeAndEvents(
     {
       ...messagePipeline,
@@ -307,6 +310,7 @@ export const getDirectMessages = query({
 
 export const sendDirectMessage = mutation({
   args: {
+    token: v.optional(v.string()),
     senderId: v.id("users"),
     receiverId: v.id("users"),
     content: v.string(),
@@ -345,6 +349,7 @@ export const sendDirectMessage = mutation({
 
 export const markDirectMessagesRead = mutation({
   args: {
+    token: v.optional(v.string()),
     senderId: v.id("users"),
     receiverId: v.id("users"),
   },
@@ -382,6 +387,7 @@ export const getUnreadDirectMessageCount = query({
 
 export const createAnnouncement = mutation({
   args: {
+    token: v.optional(v.string()),
     title: v.string(),
     content: v.string(),
     senderId: v.id("users"),
@@ -447,6 +453,7 @@ export const getUnreadChannelCounts = query({
 
 export const markChannelRead = mutation({
   args: {
+    token: v.optional(v.string()),
     channelId: v.id("channels"),
     userId: v.id("users"),
   },
