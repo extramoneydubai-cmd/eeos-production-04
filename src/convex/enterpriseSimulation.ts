@@ -582,12 +582,51 @@ export const runEnterpriseSimulation = mutation({
     // Phase 8 — Scheduling (200 events)
     // ────────────────────────────────────────────────────────────
     let sc = 0;
+
+    // Guarantee every calendar module has at least one seeded schedule.
+    // Module ids align with the lib/schedule-modules taxonomy.
+    const moduleCoverageSchedules: { title: string; scheduleType: string }[] = [
+      { title: "Faculty Lecture", scheduleType: "class" },               // Academic
+      { title: "Faculty Office Hours", scheduleType: "office_hours" },   // HR
+      { title: "Fee Payment Run", scheduleType: "payment_run" },         // Finance
+      { title: "Admissions Campaign Kickoff", scheduleType: "campaign" }, // Marketing
+      { title: "Counsellor Demo Session", scheduleType: "counseling" },  // Sales
+      { title: "Campus Maintenance", scheduleType: "maintenance" },      // Facility
+      { title: "Midterm Exam", scheduleType: "exam" },                   // Exams
+      { title: "Staff Training Workshop", scheduleType: "workshop" },    // Training
+      { title: "Operations Standup", scheduleType: "meeting" },          // Operations
+    ];
+    for (let c = 0; c < moduleCoverageSchedules.length; c++) {
+      try {
+        await ctx.db.insert("schedules", {
+          title: moduleCoverageSchedules[c].title,
+          description: `Module coverage schedule (${moduleCoverageSchedules[c].scheduleType})`,
+          scheduleType: moduleCoverageSchedules[c].scheduleType,
+          status: "scheduled",
+          start: now + (c + 1) * 86400000,
+          end: now + (c + 1) * 86400000 + 3600000,
+          timezone: "Asia/Kolkata",
+          owner: employeeUserIds[c % employeeUserIds.length] as any,
+          branchId: branchIds[c % branchIds.length] as any,
+          createdAt: now,
+          updatedAt: now,
+        });
+        sc++;
+      } catch { /* skip */ }
+    }
+    r.push(`Module coverage: ${moduleCoverageSchedules.length} schedules across all modules`);
+
     for (let i = 0; i < 200; i++) {
       try {
         await ctx.db.insert("schedules", {
           title: randomPick(["Lecture", "Lab Session", "Meeting", "Workshop", "Seminar", "Exam", "Counseling", "Event"]),
           description: `Schedule event ${i + 1}`,
-          scheduleType: randomPick(["class", "meeting", "exam", "workshop"]),
+          scheduleType: randomPick([
+            "class", "lecture", "lab", "meeting", "exam", "workshop",
+            "interview", "office_hours", "holiday",
+            "payment_run", "budget_review", "campaign", "event",
+            "counseling", "maintenance",
+          ]),
           status: randomPick(["scheduled", "in_progress", "completed", "cancelled"]),
           start: now + randomInt(1, 90) * 86400000,
           end: now + randomInt(1, 90) * 86400000 + 3600000,
@@ -1024,6 +1063,44 @@ async function runSupplementPhase(ctx: any, now: number) {
     } catch { /* skip */ }
   }
 
+  // Module-coverage schedules — one per calendar module (lib/schedule-modules).
+  // Guarded so re-running supplement mode does not duplicate them.
+  const coverageExists = await ctx.db.query("schedules")
+    .filter((q) => q.eq(q.field("description"), "Module coverage schedule (class)"))
+    .first();
+  let msc = 0;
+  if (!coverageExists) {
+    const moduleCoverageSchedules: { title: string; scheduleType: string }[] = [
+      { title: "Faculty Lecture", scheduleType: "class" },               // Academic
+      { title: "Faculty Office Hours", scheduleType: "office_hours" },   // HR
+      { title: "Fee Payment Run", scheduleType: "payment_run" },         // Finance
+      { title: "Admissions Campaign Kickoff", scheduleType: "campaign" }, // Marketing
+      { title: "Counsellor Demo Session", scheduleType: "counseling" },  // Sales
+      { title: "Campus Maintenance", scheduleType: "maintenance" },      // Facility
+      { title: "Midterm Exam", scheduleType: "exam" },                   // Exams
+      { title: "Staff Training Workshop", scheduleType: "workshop" },    // Training
+      { title: "Operations Standup", scheduleType: "meeting" },          // Operations
+    ];
+    for (let c = 0; c < moduleCoverageSchedules.length; c++) {
+      try {
+        await ctx.db.insert("schedules", {
+          title: moduleCoverageSchedules[c].title,
+          description: `Module coverage schedule (${moduleCoverageSchedules[c].scheduleType})`,
+          scheduleType: moduleCoverageSchedules[c].scheduleType,
+          status: "scheduled",
+          start: now + (c + 1) * 86400000,
+          end: now + (c + 1) * 86400000 + 3600000,
+          timezone: "Asia/Kolkata",
+          owner: employeeIds[c % employeeIds.length] as any,
+          branchId: branchIds[c % branchIds.length] as any,
+          createdAt: now,
+          updatedAt: now,
+        });
+        msc++;
+      } catch { /* skip */ }
+    }
+  }
+
   return {
     journalEntries: je,
     cashBookEntries: cbe,
@@ -1035,6 +1112,7 @@ async function runSupplementPhase(ctx: any, now: number) {
     fixedAssets: fae,
     campaigns: cpe,
     payroll: pye,
+    moduleSchedules: msc,
   };
 }
 

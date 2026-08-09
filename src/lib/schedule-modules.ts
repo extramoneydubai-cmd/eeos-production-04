@@ -55,6 +55,11 @@ export const SCHEDULE_TYPE_TO_MODULE: Record<string, string> = {
   counseling: "sales",
   meeting: "operations",
   maintenance: "facility",
+  payment_run: "finance",
+  budget_review: "finance",
+  invoice_deadline: "finance",
+  campaign: "marketing",
+  event: "marketing",
   other: "operations",
 };
 
@@ -73,6 +78,11 @@ export const SCHEDULE_TYPE_LABELS: Record<string, string> = {
   counseling: "Counseling",
   meeting: "Meeting",
   maintenance: "Maintenance",
+  payment_run: "Payment Run",
+  budget_review: "Budget Review",
+  invoice_deadline: "Invoice Deadline",
+  campaign: "Campaign",
+  event: "Event",
   other: "Other",
 };
 
