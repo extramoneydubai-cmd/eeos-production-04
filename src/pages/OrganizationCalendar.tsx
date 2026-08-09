@@ -36,54 +36,19 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { SCHEDULE_MODULES, MODULE_COLORS, moduleForScheduleType } from "@/lib/schedule-modules";
 
 // ─── Module Config ───────────────────────────────────────────────
+// Taxonomy + schedule-type mapping are shared with the Scheduler workspace
+// (lib/schedule-modules) so module colors and labels stay consistent.
 
-const MODULES = [
-  { id: "academic", label: "Academic", icon: BookOpen, color: "#a855f7" },
-  { id: "hr", label: "HR", icon: Users, color: "#4285f4" },
-  { id: "finance", label: "Finance", icon: PiggyBank, color: "#22c55e" },
-  { id: "marketing", label: "Marketing", icon: Megaphone, color: "#f59e0b" },
-  { id: "sales", label: "Sales", icon: Briefcase, color: "#ec4899" },
-  { id: "operations", label: "Operations", icon: Wrench, color: "#f97316" },
-  { id: "exams", label: "Exams", icon: GraduationCap, color: "#ef4444" },
-  { id: "training", label: "Training", icon: BarChart3, color: "#06b6d4" },
-  { id: "facility", label: "Facility", icon: Building2, color: "#6366f1" },
-];
-
-const MODULE_COLORS: Record<string, string> = {};
-MODULES.forEach((m) => { MODULE_COLORS[m.id] = m.color; });
-
-// ─── Schedule Type → Module Mapping ──────────────────────────────
-// Schedules carry free-form `scheduleType` values (class, meeting, exam,
-// workshop, interview, ...) from the scheduling runtime. Translate those
-// into the calendar's module taxonomy so the module filter resolves for
-// every event — without rewriting seed data or the scheduler workspace.
-const SCHEDULE_TYPE_TO_MODULE: Record<string, string> = {
-  class: "academic",
-  lecture: "academic",
-  lab: "academic",
-  exam: "exams",
-  exam_duty: "exams",
-  training: "training",
-  workshop: "training",
-  interview: "hr",
-  holiday: "hr",
-  office_hours: "hr",
-  counseling: "sales",
-  meeting: "operations",
-  maintenance: "facility",
-  other: "operations",
+const MODULE_ICONS = {
+  academic: BookOpen, hr: Users, finance: PiggyBank, marketing: Megaphone,
+  sales: Briefcase, operations: Wrench, exams: GraduationCap,
+  training: BarChart3, facility: Building2,
 };
 
-function moduleForScheduleType(type: string | undefined | null): string {
-  if (!type) return "operations";
-  const t = type.toLowerCase();
-  // Known schedule type → module taxonomy, else pass through (a schedule
-  // already tagged with a module id keeps it; unknown values stay visible
-  // under "All Modules" and in the module count).
-  return SCHEDULE_TYPE_TO_MODULE[t] || t;
-}
+const MODULES = SCHEDULE_MODULES.map((m) => ({ ...m, icon: MODULE_ICONS[m.id] || Calendar }));
 
 // ─── Helpers ─────────────────────────────────────────────────────
 

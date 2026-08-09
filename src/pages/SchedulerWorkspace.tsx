@@ -33,6 +33,10 @@ import { WorkspaceDocumentsTab } from "@/components/workspace/WorkspaceDocuments
 import { WorkspaceActivityTab } from "@/components/workspace/WorkspaceActivityTab";
 import { WorkspaceNotesTab } from "@/components/workspace/WorkspaceNotesTab";
 import { cn } from "@/lib/utils";
+import {
+  moduleForScheduleType, MODULE_LABELS, MODULE_COLORS, MODULE_BADGE_CLASSES,
+  SCHEDULE_TYPE_LEGEND,
+} from "@/lib/schedule-modules";
 import { toast } from "sonner";
 import type { WorkspaceTabDefinition, WorkspaceAction } from "@/components/workspace/types";
 
@@ -79,6 +83,9 @@ function formatDuration(start: number, end: number): string {
 function OverviewTab({ schedule }: { schedule: any }) {
   const config = getConfig(schedule.scheduleType);
   const Icon = config.icon;
+  const moduleId = moduleForScheduleType(schedule.scheduleType);
+  const moduleLabel = MODULE_LABELS[moduleId] || moduleId;
+  const moduleColor = MODULE_COLORS[moduleId] || "#9aa0a6";
 
   return (
     <div className="space-y-4">
@@ -94,6 +101,7 @@ function OverviewTab({ schedule }: { schedule: any }) {
             )}
             <div className="flex flex-wrap gap-2 mt-2">
               <Badge style={{ backgroundColor: config.color, color: "white" }} className="text-[10px]">{config.label}</Badge>
+              <Badge title={`${moduleLabel} module`} style={{ backgroundColor: moduleColor, color: "white" }} className="text-[10px]">{moduleLabel}</Badge>
               <Badge variant="outline" className={cn("text-[10px]",
                 schedule.status === "confirmed" && "text-green-600 border-green-200 bg-green-50",
                 schedule.status === "completed" && "text-blue-600 border-blue-200 bg-blue-50",
@@ -166,6 +174,23 @@ function OverviewTab({ schedule }: { schedule: any }) {
           )}
         </Card>
       )}
+
+      {/* Schedule Type Map — how schedule types roll up into calendar modules */}
+      <Card className="border-[#e8eaed] p-4">
+        <h3 className="text-[12px] font-semibold text-[#1a1a2e] mb-1">Schedule Type Map</h3>
+        <p className="text-[10px] text-[#5f6368] mb-2">How schedule types roll up into calendar modules</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+          {SCHEDULE_TYPE_LEGEND.map((item) => (
+            <div key={item.type} className="flex items-center justify-between gap-2 px-2 py-1 rounded-md bg-[#f8f9fa]">
+              <span className="text-[11px] text-[#5f6368]">{item.label}</span>
+              <span className="flex items-center gap-1.5 text-[11px] font-medium text-[#1a1a2e]">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.moduleColor }} />
+                {item.moduleLabel}
+              </span>
+            </div>
+          ))}
+        </div>
+      </Card>
     </div>
   );
 }
@@ -262,6 +287,8 @@ export default function SchedulerWorkspace() {
 
   const config = getConfig(schedule.scheduleType);
   const Icon = config.icon;
+  const moduleId = moduleForScheduleType(schedule.scheduleType);
+  const moduleLabel = MODULE_LABELS[moduleId] || moduleId;
 
   const tabs: WorkspaceTabDefinition[] = [
     { id: "overview", label: "Overview", icon: Calendar, component: () => <OverviewTab schedule={schedule} /> } as any,
@@ -290,6 +317,7 @@ export default function SchedulerWorkspace() {
         title={schedule.title}
         subtitle={`${config.label} · ${schedule.status?.replace("_", " ")}`}
         badge={{ label: config.label, color: config.color }}
+        badgeSecondary={{ label: moduleLabel, color: MODULE_BADGE_CLASSES[moduleId] || "bg-[#9aa0a6]" }}
         headerFields={[
           { label: "Date", value: formatDate(schedule.start) },
           { label: "Time", value: schedule.allDay ? "All day" : `${formatTime(schedule.start)} - ${formatTime(schedule.end)}` },
