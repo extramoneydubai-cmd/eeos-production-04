@@ -261,7 +261,7 @@ export default function DashboardCEO() {
   const overview = useQuery(api.dashboardEngine.getEnterpriseOverview, {});
   const periodKpis = useQuery(api.dashboardEngine.getPeriodKpis, { period });
   const scorecard = useQuery(api.kpiEngine.getExecutiveScorecard, {});
-  const branchCmp = useQuery(api.dashboardEngine.getBranchComparison, {});
+  const branchCmp = useQuery(api.dashboardEngine.getBranchComparison, { period });
   const leaderboard = useQuery(api.dashboardEngine.getLeaderboardWidget, {
     metric: "revenue",
     limit: 5,
@@ -539,7 +539,7 @@ export default function DashboardCEO() {
         <div className="bg-white rounded-xl border border-[#e8eaed] shadow-sm">
           <PanelHeader
             icon={Landmark}
-            title="Branch Performance (Revenue ₹k)"
+            title={`Branch Revenue (₹k) · ${periodLabel}`}
             action="Compare"
             actionHref="/analytics"
           />
@@ -583,7 +583,7 @@ export default function DashboardCEO() {
 
         {/* Finance distribution donut */}
         <div className="bg-white rounded-xl border border-[#e8eaed] shadow-sm">
-          <PanelHeader icon={PiggyBank} title="Finance Position" action="Finance" actionHref="/finance" />
+          <PanelHeader icon={PiggyBank} title={`Finance Position · ${periodLabel}`} action="Finance" actionHref="/finance" />
           <div className="p-4">
             {financeDonut.hasData ? (
               <ResponsiveContainer width="100%" height={200}>

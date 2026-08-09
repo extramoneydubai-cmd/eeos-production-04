@@ -645,6 +645,7 @@ export const getCommunicationWidget = query({
 export const getBranchComparison = query({
   args: {
     metricType: v.optional(v.string()),
+    period: v.optional(v.union(v.literal("today"), v.literal("month"), v.literal("quarter"))),
   },
   handler: async (ctx, args) => {
     const branches = await ctx.db.query("branches").collect();
@@ -652,6 +653,30 @@ export const getBranchComparison = query({
     const leads = await ctx.db.query("leadMaster").collect();
     const accounts = await ctx.db.query("studentFeeAccounts").collect();
     const payments = await ctx.db.query("paymentTransactions").collect();
+
+    // Optional period window (all-time when omitted)
+    const now = Date.now();
+    let start = 0;
+    if (args.period === "today") {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      start = d.getTime();
+    } else if (args.period === "month") {
+      const d = new Date();
+      d.setDate(1);
+      d.setHours(0, 0, 0, 0);
+      start = d.getTime();
+    } else if (args.period === "quarter") {
+      const d = new Date();
+      d.setMonth(Math.floor(d.getMonth() / 3) * 3, 1);
+      d.setHours(0, 0, 0, 0);
+      start = d.getTime();
+    }
+    const inPeriod = (ts?: number | null, fallback?: number) => {
+      if (!args.period) return true;
+      const t = ts ?? fallback ?? 0;
+      return t >= start && t <= now;
+    };
 
     const branchData: any[] = [];
 
@@ -662,7 +687,8 @@ export const getBranchComparison = query({
         branchStudents.some((s: any) => s._id.toString() === a.studentId)
       );
       const branchPayments = payments.filter((p: any) =>
-        branchStudents.some((s: any) => s._id.toString() === p.studentId)
+        branchStudents.some((s: any) => s._id.toString() === p.studentId) &&
+        inPeriod(p.paymentDate, (p as any)._creationTime)
       );
 
       branchData.push({
@@ -673,8 +699,10 @@ export const getBranchComparison = query({
           studentCount: branchStudents.length,
           leadCount: branchLeads.length,
           activeLeads: branchLeads.filter((l: any) => l.status === "active").length,
-          admissions: branchStudents.filter((s: any) =>
-            ["admitted", "active", "completed"].includes(s.status)
+          admissions: branchStudents.filter(
+            (s: any) =>
+              ["admitted", "active", "completed"].includes(s.status) &&
+              inPeriod(s.enrollmentDate, (s as any)._creationTime)
           ).length,
           revenue: branchPayments
             .filter((p: any) => p.status === "verified" || p.status === "completed")
@@ -695,6 +723,7 @@ export const getBranchComparison = query({
         branchData.reduce((s: number, b: any) => s + b.metrics.revenue, 0) /
         (branches.length || 1)
       ),
+      period: args.period ?? null,
     };
   },
 });
