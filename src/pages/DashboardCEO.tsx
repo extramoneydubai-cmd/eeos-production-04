@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/hooks/use-auth";
@@ -10,7 +10,6 @@ import {
   DollarSign,
   UserPlus,
   CheckCircle2,
-  Clock,
   AlertCircle,
   Calendar,
   Activity,
@@ -242,15 +241,25 @@ function DashboardSkeleton() {
   );
 }
 
+// ─── Period types ────────────────────────────────────────────────
+type PeriodKey = "today" | "month" | "quarter";
+const PERIOD_OPTIONS: { key: PeriodKey; label: string }[] = [
+  { key: "today", label: "Today" },
+  { key: "month", label: "This Month" },
+  { key: "quarter", label: "This Quarter" },
+];
+
 // ─── Main component ───────────────────────────────────────────────
 export default function DashboardCEO() {
   const { user } = useAuth();
   const { navigate } = useAppNavigate();
   const userId = user?._id as string | undefined;
+  const [period, setPeriod] = useState<PeriodKey>("month");
+  const periodLabel = PERIOD_OPTIONS.find((p) => p.key === period)?.label ?? "Period";
 
   // ── Data ──
   const overview = useQuery(api.dashboardEngine.getEnterpriseOverview, {});
-  const financeKpis = useQuery(api.financePlatform.getFinanceDashboardKPIs);
+  const periodKpis = useQuery(api.dashboardEngine.getPeriodKpis, { period });
   const scorecard = useQuery(api.kpiEngine.getExecutiveScorecard, {});
   const branchCmp = useQuery(api.dashboardEngine.getBranchComparison, {});
   const leaderboard = useQuery(api.dashboardEngine.getLeaderboardWidget, {
@@ -265,39 +274,30 @@ export default function DashboardCEO() {
   );
   const activities = useQuery(api.timelineEngine.getRecentTimeline, { limit: 10 });
 
-  const isLoading = !overview || !financeKpis || !scorecard;
+  const isLoading = !overview || !periodKpis || !scorecard;
 
-  // ── Derived metrics ──
+  // ── Derived metrics (period-filtered) ──
   const derived = useMemo(() => {
-    const revenue = financeKpis?.totalRevenue ?? overview?.totalRevenue ?? 0;
-    const collected = financeKpis?.totalPaid ?? 0;
-    const outstanding = financeKpis?.totalOutstanding ?? overview?.outstandingFees ?? 0;
-    const collectionRate = overview?.collectionRate ?? 0;
-    const overdue = financeKpis?.overdueAmount ?? 0;
-    const expenses = financeKpis?.totalExpenses ?? 0;
-    const refunds = financeKpis?.totalRefunded ?? 0;
-    const hotLeads = 0; // computed below from raw list when available
+    const revenue = periodKpis?.revenue ?? 0;
+    const collected = periodKpis?.collected ?? 0;
+    const outstanding = periodKpis?.outstanding ?? 0;
+    const collectionRate = periodKpis?.collectionRate ?? 0;
+    const overdue = periodKpis?.overdueAmount ?? 0;
+    const expenses = periodKpis?.totalExpenses ?? 0;
+    const refunds = periodKpis?.totalRefunded ?? 0;
+    const newStudents = periodKpis?.newStudents ?? 0;
+    const newLeads = periodKpis?.newLeads ?? 0;
+    const newTasks = periodKpis?.newTasks ?? 0;
+    const openTasks = periodKpis?.openTasks ?? 0;
 
-    return { revenue, collected, outstanding, collectionRate, overdue, expenses, refunds };
-  }, [financeKpis, overview]);
+    return { revenue, collected, outstanding, collectionRate, overdue, expenses, refunds, newStudents, newLeads, newTasks, openTasks };
+  }, [periodKpis]);
 
-  // Lead source — raw query fallback not used to avoid extra load; use overview counts
-  const totalStudents = overview?.totalStudents ?? 0;
-  const activeStudents = overview?.activeStudents ?? 0;
-  const totalLeads = overview?.totalLeads ?? 0;
-  const activeUsers = overview?.activeUsers ?? 0;
   const branchesCount = overview?.branches ?? 0;
   const companiesCount = overview?.companies ?? 0;
   const pendingTasks =
     tasks?.filter(
       (t: any) => !["done", "completed", "cancelled", "archived"].includes(t.status)
-    ).length ?? 0;
-  const overdueTasks =
-    tasks?.filter(
-      (t: any) =>
-        !["done", "completed", "cancelled", "archived"].includes(t.status) &&
-        t.dueDate &&
-        new Date(t.dueDate).getTime() < Date.now()
     ).length ?? 0;
   const unreadNotifs = notifications?.filter((n: any) => !n.isRead).length ?? 0;
 
@@ -349,7 +349,7 @@ export default function DashboardCEO() {
   const stats = [
     {
       icon: DollarSign,
-      label: "Revenue (AED)",
+      label: `Revenue · ${periodLabel}`,
       value: derived.revenue.toLocaleString(),
       sub: `${derived.collected.toLocaleString()} collected`,
       color: "bg-gradient-to-br from-[#1a73e8] to-[#4285f4]",
@@ -359,13 +359,13 @@ export default function DashboardCEO() {
       icon: TrendingUp,
       label: "Collection Rate",
       value: `${derived.collectionRate}%`,
-      sub: `${financeKpis?.invoiceCount ?? 0} invoices`,
+      sub: `${periodKpis?.invoiceCount ?? 0} invoices in period`,
       color: "bg-gradient-to-br from-[#34a853] to-[#0f9d58]",
       onClick: () => navigate("/collections"),
     },
     {
       icon: AlertCircle,
-      label: "Outstanding (AED)",
+      label: `Outstanding · ${periodLabel}`,
       value: derived.outstanding.toLocaleString(),
       sub: `${derived.overdue.toLocaleString()} overdue`,
       color: "bg-gradient-to-br from-[#ea4335] to-[#d93025]",
@@ -373,25 +373,25 @@ export default function DashboardCEO() {
     },
     {
       icon: GraduationCap,
-      label: "Students",
-      value: totalStudents,
-      sub: `${activeStudents} active`,
+      label: "New Students",
+      value: derived.newStudents,
+      sub: `enrolled ${periodLabel.toLowerCase()}`,
       color: "bg-gradient-to-br from-[#a855f7] to-[#7c3aed]",
       onClick: () => navigate("/students"),
     },
     {
       icon: Target,
-      label: "Leads",
-      value: totalLeads,
-      sub: `${activeUsers} active users`,
+      label: "New Leads",
+      value: derived.newLeads,
+      sub: `created ${periodLabel.toLowerCase()}`,
       color: "bg-gradient-to-br from-[#fbbc04] to-[#f29900]",
       onClick: () => navigate("/crm/leads"),
     },
     {
       icon: ListChecks,
-      label: "Pending Tasks",
-      value: pendingTasks,
-      sub: `${overdueTasks} overdue`,
+      label: "Tasks Opened",
+      value: derived.openTasks,
+      sub: `${derived.newTasks} created ${periodLabel.toLowerCase()}`,
       color: "bg-gradient-to-br from-[#5f6368] to-[#3c4043]",
       onClick: () => navigate("/tasks"),
     },
@@ -427,6 +427,31 @@ export default function DashboardCEO() {
           >
             <BarChart3 className="h-3.5 w-3.5 text-[#1a73e8]" /> Full Analytics
           </button>
+        </div>
+      </div>
+
+      {/* ─── Period selector ───────────────────────────────── */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-[13px] font-semibold text-[#1a1a2e]">Performance Matrix</h2>
+          <p className="text-[11px] text-[#9aa0a6] mt-0.5">
+            Enterprise KPIs for {periodLabel.toLowerCase()} — switches in real time
+          </p>
+        </div>
+        <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-[#f1f3f4] border border-[#e8eaed]">
+          {PERIOD_OPTIONS.map((opt) => (
+            <button
+              key={opt.key}
+              onClick={() => setPeriod(opt.key)}
+              className={`h-7 px-3 rounded-md text-[11px] font-medium transition-all duration-150 ${
+                period === opt.key
+                  ? "bg-white shadow-sm text-[#1a1a2e]"
+                  : "text-[#5f6368] hover:text-[#1a1a2e]"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
       </div>
 

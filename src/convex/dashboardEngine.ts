@@ -219,6 +219,115 @@ export const getEnterpriseOverview = query({
   },
 });
 
+// ─── PERIOD KPIs ───────────────────────────────────────────
+
+/**
+ * Period-filtered enterprise KPIs for the CEO dashboard matrix.
+ * Computes revenue, collections, outstanding, new students/leads and
+ * task activity within today / this month / this quarter.
+ */
+export const getPeriodKpis = query({
+  args: {
+    period: v.union(v.literal("today"), v.literal("month"), v.literal("quarter")),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    let start: number;
+    if (args.period === "today") {
+      start = startOfDay.getTime();
+    } else if (args.period === "month") {
+      start = startOfMonth.getTime();
+    } else {
+      // quarter: start of current quarter
+      const q = Math.floor(new Date().getMonth() / 3);
+      start = new Date(new Date().getFullYear(), q * 3, 1).getTime();
+    }
+
+    const inPeriod = (ts?: number | null, fallback?: number) => {
+      const t = ts ?? fallback ?? 0;
+      return t >= start && t <= now;
+    };
+
+    const payments = await ctx.db.query("paymentTransactions").collect();
+    const invoices = await ctx.db.query("feeInvoices").collect();
+    const expenses = await ctx.db.query("expenseRecords").collect();
+    const refunds = await ctx.db.query("refundRequests").collect();
+    const leads = await ctx.db.query("leadMaster").collect();
+    const students = await ctx.db.query("studentMaster").collect();
+    const tasks = await ctx.db.query("tasks").collect();
+
+    const periodPayments = payments.filter((p: any) =>
+      inPeriod(p.paymentDate, (p as any)._creationTime)
+    );
+    const verifiedPayments = periodPayments.filter((p: any) =>
+      p.status === "verified" || p.status === "completed"
+    );
+    const revenue = verifiedPayments.reduce((s: number, p: any) => s + p.amount, 0);
+
+    const periodInvoices = invoices.filter((i: any) =>
+      inPeriod(i.invoiceDate, (i as any)._creationTime)
+    );
+    const totalInvoiced = periodInvoices.reduce((s: number, i: any) => s + i.totalAmount, 0);
+    const collected = periodInvoices.reduce((s: number, i: any) => s + i.paidAmount, 0);
+    const outstanding = periodInvoices.reduce((s: number, i: any) => s + i.balanceDue, 0);
+    const overdueAmount = periodInvoices
+      .filter((i: any) => i.status === "overdue")
+      .reduce((s: number, i: any) => s + i.balanceDue, 0);
+
+    const periodExpenses = expenses.filter((e: any) =>
+      inPeriod(e.expenseDate, (e as any)._creationTime)
+    );
+    const totalExpenses = periodExpenses
+      .filter((e: any) => e.status === "approved" || e.status === "paid")
+      .reduce((s: number, e: any) => s + e.amount, 0);
+
+    const periodRefunds = refunds.filter((r: any) =>
+      inPeriod((r as any).processedAt || (r as any).createdAt, (r as any)._creationTime)
+    );
+    const totalRefunded = periodRefunds
+      .filter((r: any) => r.status === "completed")
+      .reduce((s: number, r: any) => s + r.amount, 0);
+
+    const newStudents = students.filter((s: any) =>
+      inPeriod(s.enrollmentDate, (s as any)._creationTime)
+    ).length;
+    const newLeads = leads.filter((l: any) =>
+      inPeriod(l.createdAt, (l as any)._creationTime)
+    ).length;
+    const newTasks = tasks.filter((t: any) => t.createdAt >= start && t.createdAt <= now).length;
+    const openTasks = tasks.filter(
+      (t: any) =>
+        t.createdAt >= start &&
+        t.createdAt <= now &&
+        !["done", "completed", "cancelled", "archived"].includes(t.status)
+    ).length;
+
+    return {
+      period: args.period,
+      revenue,
+      collected,
+      totalInvoiced,
+      outstanding,
+      overdueAmount,
+      collectionRate: totalInvoiced > 0 ? Math.round((collected / totalInvoiced) * 100) : 0,
+      totalExpenses,
+      totalRefunded,
+      netRevenue: revenue - totalRefunded,
+      newStudents,
+      newLeads,
+      newTasks,
+      openTasks,
+      invoiceCount: periodInvoices.length,
+    };
+  },
+});
+
 // ─── CRM WIDGET ────────────────────────────────────────────
 
 export const getCrmWidget = query({
