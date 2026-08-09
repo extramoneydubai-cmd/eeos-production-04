@@ -223,7 +223,7 @@ export const seedDefaultMenus = mutation({
       
       // ── System ──
       { label: "Governance", href: "/governance", icon: "Shield", group: "System", order: 1, roles: ["super_admin"], visibility: "visible" as const },
-      { label: "Settings", href: "/settings", icon: "Settings", group: "System", order: 2, visibility: "visible" as const, isPlaceholder: true },
+      { label: "Settings", href: "/settings", icon: "Settings", group: "System", order: 2, visibility: "visible" as const },
     ];
 
     const now = Date.now();

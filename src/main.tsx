@@ -121,6 +121,8 @@ const MasterDataEmailTemplates = lazy(() => import("./pages/studios/MasterDataEm
 const MasterDataSmsTemplates = lazy(() => import("./pages/studios/MasterDataSmsTemplates.tsx"));
 const MasterDataWhatsAppTemplates = lazy(() => import("./pages/studios/MasterDataWhatsAppTemplates.tsx"));
 const MasterDataSystem = lazy(() => import("./pages/studios/MasterDataSystem.tsx"));
+const AIStudio = lazy(() => import("./pages/studios/AIStudio.tsx"));
+const IntegrationStudio = lazy(() => import("./pages/studios/IntegrationStudio.tsx"));
 const PlatformStudio = lazy(() => import("./pages/PlatformStudio.tsx"));
 const RecruitingPage = lazy(() => import("./pages/RecruitingPage.tsx"));
 const ExamDashboard = lazy(() => import("./pages/ExamDashboard.tsx"));
@@ -527,6 +529,8 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/studios/master-data/system" element={<ProtectedRoute><MasterDataSystem /></ProtectedRoute>} />
               <Route path="/platform-studio" element={<ProtectedRoute><PlatformStudio /></ProtectedRoute>} />
               <Route path="/studios/forms" element={<ProtectedRoute><FormStudio /></ProtectedRoute>} />
+              <Route path="/studios/ai" element={<ProtectedRoute><AIStudio /></ProtectedRoute>} />
+              <Route path="/studios/integration" element={<ProtectedRoute><IntegrationStudio /></ProtectedRoute>} />
               <Route path="/recruiting" element={<ProtectedRoute><RecruitingPage /></ProtectedRoute>} />
               <Route path="/examinations" element={<ProtectedRoute><ExamDashboard /></ProtectedRoute>} />
               <Route path="/examinations/:sessionId" element={<ProtectedRoute><ExamSessionWorkspace /></ProtectedRoute>} />
@@ -596,6 +600,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/admin" element={<ProtectedRoute><AdminConsole /></ProtectedRoute>} />
               <Route path="/governance" element={<ProtectedRoute><GovernanceDashboard /></ProtectedRoute>} />
               <Route path="/configuration" element={<ProtectedRoute><ConfigurationStudio /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><ConfigurationStudio /></ProtectedRoute>} />
               <Route path="/enterprise-health" element={<ProtectedRoute><EnterpriseHealthCenter /></ProtectedRoute>} />
               <Route path="/parent" element={<ProtectedRoute><DashboardParent /></ProtectedRoute>} />
               <Route path="/student" element={<ProtectedRoute><DashboardStudent /></ProtectedRoute>} />

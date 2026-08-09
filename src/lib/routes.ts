@@ -150,11 +150,10 @@ export const routes: RouteEntry[] = [
   },
   {
     label: "Admissions",
-    href: "/studio/admissions",
+    href: "/admissions",
     icon: UserPlus,
     group: "Business Modules",
     visible,
-    isPlaceholder: placeholder,
   },
   {
     label: "Students",
@@ -320,7 +319,7 @@ export const routes: RouteEntry[] = [
   },
   {
     label: "Health Center",
-    href: "/health",
+    href: "/enterprise-health",
     icon: Activity,
     group: "System",
     visible,
@@ -345,7 +344,6 @@ export const routes: RouteEntry[] = [
     icon: Settings,
     group: "System",
     visible,
-    isPlaceholder: placeholder,
   },
 ];
 

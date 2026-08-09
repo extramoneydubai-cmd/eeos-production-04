@@ -118,7 +118,7 @@ export const studios: StudioDefinition[] = [
     name: "Admissions",
     description: "Student registration and enrollment management",
     icon: UserPlus,
-    href: "/studio/admissions",
+    href: "/admissions",
     status: "coming-soon",
     group: "module",
     routeGroup: "Business Modules",
