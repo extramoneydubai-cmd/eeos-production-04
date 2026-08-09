@@ -13,7 +13,7 @@
  * - Create Student dialog (People Registry integration)
  */
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -199,8 +199,24 @@ export default function StudentDatabase() {
   const { user } = useAuth();
 
   // View state
-  const [viewMode, setViewMode] = useState<ViewMode>("card");
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    try {
+      const saved = localStorage.getItem("eeos_students_view");
+      return saved === "card" || saved === "table" ? saved : "card";
+    } catch {
+      return "card";
+    }
+  });
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Persist view mode across navigation
+  useEffect(() => {
+    try {
+      localStorage.setItem("eeos_students_view", viewMode);
+    } catch {
+      // storage unavailable — session-only
+    }
+  }, [viewMode]);
   const [quickFilter, setQuickFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [branchFilter, setBranchFilter] = useState<string>("");

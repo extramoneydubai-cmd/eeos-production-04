@@ -6,7 +6,7 @@
  * Bulk actions: assign, transition, delete
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { motion } from "framer-motion";
 import {
@@ -58,8 +58,24 @@ function timeAgo(ts: number): string {
 
 export default function TicketDatabase() {
   const navigate = useNavigate();
-  const [viewMode, setViewMode] = useState<ViewMode>("table");
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    try {
+      const saved = localStorage.getItem("eeos_tickets_view");
+      return saved === "table" || saved === "kanban" || saved === "card" ? saved : "table";
+    } catch {
+      return "table";
+    }
+  });
   const [search, setSearch] = useState("");
+
+  // Persist view mode across navigation
+  useEffect(() => {
+    try {
+      localStorage.setItem("eeos_tickets_view", viewMode);
+    } catch {
+      // storage unavailable — session-only
+    }
+  }, [viewMode]);
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");

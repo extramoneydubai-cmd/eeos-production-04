@@ -17,7 +17,7 @@
  * Exports: PDF, Excel, CSV, Markdown
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useNavigate } from "react-router";
@@ -121,8 +121,24 @@ const REPORTS = [
 export default function SchedulingReports() {
   const navigate = useNavigate();
   const [selectedReport, setSelectedReport] = useState("faculty-schedule");
-  const [dateRange, setDateRange] = useState("this-week");
+  const [dateRange, setDateRange] = useState(() => {
+    try {
+      const saved = localStorage.getItem("eeos_schedreports_range");
+      return saved === "today" || saved === "this-week" || saved === "this-month" || saved === "this-quarter" || saved === "this-year" ? saved : "this-week";
+    } catch {
+      return "this-week";
+    }
+  });
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Persist report date range across navigation
+  useEffect(() => {
+    try {
+      localStorage.setItem("eeos_schedreports_range", dateRange);
+    } catch {
+      // storage unavailable — session-only
+    }
+  }, [dateRange]);
 
   // Fetch report data
   const schedules = useQuery(api.schedulingSdk.listSchedules as any, {

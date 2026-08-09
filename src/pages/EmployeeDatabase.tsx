@@ -13,7 +13,7 @@
  * - Pagination via employeeEngine.listEmployees
  */
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -229,8 +229,24 @@ function CreateEmployeeDialog({ open, onClose }: { open: boolean; onClose: () =>
 export default function EmployeeDatabase() {
   const navigate = useNavigate();
 
-  const [viewMode, setViewMode] = useState<ViewMode>("card");
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    try {
+      const saved = localStorage.getItem("eeos_employees_view");
+      return saved === "card" || saved === "table" ? saved : "card";
+    } catch {
+      return "card";
+    }
+  });
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Persist view mode across navigation
+  useEffect(() => {
+    try {
+      localStorage.setItem("eeos_employees_view", viewMode);
+    } catch {
+      // storage unavailable — session-only
+    }
+  }, [viewMode]);
   const [quickFilter, setQuickFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [departmentFilter, setDepartmentFilter] = useState<string>("");

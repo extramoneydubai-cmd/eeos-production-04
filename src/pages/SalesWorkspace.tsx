@@ -14,7 +14,7 @@ import {
   FileText, Bell, LayoutGrid, ListChecks, X, MessageCircle, Percent,
   ThumbsUp, ThumbsDown, ExternalLink,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAppNavigate } from "@/hooks/use-app-navigate";
 import { Doc } from "@/convex/_generated/dataModel";
 import LeadWorkspaceDrawer from "./LeadWorkspaceDrawer";
@@ -57,8 +57,24 @@ const WHATSAPP_TEMPLATES = [
 export default function SalesWorkspace() {
   const { user, isDemoMode } = useAuth();
   const { navigate } = useAppNavigate();
-  const [viewMode, setViewMode] = useState<"table" | "pipeline" | "calendar">("table");
+  const [viewMode, setViewMode] = useState<"table" | "pipeline" | "calendar">(() => {
+    try {
+      const saved = localStorage.getItem("eeos_sales_view");
+      return saved === "table" || saved === "pipeline" || saved === "calendar" ? saved : "table";
+    } catch {
+      return "table";
+    }
+  });
   const [activeTab, setActiveTab] = useState("queue");
+
+  // Persist workspace view across navigation
+  useEffect(() => {
+    try {
+      localStorage.setItem("eeos_sales_view", viewMode);
+    } catch {
+      // storage unavailable — session-only
+    }
+  }, [viewMode]);
   const [drawerLeadId, setDrawerLeadId] = useState<string | null>(null);
   const skipDb = !user || isDemoMode;
 

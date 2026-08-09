@@ -575,8 +575,24 @@ function EventCard({
 // ─── Calendar Page ─────────────────────────────────────────────────────
 
 export default function CalendarPage() {
-  const [view, setView] = useState<ViewType>("month");
+  const [view, setView] = useState<ViewType>(() => {
+    try {
+      const saved = localStorage.getItem("eeos_calendar_view");
+      return saved === "day" || saved === "week" || saved === "month" || saved === "agenda" ? saved : "month";
+    } catch {
+      return "month";
+    }
+  });
   const [currentDate, setCurrentDate] = useState(new Date());
+
+  // Persist calendar view across navigation
+  useEffect(() => {
+    try {
+      localStorage.setItem("eeos_calendar_view", view);
+    } catch {
+      // storage unavailable — session-only
+    }
+  }, [view]);
   const [showCreate, setShowCreate] = useState(false);
   const [editEvent, setEditEvent] = useState<Record<string, any> | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
