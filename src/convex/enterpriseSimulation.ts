@@ -832,6 +832,7 @@ export const runEnterpriseSimulation = mutation({
 async function runSupplementPhase(ctx: any, now: number) {
   const users = await ctx.db.query("users").collect();
   const usersId = users.length > 0 ? users[0]._id : "";
+  const userIds = users.map((u: any) => u._id);
   const students = await ctx.db.query("studentMaster").collect();
   const employees = await ctx.db.query("employeeMaster").collect();
   const branches = await ctx.db.query("branches").collect();
@@ -1066,7 +1067,7 @@ async function runSupplementPhase(ctx: any, now: number) {
   // Module-coverage schedules — one per calendar module (lib/schedule-modules).
   // Guarded so re-running supplement mode does not duplicate them.
   const coverageExists = await ctx.db.query("schedules")
-    .filter((q) => q.eq(q.field("description"), "Module coverage schedule (class)"))
+    .filter((q: any) => q.eq(q.field("description"), "Module coverage schedule (class)"))
     .first();
   let msc = 0;
   if (!coverageExists) {
@@ -1091,7 +1092,7 @@ async function runSupplementPhase(ctx: any, now: number) {
           start: now + (c + 1) * 86400000,
           end: now + (c + 1) * 86400000 + 3600000,
           timezone: "Asia/Kolkata",
-          owner: employeeIds[c % employeeIds.length] as any,
+          owner: userIds[c % userIds.length] as any,
           branchId: branchIds[c % branchIds.length] as any,
           createdAt: now,
           updatedAt: now,
