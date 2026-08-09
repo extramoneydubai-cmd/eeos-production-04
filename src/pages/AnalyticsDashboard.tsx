@@ -42,7 +42,7 @@ import {
   Printer, Mail, GripVertical, Table2, Sparkles,
   ChevronRight, Star, Heart, Eye, EyeOff, Maximize2,
   Share2, Clock4, TrendingUpIcon, Zap, Thermometer,
-  BarChartHorizontal, PieChart as PieChartIcon2,
+  BarChartHorizontal, PieChart as PieChartIcon2, IndianRupee, Percent, Wallet, UserPlus,
 } from "lucide-react";
 
 // ─── Recharts ─────────────────────────────────────────────────
@@ -55,7 +55,7 @@ import {
 // ─── Analytics Components ─────────────────────────────────────
 import { Id } from "@/convex/_generated/dataModel";
 import { KpiCard } from "@/components/analytics/KpiCard";
-import { AnalyticsFilters } from "@/components/analytics/AnalyticsFilters";
+import { AnalyticsFilters, type AnalyticsFilterValues } from "@/components/analytics/AnalyticsFilters";
 import { DistributionCard } from "@/components/analytics/DistributionCard";
 import { TopListCard } from "@/components/analytics/TopListCard";
 import { ActivityStream } from "@/components/analytics/ActivityStream";
@@ -460,6 +460,33 @@ function LoadingState() {
   );
 }
 
+// ─── Period filter helpers ─────────────────────────────────────
+
+const PERIOD_OPTIONS = [
+  { value: "today", label: "Today" },
+  { value: "month", label: "This Month" },
+  { value: "quarter", label: "This Quarter" },
+] as const;
+
+const formatINR = (n: number) => {
+  const abs = Math.abs(n);
+  if (abs >= 10000000) return `₹${(n / 10000000).toFixed(2)} Cr`;
+  if (abs >= 100000) return `₹${(n / 100000).toFixed(2)} L`;
+  return `₹${new Intl.NumberFormat("en-IN", { maximumFractionDigits: 0 }).format(n)}`;
+};
+
+const formatShortDate = (ts: number) =>
+  new Date(ts).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+
+const periodStats = [
+  { key: "revenue", title: "Revenue", icon: IndianRupee, color: "bg-[#e8f0fe] text-[#1a73e8]", fmt: formatINR, route: "/finance" },
+  { key: "collectionRate", title: "Collection Rate", icon: Percent, color: "bg-[#e6f4ea] text-[#34a853]", fmt: (n: number) => `${n}%`, route: "/finance" },
+  { key: "outstanding", title: "Outstanding", icon: Wallet, color: "bg-[#fef7e0] text-[#f9ab00]", fmt: formatINR, route: "/finance" },
+  { key: "newStudents", title: "New Students", icon: Users, color: "bg-[#fce8e6] text-[#ea4335]", fmt: (n: number) => String(n), route: "/students" },
+  { key: "newLeads", title: "New Leads", icon: UserPlus, color: "bg-[#f3e8fd] text-[#a142f4]", fmt: (n: number) => String(n), route: "/crm" },
+  { key: "openTasks", title: "Tasks Open", icon: ListTodo, color: "bg-[#fff3e0] text-[#f57c00]", fmt: (n: number) => String(n), route: "/tasks" },
+] as const;
+
 // ─── Main Page ──────────────────────────────────────────────────
 
 export default function AnalyticsDashboard() {
@@ -467,11 +494,42 @@ export default function AnalyticsDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedModule, setSelectedModule] = useState<string>("all");
   const [showFilters, setShowFilters] = useState(false);
-  const [periodPreset, setPeriodPreset] = useState("this-month");
+  const [period, setPeriod] = useState<"today" | "month" | "quarter">(() => {
+    try {
+      const saved = localStorage.getItem("eeos_analytics_period");
+      return saved === "today" || saved === "month" || saved === "quarter" ? saved : "month";
+    } catch {
+      return "month";
+    }
+  });
+  const [filterValues, setFilterValues] = useState<AnalyticsFilterValues>(() => {
+    try {
+      const saved = localStorage.getItem("eeos_analytics_filters");
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
   const [exportingReportId, setExportingReportId] = useState<string | null>(null);
   const [showExportDropdown, setShowExportDropdown] = useState<string | null>(null);
   const [exportFormat, setExportFormat] = useState<string>("csv");
   const [exportStatus, setExportStatus] = useState<{ id: string; success: boolean; message: string } | null>(null);
+
+  // Persist period + filter preferences across navigation
+  useEffect(() => {
+    try {
+      localStorage.setItem("eeos_analytics_period", period);
+    } catch {
+      // storage unavailable — session-only
+    }
+  }, [period]);
+  useEffect(() => {
+    try {
+      localStorage.setItem("eeos_analytics_filters", JSON.stringify(filterValues));
+    } catch {
+      // storage unavailable — session-only
+    }
+  }, [filterValues]);
 
   // ─── Backend Data ───────────────────────────────────────────
   const providerData = useQuery(api.dashboardProviders.getDashboardData, {});
@@ -489,6 +547,11 @@ export default function AnalyticsDashboard() {
   const schedules = useQuery(api.reportScheduleEngine.listSchedules);
   const exportHistory = useQuery(api.reportExportEngine.getExportHistory);
   const recentActivity = useQuery(api.engines.activityEngine.getGlobalFeed, { limit: 20 });
+  const periodKpis = useQuery(api.dashboardEngine.getPeriodKpis, {
+    period,
+    ...(filterValues.dateFrom !== undefined ? { dateFrom: filterValues.dateFrom } : {}),
+    ...(filterValues.dateTo !== undefined ? { dateTo: filterValues.dateTo } : {}),
+  });
 
   // ─── Mutations ─────────────────────────────────────────────
   const executeReport = useMutation(api.reportEngine.executeReport);
@@ -668,6 +731,24 @@ export default function AnalyticsDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-[#f1f3f4]">
+            {PERIOD_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => {
+                  setPeriod(opt.value);
+                  setFilterValues((prev) => ({ ...prev, dateFrom: undefined, dateTo: undefined }));
+                }}
+                className={`h-7 px-2.5 rounded-md text-[11px] font-medium transition-colors ${
+                  filterValues.dateFrom === undefined && period === opt.value
+                    ? "bg-white shadow-sm text-[#1a1a2e]"
+                    : "text-[#5f6368] hover:text-[#1a1a2e]"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -689,9 +770,8 @@ export default function AnalyticsDashboard() {
       {/* ─── Global Filters ────────────────────────────────── */}
       {showFilters && (
         <AnalyticsFilters
-          values={{}}
-          onChange={() => {}}
-          onRefresh={() => setPeriodPreset(p => p)}
+          values={filterValues}
+          onChange={setFilterValues}
         />
       )}
 
@@ -729,6 +809,61 @@ export default function AnalyticsDashboard() {
               );
             })}
           </>
+        )}
+      </div>
+
+      {/* ─── Period Snapshot (period-filtered KPIs) ─────────── */}
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h2 className="text-[13px] font-semibold text-[#1a1a2e] flex items-center gap-1.5">
+              <Clock className="h-4 w-4 text-[#1a73e8]" /> Period Snapshot
+            </h2>
+            <p className="text-[11px] text-[#5f6368]">
+              {filterValues.dateFrom
+                ? `Custom range · ${formatShortDate(filterValues.dateFrom)}${filterValues.dateTo ? ` – ${formatShortDate(filterValues.dateTo)}` : " – now"}`
+                : `Finance, growth & workload · ${PERIOD_OPTIONS.find((o) => o.value === period)?.label}`}
+            </p>
+          </div>
+          {filterValues.dateFrom !== undefined && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-[11px] text-[#1a73e8] hover:bg-[#e8f0fe]"
+              onClick={() => setFilterValues((prev) => ({ ...prev, dateFrom: undefined, dateTo: undefined }))}
+            >
+              <X className="h-3 w-3 mr-1" /> Use {PERIOD_OPTIONS.find((o) => o.value === period)?.label}
+            </Button>
+          )}
+        </div>
+        {periodKpis ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
+            {periodStats.map((stat) => {
+              const value = (periodKpis as unknown as Record<string, number>)[stat.key] ?? 0;
+              return (
+                <ExecutiveKpiCard
+                  key={stat.key}
+                  title={stat.title}
+                  value={stat.fmt(value)}
+                  subtitle={filterValues.dateFrom !== undefined ? "custom range" : undefined}
+                  icon={stat.icon}
+                  color={stat.color}
+                  onClick={() => handleNavigate(stat.route)}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Card key={i} className="border-[#e8eaed] shadow-sm">
+                <CardContent className="p-4 space-y-2">
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-5 w-20" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         )}
       </div>
 

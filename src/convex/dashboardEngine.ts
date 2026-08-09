@@ -229,9 +229,13 @@ export const getEnterpriseOverview = query({
 export const getPeriodKpis = query({
   args: {
     period: v.union(v.literal("today"), v.literal("month"), v.literal("quarter")),
+    dateFrom: v.optional(v.number()),
+    dateTo: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
+    // Custom date range overrides the quick period preset when provided
+    const end = args.dateTo ?? now;
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
     const startOfMonth = new Date();
@@ -239,7 +243,9 @@ export const getPeriodKpis = query({
     startOfMonth.setHours(0, 0, 0, 0);
 
     let start: number;
-    if (args.period === "today") {
+    if (args.dateFrom !== undefined) {
+      start = args.dateFrom;
+    } else if (args.period === "today") {
       start = startOfDay.getTime();
     } else if (args.period === "month") {
       start = startOfMonth.getTime();
@@ -251,7 +257,7 @@ export const getPeriodKpis = query({
 
     const inPeriod = (ts?: number | null, fallback?: number) => {
       const t = ts ?? fallback ?? 0;
-      return t >= start && t <= now;
+      return t >= start && t <= end;
     };
 
     const payments = await ctx.db.query("paymentTransactions").collect();
@@ -300,16 +306,18 @@ export const getPeriodKpis = query({
     const newLeads = leads.filter((l: any) =>
       inPeriod(l.createdAt, (l as any)._creationTime)
     ).length;
-    const newTasks = tasks.filter((t: any) => t.createdAt >= start && t.createdAt <= now).length;
+    const newTasks = tasks.filter((t: any) => t.createdAt >= start && t.createdAt <= end).length;
     const openTasks = tasks.filter(
       (t: any) =>
         t.createdAt >= start &&
-        t.createdAt <= now &&
+        t.createdAt <= end &&
         !["done", "completed", "cancelled", "archived"].includes(t.status)
     ).length;
 
     return {
       period: args.period,
+      dateFrom: start,
+      dateTo: end,
       revenue,
       collected,
       totalInvoiced,
