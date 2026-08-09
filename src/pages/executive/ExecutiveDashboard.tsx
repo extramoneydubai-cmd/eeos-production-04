@@ -2,18 +2,21 @@
  * ExecutiveDashboard — Standard premium executive dashboard template
  *
  * One template, driven by the role's dashboard config + live Convex data.
- * Every executive role (CFO, CTO, CMO, CKO, COO, CHRO, CPO) renders the
+ * Every executive role (CEO, CFO, CTO, CMO, CKO, COO, CHRO, CPO) renders the
  * same premium layout, but each KPI tile, chart and insight is wired to
  * real engine data for that role.
  *
  * Layout:
  *   Header + persisted period selector (Today / This Month / This Quarter)
+ *   + persisted trend window (3M / 6M / 12M)
  *   → KPI matrix (role KPIs, period-filtered where supported)
- *   → Trend chart (real time series per role)
+ *   → Trend chart (real time series per role, window-aware)
  *   → Bar + Donut charts (role distributions)
  *   → Derived insights (computed from real numbers)
- *   → Open tasks · Recent activity · Notifications
+ *   → Executive scorecard ring · Top performers leaderboard (metric filter) · Notifications
+ *   → Open tasks · Recent activity
  *   → Quick actions (from the dashboard config)
+ *   → Module navigator (role-specific deep links)
  */
 
 import { useEffect, useMemo, useState } from "react";
@@ -29,7 +32,7 @@ import {
   Monitor, Shield, Database, ArrowUpRight, ArrowDownRight,
   ArrowRight, Sparkles, BookOpen,
   Megaphone, Award, Clock, Package, Target, Landmark, LayoutDashboard,
-  Building2,
+  Building2, Calendar, FileCheck, PiggyBank, UserPlus, ShoppingCart,
 } from "lucide-react";
 import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis,
@@ -40,6 +43,7 @@ import { getDashboardConfig } from "@/config/executiveDashboards";
 // ─── Design tokens ───────────────────────────────────────────────
 const PIE_COLORS = ["#4285f4", "#34a853", "#fbbc04", "#ea4335", "#a855f7", "#ec407a", "#e8710a", "#1a73e8", "#5f6368", "#14b8a6"];
 const CHART_HEIGHT = 190;
+const MEDAL_COLORS = ["bg-[#fbbc04]", "bg-[#9aa0a6]", "bg-[#e8710a]"];
 
 // ─── Period types ────────────────────────────────────────────────
 type PeriodKey = "today" | "month" | "quarter";
@@ -60,6 +64,57 @@ function loadSavedPeriod(roleId: string): PeriodKey {
   return "month";
 }
 
+// ─── Trend window types ──────────────────────────────────────────
+type MonthKey = 3 | 6 | 12;
+const MONTH_OPTIONS: { key: MonthKey; label: string }[] = [
+  { key: 3, label: "3M" },
+  { key: 6, label: "6M" },
+  { key: 12, label: "12M" },
+];
+const monthsStorageKey = (roleId: string) => `eeos_exec_${roleId}_months`;
+
+function loadSavedMonths(roleId: string): MonthKey {
+  try {
+    const saved = Number(window.localStorage.getItem(monthsStorageKey(roleId)));
+    if (saved === 3 || saved === 6 || saved === 12) return saved as MonthKey;
+  } catch {
+    // storage unavailable — fall through to default
+  }
+  return 6;
+}
+
+// ─── Leaderboard metric types ────────────────────────────────────
+type LeaderMetric = "revenue" | "leads_converted" | "tasks_completed" | "calls_made";
+const LEADER_METRICS: { key: LeaderMetric; label: string }[] = [
+  { key: "revenue", label: "Revenue" },
+  { key: "leads_converted", label: "Leads" },
+  { key: "tasks_completed", label: "Tasks" },
+  { key: "calls_made", label: "Calls" },
+];
+const DEFAULT_LEADER_METRIC: Record<string, LeaderMetric> = {
+  cfo: "revenue",
+  cmo: "leads_converted",
+  cko: "tasks_completed",
+  cto: "tasks_completed",
+  coo: "tasks_completed",
+  chro: "tasks_completed",
+  cpo: "tasks_completed",
+  ceo: "revenue",
+};
+const leaderStorageKey = (roleId: string) => `eeos_exec_${roleId}_leader`;
+
+function loadSavedLeaderMetric(roleId: string): LeaderMetric {
+  try {
+    const saved = window.localStorage.getItem(leaderStorageKey(roleId));
+    if (saved === "revenue" || saved === "leads_converted" || saved === "tasks_completed" || saved === "calls_made") {
+      return saved;
+    }
+  } catch {
+    // storage unavailable — fall through to default
+  }
+  return DEFAULT_LEADER_METRIC[roleId] ?? "tasks_completed";
+}
+
 function fmtMoney(n: number): string {
   if (!n || isNaN(n)) return "0";
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -76,6 +131,8 @@ interface RoleData {
   tasks: any[];
   notifications: any[];
   activities: any[];
+  scorecard: any;
+  leaderboard: any[];
   finance: any;
   financeWidget: any;
   tech: any;
@@ -93,13 +150,13 @@ interface RoleData {
   inv: any;
 }
 
-function useRoleData(roleId: string, period: PeriodKey): RoleData {
+function useRoleData(roleId: string, period: PeriodKey, months: MonthKey, leaderMetric: LeaderMetric): RoleData {
   const { user } = useAuth();
   const userId = user?._id as string | undefined;
 
   const overview = useQuery(api.dashboardEngine.getEnterpriseOverview, {});
   const periodKpis = useQuery(api.dashboardEngine.getPeriodKpis, { period });
-  const trends = useQuery(api.dashboardEngine.getDashboardTrends, {});
+  const trends = useQuery(api.dashboardEngine.getDashboardTrends, { months });
   const branchCmp = useQuery(api.dashboardEngine.getBranchComparison, { period });
   const tasks = useQuery(api.tasks.listTasks, {}) ?? [];
   const notifications = useQuery(
@@ -107,6 +164,8 @@ function useRoleData(roleId: string, period: PeriodKey): RoleData {
     userId ? { userId: userId as any, limit: 20 } : "skip"
   ) ?? [];
   const activities = useQuery(api.timelineEngine.getRecentTimeline, { limit: 10 }) ?? [];
+  const scorecard = useQuery(api.kpiEngine.getExecutiveScorecard, {});
+  const leaderboard = useQuery(api.dashboardEngine.getLeaderboardWidget, { metric: leaderMetric, limit: 5 }) ?? [];
 
   // Role-specific queries — skipped for other roles (Convex "skip" pattern)
   const finance = useQuery(api.financePlatform.getFinanceDashboardKPIs, roleId === "cfo" ? {} : "skip");
@@ -127,6 +186,7 @@ function useRoleData(roleId: string, period: PeriodKey): RoleData {
 
   return {
     overview, periodKpis, trends, branchCmp, tasks, notifications, activities,
+    scorecard, leaderboard,
     finance, financeWidget, tech, sysHealth, marketing, crmWidget, comms,
     lms, knowledge, exam, ops, tasksW, hr, empStats, inv,
   };
@@ -541,6 +601,88 @@ function buildInsights(roleId: string, d: RoleData): Insight[] {
   return out.slice(0, 4);
 }
 
+// ─── Module navigator links per role ─────────────────────────────
+interface ModuleLinkDef {
+  icon: React.ElementType;
+  label: string;
+  desc: string;
+  href: string;
+  accent: string;
+}
+
+const MODULE_LINKS: Record<string, ModuleLinkDef[]> = {
+  cfo: [
+    { icon: PiggyBank, label: "Finance", desc: "Invoices, PDC, refunds", href: "/finance", accent: "bg-[#34a853]" },
+    { icon: CheckCircle2, label: "Collections", desc: "Payments & follow-ups", href: "/collections", accent: "bg-[#1a73e8]" },
+    { icon: BarChart3, label: "Reports", desc: "Financial reporting", href: "/finance/reports", accent: "bg-[#a855f7]" },
+    { icon: FileCheck, label: "PDC", desc: "Post-dated cheques", href: "/finance/pdc", accent: "bg-[#fbbc04]" },
+    { icon: ArrowDownRight, label: "Refunds", desc: "Refund center", href: "/finance/refunds", accent: "bg-[#ea4335]" },
+    { icon: Package, label: "Procurement", desc: "Vendors & inventory", href: "/procurement", accent: "bg-[#5f6368]" },
+  ],
+  cto: [
+    { icon: Monitor, label: "Platform Studio", desc: "Developer intelligence", href: "/platform-studio", accent: "bg-[#1a73e8]" },
+    { icon: AlertCircle, label: "Release Health", desc: "Deployments & jobs", href: "/release-health", accent: "bg-[#ea4335]" },
+    { icon: Shield, label: "Security", desc: "Access & policies", href: "/security", accent: "bg-[#fbbc04]" },
+    { icon: Activity, label: "Enterprise Health", desc: "System status", href: "/enterprise-health", accent: "bg-[#34a853]" },
+    { icon: Zap, label: "Workflow Monitor", desc: "Pipelines & SLA", href: "/workflow-monitor", accent: "bg-[#a855f7]" },
+    { icon: Users, label: "Users", desc: "User management", href: "/users", accent: "bg-[#4285f4]" },
+  ],
+  cmo: [
+    { icon: Megaphone, label: "Marketing Hub", desc: "Campaigns & journeys", href: "/communication-marketing", accent: "bg-[#e8710a]" },
+    { icon: Target, label: "Campaigns", desc: "Campaign manager", href: "/marketing/campaigns", accent: "bg-[#f29900]" },
+    { icon: Users, label: "Leads", desc: "Lead database", href: "/crm/leads", accent: "bg-[#1a73e8]" },
+    { icon: TrendingUp, label: "Sales", desc: "Opportunities & quotes", href: "/crm/sales", accent: "bg-[#34a853]" },
+    { icon: BarChart3, label: "Analytics", desc: "Marketing analytics", href: "/marketing/analytics", accent: "bg-[#a855f7]" },
+    { icon: Activity, label: "Channel Report", desc: "Comms delivery", href: "/communication-marketing", accent: "bg-[#5f6368]" },
+  ],
+  cko: [
+    { icon: BookOpen, label: "Academic", desc: "Programs & batches", href: "/academic", accent: "bg-[#a855f7]" },
+    { icon: GraduationCap, label: "Students", desc: "Student database", href: "/students", accent: "bg-[#4285f4]" },
+    { icon: BookOpen, label: "LMS", desc: "Courses & lessons", href: "/lms", accent: "bg-[#1a73e8]" },
+    { icon: Award, label: "Examinations", desc: "Sessions & results", href: "/examinations", accent: "bg-[#e8710a]" },
+    { icon: Sparkles, label: "Knowledge", desc: "Knowledge base", href: "/knowledge", accent: "bg-[#f29900]" },
+    { icon: Clock, label: "Attendance", desc: "Daily attendance", href: "/attendance", accent: "bg-[#34a853]" },
+  ],
+  coo: [
+    { icon: ListChecks, label: "Tasks", desc: "Task management", href: "/tasks", accent: "bg-[#1a73e8]" },
+    { icon: CheckCircle2, label: "Approvals", desc: "Approval center", href: "/approvals", accent: "bg-[#34a853]" },
+    { icon: Calendar, label: "Scheduling", desc: "Timetables & rooms", href: "/scheduling", accent: "bg-[#e8710a]" },
+    { icon: Zap, label: "Workflows", desc: "Automation & SLA", href: "/workflow-monitor", accent: "bg-[#a855f7]" },
+    { icon: Activity, label: "Operations", desc: "Ops command center", href: "/operations", accent: "bg-[#5f6368]" },
+    { icon: Users, label: "Messenger", desc: "DM & channels", href: "/messenger", accent: "bg-[#4285f4]" },
+  ],
+  chro: [
+    { icon: Users, label: "Employees", desc: "Employee database", href: "/employees", accent: "bg-[#ec407a]" },
+    { icon: UserPlus, label: "Recruiting", desc: "Positions & pipeline", href: "/recruiting", accent: "bg-[#4285f4]" },
+    { icon: Users, label: "People", desc: "People registry", href: "/people", accent: "bg-[#34a853]" },
+    { icon: Clock, label: "Calendar", desc: "Leave & birthdays", href: "/calendar", accent: "bg-[#fbbc04]" },
+    { icon: AlertCircle, label: "HR Hub", desc: "HR dashboards", href: "/hr", accent: "bg-[#ea4335]" },
+    { icon: Shield, label: "Users", desc: "User management", href: "/users", accent: "bg-[#5f6368]" },
+  ],
+  cpo: [
+    { icon: ShoppingCart, label: "Procurement", desc: "Procurement hub", href: "/procurement", accent: "bg-[#5f6368]" },
+    { icon: Package, label: "Inventory", desc: "Stock management", href: "/procurement/inventory", accent: "bg-[#fbbc04]" },
+    { icon: Target, label: "Vendors", desc: "Vendor directory", href: "/procurement/vendors", accent: "bg-[#34a853]" },
+    { icon: Monitor, label: "Assets", desc: "Asset register", href: "/procurement/assets", accent: "bg-[#4285f4]" },
+    { icon: BarChart3, label: "Reports", desc: "Procurement reports", href: "/procurement", accent: "bg-[#a855f7]" },
+    { icon: FileCheck, label: "PDC", desc: "Cheque management", href: "/finance/pdc", accent: "bg-[#e8710a]" },
+  ],
+  ceo: [
+    { icon: PiggyBank, label: "Finance", desc: "Invoices, PDC, refunds", href: "/finance", accent: "bg-[#34a853]" },
+    { icon: Users, label: "CRM & Leads", desc: "Pipeline, follow-ups", href: "/crm/leads", accent: "bg-[#1a73e8]" },
+    { icon: TrendingUp, label: "Sales", desc: "Opportunities, quotes", href: "/crm/sales", accent: "bg-[#fbbc04]" },
+    { icon: GraduationCap, label: "Students", desc: "360° profiles", href: "/students", accent: "bg-[#a855f7]" },
+    { icon: BookOpen, label: "Academic", desc: "Programs, batches", href: "/academic", accent: "bg-[#e8710a]" },
+    { icon: Users, label: "People", desc: "Registry & profiles", href: "/people", accent: "bg-[#4285f4]" },
+    { icon: Award, label: "Examinations", desc: "Sessions & results", href: "/examinations", accent: "bg-[#1a73e8]" },
+    { icon: BookOpen, label: "LMS", desc: "Courses & lessons", href: "/lms", accent: "bg-[#7c3aed]" },
+    { icon: Package, label: "Procurement", desc: "Vendors, inventory", href: "/procurement", accent: "bg-[#0f9d58]" },
+    { icon: Megaphone, label: "Marketing", desc: "Campaigns", href: "/marketing/campaigns", accent: "bg-[#f29900]" },
+    { icon: Calendar, label: "Scheduling", desc: "Timetables & rooms", href: "/scheduling", accent: "bg-[#5f6368]" },
+    { icon: Shield, label: "Security", desc: "Access & policies", href: "/security", accent: "bg-[#ea4335]" },
+  ],
+};
+
 // ─── Widgets ─────────────────────────────────────────────────────
 function PanelHeader({ icon: Icon, title, action, actionHref }: { icon: typeof Activity; title: string; action?: string; actionHref?: string }) {
   const { navigate } = useAppNavigate();
@@ -712,6 +854,144 @@ function InsightsPanel({ insights }: { insights: Insight[] }) {
   );
 }
 
+function ScoreRing({ score, size = 84 }: { score: number; size?: number }) {
+  const stroke = 8;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const offset = c - (Math.min(Math.max(score, 0), 100) / 100) * c;
+  const color = score >= 75 ? "#34a853" : score >= 50 ? "#fbbc04" : "#ea4335";
+  return (
+    <div className="relative shrink-0" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#f1f3f4" strokeWidth={stroke} />
+        <circle
+          cx={size / 2} cy={size / 2} r={r} fill="none"
+          stroke={color} strokeWidth={stroke} strokeLinecap="round"
+          strokeDasharray={c} strokeDashoffset={offset}
+          style={{ transition: "stroke-dashoffset 0.8s ease" }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-[20px] font-bold text-[#1a1a2e] leading-none">{score}</span>
+        <span className="text-[9px] text-[#9aa0a6] mt-0.5">Score</span>
+      </div>
+    </div>
+  );
+}
+
+function ScorecardPanel({ scorecard }: { scorecard: any }) {
+  const categories = useMemo(() => {
+    if (!scorecard?.scorecard) return [];
+    return Object.entries(scorecard.scorecard as Record<string, any>).map(([cat, val]: any) => ({
+      category: cat,
+      score: val?.score ?? 0,
+      metricCount: val?.metrics?.length ?? 0,
+    }));
+  }, [scorecard]);
+
+  return (
+    <Card className="border-[#e8eaed] shadow-sm bg-white">
+      <PanelHeader icon={Award} title="Executive Scorecard" action="KPI Studio" actionHref="/studios/master-data" />
+      <CardContent className="p-4">
+        <div className="flex items-center gap-4 mb-3">
+          <ScoreRing score={scorecard?.overallScore ?? 0} />
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] text-[#5f6368]">
+              Period:{" "}
+              <span className="font-medium text-[#1a1a2e]">
+                {scorecard?.period
+                  ? new Date(scorecard.period + "-01").toLocaleDateString("en", { month: "short", year: "numeric" })
+                  : "—"}
+              </span>
+            </p>
+            <p className="text-[10px] text-[#9aa0a6] mt-1">
+              {scorecard?.gradedKpis ?? 0} active KPIs graded across {categories.length} categories
+            </p>
+          </div>
+        </div>
+        <div className="space-y-2.5">
+          {categories.slice(0, 4).map((c) => (
+            <div key={c.category}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] font-medium text-[#5f6368] capitalize">{c.category}</span>
+                <span className="text-[10px] font-semibold text-[#1a1a2e]">{c.score}</span>
+              </div>
+              <div className="h-1.5 bg-[#f1f3f4] rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-700 ${
+                    c.score >= 75 ? "bg-[#34a853]" : c.score >= 50 ? "bg-[#fbbc04]" : "bg-[#ea4335]"
+                  }`}
+                  style={{ width: `${Math.min(c.score, 100)}%` }}
+                />
+              </div>
+            </div>
+          ))}
+          {categories.length === 0 && (
+            <p className="text-[10px] text-[#9aa0a6] text-center py-3">No KPI categories configured yet</p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function LeaderboardPanel({
+  leaderboard, metric, onMetricChange,
+}: {
+  leaderboard: any[];
+  metric: LeaderMetric;
+  onMetricChange: (m: LeaderMetric) => void;
+}) {
+  const { navigate } = useAppNavigate();
+  const sorted = [...leaderboard].sort((a: any, b: any) => b.score - a.score);
+  return (
+    <Card className="border-[#e8eaed] shadow-sm bg-white">
+      <PanelHeader icon={TrendingUp} title="Top Performers" action="People" actionHref="/people" />
+      <CardContent className="p-3">
+        <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-[#f1f3f4] border border-[#e8eaed] mb-2.5">
+          {LEADER_METRICS.map((opt) => (
+            <button
+              key={opt.key}
+              onClick={() => onMetricChange(opt.key)}
+              className={`h-6 px-2.5 rounded-md text-[10px] font-medium transition-all duration-150 ${
+                metric === opt.key ? "bg-white shadow-sm text-[#1a1a2e]" : "text-[#5f6368] hover:text-[#1a1a2e]"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <div className="divide-y divide-[#f1f3f4]">
+          {sorted.length > 0 ? (
+            sorted.slice(0, 5).map((p: any, i: number) => (
+              <button
+                key={i}
+                onClick={() => navigate(`/people`)}
+                className="w-full py-2 flex items-center gap-2.5 text-left hover:bg-[#f8f9fa] transition-colors rounded-md px-1"
+              >
+                <div
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 ${
+                    MEDAL_COLORS[i] || "bg-[#f1f3f4] text-[#5f6368]"
+                  }`}
+                >
+                  {i + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-medium text-[#1a1a2e] truncate">{p.name}</p>
+                  <p className="text-[9px] text-[#9aa0a6]">{p.label}</p>
+                </div>
+                <span className="text-[11px] font-bold text-[#1a1a2e]">{Math.round(p.score).toLocaleString()}</span>
+              </button>
+            ))
+          ) : (
+            <p className="text-[10px] text-[#9aa0a6] py-6 text-center">No performer data yet</p>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function TasksPanel({ tasks, roleId }: { tasks: any[]; roleId: string }) {
   const { navigate } = useAppNavigate();
   const pending = tasks.filter((t: any) => !["done", "completed", "cancelled", "archived"].includes(t.status));
@@ -787,6 +1067,42 @@ function NotificationsPanel({ notifications }: { notifications: any[] }) {
   );
 }
 
+function ModuleNavigator({ roleId }: { roleId: string }) {
+  const { navigate } = useAppNavigate();
+  const links = MODULE_LINKS[roleId] ?? MODULE_LINKS.ceo;
+  return (
+    <div className="bg-white rounded-xl border border-[#e8eaed] shadow-sm p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded-lg bg-[#f1f3f4]">
+            <LayoutDashboard className="h-3.5 w-3.5 text-[#5f6368]" />
+          </div>
+          <h3 className="text-[13px] font-semibold text-[#1a1a2e]">Module Navigator</h3>
+        </div>
+        <span className="text-[10px] text-[#9aa0a6]">{roleId.toUpperCase()} quick access</span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5">
+        {links.map((link) => (
+          <button
+            key={link.label}
+            onClick={() => navigate(link.href)}
+            className="group flex items-center gap-3 p-3 rounded-xl border border-[#e8eaed] bg-white hover:shadow-md hover:border-[#dadce0] hover:-translate-y-0.5 transition-all duration-200 text-left"
+          >
+            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${link.accent} group-hover:scale-105 transition-transform`}>
+              <link.icon className="w-4 h-4 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[12px] font-semibold text-[#1a1a2e]">{link.label}</p>
+              <p className="text-[10px] text-[#9aa0a6] truncate">{link.desc}</p>
+            </div>
+            <ArrowRight className="w-3.5 h-3.5 text-[#dadce0] group-hover:text-[#1a73e8] group-hover:translate-x-0.5 transition-all shrink-0" />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Skeleton ────────────────────────────────────────────────────
 function DashboardSkeleton() {
   return (
@@ -815,18 +1131,22 @@ export default function ExecutiveDashboard({ dashboardId }: ExecutiveDashboardPr
   const config = getDashboardConfig(dashboardId);
 
   const [period, setPeriod] = useState<PeriodKey>(() => loadSavedPeriod(dashboardId));
+  const [months, setMonths] = useState<MonthKey>(() => loadSavedMonths(dashboardId));
+  const [leaderMetric, setLeaderMetric] = useState<LeaderMetric>(() => loadSavedLeaderMetric(dashboardId));
   const periodLabel = PERIOD_OPTIONS.find((p) => p.key === period)?.label ?? "Period";
 
-  // Persist the selected period per role so it survives navigation and reloads
+  // Persist the selected filters per role so they survive navigation and reloads
   useEffect(() => {
     try {
       window.localStorage.setItem(periodStorageKey(dashboardId), period);
+      window.localStorage.setItem(monthsStorageKey(dashboardId), String(months));
+      window.localStorage.setItem(leaderStorageKey(dashboardId), leaderMetric);
     } catch {
-      // storage unavailable — period still works for this session
+      // storage unavailable — filters still work for this session
     }
-  }, [period, dashboardId]);
+  }, [period, months, leaderMetric, dashboardId]);
 
-  const d = useRoleData(dashboardId, period);
+  const d = useRoleData(dashboardId, period, months, leaderMetric);
 
   const isLoading = !d.overview || !d.periodKpis || !d.trends;
 
@@ -886,26 +1206,42 @@ export default function ExecutiveDashboard({ dashboardId }: ExecutiveDashboardPr
         </div>
       </div>
 
-      {/* ─── Period selector ────────────────────────────────── */}
+      {/* ─── Period + trend-window selectors ────────────────── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-[13px] font-semibold text-[#1a1a2e]">Performance Matrix</h2>
           <p className="text-[11px] text-[#9aa0a6] mt-0.5">
-            {config.role.toUpperCase()} KPIs for {periodLabel.toLowerCase()} — switches in real time
+            {config.role.toUpperCase()} KPIs for {periodLabel.toLowerCase()} · {months}-month trends — switches in real time
           </p>
         </div>
-        <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-[#f1f3f4] border border-[#e8eaed]">
-          {PERIOD_OPTIONS.map((opt) => (
-            <button
-              key={opt.key}
-              onClick={() => setPeriod(opt.key)}
-              className={`h-7 px-3 rounded-md text-[11px] font-medium transition-all duration-150 ${
-                period === opt.key ? "bg-white shadow-sm text-[#1a1a2e]" : "text-[#5f6368] hover:text-[#1a1a2e]"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-[#f1f3f4] border border-[#e8eaed]">
+            {MONTH_OPTIONS.map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => setMonths(opt.key)}
+                className={`h-7 px-3 rounded-md text-[11px] font-medium transition-all duration-150 ${
+                  months === opt.key ? "bg-white shadow-sm text-[#1a1a2e]" : "text-[#5f6368] hover:text-[#1a1a2e]"
+                }`}
+                title={`Show last ${opt.key} months in trend charts`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-[#f1f3f4] border border-[#e8eaed]">
+            {PERIOD_OPTIONS.map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => setPeriod(opt.key)}
+                className={`h-7 px-3 rounded-md text-[11px] font-medium transition-all duration-150 ${
+                  period === opt.key ? "bg-white shadow-sm text-[#1a1a2e]" : "text-[#5f6368] hover:text-[#1a1a2e]"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -946,38 +1282,45 @@ export default function ExecutiveDashboard({ dashboardId }: ExecutiveDashboardPr
         <ActivityPanel activities={d.activities} />
       </div>
 
-      {/* ─── Notifications + Quick actions ──────────────────── */}
+      {/* ─── Scorecard + Leaderboard + Notifications ────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <ScorecardPanel scorecard={d.scorecard} />
+        <LeaderboardPanel leaderboard={d.leaderboard} metric={leaderMetric} onMetricChange={setLeaderMetric} />
         <NotificationsPanel notifications={d.notifications} />
-        <div className="lg:col-span-2 bg-white rounded-xl border border-[#e8eaed] shadow-sm p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-[#f1f3f4]">
-                <Zap className="h-3.5 w-3.5 text-[#5f6368]" />
-              </div>
-              <h3 className="text-[13px] font-semibold text-[#1a1a2e]">Quick Actions</h3>
+      </div>
+
+      {/* ─── Quick actions ──────────────────────────────────── */}
+      <div className="bg-white rounded-xl border border-[#e8eaed] shadow-sm p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-[#f1f3f4]">
+              <Zap className="h-3.5 w-3.5 text-[#5f6368]" />
             </div>
-            <span className="text-[10px] text-[#9aa0a6]">{pendingTasks} open tasks · {kpis.length} KPIs tracked</span>
+            <h3 className="text-[13px] font-semibold text-[#1a1a2e]">Quick Actions</h3>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
-            {config.quickActions.map((action) => (
-              <button
-                key={action.id}
-                onClick={() => navigate(action.href)}
-                className="flex items-center gap-2.5 p-2.5 rounded-xl border border-[#e8eaed] bg-white hover:shadow-md hover:border-[#dadce0] hover:-translate-y-0.5 transition-all duration-200 text-left group"
-              >
-                <div className={`p-1.5 rounded-lg ${action.color} shrink-0`}>
-                  <action.icon className="h-3.5 w-3.5 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-semibold text-[#1a1a2e] truncate">{action.label}</p>
-                  {action.description && <p className="text-[9px] text-[#9aa0a6] truncate">{action.description}</p>}
-                </div>
-              </button>
-            ))}
-          </div>
+          <span className="text-[10px] text-[#9aa0a6]">{pendingTasks} open tasks · {kpis.length} KPIs tracked</span>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+          {config.quickActions.map((action) => (
+            <button
+              key={action.id}
+              onClick={() => navigate(action.href)}
+              className="flex items-center gap-2.5 p-2.5 rounded-xl border border-[#e8eaed] bg-white hover:shadow-md hover:border-[#dadce0] hover:-translate-y-0.5 transition-all duration-200 text-left group"
+            >
+              <div className={`p-1.5 rounded-lg ${action.color} shrink-0`}>
+                <action.icon className="h-3.5 w-3.5 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-semibold text-[#1a1a2e] truncate">{action.label}</p>
+                {action.description && <p className="text-[9px] text-[#9aa0a6] truncate">{action.description}</p>}
+              </div>
+            </button>
+          ))}
         </div>
       </div>
+
+      {/* ─── Module navigator ───────────────────────────────── */}
+      <ModuleNavigator roleId={dashboardId} />
     </div>
   );
 }
