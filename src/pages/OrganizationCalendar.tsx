@@ -54,6 +54,37 @@ const MODULES = [
 const MODULE_COLORS: Record<string, string> = {};
 MODULES.forEach((m) => { MODULE_COLORS[m.id] = m.color; });
 
+// ─── Schedule Type → Module Mapping ──────────────────────────────
+// Schedules carry free-form `scheduleType` values (class, meeting, exam,
+// workshop, interview, ...) from the scheduling runtime. Translate those
+// into the calendar's module taxonomy so the module filter resolves for
+// every event — without rewriting seed data or the scheduler workspace.
+const SCHEDULE_TYPE_TO_MODULE: Record<string, string> = {
+  class: "academic",
+  lecture: "academic",
+  lab: "academic",
+  exam: "exams",
+  exam_duty: "exams",
+  training: "training",
+  workshop: "training",
+  interview: "hr",
+  holiday: "hr",
+  office_hours: "hr",
+  counseling: "sales",
+  meeting: "operations",
+  maintenance: "facility",
+  other: "operations",
+};
+
+function moduleForScheduleType(type: string | undefined | null): string {
+  if (!type) return "operations";
+  const t = type.toLowerCase();
+  // Known schedule type → module taxonomy, else pass through (a schedule
+  // already tagged with a module id keeps it; unknown values stay visible
+  // under "All Modules" and in the module count).
+  return SCHEDULE_TYPE_TO_MODULE[t] || t;
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────
 
 function getDaysInMonth(year: number, month: number): number {
@@ -92,7 +123,7 @@ export default function OrganizationCalendar() {
       title: s.title,
       start: new Date(s.start),
       end: new Date(s.end),
-      module: s.scheduleType || "other",
+      module: moduleForScheduleType(s.scheduleType),
       status: s.status,
       type: s.scheduleType,
       location: s.location,
