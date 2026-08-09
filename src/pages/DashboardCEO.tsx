@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/hooks/use-auth";
@@ -248,14 +248,34 @@ const PERIOD_OPTIONS: { key: PeriodKey; label: string }[] = [
   { key: "month", label: "This Month" },
   { key: "quarter", label: "This Quarter" },
 ];
+const PERIOD_STORAGE_KEY = "eeos_ceo_period";
+
+function loadSavedPeriod(): PeriodKey {
+  try {
+    const saved = window.localStorage.getItem(PERIOD_STORAGE_KEY);
+    if (saved === "today" || saved === "month" || saved === "quarter") return saved;
+  } catch {
+    // storage unavailable — fall through to default
+  }
+  return "month";
+}
 
 // ─── Main component ───────────────────────────────────────────────
 export default function DashboardCEO() {
   const { user } = useAuth();
   const { navigate } = useAppNavigate();
   const userId = user?._id as string | undefined;
-  const [period, setPeriod] = useState<PeriodKey>("month");
+  const [period, setPeriod] = useState<PeriodKey>(loadSavedPeriod);
   const periodLabel = PERIOD_OPTIONS.find((p) => p.key === period)?.label ?? "Period";
+
+  // Persist the selected period so it survives navigation and reloads
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(PERIOD_STORAGE_KEY, period);
+    } catch {
+      // storage unavailable — period still works for this session
+    }
+  }, [period]);
 
   // ── Data ──
   const overview = useQuery(api.dashboardEngine.getEnterpriseOverview, {});
