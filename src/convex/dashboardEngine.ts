@@ -336,6 +336,58 @@ export const getPeriodKpis = query({
   },
 });
 
+// ─── DASHBOARD TRENDS (multi-month series) ───────────────────
+
+export const getDashboardTrends = query({
+  args: { months: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const months = Math.min(Math.max(args.months ?? 6, 3), 12);
+    const now = new Date();
+    const buckets: { key: string; from: number; to: number }[] = [];
+    for (let i = months - 1; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const to = new Date(now.getFullYear(), now.getMonth() - i + 1, 1).getTime();
+      buckets.push({ key: d.toLocaleDateString("en", { month: "short" }), from: d.getTime(), to });
+    }
+    const [payments, expenses, refunds, leads, students, tasks] = await Promise.all([
+      ctx.db.query("paymentTransactions").collect(),
+      ctx.db.query("expenseRecords").collect(),
+      ctx.db.query("refundRequests").collect(),
+      ctx.db.query("leadMaster").collect(),
+      ctx.db.query("studentMaster").collect(),
+      ctx.db.query("tasks").collect(),
+    ]);
+    const inWin = (t: number) => t >= buckets[0].from && t < buckets[buckets.length - 1].to;
+
+    const financeTrend = buckets.map((b) => ({
+      key: b.key,
+      revenue: payments
+        .filter((p: any) => inWin(p.paymentDate ?? (p as any)._creationTime) && p.paymentDate >= b.from && p.paymentDate < b.to && (p.status === "verified" || p.status === "completed"))
+        .reduce((s: number, p: any) => s + p.amount, 0),
+      expenses: expenses
+        .filter((e: any) => inWin(e.expenseDate ?? (e as any)._creationTime) && (e.expenseDate ?? (e as any)._creationTime) >= b.from && (e.expenseDate ?? (e as any)._creationTime) < b.to && (e.status === "approved" || e.status === "paid"))
+        .reduce((s: number, e: any) => s + e.amount, 0),
+      refunds: refunds
+        .filter((r: any) => inWin((r as any).processedAt ?? (r as any).createdAt ?? (r as any)._creationTime) && ((r as any).processedAt ?? (r as any).createdAt ?? (r as any)._creationTime) >= b.from && ((r as any).processedAt ?? (r as any).createdAt ?? (r as any)._creationTime) < b.to && r.status === "completed")
+        .reduce((s: number, r: any) => s + r.amount, 0),
+    }));
+    const leadTrend = buckets.map((b) => ({
+      key: b.key,
+      leads: leads.filter((l: any) => inWin(l.createdAt ?? (l as any)._creationTime) && (l.createdAt ?? (l as any)._creationTime) >= b.from && (l.createdAt ?? (l as any)._creationTime) < b.to).length,
+    }));
+    const studentTrend = buckets.map((b) => ({
+      key: b.key,
+      students: students.filter((s: any) => inWin(s.enrollmentDate ?? (s as any)._creationTime) && (s.enrollmentDate ?? (s as any)._creationTime) >= b.from && (s.enrollmentDate ?? (s as any)._creationTime) < b.to).length,
+    }));
+    const taskTrend = buckets.map((b) => ({
+      key: b.key,
+      created: tasks.filter((t: any) => inWin(t.createdAt) && t.createdAt >= b.from && t.createdAt < b.to).length,
+      completed: tasks.filter((t: any) => t.status === "done" && inWin((t as any).completedAt ?? (t as any).updatedAt) && ((t as any).completedAt ?? (t as any).updatedAt) >= b.from && ((t as any).completedAt ?? (t as any).updatedAt) < b.to).length,
+    }));
+    return { financeTrend, leadTrend, studentTrend, taskTrend, months: buckets.length };
+  },
+});
+
 // ─── CRM WIDGET ────────────────────────────────────────────
 
 export const getCrmWidget = query({
