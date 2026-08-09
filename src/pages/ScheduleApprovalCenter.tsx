@@ -35,6 +35,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { moduleForScheduleType, MODULE_LABELS, MODULE_COLORS, SCHEDULE_TYPE_LABELS, SCHEDULE_MODULES } from "@/lib/schedule-modules";
 import { schedulingSLA } from "@/platform/scheduling/SchedulingSLA";
 import { schedulingAutomation } from "@/platform/scheduling/SchedulingAutomation";
 
@@ -69,6 +70,7 @@ export default function ScheduleApprovalCenter({ companyId, branchId }: Schedule
   const [activeView, setActiveView] = useState<ApprovalView>("pending");
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [moduleFilter, setModuleFilter] = useState("all");
   const [selectedSchedule, setSelectedSchedule] = useState<any>(null);
   const [actionDialog, setActionDialog] = useState<{ type: "approve" | "reject" | "delegate" | "escalate"; schedule: any } | null>(null);
   const [rejectReason, setRejectReason] = useState("");
@@ -108,8 +110,9 @@ export default function ScheduleApprovalCenter({ companyId, branchId }: Schedule
       );
     }
     if (typeFilter !== "all") items = items.filter((s: any) => s.scheduleType === typeFilter);
+    if (moduleFilter !== "all") items = items.filter((s: any) => moduleForScheduleType(s.scheduleType) === moduleFilter);
     return items;
-  }, [allItems, activeView, search, typeFilter]);
+  }, [allItems, activeView, search, typeFilter, moduleFilter]);
 
   // SLA check on filtered items
   const slaStatuses = useMemo(() => {
@@ -145,14 +148,31 @@ export default function ScheduleApprovalCenter({ companyId, branchId }: Schedule
             />
           </div>
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="h-7 w-[110px] text-[11px]">
+            <SelectTrigger className="h-7 w-[120px] text-[11px]">
               <Filter className="h-3 w-3 mr-1" />
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all" className="text-[11px]">All Types</SelectItem>
-              {Object.entries(SCHEDULE_COLORS).map(([key]) => (
-                <SelectItem key={key} value={key} className="text-[11px] capitalize">{key}</SelectItem>
+              {Object.keys(SCHEDULE_TYPE_LABELS).map((key) => (
+                <SelectItem key={key} value={key} className="text-[11px]">{SCHEDULE_TYPE_LABELS[key]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={moduleFilter} onValueChange={setModuleFilter}>
+            <SelectTrigger className="h-7 w-[130px] text-[11px]">
+              <Layers className="h-3 w-3 mr-1" />
+              <SelectValue placeholder="All Modules" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all" className="text-[11px]">All Modules</SelectItem>
+              {SCHEDULE_MODULES.map((m) => (
+                <SelectItem key={m.id} value={m.id} className="text-[11px]">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: m.color }} />
+                    {m.label}
+                  </div>
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -201,6 +221,9 @@ export default function ScheduleApprovalCenter({ companyId, branchId }: Schedule
             {filtered.map((schedule: any) => {
               const sla = slaStatuses.find((s) => s.scheduleId === schedule._id);
               const color = SCHEDULE_COLORS[schedule.scheduleType] || "#9aa0a6";
+              const modId = moduleForScheduleType(schedule.scheduleType);
+              const modColor = MODULE_COLORS[modId] || "#9aa0a6";
+              const modLabel = MODULE_LABELS[modId] || modId;
               return (
                 <motion.div
                   key={schedule._id}
@@ -217,9 +240,13 @@ export default function ScheduleApprovalCenter({ companyId, branchId }: Schedule
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-[12px] font-medium text-[#1a1a2e] truncate">{schedule.title}</span>
-                      <Badge variant="outline" className="text-[9px] h-4 px-1 shrink-0 capitalize"
+                      <Badge variant="outline" className="text-[9px] h-4 px-1 shrink-0"
                         style={{ color, borderColor: `${color}30` }}>
-                        {schedule.scheduleType}
+                        {SCHEDULE_TYPE_LABELS[schedule.scheduleType] || schedule.scheduleType}
+                      </Badge>
+                      <Badge title={`${modLabel} module`} className="text-[9px] h-4 px-1 shrink-0"
+                        style={{ backgroundColor: modColor, color: "white" }}>
+                        {modLabel}
                       </Badge>
                       {sla?.status === "breached" && (
                         <Badge variant="outline" className="text-[8px] h-3.5 px-1 bg-red-50 text-red-600 border-red-200 shrink-0">
@@ -300,7 +327,7 @@ export default function ScheduleApprovalCenter({ companyId, branchId }: Schedule
           <DialogHeader>
             <DialogTitle className="text-[14px]">{selectedSchedule?.title}</DialogTitle>
             <DialogDescription className="text-[11px]">
-              {selectedSchedule?.scheduleType} · {selectedSchedule?.start ? new Date(selectedSchedule.start).toLocaleDateString() : ""}
+              {`${SCHEDULE_TYPE_LABELS[selectedSchedule?.scheduleType] || selectedSchedule?.scheduleType || ""}${selectedSchedule?.scheduleType ? ` · ${MODULE_LABELS[moduleForScheduleType(selectedSchedule.scheduleType)] || moduleForScheduleType(selectedSchedule.scheduleType)}` : ""}${selectedSchedule?.start ? ` · ${new Date(selectedSchedule.start).toLocaleDateString()}` : ""}`}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 text-[12px]">

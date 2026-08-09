@@ -21,6 +21,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useNavigate } from "react-router";
+import { moduleForScheduleType, MODULE_COLORS, SCHEDULE_TYPE_LABELS } from "@/lib/schedule-modules";
 import {
   FileText, Download, Filter, Calendar,
   Users, BookOpen, Truck, GraduationCap,
@@ -335,7 +336,19 @@ export default function SchedulingReports() {
                       <div className="flex items-center gap-4 text-[10px] text-[#5f6368]">
                         <span>{faculty.total} schedules</span>
                         <span>{Math.round(faculty.hours)}h total</span>
-                        <Badge variant="outline" className="text-[9px] px-1">{faculty.types.join(", ")}</Badge>
+                        <div className="flex items-center gap-1 flex-wrap">
+                          {faculty.types.map((t: string) => {
+                            const modId = moduleForScheduleType(t);
+                            const modColor = MODULE_COLORS[modId] || "#9aa0a6";
+                            return (
+                              <Badge key={t} variant="outline" className="text-[9px] px-1 gap-1"
+                                style={{ borderColor: `${modColor}40` }}>
+                                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: modColor }} />
+                                {SCHEDULE_TYPE_LABELS[t] || t}
+                              </Badge>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   ))}
