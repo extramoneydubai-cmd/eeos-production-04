@@ -8,18 +8,14 @@
 import React from "react";
 import ExecutiveDashboard from "./ExecutiveDashboard";
 import { useAppNavigate } from "@/hooks/use-app-navigate";
-import { Button } from "@/components/ui/button";
-import { EXECUTIVE_ROLES } from "@/config/executiveDashboards";
 import { ChevronLeft } from "lucide-react";
 
 interface RoleDashboardProps {
   roleId: string;
-  title?: string;
 }
 
-export default function RoleDashboard({ roleId, title }: RoleDashboardProps) {
+export default function RoleDashboard({ roleId }: RoleDashboardProps) {
   const { navigate } = useAppNavigate();
-  const role = EXECUTIVE_ROLES.find(r => r.id === roleId);
 
   return (
     <div className="space-y-4">

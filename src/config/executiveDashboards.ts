@@ -20,11 +20,11 @@ import type { LucideIcon } from "lucide-react";
 import {
   BarChart3, TrendingUp, DollarSign, Users, GraduationCap,
   Building, FileCheck, BookOpen, Package, Truck, Target,
-  Activity, Calendar, Bell, ListChecks, Clock, AlertCircle,
-  CheckCircle2, UserPlus, Zap, ShoppingCart, CreditCard,
-  LineChart, PieChart, Globe, Megaphone, MessageSquare,
+  Activity, Calendar, Bell, ListChecks, Clock,
+  CheckCircle2, UserPlus, Zap, ShoppingCart,
+  LineChart, PieChart, Megaphone,
   Monitor, Settings, Shield, Database, LayoutDashboard,
-  ArrowUp, ArrowDown, Minus, Sparkles,
+  Sparkles,
 } from "lucide-react";
 
 // ─── Types ──────────────────────────────────────────────────────
@@ -69,7 +69,7 @@ export interface DashboardWidget {
   title: string;
   size: WidgetSize;
   dataSource?: string;
-  config?: Record<string, any>;
+  config?: Record<string, unknown>;
 }
 
 export interface QuickAction {

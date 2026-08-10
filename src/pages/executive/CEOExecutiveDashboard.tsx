@@ -14,23 +14,22 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Shield, UserPlus, Users, MessageSquare, KeyRound, Loader2,
-  Megaphone, Plus, Settings, Sliders, CheckCircle, Send, Hash,
+  Shield, UserPlus, Users, KeyRound,
+  Megaphone, Plus, Settings, Send, Hash,
   LayoutDashboard, BarChart3, Sparkles,
 } from "lucide-react";
 import { useAppNavigate } from "@/hooks/use-app-navigate";
+import { Id } from "@/convex/_generated/dataModel";
 
 export default function CEOExecutiveDashboard() {
   const { user } = useAuth();
-  const { navigate } = useAppNavigate();
+  useAppNavigate();
   const [activeTab, setActiveTab] = useState("dashboard");
 
   if (!user || user.role !== "super_admin") {
@@ -210,7 +209,7 @@ function CreateUserForm() {
   const handleCreate = async () => {
     if (!name || !email || !username) return;
     try {
-      const uid = await createUserMutation({ name, email, username, role, departmentId: dept as any || undefined });
+      const uid = await createUserMutation({ name, email, username, role, departmentId: dept ? (dept as Id<"departments">) : undefined });
       if (uid && password) await setPasswordMutation({ userId: uid, password });
       setName(""); setEmail(""); setUsername("");
     } catch (e) { console.error(e); }
@@ -249,7 +248,7 @@ function CreateUserForm() {
           <Select value={dept} onValueChange={setDept}>
             <SelectTrigger className="h-9 text-[13px]"><SelectValue placeholder="Select" /></SelectTrigger>
             <SelectContent>
-              {departments?.map((d: any) => (
+              {departments?.map((d) => (
                 <SelectItem key={d._id} value={d._id}>{d.name}</SelectItem>
               ))}
             </SelectContent>
@@ -274,7 +273,7 @@ function CreateTeamForm() {
 
   const handleCreate = async () => {
     if (!name || !code || !dept) return;
-    await createTeamMutation({ name, code: code.toUpperCase(), departmentId: dept as any });
+    await createTeamMutation({ name, code: code.toUpperCase(), departmentId: dept as Id<"departments"> });
     setName(""); setCode("");
   };
 
@@ -293,7 +292,7 @@ function CreateTeamForm() {
         <Select value={dept} onValueChange={setDept}>
           <SelectTrigger className="h-9 text-[13px]"><SelectValue placeholder="Select" /></SelectTrigger>
           <SelectContent>
-            {departments?.map((d: any) => (
+            {departments?.map((d) => (
               <SelectItem key={d._id} value={d._id}>{d.name}</SelectItem>
             ))}
           </SelectContent>
@@ -342,7 +341,7 @@ function BroadcastForm() {
     if (!title || !content || !user) return;
     await createAnnouncementMutation({
       title, content, senderId: user._id,
-      recipientIds: (users || []).map((u: any) => u._id),
+      recipientIds: (users || []).map((u) => u._id),
     });
     setTitle(""); setContent("");
   };
@@ -372,7 +371,7 @@ function ResetPasswordForm() {
 
   const handleReset = async () => {
     if (!userId || !password) return;
-    await setPasswordMutation({ userId: userId as any, password });
+    await setPasswordMutation({ userId: userId as Id<"users">, password });
     setUserId(""); setPassword("reset123");
   };
 
@@ -383,7 +382,7 @@ function ResetPasswordForm() {
         <Select value={userId} onValueChange={setUserId}>
           <SelectTrigger className="h-9 text-[13px]"><SelectValue placeholder="Select user" /></SelectTrigger>
           <SelectContent>
-            {users?.filter((u: any) => !u.isDisabled).map((u: any) => (
+            {users?.filter((u) => !u.isDisabled).map((u) => (
               <SelectItem key={u._id} value={u._id}>{u.name}</SelectItem>
             ))}
           </SelectContent>

@@ -39,6 +39,7 @@ import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, PieChart, Pie, Cell,
 } from "recharts";
+import type { FunctionReturnType } from "convex/server";
 import { getDashboardConfig } from "@/config/executiveDashboards";
 
 // ─── Design tokens ───────────────────────────────────────────────
@@ -143,44 +144,44 @@ function fmtMoney(n: number): string {
 
 // ─── Data hook — one role bag ────────────────────────────────────
 interface RoleData {
-  overview: any;
-  periodKpis: any;
-  trends: any;
-  branchCmp: any;
-  tasks: any[];
-  notifications: any[];
-  activities: any[];
-  scorecard: any;
-  leaderboard: any[];
-  finance: any;
-  financeWidget: any;
-  tech: any;
-  sysHealth: any;
-  marketing: any;
-  crmWidget: any;
-  comms: any;
-  lms: any;
-  knowledge: any;
-  exam: any;
-  ops: any;
-  tasksW: any;
-  hr: any;
-  empStats: any;
-  inv: any;
+  overview: FunctionReturnType<typeof api.dashboardEngine.getEnterpriseOverview> | undefined;
+  periodKpis: FunctionReturnType<typeof api.dashboardEngine.getPeriodKpis> | undefined;
+  trends: FunctionReturnType<typeof api.dashboardEngine.getDashboardTrends> | undefined;
+  branchCmp: FunctionReturnType<typeof api.dashboardEngine.getBranchComparison> | undefined;
+  tasks: FunctionReturnType<typeof api.tasks.listTasks> | undefined;
+  notifications: FunctionReturnType<typeof api.notifications.listNotifications> | undefined;
+  activities: FunctionReturnType<typeof api.timelineEngine.getRecentTimeline> | undefined;
+  scorecard: FunctionReturnType<typeof api.kpiEngine.getExecutiveScorecard> | undefined;
+  leaderboard: FunctionReturnType<typeof api.dashboardEngine.getLeaderboardWidget> | undefined;
+  finance: FunctionReturnType<typeof api.financePlatform.getFinanceDashboardKPIs> | undefined;
+  financeWidget: FunctionReturnType<typeof api.dashboardEngine.getFinanceWidget> | undefined;
+  tech: FunctionReturnType<typeof api.technologyEngine.getTechnologyDashboard> | undefined;
+  sysHealth: FunctionReturnType<typeof api.adminEngine.getSystemHealth> | undefined;
+  marketing: FunctionReturnType<typeof api.communicationCampaignEngine.getMarketingDashboard> | undefined;
+  crmWidget: FunctionReturnType<typeof api.dashboardEngine.getCrmWidget> | undefined;
+  comms: FunctionReturnType<typeof api.dashboardEngine.getCommunicationWidget> | undefined;
+  lms: FunctionReturnType<typeof api.lmsEngine.getLMSDashboard> | undefined;
+  knowledge: FunctionReturnType<typeof api.knowledgeEngine.getKnowledgeDashboard> | undefined;
+  exam: FunctionReturnType<typeof api.dashboardEngine.getExaminationWidget> | undefined;
+  ops: FunctionReturnType<typeof api.dashboardEngine.getOperationsWidget> | undefined;
+  tasksW: FunctionReturnType<typeof api.dashboardEngine.getTasksWidget> | undefined;
+  hr: FunctionReturnType<typeof api.dashboardEngine.getHrWidget> | undefined;
+  empStats: FunctionReturnType<typeof api.employeeEngine.getEmployeeStats> | undefined;
+  inv: FunctionReturnType<typeof api.dashboardEngine.getInventoryWidget> | undefined;
 }
 
 function useRoleData(roleId: string, period: PeriodKey, months: MonthKey, leaderMetric: LeaderMetric, dimension: DimensionKey): RoleData {
   const { user } = useAuth();
-  const userId = user?._id as string | undefined;
+  const userId = user?._id;
 
   const overview = useQuery(api.dashboardEngine.getEnterpriseOverview, {});
   const periodKpis = useQuery(api.dashboardEngine.getPeriodKpis, { period });
   const trends = useQuery(api.dashboardEngine.getDashboardTrends, { months });
-  const branchCmp = useQuery(api.dashboardEngine.getBranchComparison, { period, dimension } as any);
+  const branchCmp = useQuery(api.dashboardEngine.getBranchComparison, { period, dimension });
   const tasks = useQuery(api.tasks.listTasks, {}) ?? [];
   const notifications = useQuery(
     api.notifications.listNotifications,
-    userId ? { userId: userId as any, limit: 20 } : "skip"
+    userId ? { userId, limit: 20 } : "skip"
   ) ?? [];
   const activities = useQuery(api.timelineEngine.getRecentTimeline, { limit: 10 }) ?? [];
   const scorecard = useQuery(api.kpiEngine.getExecutiveScorecard, {});
@@ -224,10 +225,10 @@ interface KpiTile {
 }
 
 function buildKpis(roleId: string, d: RoleData, periodLabel: string): KpiTile[] {
-  const k = d.periodKpis ?? {};
+  const k = { ...d.periodKpis };
   switch (roleId) {
     case "cfo": {
-      const f = d.finance ?? {};
+      const f = { ...d.finance };
       return [
         { label: `Revenue · ${periodLabel}`, value: fmtMoney(k.revenue ?? 0), sub: `${fmtMoney(k.collected ?? 0)} collected`, icon: DollarSign, color: "bg-gradient-to-br from-[#1a73e8] to-[#4285f4]", onClick: "/finance" },
         { label: "Collection Rate", value: `${k.collectionRate ?? f.collectionRate ?? 0}%`, sub: `${k.invoiceCount ?? f.invoiceCount ?? 0} invoices`, icon: TrendingUp, color: "bg-gradient-to-br from-[#34a853] to-[#0f9d58]", onClick: "/collections" },
@@ -238,7 +239,7 @@ function buildKpis(roleId: string, d: RoleData, periodLabel: string): KpiTile[] 
       ];
     }
     case "cto": {
-      const t = d.tech ?? {};
+      const t = { ...d.tech };
       const jobs = t.scheduledJobs ?? [];
       return [
         { label: "System Status", value: String(t.systemHealth ?? d.sysHealth?.status ?? "—").toUpperCase(), sub: `DB ${d.sysHealth?.databaseStatus ?? "—"}`, icon: Monitor, color: "bg-gradient-to-br from-[#1a73e8] to-[#4285f4]", onClick: "/platform-studio" },
@@ -250,9 +251,9 @@ function buildKpis(roleId: string, d: RoleData, periodLabel: string): KpiTile[] 
       ];
     }
     case "cmo": {
-      const m = d.marketing ?? {};
-      const c = d.crmWidget ?? {};
-      const w = d.comms ?? {};
+      const m = { ...d.marketing };
+      const c = { ...d.crmWidget };
+      const w = { ...d.comms };
       return [
         { label: "Total Leads", value: `${m.totalLeads ?? c.totalLeads ?? 0}`, sub: `${c.activeLeads ?? 0} active`, icon: Users, color: "bg-gradient-to-br from-[#1a73e8] to-[#4285f4]", onClick: "/crm/leads" },
         { label: "Conversion Rate", value: `${c.conversionRate ?? m.conversionRate ?? 0}%`, sub: `${c.admissions ?? 0} admissions`, icon: TrendingUp, color: "bg-gradient-to-br from-[#34a853] to-[#0f9d58]", onClick: "/crm/leads" },
@@ -263,9 +264,9 @@ function buildKpis(roleId: string, d: RoleData, periodLabel: string): KpiTile[] 
       ];
     }
     case "cko": {
-      const l = d.lms ?? {};
-      const x = d.exam ?? {};
-      const n = d.knowledge ?? {};
+      const l = { ...d.lms };
+      const x = { ...d.exam };
+      const n = { ...d.knowledge };
       return [
         { label: "Courses", value: `${l.totalCourses ?? 0}`, sub: `${l.publishedCourses ?? 0} published`, icon: BookOpen, color: "bg-gradient-to-br from-[#1a73e8] to-[#4285f4]", onClick: "/lms" },
         { label: "Enrollments", value: `${l.totalEnrolled ?? 0}`, sub: `${l.inProgress ?? 0} in progress`, icon: GraduationCap, color: "bg-gradient-to-br from-[#a855f7] to-[#7c3aed]", onClick: "/lms" },
@@ -276,8 +277,8 @@ function buildKpis(roleId: string, d: RoleData, periodLabel: string): KpiTile[] 
       ];
     }
     case "coo": {
-      const o = d.ops ?? {};
-      const t = d.tasksW ?? {};
+      const o = { ...d.ops };
+      const t = { ...d.tasksW };
       return [
         { label: "Pending Tasks", value: `${o.tasks?.pending ?? t.todo ?? 0}`, sub: `${o.tasks?.total ?? t.total ?? 0} total`, icon: ListChecks, color: "bg-gradient-to-br from-[#1a73e8] to-[#4285f4]", onClick: "/tasks" },
         { label: "Overdue Tasks", value: `${o.tasks?.overdue ?? t.overdue ?? 0}`, sub: `${t.overdueHigh ?? 0} high priority`, icon: AlertCircle, color: "bg-gradient-to-br from-[#ea4335] to-[#d93025]", onClick: "/tasks" },
@@ -288,8 +289,8 @@ function buildKpis(roleId: string, d: RoleData, periodLabel: string): KpiTile[] 
       ];
     }
     case "chro": {
-      const h = d.hr ?? {};
-      const e = d.empStats ?? {};
+      const h = { ...d.hr };
+      const e = { ...d.empStats };
       return [
         { label: "Employees", value: `${h.totalEmployees ?? 0}`, sub: `${h.activeEmployees ?? 0} active`, icon: Users, color: "bg-gradient-to-br from-[#ec407a] to-[#d81b60]", onClick: "/employees" },
         { label: "Onboarding", value: `${e.onboarding ?? 0}`, sub: `${h.anniversaryThisMonth ?? 0} anniversaries`, icon: Users, color: "bg-gradient-to-br from-[#1a73e8] to-[#4285f4]", onClick: "/employees" },
@@ -300,7 +301,7 @@ function buildKpis(roleId: string, d: RoleData, periodLabel: string): KpiTile[] 
       ];
     }
     case "cpo": {
-      const v = d.inv ?? {};
+      const v = { ...d.inv };
       return [
         { label: "Total Items", value: `${v.totalItems ?? 0}`, sub: `${v.activeItems ?? 0} active`, icon: Package, color: "bg-gradient-to-br from-[#1a73e8] to-[#4285f4]", onClick: "/procurement/inventory" },
         { label: "Low Stock", value: `${v.lowStockCount ?? 0}`, sub: `reorder soon`, icon: AlertCircle, color: "bg-gradient-to-br from-[#fbbc04] to-[#f29900]", onClick: "/procurement/inventory" },
@@ -320,23 +321,23 @@ interface ChartSeries { name: string; [k: string]: string | number }
 interface DonutSlice { name: string; value: number }
 
 function buildTrend(roleId: string, d: RoleData): { title: string; data: ChartSeries[]; keys: string[]; colors: string[] } {
-  const tr = d.trends ?? {};
+  const tr = { ...d.trends };
   switch (roleId) {
     case "cfo":
       return {
         title: "Revenue & Expenses",
-        data: (tr.financeTrend ?? []).map((p: any) => ({ name: p.key, revenue: Math.round(p.revenue), expenses: Math.round(p.expenses) })),
+        data: (tr.financeTrend ?? []).map((p) => ({ name: p.key, revenue: Math.round(p.revenue), expenses: Math.round(p.expenses) })),
         keys: ["revenue", "expenses"],
         colors: ["#4285f4", "#ea4335"],
       };
     case "cto": {
-      const t = d.tech ?? {};
-      const hist = t.metricHistory ?? {};
+      const t = { ...d.tech };
+      const hist = { ...t.metricHistory };
       const first = Object.keys(hist)[0];
       const series: ChartSeries[] = (first ? (hist[first] ?? []) : [])
-        .sort((a: any, b: any) => a.recordedAt - b.recordedAt)
+        .sort((a, b) => a.recordedAt - b.recordedAt)
         .slice(-12)
-        .map((p: any) => ({ name: new Date(p.recordedAt).toLocaleDateString("en", { month: "short", day: "numeric" }), value: Math.round(p.value) }));
+        .map((p) => ({ name: new Date(p.recordedAt).toLocaleDateString("en", { month: "short", day: "numeric" }), value: Math.round(p.value) }));
       return {
         title: first ? `Metric: ${first.replace(/_/g, " ")}` : "Platform Metric Trend",
         data: series.length ? series : [{ name: "—", value: 0 }],
@@ -347,14 +348,14 @@ function buildTrend(roleId: string, d: RoleData): { title: string; data: ChartSe
     case "cmo":
       return {
         title: "Lead Generation Trend",
-        data: (tr.leadTrend ?? []).map((p: any) => ({ name: p.key, leads: p.leads })),
+        data: (tr.leadTrend ?? []).map((p) => ({ name: p.key, leads: p.leads })),
         keys: ["leads"],
         colors: ["#e8710a"],
       };
     case "cko":
       return {
         title: "Enrollment Trend",
-        data: (tr.studentTrend ?? []).map((p: any) => ({ name: p.key, students: p.students })),
+        data: (tr.studentTrend ?? []).map((p) => ({ name: p.key, students: p.students })),
         keys: ["students"],
         colors: ["#a855f7"],
       };
@@ -363,7 +364,7 @@ function buildTrend(roleId: string, d: RoleData): { title: string; data: ChartSe
     case "cpo":
       return {
         title: roleId === "chro" ? "Workload Trend" : "Task Volume Trend",
-        data: (tr.taskTrend ?? []).map((p: any) => ({ name: p.key, created: p.created, completed: p.completed })),
+        data: (tr.taskTrend ?? []).map((p) => ({ name: p.key, created: p.created, completed: p.completed })),
         keys: ["created", "completed"],
         colors: ["#4285f4", "#34a853"],
       };
@@ -379,21 +380,21 @@ function buildBar(roleId: string, d: RoleData, dimension: DimensionKey): { title
       const isVertical = dimension === "vertical";
       return {
         title: isVertical ? "Revenue by Vertical" : "Revenue by Branch",
-        data: rows.slice(0, 8).map((b: any) => ({ name: (b.branchCode || b.branchName || "—").slice(0, 8), revenue: Math.round((b.metrics?.revenue ?? 0) / 1000) })),
+        data: rows.slice(0, 8).map((b) => ({ name: (b.branchCode || b.branchName || "—").slice(0, 8), revenue: Math.round((b.metrics?.revenue ?? 0) / 1000) })),
         color: "#34a853",
       };
     }
     case "cto": {
-      const t = d.tech ?? {};
-      const latest = t.metricLatest ?? {};
+      const t = { ...d.tech };
+      const latest = { ...t.metricLatest };
       const rows = Object.entries(latest)
-        .map(([k, v]: any) => ({ name: k.replace(/_/g, " ").slice(0, 10), value: Math.round(v.value ?? 0) }))
+        .map(([k, v]) => ({ name: k.replace(/_/g, " ").slice(0, 10), value: Math.round((v as { value?: number })?.value ?? 0) }))
         .sort((a, b) => b.value - a.value)
         .slice(0, 7);
       return { title: "Live Metrics", data: rows, color: "#1a73e8" };
     }
     case "cmo": {
-      const w = d.comms ?? {};
+      const w = { ...d.comms };
       return {
         title: "Message Delivery",
         data: [
@@ -406,16 +407,16 @@ function buildBar(roleId: string, d: RoleData, dimension: DimensionKey): { title
       };
     }
     case "cko": {
-      const n = d.knowledge ?? {};
-      const byType = n.byType ?? {};
+      const n = { ...d.knowledge };
+      const byType = { ...n.byType };
       return {
         title: "Knowledge by Type",
-        data: Object.entries(byType).map(([k, v]: any) => ({ name: k.charAt(0).toUpperCase() + k.slice(1, 6), value: v })),
+        data: Object.entries(byType).map(([k, v]) => ({ name: k.charAt(0).toUpperCase() + k.slice(1, 6), value: (v as number) ?? 0 })),
         color: "#a855f7",
       };
     }
     case "coo": {
-      const t = d.tasksW ?? {};
+      const t = { ...d.tasksW };
       return {
         title: "Task Pipeline",
         data: [
@@ -429,7 +430,7 @@ function buildBar(roleId: string, d: RoleData, dimension: DimensionKey): { title
       };
     }
     case "chro": {
-      const e = d.empStats ?? {};
+      const e = { ...d.empStats };
       return {
         title: "Employment Types",
         data: [
@@ -443,7 +444,7 @@ function buildBar(roleId: string, d: RoleData, dimension: DimensionKey): { title
       };
     }
     case "cpo": {
-      const v = d.inv ?? {};
+      const v = { ...d.inv };
       return {
         title: "Stock Status",
         data: [
@@ -462,15 +463,15 @@ function buildBar(roleId: string, d: RoleData, dimension: DimensionKey): { title
 function buildDonut(roleId: string, d: RoleData, dimension: DimensionKey): { title: string; data: DonutSlice[] } {
   switch (roleId) {
     case "cfo": {
-      const k = d.periodKpis ?? {};
+      const k = { ...d.periodKpis };
       const rows = d.branchCmp?.branches ?? [];
       const isVertical = dimension === "vertical";
       // Top entities by outstanding — slices the same comparison data as the bar chart.
       const byOutstanding = rows
-        .filter((b: any) => (b.metrics?.outstanding ?? 0) > 0)
-        .sort((a: any, b: any) => (b.metrics?.outstanding ?? 0) - (a.metrics?.outstanding ?? 0))
+        .filter((b) => (b.metrics?.outstanding ?? 0) > 0)
+        .sort((a, b) => (b.metrics?.outstanding ?? 0) - (a.metrics?.outstanding ?? 0))
         .slice(0, 6)
-        .map((b: any) => ({ name: (b.branchCode || b.branchName || "—").slice(0, 8), value: Math.round(b.metrics?.outstanding ?? 0) }));
+        .map((b) => ({ name: (b.branchCode || b.branchName || "—").slice(0, 8), value: Math.round(b.metrics?.outstanding ?? 0) }));
       // Fallback: global finance position when no per-entity outstanding exists.
       const fallback = [
         { name: "Collected", value: Math.round(k.collected ?? 0) },
@@ -484,7 +485,7 @@ function buildDonut(roleId: string, d: RoleData, dimension: DimensionKey): { tit
       };
     }
     case "cto": {
-      const t = d.tech ?? {};
+      const t = { ...d.tech };
       return {
         title: "Platform Mix",
         data: [
@@ -496,8 +497,8 @@ function buildDonut(roleId: string, d: RoleData, dimension: DimensionKey): { tit
       };
     }
     case "cmo": {
-      const c = d.crmWidget ?? {};
-      const s = c.stageDistribution ?? {};
+      const c = { ...d.crmWidget };
+      const s = { ...c.stageDistribution };
       const data = [
         { name: "New", value: s.new ?? 0 },
         { name: "Qualified", value: s.qualified ?? 0 },
@@ -507,7 +508,7 @@ function buildDonut(roleId: string, d: RoleData, dimension: DimensionKey): { tit
       return { title: "Lead Stages", data };
     }
     case "cko": {
-      const x = d.exam ?? {};
+      const x = { ...d.exam };
       return {
         title: "Exam Sessions",
         data: [
@@ -519,8 +520,8 @@ function buildDonut(roleId: string, d: RoleData, dimension: DimensionKey): { tit
       };
     }
     case "coo": {
-      const o = d.ops ?? {};
-      const a = o.approvals ?? {};
+      const o = { ...d.ops };
+      const a = { ...o.approvals };
       return {
         title: "Approval Status",
         data: [
@@ -531,7 +532,7 @@ function buildDonut(roleId: string, d: RoleData, dimension: DimensionKey): { tit
       };
     }
     case "chro": {
-      const e = d.empStats ?? {};
+      const e = { ...d.empStats };
       return {
         title: "Employee Status",
         data: [
@@ -544,7 +545,7 @@ function buildDonut(roleId: string, d: RoleData, dimension: DimensionKey): { tit
       };
     }
     case "cpo": {
-      const v = d.inv ?? {};
+      const v = { ...d.inv };
       const healthy = Math.max((v.activeItems ?? 0) - (v.lowStockCount ?? 0) - (v.outOfStockCount ?? 0), 0);
       return {
         title: "Stock Mix",
@@ -564,7 +565,7 @@ function buildDonut(roleId: string, d: RoleData, dimension: DimensionKey): { tit
 interface Insight { text: string; type: "positive" | "negative" | "warning" }
 
 function buildInsights(roleId: string, d: RoleData): Insight[] {
-  const k = d.periodKpis ?? {};
+  const k = { ...d.periodKpis };
   const out: Insight[] = [];
   switch (roleId) {
     case "cfo": {
@@ -577,7 +578,7 @@ function buildInsights(roleId: string, d: RoleData): Insight[] {
       break;
     }
     case "cto": {
-      const t = d.tech ?? {};
+      const t = { ...d.tech };
       if ((t.failedJobsCount ?? 0) > 0) out.push({ text: `${t.failedJobsCount} background job(s) failed — check release health.`, type: "negative" });
       if ((t.slaBreaches ?? 0) > 0) out.push({ text: `${t.slaBreaches} SLA breaches recorded.`, type: "warning" });
       if ((t.scopeViolations ?? 0) > 0) out.push({ text: `${t.scopeViolations} scope violations — review access control.`, type: "warning" });
@@ -585,8 +586,8 @@ function buildInsights(roleId: string, d: RoleData): Insight[] {
       break;
     }
     case "cmo": {
-      const c = d.crmWidget ?? {};
-      const w = d.comms ?? {};
+      const c = { ...d.crmWidget };
+      const w = { ...d.comms };
       if ((c.conversionRate ?? 0) < 5) out.push({ text: `Conversion rate ${c.conversionRate ?? 0}% — below 5% target.`, type: "warning" });
       if ((w.totalFailed ?? 0) > 0) out.push({ text: `${w.totalFailed} messages failed to deliver.`, type: "negative" });
       if ((c.admissions ?? 0) > 0) out.push({ text: `${c.admissions} admissions from leads this period.`, type: "positive" });
@@ -594,8 +595,8 @@ function buildInsights(roleId: string, d: RoleData): Insight[] {
       break;
     }
     case "cko": {
-      const x = d.exam ?? {};
-      const l = d.lms ?? {};
+      const x = { ...d.exam };
+      const l = { ...d.lms };
       if ((x.passRate ?? 0) < 60 && (x.totalResults ?? 0) > 0) out.push({ text: `Exam pass rate ${x.passRate}% — below 60% line.`, type: "warning" });
       if ((l.completionRate ?? 0) < 40 && (l.totalEnrolled ?? 0) > 0) out.push({ text: `LMS completion at ${l.completionRate}% — engagement focus needed.`, type: "warning" });
       if ((d.knowledge?.totalViews ?? 0) > 0) out.push({ text: `${fmtMoney(d.knowledge.totalViews)} knowledge views across ${d.knowledge.totalArticles ?? 0} articles.`, type: "positive" });
@@ -603,7 +604,7 @@ function buildInsights(roleId: string, d: RoleData): Insight[] {
       break;
     }
     case "coo": {
-      const o = d.ops ?? {};
+      const o = { ...d.ops };
       if ((o.tasks?.overdue ?? 0) > 0) out.push({ text: `${o.tasks.overdue} overdue tasks need attention.`, type: "negative" });
       if ((o.workflows?.failed ?? 0) > 0) out.push({ text: `${o.workflows.failed} failed workflows — inspect workflow monitor.`, type: "negative" });
       if ((o.workflows?.bottleneckCount ?? 0) > 0) out.push({ text: `${o.workflows.bottleneckCount} workflow(s) stuck >24h.`, type: "warning" });
@@ -612,7 +613,7 @@ function buildInsights(roleId: string, d: RoleData): Insight[] {
       break;
     }
     case "chro": {
-      const e = d.empStats ?? {};
+      const e = { ...d.empStats };
       if ((e.onboarding ?? 0) > 0) out.push({ text: `${e.onboarding} employees onboarding — keep them engaged.`, type: "warning" });
       if ((e.probation ?? 0) > 0) out.push({ text: `${e.probation} employees in probation period.`, type: "warning" });
       if ((e.resigned ?? 0) > 0) out.push({ text: `${e.resigned} resignations recorded — review retention.`, type: "negative" });
@@ -620,7 +621,7 @@ function buildInsights(roleId: string, d: RoleData): Insight[] {
       break;
     }
     case "cpo": {
-      const v = d.inv ?? {};
+      const v = { ...d.inv };
       if ((v.outOfStockCount ?? 0) > 0) out.push({ text: `${v.outOfStockCount} items out of stock — urgent reorder.`, type: "negative" });
       if ((v.lowStockCount ?? 0) > 0) out.push({ text: `${v.lowStockCount} items low on stock.`, type: "warning" });
       if ((v.stockHealth ?? 100) >= 80) out.push({ text: `Stock health ${v.stockHealth}% — inventory in good shape.`, type: "positive" });
@@ -911,14 +912,17 @@ function ScoreRing({ score, size = 84 }: { score: number; size?: number }) {
   );
 }
 
-function ScorecardPanel({ scorecard }: { scorecard: any }) {
+function ScorecardPanel({ scorecard }: { scorecard: RoleData["scorecard"] }) {
   const categories = useMemo(() => {
     if (!scorecard?.scorecard) return [];
-    return Object.entries(scorecard.scorecard as Record<string, any>).map(([cat, val]: any) => ({
-      category: cat,
-      score: val?.score ?? 0,
-      metricCount: val?.metrics?.length ?? 0,
-    }));
+    return Object.entries(scorecard.scorecard).map(([cat, val]) => {
+      const v = val as { score?: number; metrics?: unknown[] };
+      return {
+        category: cat,
+        score: v?.score ?? 0,
+        metricCount: v?.metrics?.length ?? 0,
+      };
+    });
   }, [scorecard]);
 
   return (
@@ -970,12 +974,12 @@ function ScorecardPanel({ scorecard }: { scorecard: any }) {
 function LeaderboardPanel({
   leaderboard, metric, onMetricChange,
 }: {
-  leaderboard: any[];
+  leaderboard: RoleData["leaderboard"];
   metric: LeaderMetric;
   onMetricChange: (m: LeaderMetric) => void;
 }) {
   const { navigate } = useAppNavigate();
-  const sorted = [...leaderboard].sort((a: any, b: any) => b.score - a.score);
+  const sorted = [...(leaderboard ?? [])].sort((a, b) => b.score - a.score);
   return (
     <Card className="border-[#e8eaed] shadow-sm bg-white">
       <PanelHeader icon={TrendingUp} title="Top Performers" action="People" actionHref="/people" />
@@ -995,7 +999,7 @@ function LeaderboardPanel({
         </div>
         <div className="divide-y divide-[#f1f3f4]">
           {sorted.length > 0 ? (
-            sorted.slice(0, 5).map((p: any, i: number) => (
+            sorted.slice(0, 5).map((p, i) => (
               <button
                 key={i}
                 onClick={() => navigate(`/people`)}
@@ -1024,9 +1028,9 @@ function LeaderboardPanel({
   );
 }
 
-function TasksPanel({ tasks, roleId }: { tasks: any[]; roleId: string }) {
+function TasksPanel({ tasks, roleId }: { tasks: RoleData["tasks"]; roleId: string }) {
   const { navigate } = useAppNavigate();
-  const pending = tasks.filter((t: any) => !["done", "completed", "cancelled", "archived"].includes(t.status));
+  const pending = (tasks ?? []).filter((t) => !["done", "completed", "cancelled", "archived"].includes(t.status));
   return (
     <Card className="border-[#e8eaed] shadow-sm bg-white">
       <PanelHeader icon={ListChecks} title="Open Tasks" action="All Tasks" actionHref="/tasks" />
@@ -1052,12 +1056,12 @@ function TasksPanel({ tasks, roleId }: { tasks: any[]; roleId: string }) {
   );
 }
 
-function ActivityPanel({ activities }: { activities: any[] }) {
+function ActivityPanel({ activities }: { activities: RoleData["activities"] }) {
   return (
     <Card className="border-[#e8eaed] shadow-sm bg-white">
       <PanelHeader icon={Activity} title="Recent Activity" action="Timeline" actionHref="/workflow-monitor" />
       <CardContent className="px-3 pb-3 max-h-[320px] overflow-y-auto divide-y divide-[#f1f3f4]">
-        {activities.length > 0 ? activities.slice(0, 7).map((a: any, i: number) => (
+        {(activities ?? []).length > 0 ? (activities ?? []).slice(0, 7).map((a, i) => (
           <div key={i} className="py-2.5 flex items-start gap-2.5">
             <div className="mt-1 w-5 h-5 rounded-full bg-[#e8f0fe] flex items-center justify-center shrink-0">
               <Activity className="h-2.5 w-2.5 text-[#1a73e8]" />
@@ -1077,8 +1081,8 @@ function ActivityPanel({ activities }: { activities: any[] }) {
   );
 }
 
-function NotificationsPanel({ notifications }: { notifications: any[] }) {
-  const unread = notifications.filter((n: any) => !n.isRead);
+function NotificationsPanel({ notifications }: { notifications: RoleData["notifications"] }) {
+  const unread = (notifications ?? []).filter((n) => !n.isRead);
   return (
     <Card className="border-[#e8eaed] shadow-sm bg-white">
       <PanelHeader icon={Bell} title="Notifications" action="View All" actionHref="/notifications" />
@@ -1203,8 +1207,8 @@ export default function ExecutiveDashboard({ dashboardId }: ExecutiveDashboardPr
 
   if (isLoading) return <DashboardSkeleton />;
 
-  const unreadNotifs = d.notifications.filter((n: any) => !n.isRead).length;
-  const pendingTasks = d.tasks.filter((t: any) => !["done", "completed", "cancelled", "archived"].includes(t.status)).length;
+  const unreadNotifs = (d.notifications ?? []).filter((n) => !n.isRead).length;
+  const pendingTasks = (d.tasks ?? []).filter((t) => !["done", "completed", "cancelled", "archived"].includes(t.status)).length;
 
   const strip = [
     { icon: Landmark, label: "Companies", value: d.overview?.companies ?? 0, color: "bg-[#e8f0fe] text-[#1a73e8]" },
