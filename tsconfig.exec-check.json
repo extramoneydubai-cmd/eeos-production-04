@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "/tmp/tsconfig.exec-check.tsbuildinfo"
+  },
+  "include": [
+    "src/pages/executive/ExecutiveDashboard.tsx",
+    "src/pages/executive/RoleDashboard.tsx",
+    "src/pages/executive/CEOExecutiveDashboard.tsx",
+    "src/config/executiveDashboards.ts"
+  ]
+}
