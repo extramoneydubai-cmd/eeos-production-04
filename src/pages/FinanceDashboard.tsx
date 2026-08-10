@@ -17,12 +17,12 @@ import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   DollarSign, TrendingUp, TrendingDown, PiggyBank, FileText, Receipt,
-  Banknote, CreditCard, Calendar, AlertCircle, CheckCircle2, Clock,
+  Banknote, Calendar, AlertCircle, Clock,
   ArrowRight, RefreshCw, Landmark, Target, Building2, Wallet, BarChart3,
-  PlusCircle, ListChecks, ExternalLink, Database, Search, Download,
-  Printer, Filter, ChevronRight, Loader2, BookOpen, FileSpreadsheet,
-  PieChart, Activity, HandCoins, ReceiptText, ChartNoAxesCombined,
-  ArrowUpRight, ArrowDownRight, Grip, Layers, GitBranch,
+  PlusCircle, ExternalLink, Database,
+  ChevronRight, Loader2, BookOpen, FileSpreadsheet,
+  Activity, ReceiptText,
+  Layers, GitBranch,
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -103,10 +103,10 @@ function QuickAction({
 
 // ─── Mini Transaction Row ───────────────────────────────────────
 function TransactionRow({
-  refNum, student, amount, status, date, method,
+  refNum, student, amount, status, method,
 }: {
   refNum: string; student: string; amount: string; status: string;
-  date: string; method?: string;
+  method?: string;
 }) {
   const statusColors: Record<string, string> = {
     verified: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
@@ -156,19 +156,33 @@ function loadSavedDimension(): DimensionKey {
 }
 
 // ─── Dimension Breakdown Panel (branch / vertical split) ──────────
+interface DimensionEntity {
+  branchId: string;
+  branchName: string;
+  branchCode: string;
+  metrics: {
+    studentCount: number;
+    leadCount: number;
+    activeLeads: number;
+    admissions: number;
+    revenue: number;
+    outstanding: number;
+  };
+}
+
 function DimensionBreakdown({
   dimension,
   data,
 }: {
   dimension: "branch" | "vertical";
-  data: any;
+  data: { branches: DimensionEntity[] } | null | undefined;
 }) {
-  const rows = data?.branches ?? [];
+  const rows = useMemo(() => data?.branches ?? [], [data]);
   const dimLabel = dimension === "branch" ? "Branch" : "Vertical";
 
   const chartData = useMemo(
     () =>
-      rows.map((b: any) => ({
+      rows.map((b) => ({
         name: (b.branchCode || b.branchName || "—").slice(0, 8),
         revenue: Math.round((b.metrics?.revenue ?? 0) / 1000),
         outstanding: Math.round(b.metrics?.outstanding ?? 0),
@@ -230,7 +244,7 @@ function DimensionBreakdown({
                 />
                 <Tooltip
                   contentStyle={{ fontSize: 10, borderRadius: 8, border: "1px solid hsl(var(--border))" }}
-                  formatter={(v: any) => [`₹${v}k`, "Revenue"]}
+                  formatter={(v) => [`₹${v}k`, "Revenue"]}
                 />
                 <Bar dataKey="revenue" radius={[4, 4, 0, 0]} maxBarSize={36}>
                   {chartData.map((_, i) => (
@@ -274,7 +288,7 @@ function DimensionBreakdown({
                 />
                 <Tooltip
                   contentStyle={{ fontSize: 10, borderRadius: 8, border: "1px solid hsl(var(--border))" }}
-                  formatter={(v: any) => [`₹${Number(v).toLocaleString()}`, "Outstanding"]}
+                  formatter={(v) => [`₹${Number(v).toLocaleString()}`, "Outstanding"]}
                 />
                 <Bar dataKey="outstanding" radius={[4, 4, 0, 0]} maxBarSize={36} fill="#ea4335" />
               </BarChart>
@@ -304,7 +318,7 @@ function DimensionBreakdown({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((b: any, i: number) => {
+                {rows.map((b, i) => {
                   const revenue = b.metrics?.revenue ?? 0;
                   const outstanding = b.metrics?.outstanding ?? 0;
                   const rate =
@@ -361,7 +375,7 @@ function DimensionBreakdown({
 }
 
 export default function FinanceDashboard() {
-  const { user } = useAuth();
+  useAuth();
   const { navigate } = useAppNavigate();
 
   const dashboard = useQuery(api.financeReports.getFinanceDashboard);
@@ -404,8 +418,6 @@ export default function FinanceDashboard() {
       ? Math.round((dashboard.monthlyRevenue / ((dashboard.monthlyRevenue || 0) + (dashboard.pendingInvoiceAmount || 0))) * 100)
       : 0,
   } : null;
-
-  const revenueData: { period: string; revenue: number; expense: number }[] = [];
 
   if (isLoading) {
     return (
@@ -751,14 +763,13 @@ export default function FinanceDashboard() {
             <CardContent className="p-2">
               {recentPayments?.items?.length ? (
                 <div className="divide-y divide-border/30">
-                  {recentPayments.items.slice(0, 8).map((txn: any, i: number) => (
+                  {recentPayments.items.slice(0, 8).map((txn, i) => (
                     <TransactionRow
                       key={txn._id || i}
                       refNum={txn.transactionNumber || `#${String(txn._id).slice(-6)}`}
                       student={txn.studentId || "Student"}
                       amount={`₹${(txn.amount || 0).toLocaleString()}`}
                       status={txn.status || "pending"}
-                      date={txn.paymentDate ? new Date(txn.paymentDate).toLocaleDateString() : "—"}
                       method={txn.paymentMethod}
                     />
                   ))}
@@ -790,14 +801,13 @@ export default function FinanceDashboard() {
             <CardContent className="p-2">
               {recentInvoices?.items?.length ? (
                 <div className="divide-y divide-border/30">
-                  {recentInvoices.items.slice(0, 8).map((inv: any, i: number) => (
+                  {recentInvoices.items.slice(0, 8).map((inv, i) => (
                     <TransactionRow
                       key={inv._id || i}
                       refNum={inv.invoiceNumber || `#${String(inv._id).slice(-6)}`}
                       student={inv.studentId || "Student"}
                       amount={`₹${(inv.totalAmount || 0).toLocaleString()}`}
                       status={inv.status || "pending"}
-                      date={inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString() : "—"}
                     />
                   ))}
                 </div>
@@ -828,14 +838,13 @@ export default function FinanceDashboard() {
             <CardContent className="p-2">
               {recentExpenses?.items?.length ? (
                 <div className="divide-y divide-border/30">
-                  {recentExpenses.items.slice(0, 8).map((exp: any, i: number) => (
+                  {recentExpenses.items.slice(0, 8).map((exp, i) => (
                     <TransactionRow
                       key={exp._id || i}
                       refNum={exp.description?.slice(0, 40) || `Expense #${i + 1}`}
                       student={exp.createdByName || "User"}
                       amount={`₹${(exp.amount || 0).toLocaleString()}`}
                       status={exp.status || "draft"}
-                      date={exp.expenseDate ? new Date(exp.expenseDate).toLocaleDateString() : "—"}
                     />
                   ))}
                 </div>
