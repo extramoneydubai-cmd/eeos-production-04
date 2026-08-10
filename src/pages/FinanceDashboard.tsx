@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppNavigate } from "@/hooks/use-app-navigate";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   DollarSign, TrendingUp, TrendingDown, PiggyBank, FileText, Receipt,
@@ -22,8 +22,12 @@ import {
   PlusCircle, ListChecks, ExternalLink, Database, Search, Download,
   Printer, Filter, ChevronRight, Loader2, BookOpen, FileSpreadsheet,
   PieChart, Activity, HandCoins, ReceiptText, ChartNoAxesCombined,
-  ArrowUpRight, ArrowDownRight, Grip, Layers,
+  ArrowUpRight, ArrowDownRight, Grip, Layers, GitBranch,
 } from "lucide-react";
+import {
+  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, Cell,
+} from "recharts";
 
 // ─── Stat Card ──────────────────────────────────────────────────
 function StatCard({
@@ -131,6 +135,231 @@ function TransactionRow({
   );
 }
 
+// ─── Dimension split (branch / vertical — CFO charts) ────────────
+type DimensionKey = "all" | "branch" | "vertical";
+const DIMENSION_OPTIONS: { key: DimensionKey; label: string }[] = [
+  { key: "all", label: "Enterprise" },
+  { key: "branch", label: "Branch" },
+  { key: "vertical", label: "Vertical" },
+];
+const DIMENSION_STORAGE_KEY = "eeos_cfo_dimension";
+const DIM_COLORS = ["#4285f4", "#34a853", "#fbbc04", "#ea4335", "#a855f7", "#14b8a6", "#e8710a", "#5f6368"];
+
+function loadSavedDimension(): DimensionKey {
+  try {
+    const saved = window.localStorage.getItem(DIMENSION_STORAGE_KEY);
+    if (saved === "all" || saved === "branch" || saved === "vertical") return saved;
+  } catch {
+    // storage unavailable — fall through to default
+  }
+  return "all";
+}
+
+// ─── Dimension Breakdown Panel (branch / vertical split) ──────────
+function DimensionBreakdown({
+  dimension,
+  data,
+}: {
+  dimension: "branch" | "vertical";
+  data: any;
+}) {
+  const rows = data?.branches ?? [];
+  const dimLabel = dimension === "branch" ? "Branch" : "Vertical";
+
+  const chartData = useMemo(
+    () =>
+      rows.map((b: any) => ({
+        name: (b.branchCode || b.branchName || "—").slice(0, 8),
+        revenue: Math.round((b.metrics?.revenue ?? 0) / 1000),
+        outstanding: Math.round(b.metrics?.outstanding ?? 0),
+        students: b.metrics?.studentCount ?? 0,
+      })),
+    [rows]
+  );
+
+  if (!rows.length) {
+    return (
+      <Card className="border-border/50 bg-card">
+        <CardContent className="p-8 text-center">
+          <GitBranch className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+          <p className="text-xs text-muted-foreground">
+            No {dimLabel.toLowerCase()} data available
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Revenue by dimension */}
+        <Card className="border-border/50 bg-card">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-sm font-semibold">Revenue by {dimLabel}</CardTitle>
+                <CardDescription className="text-[10px]">
+                  Verified collections split by {dimLabel.toLowerCase()}
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                {dimension === "branch" ? (
+                  <Building2 className="h-3 w-3" />
+                ) : (
+                  <GitBranch className="h-3 w-3" />
+                )}
+                All time
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={chartData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <XAxis
+                  dataKey="name"
+                  tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  contentStyle={{ fontSize: 10, borderRadius: 8, border: "1px solid hsl(var(--border))" }}
+                  formatter={(v: any) => [`₹${v}k`, "Revenue"]}
+                />
+                <Bar dataKey="revenue" radius={[4, 4, 0, 0]} maxBarSize={36}>
+                  {chartData.map((_, i) => (
+                    <Cell key={i} fill={DIM_COLORS[i % DIM_COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Outstanding by dimension */}
+        <Card className="border-border/50 bg-card">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-sm font-semibold">Outstanding by {dimLabel}</CardTitle>
+                <CardDescription className="text-[10px]">
+                  Fee accounts outstanding split by {dimLabel.toLowerCase()}
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                <AlertCircle className="h-3 w-3" /> All time
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={chartData} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <XAxis
+                  dataKey="name"
+                  tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip
+                  contentStyle={{ fontSize: 10, borderRadius: 8, border: "1px solid hsl(var(--border))" }}
+                  formatter={(v: any) => [`₹${Number(v).toLocaleString()}`, "Outstanding"]}
+                />
+                <Bar dataKey="outstanding" radius={[4, 4, 0, 0]} maxBarSize={36} fill="#ea4335" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Breakdown table */}
+      <Card className="border-border/50 bg-card">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-semibold">{dimLabel} Performance</CardTitle>
+          <CardDescription className="text-[10px]">
+            Finance snapshot per {dimLabel.toLowerCase()}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-[11px]">
+              <thead>
+                <tr className="border-b border-border/50 text-left text-muted-foreground">
+                  <th className="px-4 py-2 font-medium">{dimLabel}</th>
+                  <th className="px-4 py-2 font-medium text-right">Students</th>
+                  <th className="px-4 py-2 font-medium text-right">Revenue</th>
+                  <th className="px-4 py-2 font-medium text-right">Outstanding</th>
+                  <th className="px-4 py-2 font-medium text-right">Collection</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((b: any, i: number) => {
+                  const revenue = b.metrics?.revenue ?? 0;
+                  const outstanding = b.metrics?.outstanding ?? 0;
+                  const rate =
+                    revenue + outstanding > 0
+                      ? Math.round((revenue / (revenue + outstanding)) * 100)
+                      : 0;
+                  return (
+                    <tr
+                      key={i}
+                      className="border-b border-border/30 last:border-0 hover:bg-accent/30 transition-colors"
+                    >
+                      <td className="px-4 py-2">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-2 h-2 rounded-full shrink-0"
+                            style={{ backgroundColor: DIM_COLORS[i % DIM_COLORS.length] }}
+                          />
+                          <span className="font-medium text-foreground">{b.branchName}</span>
+                          <span className="text-[9px] text-muted-foreground">{b.branchCode}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2 text-right text-foreground">
+                        {b.metrics?.studentCount ?? 0}
+                      </td>
+                      <td className="px-4 py-2 text-right font-semibold text-emerald-600">
+                        ₹{revenue.toLocaleString()}
+                      </td>
+                      <td className="px-4 py-2 text-right text-amber-600">
+                        ₹{outstanding.toLocaleString()}
+                      </td>
+                      <td className="px-4 py-2 text-right">
+                        <span
+                          className={
+                            rate >= 80
+                              ? "text-emerald-600"
+                              : rate >= 50
+                                ? "text-amber-600"
+                                : "text-red-600"
+                          }
+                        >
+                          {rate}%
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function FinanceDashboard() {
   const { user } = useAuth();
   const { navigate } = useAppNavigate();
@@ -145,6 +374,23 @@ export default function FinanceDashboard() {
   const recentExpenses = useQuery(api.financePlatform.listExpensesPaginated, { limit: 10 });
 
   const isLoading = !dashboard;
+
+  // ── Dimension split state (branch / vertical — CFO charts) ──
+  const [dimension, setDimension] = useState<DimensionKey>(loadSavedDimension);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(DIMENSION_STORAGE_KEY, dimension);
+    } catch {
+      // storage unavailable — dimension still works for this session
+    }
+  }, [dimension]);
+
+  // Branch / vertical comparison — skips until a split is selected
+  const dimensionCmp = useQuery(
+    api.dashboardEngine.getBranchComparison,
+    dimension === "all" ? "skip" : { dimension }
+  );
 
   const kpis = dashboard ? {
     revenue: dashboard.monthlyRevenue || 0,
@@ -188,7 +434,30 @@ export default function FinanceDashboard() {
             Enterprise financial intelligence • Revenue • Collections • Expenses • Reports
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Dimension split selector */}
+          <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-muted/50 border border-border/60 mr-1">
+            {DIMENSION_OPTIONS.map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => setDimension(opt.key)}
+                className={`h-7 px-2.5 rounded-md text-[11px] font-medium transition-all duration-150 flex items-center gap-1 ${
+                  dimension === opt.key
+                    ? "bg-background shadow-sm text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {opt.key === "all" ? (
+                  <Layers className="h-3 w-3" />
+                ) : opt.key === "branch" ? (
+                  <Building2 className="h-3 w-3" />
+                ) : (
+                  <GitBranch className="h-3 w-3" />
+                )}
+                {opt.label}
+              </button>
+            ))}
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -331,6 +600,9 @@ export default function FinanceDashboard() {
 
         {/* ── OVERVIEW ── */}
         <TabsContent value="overview" className="space-y-4 mt-4">
+          {dimension !== "all" ? (
+            <DimensionBreakdown dimension={dimension} data={dimensionCmp} />
+          ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Revenue vs Expense */}
             <Card className="border-border/50 bg-card">
@@ -437,6 +709,7 @@ export default function FinanceDashboard() {
               </CardContent>
             </Card>
           </div>
+          )}
 
           {/* Platform KPIs */}
           {platformKPIs && (
