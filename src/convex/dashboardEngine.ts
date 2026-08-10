@@ -706,9 +706,14 @@ export const getBranchComparison = query({
   args: {
     metricType: v.optional(v.string()),
     period: v.optional(v.union(v.literal("today"), v.literal("month"), v.literal("quarter"))),
+    // Dimension splits the comparison by branch (default) or academic vertical.
+    dimension: v.optional(v.union(v.literal("branch"), v.literal("vertical"))),
   },
   handler: async (ctx, args) => {
+    const dimension = args.dimension ?? "branch";
+    const isVertical = dimension === "vertical";
     const branches = await ctx.db.query("branches").collect();
+    const verticals = await ctx.db.query("verticals").collect();
     const students = await ctx.db.query("studentMaster").collect();
     const leads = await ctx.db.query("leadMaster").collect();
     const accounts = await ctx.db.query("studentFeeAccounts").collect();
@@ -738,50 +743,65 @@ export const getBranchComparison = query({
       return t >= start && t <= now;
     };
 
-    const branchData: any[] = [];
+    // Branch → vertical mapping (from student records) so lead volume can also
+    // be attributed in vertical view; verticals with no mapped branch report 0.
+    const branchToVertical: Record<string, string> = {};
+    for (const s of students) {
+      if ((s as any).verticalId && (s as any).branchId && !branchToVertical[(s as any).branchId]) {
+        branchToVertical[(s as any).branchId] = (s as any).verticalId;
+      }
+    }
 
-    for (const branch of branches) {
-      const branchStudents = students.filter((s: any) => s.branchId === branch._id.toString());
-      const branchLeads = leads.filter((l: any) => l.branchInterestId === branch._id.toString());
-      const branchAccounts = accounts.filter((a: any) =>
-        branchStudents.some((s: any) => s._id.toString() === a.studentId)
-      );
-      const branchPayments = payments.filter((p: any) =>
-        branchStudents.some((s: any) => s._id.toString() === p.studentId) &&
+    const entities = isVertical ? verticals : branches;
+    const entityData: any[] = [];
+
+    for (const entity of entities) {
+      const entityId = entity._id.toString();
+      const entityStudents = isVertical
+        ? students.filter((s: any) => s.verticalId === entityId)
+        : students.filter((s: any) => s.branchId === entityId);
+      const entityLeads = isVertical
+        ? leads.filter((l: any) => branchToVertical[l.branchInterestId] === entityId)
+        : leads.filter((l: any) => l.branchInterestId === entityId);
+      const studentIds = new Set(entityStudents.map((s: any) => s._id.toString()));
+      const entityAccounts = accounts.filter((a: any) => studentIds.has(a.studentId));
+      const entityPayments = payments.filter((p: any) =>
+        studentIds.has(p.studentId) &&
         inPeriod(p.paymentDate, (p as any)._creationTime)
       );
 
-      branchData.push({
-        branchId: branch._id,
-        branchName: branch.name,
-        branchCode: branch.code,
+      entityData.push({
+        branchId: entity._id,
+        branchName: entity.name,
+        branchCode: entity.code,
         metrics: {
-          studentCount: branchStudents.length,
-          leadCount: branchLeads.length,
-          activeLeads: branchLeads.filter((l: any) => l.status === "active").length,
-          admissions: branchStudents.filter(
+          studentCount: entityStudents.length,
+          leadCount: entityLeads.length,
+          activeLeads: entityLeads.filter((l: any) => l.status === "active").length,
+          admissions: entityStudents.filter(
             (s: any) =>
               ["admitted", "active", "completed"].includes(s.status) &&
               inPeriod(s.enrollmentDate, (s as any)._creationTime)
           ).length,
-          revenue: branchPayments
+          revenue: entityPayments
             .filter((p: any) => p.status === "verified" || p.status === "completed")
             .reduce((s: number, p: any) => s + p.amount, 0),
-          outstanding: branchAccounts.reduce((s: number, a: any) => s + a.outstandingBalance, 0),
+          outstanding: entityAccounts.reduce((s: number, a: any) => s + a.outstandingBalance, 0),
         },
       });
     }
 
     return {
-      branches: branchData,
-      totalBranches: branches.length,
+      dimension,
+      branches: entityData,
+      totalBranches: entityData.length,
       avgStudents: Math.round(
-        branchData.reduce((s: number, b: any) => s + b.metrics.studentCount, 0) /
-        (branches.length || 1)
+        entityData.reduce((s: number, b: any) => s + b.metrics.studentCount, 0) /
+        (entityData.length || 1)
       ),
       avgRevenue: Math.round(
-        branchData.reduce((s: number, b: any) => s + b.metrics.revenue, 0) /
-        (branches.length || 1)
+        entityData.reduce((s: number, b: any) => s + b.metrics.revenue, 0) /
+        (entityData.length || 1)
       ),
       period: args.period ?? null,
     };

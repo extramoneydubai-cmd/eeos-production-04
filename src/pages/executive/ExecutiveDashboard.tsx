@@ -9,6 +9,7 @@
  * Layout:
  *   Header + persisted period selector (Today / This Month / This Quarter)
  *   + persisted trend window (3M / 6M / 12M)
+ *   + persisted dimension split (Branch / Vertical — CFO charts)
  *   → KPI matrix (role KPIs, period-filtered where supported)
  *   → Trend chart (real time series per role, window-aware)
  *   → Bar + Donut charts (role distributions)
@@ -83,6 +84,24 @@ function loadSavedMonths(roleId: string): MonthKey {
   return 6;
 }
 
+// ─── Dimension split types (CFO charts: branch vs vertical) ───────
+type DimensionKey = "branch" | "vertical";
+const DIMENSION_OPTIONS: { key: DimensionKey; label: string }[] = [
+  { key: "branch", label: "Branch" },
+  { key: "vertical", label: "Vertical" },
+];
+const dimensionStorageKey = (roleId: string) => `eeos_exec_${roleId}_dimension`;
+
+function loadSavedDimension(roleId: string): DimensionKey {
+  try {
+    const saved = window.localStorage.getItem(dimensionStorageKey(roleId));
+    if (saved === "branch" || saved === "vertical") return saved;
+  } catch {
+    // storage unavailable — fall through to default
+  }
+  return "branch";
+}
+
 // ─── Leaderboard metric types ────────────────────────────────────
 type LeaderMetric = "revenue" | "leads_converted" | "tasks_completed" | "calls_made";
 const LEADER_METRICS: { key: LeaderMetric; label: string }[] = [
@@ -150,14 +169,14 @@ interface RoleData {
   inv: any;
 }
 
-function useRoleData(roleId: string, period: PeriodKey, months: MonthKey, leaderMetric: LeaderMetric): RoleData {
+function useRoleData(roleId: string, period: PeriodKey, months: MonthKey, leaderMetric: LeaderMetric, dimension: DimensionKey): RoleData {
   const { user } = useAuth();
   const userId = user?._id as string | undefined;
 
   const overview = useQuery(api.dashboardEngine.getEnterpriseOverview, {});
   const periodKpis = useQuery(api.dashboardEngine.getPeriodKpis, { period });
   const trends = useQuery(api.dashboardEngine.getDashboardTrends, { months });
-  const branchCmp = useQuery(api.dashboardEngine.getBranchComparison, { period });
+  const branchCmp = useQuery(api.dashboardEngine.getBranchComparison, { period, dimension } as any);
   const tasks = useQuery(api.tasks.listTasks, {}) ?? [];
   const notifications = useQuery(
     api.notifications.listNotifications,
@@ -353,13 +372,14 @@ function buildTrend(roleId: string, d: RoleData): { title: string; data: ChartSe
   }
 }
 
-function buildBar(roleId: string, d: RoleData): { title: string; data: ChartSeries[]; color: string } {
+function buildBar(roleId: string, d: RoleData, dimension: DimensionKey): { title: string; data: ChartSeries[]; color: string } {
   switch (roleId) {
     case "cfo": {
       const rows = d.branchCmp?.branches ?? [];
+      const isVertical = dimension === "vertical";
       return {
-        title: "Branch Revenue",
-        data: rows.slice(0, 8).map((b: any) => ({ name: (b.branchCode || b.branchName || "B").slice(0, 6), revenue: Math.round((b.metrics?.revenue ?? 0) / 1000) })),
+        title: isVertical ? "Revenue by Vertical" : "Revenue by Branch",
+        data: rows.slice(0, 8).map((b: any) => ({ name: (b.branchCode || b.branchName || "—").slice(0, 8), revenue: Math.round((b.metrics?.revenue ?? 0) / 1000) })),
         color: "#34a853",
       };
     }
@@ -439,17 +459,29 @@ function buildBar(roleId: string, d: RoleData): { title: string; data: ChartSeri
   }
 }
 
-function buildDonut(roleId: string, d: RoleData): { title: string; data: DonutSlice[] } {
+function buildDonut(roleId: string, d: RoleData, dimension: DimensionKey): { title: string; data: DonutSlice[] } {
   switch (roleId) {
     case "cfo": {
       const k = d.periodKpis ?? {};
-      const data = [
+      const rows = d.branchCmp?.branches ?? [];
+      const isVertical = dimension === "vertical";
+      // Top entities by outstanding — slices the same comparison data as the bar chart.
+      const byOutstanding = rows
+        .filter((b: any) => (b.metrics?.outstanding ?? 0) > 0)
+        .sort((a: any, b: any) => (b.metrics?.outstanding ?? 0) - (a.metrics?.outstanding ?? 0))
+        .slice(0, 6)
+        .map((b: any) => ({ name: (b.branchCode || b.branchName || "—").slice(0, 8), value: Math.round(b.metrics?.outstanding ?? 0) }));
+      // Fallback: global finance position when no per-entity outstanding exists.
+      const fallback = [
         { name: "Collected", value: Math.round(k.collected ?? 0) },
         { name: "Outstanding", value: Math.round(k.outstanding ?? 0) },
         { name: "Expenses", value: Math.round(k.totalExpenses ?? 0) },
         { name: "Refunds", value: Math.round(k.totalRefunded ?? 0) },
       ];
-      return { title: "Finance Position", data };
+      return {
+        title: isVertical ? "Outstanding by Vertical" : "Outstanding by Branch",
+        data: byOutstanding.length > 0 ? byOutstanding : fallback,
+      };
     }
     case "cto": {
       const t = d.tech ?? {};
@@ -1133,7 +1165,9 @@ export default function ExecutiveDashboard({ dashboardId }: ExecutiveDashboardPr
   const [period, setPeriod] = useState<PeriodKey>(() => loadSavedPeriod(dashboardId));
   const [months, setMonths] = useState<MonthKey>(() => loadSavedMonths(dashboardId));
   const [leaderMetric, setLeaderMetric] = useState<LeaderMetric>(() => loadSavedLeaderMetric(dashboardId));
+  const [dimension, setDimension] = useState<DimensionKey>(() => loadSavedDimension(dashboardId));
   const periodLabel = PERIOD_OPTIONS.find((p) => p.key === period)?.label ?? "Period";
+  const dimensionLabel = DIMENSION_OPTIONS.find((o) => o.key === dimension)?.label.toLowerCase() ?? "branch";
 
   // Persist the selected filters per role so they survive navigation and reloads
   useEffect(() => {
@@ -1141,19 +1175,20 @@ export default function ExecutiveDashboard({ dashboardId }: ExecutiveDashboardPr
       window.localStorage.setItem(periodStorageKey(dashboardId), period);
       window.localStorage.setItem(monthsStorageKey(dashboardId), String(months));
       window.localStorage.setItem(leaderStorageKey(dashboardId), leaderMetric);
+      window.localStorage.setItem(dimensionStorageKey(dashboardId), dimension);
     } catch {
       // storage unavailable — filters still work for this session
     }
-  }, [period, months, leaderMetric, dashboardId]);
+  }, [period, months, leaderMetric, dimension, dashboardId]);
 
-  const d = useRoleData(dashboardId, period, months, leaderMetric);
+  const d = useRoleData(dashboardId, period, months, leaderMetric, dimension);
 
   const isLoading = !d.overview || !d.periodKpis || !d.trends;
 
   const kpis = useMemo(() => buildKpis(dashboardId, d, periodLabel), [dashboardId, d, periodLabel]);
   const trend = useMemo(() => buildTrend(dashboardId, d), [dashboardId, d]);
-  const bar = useMemo(() => buildBar(dashboardId, d), [dashboardId, d]);
-  const donut = useMemo(() => buildDonut(dashboardId, d), [dashboardId, d]);
+  const bar = useMemo(() => buildBar(dashboardId, d, dimension), [dashboardId, d, dimension]);
+  const donut = useMemo(() => buildDonut(dashboardId, d, dimension), [dashboardId, d, dimension]);
   const insights = useMemo(() => buildInsights(dashboardId, d), [dashboardId, d]);
 
   if (!config) {
@@ -1211,10 +1246,27 @@ export default function ExecutiveDashboard({ dashboardId }: ExecutiveDashboardPr
         <div>
           <h2 className="text-[13px] font-semibold text-[#1a1a2e]">Performance Matrix</h2>
           <p className="text-[11px] text-[#9aa0a6] mt-0.5">
-            {config.role.toUpperCase()} KPIs for {periodLabel.toLowerCase()} · {months}-month trends — switches in real time
+            {config.role.toUpperCase()} KPIs for {periodLabel.toLowerCase()} · {months}-month trends{dashboardId === "cfo" ? ` · ${dimensionLabel} split` : ""} — switches in real time
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {dashboardId === "cfo" && (
+            <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-[#f1f3f4] border border-[#e8eaed]">
+              <span className="h-7 px-2 flex items-center text-[9px] font-semibold text-[#9aa0a6] uppercase tracking-wide">Split</span>
+              {DIMENSION_OPTIONS.map((opt) => (
+                <button
+                  key={opt.key}
+                  onClick={() => setDimension(opt.key)}
+                  className={`h-7 px-3 rounded-md text-[11px] font-medium transition-all duration-150 ${
+                    dimension === opt.key ? "bg-white shadow-sm text-[#1a1a2e]" : "text-[#5f6368] hover:text-[#1a1a2e]"
+                  }`}
+                  title={`Compare revenue & outstanding by ${opt.label.toLowerCase()}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-[#f1f3f4] border border-[#e8eaed]">
             {MONTH_OPTIONS.map((opt) => (
               <button
