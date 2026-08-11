@@ -5,6 +5,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # Vite inlines VITE_* at BUILD time — this build arg is the only way
+        # the SPA learns the Convex URL. The runtime `environment` entries
+        # below do NOT affect the already-built bundle.
+        VITE_CONVEX_URL: ${VITE_CONVEX_URL:-}
     ports:
       - "80:80"
     environment:

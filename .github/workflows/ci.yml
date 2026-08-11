@@ -20,15 +20,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-      - run: npm ci
-      - run: npx convex dev --once --no-push
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bunx convex dev --once --no-push
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
-      - run: npx tsc -b --noEmit
+      - run: bunx tsc -b --noEmit
       - run: echo "✅ TypeScript check passed"
 
   lint:
@@ -36,12 +35,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-      - run: npm ci
-      - run: npx eslint src/ --ext .ts,.tsx --max-warnings 0
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bunx eslint src/ --ext .ts,.tsx --max-warnings 0
         continue-on-error: true
       - run: echo "✅ Lint check completed"
 
@@ -50,24 +48,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-      - run: npm ci
+          bun-version: latest
+      - run: bun install --frozen-lockfile
       - name: Validate public assets
         run: |
           test -f public/manifest.webmanifest || echo "⚠️ Missing manifest.webmanifest"
           test -f public/release-manifest.json || echo "⚠️ Missing release-manifest.json"
       - name: Validate lazy imports
         run: |
-          node -e "
+          bun -e "
             const fs = require('fs');
             const main = fs.readFileSync('src/main.tsx', 'utf8');
-            const imports = main.match(/import\\(['\"](.+?)(?:\\?.*)?['\"]\\)/g) || [];
+            const imports = main.match(/import\(['\"](.+?)(?:\?.*)?['\"]\)/g) || [];
             const missing = imports
-              .map(i => i.replace(/import\\(['\"](.+?)(?:\\?.*)?['\"]\\)/, '$1'))
-              .filter(p => !fs.existsSync(p.replace(/^@\\//, 'src/')));
+              .map(i => i.replace(/import\(['\"](.+?)(?:\?.*)?['\"]\)/, '$1'))
+              .filter(p => !fs.existsSync(p.replace(/^@\//, 'src/')));
             if (missing.length > 0) {
               console.log('❌ Missing lazy imports:', missing.join(', '));
               process.exit(1);
@@ -81,15 +78,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-      - run: npm ci
-      - run: npx convex dev --once --no-push
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bunx convex dev --once --no-push
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
-      - run: npx vite build
+      - run: bun run build
+        env:
+          VITE_CONVEX_URL: ${{ secrets.VITE_CONVEX_URL }}
       - name: Report bundle sizes
         run: |
           echo "## Bundle Size Report" >> $GITHUB_STEP_SUMMARY

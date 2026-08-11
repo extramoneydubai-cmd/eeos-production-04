@@ -7,9 +7,6 @@ dist
 build
 .out
 
-# ── Convex Generated ───────────────────────────────────
-src/convex/_generated
-
 # ── Environment ─────────────────────────────────────────
 .env
 .env.local

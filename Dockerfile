@@ -3,6 +3,18 @@ FROM node:20-alpine AS build
 
 WORKDIR /app
 
+# ── Build-time configuration ─────────────────────────────────
+# Vite inlines VITE_* variables when the bundle is built, so
+# VITE_CONVEX_URL must be passed as a Docker build ARG here
+# (--build-arg VITE_CONVEX_URL=... or compose build.args),
+# NOT as a runtime container environment variable — runtime env
+# vars cannot change an already-built Vite SPA.
+ARG VITE_CONVEX_URL
+ENV VITE_CONVEX_URL=${VITE_CONVEX_URL}
+
+# Fail fast: without a Convex URL the built SPA cannot connect.
+RUN test -n "$VITE_CONVEX_URL" || { echo "ERROR: VITE_CONVEX_URL build arg is required"; exit 1; }
+
 # Install dependencies
 COPY package.json bun.lock* ./
 RUN npm install -g bun && bun install --frozen-lockfile

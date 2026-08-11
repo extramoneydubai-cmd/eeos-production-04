@@ -21,6 +21,7 @@ concurrency:
 
 env:
   NODE_VERSION: "20"
+  VITE_CONVEX_URL: ${{ secrets.VITE_CONVEX_URL }}
 
 jobs:
   validate:
@@ -28,12 +29,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-      - run: npm ci
-      - run: npx tsc -b --noEmit
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bunx tsc -b --noEmit
       - name: Check environment
         run: |
           required_vars="VITE_CONVEX_URL CONVEX_DEPLOY_KEY"
@@ -44,6 +44,9 @@ jobs:
             fi
           done
           echo "✅ All required environment variables are set"
+        env:
+          VITE_CONVEX_URL: ${{ secrets.VITE_CONVEX_URL }}
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
       - run: echo "✅ Pre-deployment validation passed"
 
   deploy-convex:
@@ -52,13 +55,12 @@ jobs:
     needs: validate
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-      - run: npm ci
+          bun-version: latest
+      - run: bun install --frozen-lockfile
       - name: Deploy Convex functions
-        run: npx convex deploy --typecheck=disable --cmd-url-env-var-name VITE_CONVEX_URL
+        run: bunx convex deploy --typecheck=disable --cmd-url-env-var-name VITE_CONVEX_URL
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
       - run: echo "✅ Convex production deployment complete"
@@ -69,13 +71,12 @@ jobs:
     needs: deploy-convex
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-      - run: npm ci
+          bun-version: latest
+      - run: bun install --frozen-lockfile
       - name: Build frontend
-        run: npx vite build
+        run: bun run build
         env:
           VITE_CONVEX_URL: ${{ secrets.VITE_CONVEX_URL }}
       - uses: actions/upload-artifact@v4

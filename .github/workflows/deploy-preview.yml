@@ -18,13 +18,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-      - run: npm ci
+          bun-version: latest
+      - run: bun install --frozen-lockfile
       - name: Deploy Convex functions
-        run: npx convex deploy --typecheck=disable --cmd-url-env-var-name VITE_CONVEX_URL --preview-run 'seed:init'
+        # Seed function lives at src/convex/demo/seed.ts → export seedAll
+        run: bunx convex deploy --typecheck=disable --cmd-url-env-var-name VITE_CONVEX_URL --preview-run 'demo/seed:seedAll'
         env:
           CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_PREVIEW_DEPLOY_KEY }}
 
@@ -34,13 +34,12 @@ jobs:
     needs: deploy-convex
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-      - run: npm ci
+          bun-version: latest
+      - run: bun install --frozen-lockfile
       - name: Build frontend
-        run: npx vite build
+        run: bun run build
         env:
           VITE_CONVEX_URL: ${{ secrets.VITE_CONVEX_URL }}
       - uses: actions/upload-artifact@v4
@@ -65,6 +64,6 @@ jobs:
           echo "✅ Preview artifact verified"
       - run: |
           echo "## Preview Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- Convex deployment: \`npx convex deploy\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Vite build: \`vite build\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Convex deployment: \`bunx convex deploy\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Vite build: \`bun run build\`" >> $GITHUB_STEP_SUMMARY
           echo "- Preview will be available when this PR is merged" >> $GITHUB_STEP_SUMMARY
