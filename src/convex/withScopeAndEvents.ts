@@ -27,6 +27,7 @@ import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { ScopeEngine } from "./scopeEngine";
 import { getUserFromToken } from "./authHelpers";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import { withEventPipeline, EventPipelineConfig, MutationContext, MutationResult, extractIdFromResult } from "../platform/eventPipeline";
 import { indexEntity } from "./autoSearchIndexer";
 
@@ -108,6 +109,19 @@ export function withScopeAndEvents<P = any, R = any>(
       delete raw.token;
     } else {
       userId = config.getUserId?.(args) as Id<"users"> | undefined;
+    }
+
+    // Final fallback: the Convex Auth browser session. When neither an explicit
+    // token nor a claimed id is supplied, treat the signed-in session user as the
+    // performer. This keeps modern SPA callers (which don't pass a legacy userId
+    // arg) flowing through the enterprise pipeline with the correct actor identity.
+    if (!userId) {
+      try {
+        const authUserId = await getAuthUserId(ctx as any);
+        if (authUserId) userId = authUserId as Id<"users">;
+      } catch {
+        // unauthenticated or auth unavailable — leave userId undefined
+      }
     }
 
     // Handlers may read the verified performer (replaces dead getAuthUserId calls)

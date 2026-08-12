@@ -480,7 +480,7 @@ export const restoreStudent = mutation({
 
 export const listStudents = query({
   args: {
-    userId: v.id("users"),
+    userId: v.optional(v.id("users")),
     branchId: v.optional(v.id("branches")),
     companyId: v.optional(v.id("companies")),
     status: v.optional(v.string()),

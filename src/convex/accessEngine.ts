@@ -337,8 +337,9 @@ export const getEffectivePermissions = query({
 });
 
 export const detectConflicts = query({
-  args: { userId: v.id("users") },
+  args: { userId: v.optional(v.id("users")) },
   handler: async (ctx, args) => {
+    if (!args.userId) return [];
     const engine = await AccessEngine.create(ctx, args.userId);
     return engine.detectConflicts();
   },

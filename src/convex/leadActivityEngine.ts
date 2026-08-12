@@ -401,7 +401,7 @@ export const deleteAttachment = mutation({
   args: {
     token: v.optional(v.string()),
     attachmentId: v.id("leadAttachments"),
-    userId: v.id("users"),
+    userId: v.optional(v.id("users")),
     leadId: v.id("leadMaster"),
   },
   handler: withScopeAndEvents(
