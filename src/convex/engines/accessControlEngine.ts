@@ -18,7 +18,7 @@
  */
 
 import { v } from "convex/values";
-import { getAuthUserId } from "@convex-dev/auth/server";
+import { getUserFromToken } from "../authHelpers";
 import { mutation, query } from "../_generated/server";
 import type { Doc, Id } from "../_generated/dataModel";
 
@@ -45,10 +45,23 @@ const MENU_VISIBILITIES = ["visible", "hidden", "disabled", "readonly"] as const
 
 // ─── Helper ────────────────────────────────────────────────────
 
-async function requireAuth(ctx): Promise<Id<"users">> {
-  const userId = await getAuthUserId(ctx);
-  if (!userId) throw new Error("Not authenticated");
-  return userId;
+// Resolve the acting user via the app's real auth (custom sessions table):
+// a session token is authoritative when present; otherwise we accept the
+// client-declared userId (matches withScopeAndEvents' fallback for SDK/system
+// flows). Returns null only when neither is supplied.
+async function requireAuth(
+  ctx: any,
+  args?: { token?: string; userId?: string }
+): Promise<Id<"users"> | null> {
+  const token = typeof args?.token === "string" && args.token.length > 0 ? args.token : undefined;
+  if (token) {
+    const user = await getUserFromToken(ctx, token);
+    if (user) return user._id;
+    throw new Error("Session expired or invalid — authentication required");
+  }
+  const declared = typeof args?.userId === "string" ? (args.userId as Id<"users">) : undefined;
+  if (declared) return declared;
+  return null;
 }
 
 function now(): number {
@@ -96,7 +109,7 @@ export const createRole = mutation({
     priority: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const userId = await requireAuth(ctx);
+    const userId = await requireAuth(ctx, args);
     const id = await ctx.db.insert("roles", {
       name: args.name,
       code: args.code.toUpperCase().replace(/\s+/g, "_"),
@@ -122,7 +135,7 @@ export const updateRole = mutation({
     priority: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const userId = await requireAuth(ctx);
+    const userId = await requireAuth(ctx, args);
     const existing = await ctx.db.get(args.roleId);
     if (!existing) throw new Error("Role not found");
     const updates: Record<string, any> = { updatedAt: now() };
@@ -139,7 +152,7 @@ export const updateRole = mutation({
 export const deleteRole = mutation({
   args: { roleId: v.id("roles") },
   handler: async (ctx, args) => {
-    const userId = await requireAuth(ctx);
+    const userId = await requireAuth(ctx, args);
     const role = await ctx.db.get(args.roleId);
     if (!role) throw new Error("Role not found");
     if (role.isSystem) throw new Error("Cannot delete system roles");
@@ -156,7 +169,7 @@ export const deleteRole = mutation({
 export const listRoles = query({
   args: { organizationId: v.optional(v.id("organizations")), includeInactive: v.optional(v.boolean()) },
   handler: async (ctx, args) => {
-    await requireAuth(ctx);
+    await requireAuth(ctx, args);
     let roles;
     if (args.organizationId) {
       roles = await ctx.db.query("roles").withIndex("by_organization", (q) => q.eq("organizationId", args.organizationId)).collect();
@@ -171,7 +184,7 @@ export const listRoles = query({
 export const getRole = query({
   args: { roleId: v.id("roles") },
   handler: async (ctx, args) => {
-    await requireAuth(ctx);
+    await requireAuth(ctx, args);
     return await ctx.db.get(args.roleId);
   },
 });
@@ -188,7 +201,7 @@ export const createPermissionGroup = mutation({
     icon: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = await requireAuth(ctx);
+    const userId = await requireAuth(ctx, args);
     const id = await ctx.db.insert("permission_groups", {
       name: args.name,
       description: args.description,
@@ -226,7 +239,7 @@ export const createPermission = mutation({
     isSystem: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const userId = await requireAuth(ctx);
+    const userId = await requireAuth(ctx, args);
     const id = await ctx.db.insert("permissions", {
       module: args.module,
       entity: args.entity,
@@ -252,7 +265,7 @@ export const bulkCreatePermissions = mutation({
     })),
   },
   handler: async (ctx, args) => {
-    const userId = await requireAuth(ctx);
+    const userId = await requireAuth(ctx, args);
     const ids = await Promise.all(
       args.permissions.map((p) =>
         ctx.db.insert("permissions", {
@@ -279,7 +292,7 @@ export const listPermissions = query({
     action: v.optional(v.union(...ACCESS_ACTIONS.map((a) => v.literal(a)))),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx);
+    await requireAuth(ctx, args);
     let permissions;
     if (args.groupId) {
       permissions = await ctx.db.query("permissions").withIndex("by_group", (q) => q.eq("groupId", args.groupId)).collect();
@@ -296,7 +309,7 @@ export const listPermissions = query({
 export const deletePermission = mutation({
   args: { permissionId: v.id("permissions") },
   handler: async (ctx, args) => {
-    const userId = await requireAuth(ctx);
+    const userId = await requireAuth(ctx, args);
     const perm = await ctx.db.get(args.permissionId);
     if (!perm) throw new Error("Permission not found");
     // Remove related role_permissions
@@ -319,7 +332,7 @@ export const assignPermissionToRole = mutation({
     granted: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const userId = await requireAuth(ctx);
+    const userId = await requireAuth(ctx, args);
     const existing = await ctx.db.query("role_permissions")
       .withIndex("by_role_permission", (q) => q.eq("roleId", args.roleId).eq("permissionId", args.permissionId))
       .first();
@@ -342,7 +355,7 @@ export const assignPermissionToRole = mutation({
 export const removePermissionFromRole = mutation({
   args: { rolePermissionId: v.id("role_permissions") },
   handler: async (ctx, args) => {
-    const userId = await requireAuth(ctx);
+    const userId = await requireAuth(ctx, args);
     const rp = await ctx.db.get(args.rolePermissionId);
     if (!rp) throw new Error("Role-permission not found");
     await ctx.db.delete(args.rolePermissionId);
@@ -352,7 +365,7 @@ export const removePermissionFromRole = mutation({
 export const listRolePermissions = query({
   args: { roleId: v.id("roles") },
   handler: async (ctx, args) => {
-    await requireAuth(ctx);
+    await requireAuth(ctx, args);
     const rps = await ctx.db.query("role_permissions").withIndex("by_role", (q) => q.eq("roleId", args.roleId)).collect();
     const permissionIds = rps.map((rp) => rp.permissionId);
     const permissions = await Promise.all(permissionIds.map((id) => ctx.db.get(id)));
@@ -367,7 +380,7 @@ export const bulkAssignPermissions = mutation({
     scope: v.optional(v.union(...SCOPE_LEVELS.map((s) => v.literal(s)))),
   },
   handler: async (ctx, args) => {
-    const userId = await requireAuth(ctx);
+    const userId = await requireAuth(ctx, args);
     let count = 0;
     for (const permId of args.permissionIds) {
       const existing = await ctx.db.query("role_permissions")
@@ -404,7 +417,7 @@ export const assignRoleToUser = mutation({
     teamId: v.optional(v.id("teams")),
   },
   handler: async (ctx, args) => {
-    const currentUserId = await requireAuth(ctx);
+    const currentUserId = await requireAuth(ctx, args);
     const existing = await ctx.db.query("user_roles")
       .withIndex("by_user_role", (q) => q.eq("userId", args.userId).eq("roleId", args.roleId))
       .first();
@@ -429,7 +442,7 @@ export const assignRoleToUser = mutation({
 export const removeRoleFromUser = mutation({
   args: { userRoleId: v.id("user_roles") },
   handler: async (ctx, args) => {
-    const userId = await requireAuth(ctx);
+    const userId = await requireAuth(ctx, args);
     await ctx.db.delete(args.userRoleId);
   },
 });
@@ -437,7 +450,7 @@ export const removeRoleFromUser = mutation({
 export const listUserRoles = query({
   args: { userId: v.optional(v.id("users")), organizationId: v.optional(v.id("organizations")) },
   handler: async (ctx, args) => {
-    await requireAuth(ctx);
+    await requireAuth(ctx, args);
     let userRoles;
     if (args.userId) {
       userRoles = await ctx.db.query("user_roles").withIndex("by_user", (q) => q.eq("userId", args.userId)).collect();
@@ -466,7 +479,7 @@ export const listUserRoles = query({
 export const getUserEffectivePermissions = query({
   args: { targetUserId: v.optional(v.id("users")) },
   handler: async (ctx, args) => {
-    const currentUserId = await requireAuth(ctx);
+    const currentUserId = await requireAuth(ctx, args);
     const targetId = args.targetUserId || currentUserId;
 
     // Get user's roles
@@ -520,7 +533,7 @@ export const checkPermission = query({
     targetUserId: v.optional(v.id("users")),
   },
   handler: async (ctx, args) => {
-    const currentUserId = await requireAuth(ctx);
+    const currentUserId = await requireAuth(ctx, args);
     const targetId = args.targetUserId || currentUserId;
 
     const effective = await getUserEffectivePermissions(ctx, { targetUserId: targetId });
@@ -546,7 +559,7 @@ export const setScopeRule = mutation({
     maxScope: v.optional(v.union(...SCOPE_LEVELS.map((s) => v.literal(s)))),
   },
   handler: async (ctx, args) => {
-    const userId = await requireAuth(ctx);
+    const userId = await requireAuth(ctx, args);
     const existing = await ctx.db.query("scope_rules")
       .withIndex("by_role_entity", (q) => q.eq("roleId", args.roleId).eq("entityType", args.entityType))
       .first();
@@ -569,7 +582,7 @@ export const setScopeRule = mutation({
 export const listScopeRules = query({
   args: { roleId: v.optional(v.id("roles")) },
   handler: async (ctx, args) => {
-    await requireAuth(ctx);
+    await requireAuth(ctx, args);
     if (args.roleId) {
       return await ctx.db.query("scope_rules").withIndex("by_role", (q) => q.eq("roleId", args.roleId)).collect();
     }
@@ -592,7 +605,7 @@ export const createFeatureFlag = mutation({
     branchId: v.optional(v.id("branches")),
   },
   handler: async (ctx, args) => {
-    const userId = await requireAuth(ctx);
+    const userId = await requireAuth(ctx, args);
     const id = await ctx.db.insert("feature_flags", {
       key: args.key,
       name: args.name,
@@ -618,7 +631,7 @@ export const updateFeatureFlag = mutation({
     description: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = await requireAuth(ctx);
+    const userId = await requireAuth(ctx, args);
     const existing = await ctx.db.get(args.flagId);
     if (!existing) throw new Error("Feature flag not found");
     const updates: Record<string, any> = { updatedAt: now() };
@@ -634,7 +647,7 @@ export const updateFeatureFlag = mutation({
 export const deleteFeatureFlag = mutation({
   args: { flagId: v.id("feature_flags") },
   handler: async (ctx, args) => {
-    await requireAuth(ctx);
+    await requireAuth(ctx, args);
     await ctx.db.delete(args.flagId);
   },
 });
@@ -646,7 +659,7 @@ export const listFeatureFlags = query({
     status: v.optional(v.union(...FLAG_STATUSES.map((s) => v.literal(s)))),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx);
+    await requireAuth(ctx, args);
     let flags;
     if (args.roleId) {
       flags = await ctx.db.query("feature_flags").withIndex("by_role", (q) => q.eq("roleId", args.roleId)).collect();
@@ -667,7 +680,7 @@ export const checkFeatureFlag = query({
     organizationId: v.optional(v.id("organizations")),
   },
   handler: async (ctx, args) => {
-    await requireAuth(ctx);
+    await requireAuth(ctx, args);
     let flags = await ctx.db.query("feature_flags").withIndex("by_key", (q) => q.eq("key", args.key)).collect();
     if (args.roleId) flags = flags.filter((f) => f.roleId === args.roleId || !f.roleId);
     if (args.organizationId) flags = flags.filter((f) => f.organizationId === args.organizationId || !f.organizationId);
@@ -689,7 +702,7 @@ export const setStudioPermission = mutation({
     canConfigure: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const userId = await requireAuth(ctx);
+    const userId = await requireAuth(ctx, args);
     const existing = await ctx.db.query("studio_permissions")
       .withIndex("by_studio_role", (q) => q.eq("studioId", args.studioId).eq("roleId", args.roleId))
       .first();
@@ -712,7 +725,7 @@ export const setStudioPermission = mutation({
 export const listStudioPermissions = query({
   args: { roleId: v.optional(v.id("roles")) },
   handler: async (ctx, args) => {
-    await requireAuth(ctx);
+    await requireAuth(ctx, args);
     if (args.roleId) {
       return await ctx.db.query("studio_permissions").withIndex("by_role", (q) => q.eq("roleId", args.roleId)).collect();
     }
@@ -723,7 +736,7 @@ export const listStudioPermissions = query({
 export const checkStudioAccess = query({
   args: { studioId: v.string(), roleId: v.optional(v.id("roles")) },
   handler: async (ctx, args) => {
-    await requireAuth(ctx);
+    await requireAuth(ctx, args);
     const perm = await ctx.db.query("studio_permissions")
       .withIndex("by_studio", (q) => q.eq("studioId", args.studioId))
       .first();
@@ -744,7 +757,7 @@ export const setMenuPermission = mutation({
     visibility: v.union(v.literal("visible"), v.literal("hidden"), v.literal("disabled"), v.literal("readonly")),
   },
   handler: async (ctx, args) => {
-    const userId = await requireAuth(ctx);
+    const userId = await requireAuth(ctx, args);
     const existing = await ctx.db.query("menu_permissions")
       .withIndex("by_menu_role", (q) => q.eq("menuKey", args.menuKey).eq("roleId", args.roleId))
       .first();
@@ -766,7 +779,7 @@ export const setMenuPermission = mutation({
 export const listMenuPermissions = query({
   args: { roleId: v.optional(v.id("roles")) },
   handler: async (ctx, args) => {
-    await requireAuth(ctx);
+    await requireAuth(ctx, args);
     if (args.roleId) {
       return await ctx.db.query("menu_permissions").withIndex("by_role", (q) => q.eq("roleId", args.roleId)).collect();
     }
@@ -777,7 +790,7 @@ export const listMenuPermissions = query({
 export const checkMenuVisibility = query({
   args: { menuKey: v.string(), roleId: v.id("roles") },
   handler: async (ctx, args) => {
-    await requireAuth(ctx);
+    await requireAuth(ctx, args);
     const perm = await ctx.db.query("menu_permissions")
       .withIndex("by_menu_role", (q) => q.eq("menuKey", args.menuKey).eq("roleId", args.roleId))
       .first();
@@ -798,7 +811,7 @@ export const setDesignationRole = mutation({
     isDefault: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const userId = await requireAuth(ctx);
+    const userId = await requireAuth(ctx, args);
     const existing = await ctx.db.query("designation_roles")
       .withIndex("by_designation_org", (q) => q.eq("designation", args.designation).eq("organizationId", args.organizationId))
       .first();
@@ -821,7 +834,7 @@ export const setDesignationRole = mutation({
 export const listDesignationRoles = query({
   args: { designation: v.optional(v.string()), organizationId: v.optional(v.id("organizations")) },
   handler: async (ctx, args) => {
-    await requireAuth(ctx);
+    await requireAuth(ctx, args);
     if (args.designation) {
       return await ctx.db.query("designation_roles").withIndex("by_designation", (q) => q.eq("designation", args.designation)).collect();
     }
