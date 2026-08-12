@@ -225,7 +225,11 @@ export default function StudentDatabase() {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   // Queries
+  // userId is passed for scope enforcement; it is optional in the current
+  // backend but required by older deployments — including it keeps the call
+  // valid across both.
   const students = useQuery(api.studentEngine.listStudents, {
+    userId: user?._id,
     status: statusFilter || undefined,
     limit: 50,
   });

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useAuth } from "@/hooks/use-auth";
 import { WorkspaceShell } from "@/components/workspace/WorkspaceShell";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,8 +13,11 @@ import { Search, User, GraduationCap, DollarSign, FileText, Calendar, Activity, 
 export default function Customer360() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
+  const { user } = useAuth();
 
-  const students = useQuery(api.studentEngine.listStudents);
+  // userId passed for scope enforcement — required by older deployed validators,
+  // optional in the current backend, so this stays valid across both.
+  const students = useQuery(api.studentEngine.listStudents, { userId: user?._id });
   const selectedData = selectedStudent ? {
     fees: useQuery(api.feeEngine.calculateOutstanding as any, { studentId: selectedStudent }),
     attendance: useQuery(api.attendanceEngine.getAttendanceSummary as any, {
