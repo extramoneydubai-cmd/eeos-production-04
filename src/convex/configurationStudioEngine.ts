@@ -189,6 +189,13 @@ export const initializeDefaultConfigs = mutation({
       valueType: "string" | "number" | "boolean" | "json" | "array";
       label?: string;
     }> = [
+      // General defaults
+      { module: "general", key: "orgName", value: "Veda EdTech", valueType: "string" },
+      { module: "general", key: "timezone", value: "Asia/Kolkata", valueType: "string" },
+      { module: "general", key: "dateFormat", value: "DD-MM-YYYY", valueType: "string" },
+      { module: "general", key: "weekStartsOn", value: "monday", valueType: "string" },
+      { module: "general", key: "language", value: "en", valueType: "string" },
+
       // Finance defaults
       { module: "finance", key: "currency", value: "INR", valueType: "string" },
       { module: "finance", key: "taxRate", value: 18, valueType: "number" },
@@ -229,6 +236,11 @@ export const initializeDefaultConfigs = mutation({
       { module: "marketing", key: "enableWhatsApp", value: true, valueType: "boolean" },
       { module: "marketing", key: "enableEmail", value: true, valueType: "boolean" },
       { module: "marketing", key: "enableSms", value: true, valueType: "boolean" },
+
+      // Inventory defaults
+      { module: "inventory", key: "enableStockTracking", value: true, valueType: "boolean" },
+      { module: "inventory", key: "lowStockThreshold", value: 10, valueType: "number" },
+      { module: "inventory", key: "enableExpiryTracking", value: true, valueType: "boolean" },
     ];
 
     const now = Date.now();
