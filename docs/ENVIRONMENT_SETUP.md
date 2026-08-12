@@ -17,7 +17,7 @@ EEOS supports four environment tiers:
 
 | Variable | Required | Description | Example |
 |----------|----------|-------------|---------|
-| `VITE_CONVEX_URL` | ✅ Yes | Convex deployment URL | `https://cautious-partridge-705.convex.cloud` |
+| `VITE_CONVEX_URL` | ✅ Yes | Convex deployment URL | `https://fine-rhinoceros-377.convex.cloud` |
 | `CONVEX_DEPLOY_KEY` | ✅ CI/CD only | Convex deploy key for automation | Generated from Convex Dashboard |
 
 ## Optional Variables
