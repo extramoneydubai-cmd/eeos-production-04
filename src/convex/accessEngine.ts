@@ -337,7 +337,10 @@ export const getEffectivePermissions = query({
 });
 
 export const detectConflicts = query({
-  args: { userId: v.optional(v.id("users")) },
+  // Accept an empty string too — older clients sometimes send "" when no
+  // user is selected, which would otherwise fail the v.id("users") format
+  // check and crash the dashboard. Treat it the same as "no user".
+  args: { userId: v.optional(v.union(v.id("users"), v.literal(""))) },
   handler: async (ctx, args) => {
     if (!args.userId) return [];
     const engine = await AccessEngine.create(ctx, args.userId);

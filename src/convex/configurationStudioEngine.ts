@@ -173,15 +173,15 @@ export const deleteConfiguration = mutation({
   }),
 });
 
-/** Initialize default platform-level configurations */
+/** Initialize default platform-level configurations (idempotent per key).
+ * Each default is upserted by (module, key, scopeType, scopeId) so partial or
+ * legacy data — e.g. configs seeded under the wrong module — self-heals: the
+ * domains that are missing defaults get them on the next bootstrap instead of
+ * the whole call being skipped because some configs already exist.
+ */
 export const initializeDefaultConfigs = mutation({
   args: { token: v.optional(v.string()) },
   handler: withScopeAndEvents({ operation: "create", module: "platform", entity: "configurationStudioEngine" }, async (ctx) => {
-    const existing = await ctx.db.query("configOverrides")
-      .withIndex("by_scope", (q: any) => q.eq("scopeType", "platform").eq("scopeId", "default"))
-      .collect();
-    if (existing.length > 0) return { skipped: true, count: existing.length };
-
     const defaults: Array<{
       module: string;
       key: string;
@@ -244,8 +244,27 @@ export const initializeDefaultConfigs = mutation({
     ];
 
     const now = Date.now();
-    let count = 0;
+    let created = 0;
+    let updated = 0;
     for (const item of defaults) {
+      const existing = await ctx.db.query("configOverrides")
+        .withIndex("by_module_key", (q: any) =>
+          q.eq("module", item.module).eq("key", item.key)
+        )
+        .filter((q: any) => q.eq(q.field("scopeType"), "platform"))
+        .filter((q: any) => q.eq(q.field("scopeId"), "default"))
+        .first();
+
+      if (existing) {
+        // Keep existing value unless it's stale/missing metadata — just ensure
+        // the row is properly marked as inherited.
+        if ((existing as any).inherited === false) {
+          await ctx.db.patch(existing._id, { inherited: true, updatedAt: now });
+          updated++;
+        }
+        continue;
+      }
+
       await ctx.db.insert("configOverrides", {
         scopeType: "platform",
         scopeId: "default",
@@ -257,8 +276,8 @@ export const initializeDefaultConfigs = mutation({
         createdAt: now,
         updatedAt: now,
       });
-      count++;
+      created++;
     }
-    return { created: true, count, message: `Initialized ${count} default configurations` };
+    return { created, updated, message: `Initialized defaults (${created} created, ${updated} updated)` };
   }),
 });

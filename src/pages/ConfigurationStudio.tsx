@@ -101,6 +101,11 @@ export default function ConfigurationStudio() {
   const domainCounts = new Map<string, number>((domainsQuery ?? []).map((d: any) => [d.domain, d.count]));
   const configs = (configsQuery ?? []) as any[];
   const tableEmpty = domainsQuery !== undefined && domainsQuery.length === 0;
+  // Self-heal: also bootstrap defaults when a selected domain has zero settings
+  // (e.g. legacy data seeded under the wrong module). initializeDefaultConfigs
+  // is idempotent per key, so re-running only fills the gaps.
+  const selectedDomainEmpty = selectedDomain != null && configsQuery !== undefined && configs.length === 0;
+  const shouldBootstrap = tableEmpty || selectedDomainEmpty;
 
   const filteredDomains = CONFIG_DOMAINS.filter(d =>
     !searchQuery || d.label.toLowerCase().includes(searchQuery.toLowerCase()) || d.id.includes(searchQuery.toLowerCase())
@@ -154,13 +159,15 @@ export default function ConfigurationStudio() {
     }
   }
 
-  // Auto-bootstrap platform defaults once when the config table is empty.
+  // Auto-bootstrap platform defaults when the config table is empty OR the
+  // selected domain has no settings yet (idempotent per key — safe to re-run).
   useEffect(() => {
-    if (tableEmpty && initState === "idle") {
+    if (shouldBootstrap && initState === "idle") {
+      setInitState("running");
       void initializeDefaults().then(() => setInitState("done"));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tableEmpty]);
+  }, [shouldBootstrap]);
 
   return (
     <div className="flex h-[calc(100vh-4rem)] gap-0 overflow-hidden">
