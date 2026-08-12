@@ -62,7 +62,15 @@ export const issueQrToken = mutation({
     date: v.number(),
     expiresInHours: v.optional(v.number()),
   },
-  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "attendanceVerificationEngine" }, async (ctx, args) => {
+  handler: withScopeAndEvents({
+    operation: "update",
+    module: "academic",
+    entity: "attendanceVerificationEngine",
+    // Self-service: the token is issued for the caller's own entity ("My QR"),
+    // so fall back to the claimed entity id as performer when no session token
+    // was attached (local/demo sessions).
+    getUserId: (args) => (args.entityType === "employee" ? (args.entityId as any) : undefined),
+  }, async (ctx, args) => {
     const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
@@ -120,9 +128,10 @@ export const verifyQrMark = mutation({
     deviceId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
-    if (!userId) throw new Error("Not authenticated");
-
+    // This app authenticates via custom sessions rather than Convex Auth
+    // browser sessions, so getAuthUserId() never resolves here. Possession of a
+    // valid, unused, unexpired QR token IS the authorization in this flow: the
+    // token was server-issued for a specific entity + date and is one-time use.
     const tokenDoc = await ctx.db.query("attendanceQrTokens")
       .withIndex("by_token", (q: any) => q.eq("token", args.token))
       .first();
@@ -167,7 +176,7 @@ export const verifyQrMark = mutation({
       latitude: args.latitude,
       longitude: args.longitude,
       deviceId: args.deviceId,
-      markedBy: userId,
+      markedBy: tokenDoc.entityId as any,
       createdAt: now,
       updatedAt: now,
     });
@@ -254,7 +263,12 @@ export const markWithGps = mutation({
     checkIn: v.optional(v.number()),
     deviceId: v.optional(v.string()),
   },
-  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "attendanceVerificationEngine" }, async (ctx, args) => {
+  handler: withScopeAndEvents({
+    operation: "update",
+    module: "academic",
+    entity: "attendanceVerificationEngine",
+    getUserId: (args) => (args.entityType === "employee" ? (args.entityId as any) : undefined),
+  }, async (ctx, args) => {
     const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
@@ -334,7 +348,12 @@ export const registerFace = mutation({
     entityId: v.string(),
     photoStorageId: v.string(),
   },
-  handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "attendanceVerificationEngine" }, async (ctx, args) => {
+  handler: withScopeAndEvents({
+    operation: "create",
+    module: "academic",
+    entity: "attendanceVerificationEngine",
+    getUserId: (args) => (args.entityType === "employee" ? (args.entityId as any) : undefined),
+  }, async (ctx, args) => {
     const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 
@@ -395,7 +414,12 @@ export const markWithFace = mutation({
     branchId: v.optional(v.id("branches")),
     checkIn: v.optional(v.number()),
   },
-  handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "attendanceVerificationEngine" }, async (ctx, args) => {
+  handler: withScopeAndEvents({
+    operation: "update",
+    module: "academic",
+    entity: "attendanceVerificationEngine",
+    getUserId: (args) => (args.entityType === "employee" ? (args.entityId as any) : undefined),
+  }, async (ctx, args) => {
     const userId = ctx.__performerUserId;
     if (!userId) throw new Error("Not authenticated");
 

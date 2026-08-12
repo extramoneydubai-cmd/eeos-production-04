@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
+import { Textarea } from "../components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import {
   Select,
@@ -252,6 +253,11 @@ export default function AttendancePage() {
 
   // Manual marking state
   const [markingId, setMarkingId] = useState<string | null>(null);
+  const [markFormStatus, setMarkFormStatus] = useState<AttendanceStatus>("present");
+  const [markFormPerson, setMarkFormPerson] = useState<string>("");
+  const [markFormTime, setMarkFormTime] = useState("09:00");
+  const [markFormNotes, setMarkFormNotes] = useState("");
+  const [markResult, setMarkResult] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const markAttendance = useMutation(api.attendanceEngine.markAttendance);
 
   // Verification flows
@@ -294,6 +300,7 @@ export default function AttendancePage() {
     endDate: dayEnd,
   });
   const branches = useQuery(api.organization.listBranches);
+  const departments = useQuery(api.organizationDepartments.listDepartments);
   const users = useQuery(api.users.listUsers);
 
   const myEntityId = user?._id ? (user._id as string) : "";
@@ -450,8 +457,12 @@ export default function AttendancePage() {
   }, [uploadBlob, markWithFace, myEntityId, branchId]);
 
   // ── Manual marking ─────────────────────────────────────────────
+  const claimedMarkedBy = (id?: string) =>
+    id && !id.startsWith("local_") ? (id as any) : undefined;
+
   const markUser = useCallback(async (userId: string, status: AttendanceStatus) => {
     setMarkingId(userId);
+    setMarkResult(null);
     try {
       await markAttendance({
         entityType: "employee",
@@ -459,13 +470,42 @@ export default function AttendancePage() {
         date: dayStart,
         status,
         checkIn: status === "present" || status === "late" ? Date.now() : undefined,
+        markedBy: claimedMarkedBy(user?._id),
       });
-    } catch (e) {
-      console.error(e);
+      setMarkResult({ type: "success", message: `Marked ${status.replace("_", " ")} for ${selectedDate}` });
+    } catch (e: any) {
+      setMarkResult({ type: "error", message: e?.message || "Failed to mark attendance" });
     } finally {
       setMarkingId(null);
     }
-  }, [markAttendance, dayStart]);
+  }, [markAttendance, dayStart, user, selectedDate]);
+
+  const submitManualForm = useCallback(async () => {
+    if (!markFormPerson) {
+      setMarkResult({ type: "error", message: "Select a person to mark attendance for." });
+      return;
+    }
+    setMarkingId(markFormPerson);
+    setMarkResult(null);
+    try {
+      const [h = 9, m = 0] = markFormTime.split(":").map(Number);
+      const checkIn = dayStart + (h * 3600 + m * 60) * 1000;
+      await markAttendance({
+        entityType: "employee",
+        entityId: markFormPerson as any,
+        date: dayStart,
+        status: markFormStatus,
+        checkIn,
+        notes: markFormNotes.trim() || undefined,
+        markedBy: claimedMarkedBy(user?._id),
+      });
+      setMarkResult({ type: "success", message: `Marked as ${markFormStatus.replace("_", " ")} at ${markFormTime}` });
+    } catch (e: any) {
+      setMarkResult({ type: "error", message: e?.message || "Failed to mark attendance" });
+    } finally {
+      setMarkingId(null);
+    }
+  }, [markFormPerson, markFormStatus, markFormTime, markFormNotes, markAttendance, dayStart, user]);
 
   return (
     <div className="space-y-6 p-6">
@@ -490,12 +530,15 @@ export default function AttendancePage() {
             </SelectContent>
           </Select>
           {branches && branches.length > 0 && (
-            <Select value={branchId} onValueChange={setBranchId}>
+            <Select
+              value={branchId === "" ? "all" : branchId}
+              onValueChange={(v) => setBranchId(v === "all" ? "" : v)}
+            >
               <SelectTrigger className="w-[150px]">
                 <SelectValue placeholder="Branch (all)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All branches</SelectItem>
+                <SelectItem value="all">All branches</SelectItem>
                 {branches.map((b: any) => (
                   <SelectItem key={b._id} value={b._id}>{b.name}</SelectItem>
                 ))}
@@ -557,14 +600,110 @@ export default function AttendancePage() {
 
         {/* ── Manual Mark ─────────────────────────────────────── */}
         <TabsContent value="mark" className="mt-4 space-y-4">
+          {/* Mark Attendance form */}
           <Card>
             <CardHeader>
-              <CardTitle>Manual Attendance Marking</CardTitle>
+              <CardTitle className="flex items-center gap-2"><Users className="h-4 w-4" /> Mark Attendance</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Select a person, status and time to record their attendance for the chosen date.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Date</label>
+                  <Input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Person</label>
+                  <Select value={markFormPerson} onValueChange={setMarkFormPerson}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select employee" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(users || []).map((u: any) => (
+                        <SelectItem key={u._id} value={u._id}>
+                          {u.name || u.username || u._id}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Status</label>
+                  <Select value={markFormStatus} onValueChange={(v) => setMarkFormStatus(v as AttendanceStatus)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="present">Present</SelectItem>
+                      <SelectItem value="absent">Absent</SelectItem>
+                      <SelectItem value="late">Late</SelectItem>
+                      <SelectItem value="half_day">Half Day</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Check-in Time</label>
+                  <Input type="time" value={markFormTime} onChange={(e) => setMarkFormTime(e.target.value)} />
+                </div>
+              </div>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Notes (optional)</label>
+                  <Textarea
+                    value={markFormNotes}
+                    onChange={(e) => setMarkFormNotes(e.target.value)}
+                    placeholder="e.g., Approved leave request, came late due to transport…"
+                    rows={2}
+                  />
+                </div>
+                <div className="flex items-end justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setMarkFormPerson("");
+                      setMarkFormNotes("");
+                      setMarkResult(null);
+                    }}
+                  >
+                    Clear
+                  </Button>
+                  <Button onClick={submitManualForm} disabled={markingId !== null}>
+                    {markingId !== null ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}
+                    Mark Attendance
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {markResult && (
+            <div
+              className={`flex items-start gap-2 rounded-md border p-3 text-sm ${
+                markResult.type === "success"
+                  ? "border-green-200 bg-green-50 text-green-700"
+                  : "border-red-200 bg-red-50 text-red-700"
+              }`}
+            >
+              {markResult.type === "success" ? (
+                <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              ) : (
+                <XCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              )}
+              <span className="flex-1">{markResult.message}</span>
+              <button className="text-muted-foreground hover:text-foreground" onClick={() => setMarkResult(null)}>✕</button>
+            </div>
+          )}
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Mark — All Employees</CardTitle>
+              <p className="text-sm text-muted-foreground">Tap a status to mark an employee for the selected date.</p>
             </CardHeader>
             <CardContent>
               <div className="mb-4 flex flex-wrap items-center gap-3">
                 <Input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-[200px]" />
-                <span className="text-xs text-muted-foreground">Tap a status to mark an employee for this date.</span>
               </div>
               <div className="overflow-x-auto rounded-md border">
                 <table className="w-full text-sm">
@@ -583,40 +722,43 @@ export default function AttendancePage() {
                       <tr>
                         <td colSpan={6} className="p-8 text-center text-muted-foreground">
                           <Users className="mx-auto mb-2 h-8 w-8 opacity-50" />
-                          <p>No users found.</p>
+                          <p>No users found. Add users in User Management first.</p>
                         </td>
                       </tr>
                     ) : (
-                      users.map((u: any) => (
-                        <tr key={u._id} className="border-b">
-                          <td className="p-2 font-medium">{u.name || u.username || u._id}</td>
-                          <td className="p-2 text-muted-foreground">{u.departmentId ? String(u.departmentId).slice(0, 8) : "—"}</td>
-                          {(["present", "absent", "late", "half_day"] as AttendanceStatus[]).map((s) => (
-                            <td key={s} className="p-2 text-center">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 w-7 p-0"
-                                disabled={markingId === u._id}
-                                onClick={() => markUser(u._id, s)}
-                                title={`Mark ${s}`}
-                              >
-                                {markingId === u._id ? (
-                                  <Loader2 className="h-3 w-3 animate-spin" />
-                                ) : s === "present" ? (
-                                  <CheckCircle className="h-3 w-3 text-green-600" />
-                                ) : s === "absent" ? (
-                                  <XCircle className="h-3 w-3 text-red-500" />
-                                ) : s === "late" ? (
-                                  <Clock className="h-3 w-3 text-amber-500" />
-                                ) : (
-                                  <span className="text-[9px] font-semibold text-slate-500">HD</span>
-                                )}
-                              </Button>
-                            </td>
-                          ))}
-                        </tr>
-                      ))
+                      users.map((u: any) => {
+                        const dept = departments?.find((d: any) => d._id === u.departmentId);
+                        return (
+                          <tr key={u._id} className="border-b">
+                            <td className="p-2 font-medium">{u.name || u.username || u._id}</td>
+                            <td className="p-2 text-muted-foreground">{dept?.name || "—"}</td>
+                            {(["present", "absent", "late", "half_day"] as AttendanceStatus[]).map((s) => (
+                              <td key={s} className="p-2 text-center">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 w-7 p-0"
+                                  disabled={markingId === u._id}
+                                  onClick={() => markUser(u._id, s)}
+                                  title={`Mark ${s}`}
+                                >
+                                  {markingId === u._id ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : s === "present" ? (
+                                    <CheckCircle className="h-3 w-3 text-green-600" />
+                                  ) : s === "absent" ? (
+                                    <XCircle className="h-3 w-3 text-red-500" />
+                                  ) : s === "late" ? (
+                                    <Clock className="h-3 w-3 text-amber-500" />
+                                  ) : (
+                                    <span className="text-[9px] font-semibold text-slate-500">HD</span>
+                                  )}
+                                </Button>
+                              </td>
+                            ))}
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>
