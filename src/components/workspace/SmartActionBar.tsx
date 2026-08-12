@@ -60,8 +60,10 @@ function useActionPermission(
     !!userId &&
     VALID_ACTIONS.has(check.action);
 
+  // NOTE: "skip" must be in the ARGS position; a ref of "skip" would make the
+  // client call a function named `skip:default` and fail.
   const result = useQuery(
-    shouldGate ? api.accessEngine.checkModuleAccess : "skip",
+    api.accessEngine.checkModuleAccess,
     shouldGate && check
       ? {
           userId: userId as never,

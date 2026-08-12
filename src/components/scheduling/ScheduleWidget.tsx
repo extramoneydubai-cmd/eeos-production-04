@@ -350,23 +350,27 @@ export default function ScheduleWidget({
   );
 
   // Fetch schedules
+  // NOTE: the "skip" sentinel must go in the ARGS position, never the query
+  // ref — a ref of "skip" makes the client call a function named `skip:default`.
   const todayResult = useQuery(
-    showToday ? (api.schedulingSdk.getToday as any) : "skip",
-    { companyId: companyId as any, branchId: branchId as any },
+    api.schedulingSdk.getToday as any,
+    showToday ? { companyId: companyId as any, branchId: branchId as any } : "skip",
   ) as any[] | undefined;
 
   const upcomingResult = useQuery(
-    !showToday ? (api.schedulingSdk.getUpcoming as any) : "skip",
-    { days: 7, companyId: companyId as any, branchId: branchId as any },
+    api.schedulingSdk.getUpcoming as any,
+    !showToday ? { days: 7, companyId: companyId as any, branchId: branchId as any } : "skip",
   ) as any[] | undefined;
 
   const entitySchedules = useQuery(
-    entityType && entityId ? (api.schedulingSdk.getByDateRange as any) : "skip",
-    {
-      start: Date.now(),
-      end: Date.now() + 30 * 24 * 60 * 60 * 1000,
-      limit: limit || 20,
-    },
+    api.schedulingSdk.getByDateRange as any,
+    entityType && entityId
+      ? {
+          start: Date.now(),
+          end: Date.now() + 30 * 24 * 60 * 60 * 1000,
+          limit: limit || 20,
+        }
+      : "skip",
   ) as any[] | undefined;
 
   const schedules = showToday ? todayResult : (entitySchedules || upcomingResult);
