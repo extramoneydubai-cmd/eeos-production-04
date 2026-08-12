@@ -365,10 +365,10 @@ export const listEmployees = query({
       "employeeMaster",
       args,
       (q) => {
-        if (args.status) return q.withIndex("by_status", (iq: any) => iq.eq("status", args.status!));
-        if (args.departmentId) return q.withIndex("by_department", (iq: any) => iq.eq("departmentId", args.departmentId!));
-        if (args.branchId) return q.withIndex("by_branch", (iq: any) => iq.eq("branchId", args.branchId!));
-        if (args.companyId) return q.withIndex("by_company", (iq: any) => iq.eq("companyId", args.companyId!));
+        if (args.status) return q.withIndex("status", (iq: any) => iq.eq("status", args.status!));
+        if (args.departmentId) return q.withIndex("departmentId", (iq: any) => iq.eq("departmentId", args.departmentId!));
+        if (args.branchId) return q.withIndex("branchId", (iq: any) => iq.eq("branchId", args.branchId!));
+        if (args.companyId) return q.withIndex("companyId", (iq: any) => iq.eq("companyId", args.companyId!));
         return q.withIndex("by_created").order("desc");
       },
     );
