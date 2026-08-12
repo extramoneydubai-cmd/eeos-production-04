@@ -550,25 +550,64 @@ export const getCollectionDashboard = query({
     const now = Date.now();
     const dayMs = 86400000;
     const nowDays = Math.floor(now / dayMs);
+    const sum = (items: any[]) => items.reduce((s: number, p: any) => s + (p.amount || 0), 0);
 
     const allPdcs = await ctx.db.query("payment_pdcs").collect();
     const allInstallments = await ctx.db.query("payment_installments").collect();
     const allPayments = await ctx.db.query("leadPayments").collect();
+    const allPlans = await ctx.db.query("payment_plans").collect();
+    const allCommitments = await ctx.db.query("payment_commitments").collect();
 
     const scheduled = allPdcs.filter((p) => p.status === "scheduled");
-    const bounced = allPdcs.filter((p) => p.status === "bounced");
+    const deposited = allPdcs.filter((p) => p.status === "deposited");
     const cleared = allPdcs.filter((p) => p.status === "cleared");
+    const bounced = allPdcs.filter((p) => p.status === "bounced");
+    const cancelled = allPdcs.filter((p) => p.status === "cancelled");
+
+    const dueToday = scheduled.filter((p) => Math.floor(p.chequeDate / dayMs) === nowDays);
+    const dueThisWeek = scheduled.filter((p) => { const d = Math.floor(p.chequeDate / dayMs); return d >= nowDays && d <= nowDays + 7; });
+    const overdue = scheduled.filter((p) => Math.floor(p.chequeDate / dayMs) < nowDays);
+
+    const instPlanned = allInstallments.filter((i) => i.status === "planned");
+    const instDue = allInstallments.filter((i) => i.status === "due");
+    const instOverdue = allInstallments.filter((i) => i.status === "overdue");
+    const instPaid = allInstallments.filter((i) => i.status === "paid");
+
+    const verifiedPayments = allPayments.filter((p) => p.status === "verified");
+    const pendingPayments = allPayments.filter((p) => p.status === "pending");
+
+    const activePlans = allPlans.filter((p) => p.status === "active");
+    const activeCommitments = allCommitments.filter((c) => c.status === "active");
 
     return {
-      pdcScheduled: scheduled.length, pdcScheduledTotal: scheduled.reduce((s, p) => s + p.amount, 0),
-      pdcBounced: bounced.length, pdcBouncedTotal: bounced.reduce((s, p) => s + p.amount, 0),
-      pdcCleared: cleared.length, pdcClearedTotal: cleared.reduce((s, p) => s + p.amount, 0),
+      // PDC pipeline
+      pdcTotal: allPdcs.length,
+      pdcScheduled: scheduled.length, pdcScheduledTotal: sum(scheduled),
+      pdcDeposited: deposited.length, pdcDepositedTotal: sum(deposited),
+      pdcCleared: cleared.length, pdcClearedTotal: sum(cleared),
+      pdcBounced: bounced.length, pdcBouncedTotal: sum(bounced),
+      pdcCancelled: cancelled.length,
       pdcBounceRate: cleared.length + bounced.length > 0 ? Math.round((bounced.length / (cleared.length + bounced.length)) * 100) : 0,
-      pdcDueToday: scheduled.filter((p) => Math.floor(p.chequeDate / dayMs) === nowDays).length,
-      pdcDueThisWeek: scheduled.filter((p) => { const d = Math.floor(p.chequeDate / dayMs); return d >= nowDays && d <= nowDays + 7; }).length,
-      pdcOverdue: scheduled.filter((p) => Math.floor(p.chequeDate / dayMs) < nowDays).length,
-      installmentOverdue: allInstallments.filter((i) => i.status === "overdue").length,
-      totalCollected: allPayments.filter((p) => p.status === "verified").reduce((s, p) => s + p.amount, 0),
+      pdcDueToday: dueToday.length, pdcDueTodayTotal: sum(dueToday),
+      pdcDueThisWeek: dueThisWeek.length, pdcDueThisWeekTotal: sum(dueThisWeek),
+      pdcOverdue: overdue.length, pdcOverdueTotal: sum(overdue),
+
+      // Installments
+      installmentPlanned: instPlanned.length, installmentPlannedTotal: sum(instPlanned),
+      installmentDue: instDue.length, installmentDueTotal: sum(instDue),
+      installmentOverdue: instOverdue.length, installmentOverdueTotal: sum(instOverdue),
+      installmentPaid: instPaid.length, installmentPaidTotal: sum(instPaid),
+
+      // Active plans & commitments
+      activePlanCount: activePlans.length,
+      activeCommitmentCount: activeCommitments.length,
+      activeCommitmentTotal: sum(activeCommitments),
+
+      // Payments
+      totalCollected: sum(verifiedPayments),
+      totalPending: sum(pendingPayments),
+      verifiedPaymentCount: verifiedPayments.length,
+      pendingPaymentCount: pendingPayments.length,
     };
   },
 });
