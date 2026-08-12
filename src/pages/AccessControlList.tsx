@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation } from "convex/react";
+import { useAuth } from "@/hooks/use-auth";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -494,7 +495,11 @@ function LoginAsSimulator() {
 // ─── CONFLICT RESOLVER ─────────────────────────────────────────
 
 function ConflictResolver() {
-  const conflicts = useQuery(api.accessEngine.detectConflicts, { userId: "" as any });
+  const { user } = useAuth();
+  const conflicts = useQuery(
+    api.accessEngine.detectConflicts,
+    user ? { userId: user._id } : "skip"
+  );
 
   return (
     <div className="space-y-3">

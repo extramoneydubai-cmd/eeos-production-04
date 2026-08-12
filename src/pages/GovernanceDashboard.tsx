@@ -56,7 +56,7 @@ export default function GovernanceDashboard() {
   // Compute simulated governance metrics from existing data
   const permissionsCount = useQuery(api.engines.accessControlEngine.getStats, skipDb ? "skip" : {});
   const analytics = useQuery(api.accessEngine.getAccessAnalytics, skipDb ? "skip" : {});
-  const conflicts = useQuery(api.accessEngine.detectConflicts, skipDb ? "skip" : { userId: "" as any });
+  const conflicts = useQuery(api.accessEngine.detectConflicts, skipDb ? "skip" : user ? { userId: user._id } : "skip");
 
   const complianceScore = 82;
   const securityScore = 91;
