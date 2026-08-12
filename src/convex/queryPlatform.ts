@@ -317,8 +317,8 @@ export function securePaginatedQuery(config: SecureQueryConfig) {
         if (config.buildIndexQuery) {
           return config.buildIndexQuery(ctx, args, sec)(q);
         }
-        // Default: order by createdAt desc
-        return q.withIndex("by_createdAt").order("desc");
+        // Default: order by _creationTime desc — index-free, works on every table
+        return q.order("desc");
       },
     );
 

@@ -87,7 +87,6 @@ const crmProvider: DashboardProvider = {
 
     const timeline = await dashboardTimeline(ctx, "leadActivity", {
       limit: 10,
-      index: "by_createdAt",
     });
 
     const recentActivity = await dashboardRecent(ctx, "leadMaster", 5);

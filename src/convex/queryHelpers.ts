@@ -411,7 +411,9 @@ export async function dashboardRecent<T extends Record<string, any>>(
   if (filter) {
     q = filter(q);
   }
-  const items = await q.withIndex("by_createdAt").order("desc").collect();
+  // Order by _creationTime desc — index-free, so this works on every table
+  // (index names vary: by_created / by_createdAt / createdAt).
+  const items = await q.order("desc").collect();
   return items.slice(0, limit) as T[];
 }
 
@@ -435,7 +437,7 @@ export async function dashboardTasks(
 }> {
   let q: any = ctx.db.query(table as any);
   if (options?.userId) {
-    q = q.withIndex("by_owner", (iq: any) => iq.eq("ownerId", options.userId!));
+    q = q.withIndex("ownerId", (iq: any) => iq.eq("ownerId", options.userId!));
   }
 
   const all = await q.collect();

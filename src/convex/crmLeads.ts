@@ -45,7 +45,7 @@ export const listLeads = query({
           return q.withIndex("by_stage", (iq: any) => iq.eq("stage", args.stage!));
         }
         if (args.ownerId) {
-          return q.withIndex("by_owner", (iq: any) => iq.eq("ownerId", args.ownerId!));
+          return q.withIndex("ownerId", (iq: any) => iq.eq("ownerId", args.ownerId!));
         }
         if (args.status && args.status !== "archived") {
           return q.withIndex("by_status", (iq: any) => iq.eq("status", args.status!));

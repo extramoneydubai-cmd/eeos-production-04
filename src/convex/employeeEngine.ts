@@ -369,7 +369,7 @@ export const listEmployees = query({
         if (args.departmentId) return q.withIndex("by_department", (iq: any) => iq.eq("departmentId", args.departmentId!));
         if (args.branchId) return q.withIndex("by_branch", (iq: any) => iq.eq("branchId", args.branchId!));
         if (args.companyId) return q.withIndex("by_company", (iq: any) => iq.eq("companyId", args.companyId!));
-        return q.withIndex("by_createdAt").order("desc");
+        return q.withIndex("by_created").order("desc");
       },
     );
 

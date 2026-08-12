@@ -79,7 +79,7 @@ export const searchEntity = query({
     }
 
     const result = await paginatedQuery<any>(ctx, args.table, args, (q) =>
-      q.withIndex("by_createdAt").order("desc"),
+      q.order("desc"),
     );
 
     let filtered = result.items;
