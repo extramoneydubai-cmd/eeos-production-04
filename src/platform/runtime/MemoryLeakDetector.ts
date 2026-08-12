@@ -6,10 +6,14 @@
  *  - Tracks growth trends
  *  - Counts active intervals and timeouts
  *
- * Warns if:
+ * Warns if (surfaced to the user-visible error log only for genuine signals):
  *  - Memory increases continuously across 3+ checks
- *  - Heap exceeds 80% of total
  *  - Intervals/timeouts accumulate (>50)
+ *
+ * Heap percentage is tracked every check but NOT pushed to the user-facing error
+ * log: a high used/total ratio is normal for a heavy SPA (V8 grows its allocation
+ * lazily), so it would only confuse users. It remains observable via console.info
+ * and the internal RuntimeSupervisor stream for diagnostics.
  */
 
 import { RuntimeSupervisor, type HealthStatus } from "./RuntimeSupervisor";
@@ -100,23 +104,30 @@ class MemoryLeakDetectorImpl {
    * Analyze a snapshot for warning signs.
    */
   private analyze(snapshot: MemorySnapshot): void {
-    const warnings: string[] = [];
+    const userWarnings: string[] = [];
 
-    // Check total heap percentage
+    // Track heap percentage — informational only. A high used/total ratio is
+    // normal for a heavy SPA (V8 grows the allocation lazily), so this is never
+    // pushed to the user-visible error log. It stays observable via the console
+    // and the internal RuntimeSupervisor stream.
     if (snapshot.totalHeapMB > 0) {
-      const pct = snapshot.usedHeapMB / snapshot.totalHeapMB;
+      const pct = Math.round((snapshot.usedHeapMB / snapshot.totalHeapMB) * 100);
       if (pct > HEAP_PCT_WARNING) {
-        warnings.push(`Heap usage at ${Math.round(pct * 100)}%`);
+        console.info(
+          `[MemoryLeakDetector] Heap usage at ${pct}% (${snapshot.usedHeapMB}MB / ${snapshot.totalHeapMB}MB) — informational, not a leak signal`
+        );
+        RuntimeSupervisor.emit("info", "Memory", `Heap usage at ${pct}%`, snapshot);
       }
     }
 
-    // Check consecutive growth
+    // Check consecutive growth — the actual leak signal: heap keeps growing
+    // across multiple checks. This is what gets surfaced to users.
     if (this.snapshots.length >= 2) {
       const prev = this.snapshots[this.snapshots.length - 2];
       if (snapshot.usedHeapMB > prev.usedHeapMB) {
         this.consecutiveGrowth++;
         if (this.consecutiveGrowth >= GROWTH_THRESHOLD) {
-          warnings.push(`Memory increasing: ${prev.usedHeapMB}MB → ${snapshot.usedHeapMB}MB (${this.consecutiveGrowth} checks)`);
+          userWarnings.push(`Memory increasing: ${prev.usedHeapMB}MB → ${snapshot.usedHeapMB}MB (${this.consecutiveGrowth} checks)`);
         }
       } else {
         this.consecutiveGrowth = 0;
@@ -125,20 +136,16 @@ class MemoryLeakDetectorImpl {
 
     // Check interval/timeout accumulation
     if (snapshot.intervals > INTERVAL_WARNING) {
-      warnings.push(`High interval count: ${snapshot.intervals}`);
+      userWarnings.push(`High interval count: ${snapshot.intervals}`);
     }
 
-    // Emit warnings or info based on heap percentage
-    const isHeapWarning = warnings.some((w) => w.startsWith("Heap usage at"));
-    for (const msg of warnings) {
-      // Heap warnings at 80-90% are informational (normal SPA behavior)
-      // Only emit severity "warning" for 90%+ or consecutive growth
-      const severity = isHeapWarning ? "info" : "warning";
+    // Only genuine leak signals reach the user-visible error log.
+    for (const msg of userWarnings) {
       errorLog.push({
         message: `[MemoryLeakDetector] ${msg}`,
         stack: "",
         source: "sdk",
-        severity,
+        severity: "warning",
       });
       RuntimeSupervisor.emit("info", "Memory", msg, snapshot);
     }
@@ -162,14 +169,10 @@ class MemoryLeakDetectorImpl {
     };
   }
 
-  /** RuntimeSupervisor health check */
+  /** RuntimeSupervisor health check — warning only on a genuine leak trend, never on heap % alone. */
   private async healthCheck() {
     const latest = this.snapshots[this.snapshots.length - 1];
-    const status: HealthStatus = this.consecutiveGrowth >= GROWTH_THRESHOLD
-      ? "warning"
-      : latest && latest.totalHeapMB > 0 && (latest.usedHeapMB / latest.totalHeapMB) > HEAP_PCT_WARNING
-        ? "warning"
-        : "healthy";
+    const status: HealthStatus = this.consecutiveGrowth >= GROWTH_THRESHOLD ? "warning" : "healthy";
 
     return {
       name: "Memory",
