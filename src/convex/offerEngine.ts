@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { withScopeAndEvents } from "./withScopeAndEvents";
+import { resolvePerformer } from "./performerResolver";
 
 // ─── HELPERS ───────────────────────────────────────────────
 
@@ -36,8 +37,7 @@ export const createOffer = mutation({
     notes: v.optional(v.string()),
   },
   handler: withScopeAndEvents({ operation: "create", module: "academic", entity: "offerEngine" }, async (ctx, args) => {
-    const identity = ctx.__performerUserId;
-    if (!identity) throw new Error("Not authenticated");
+    const identity = (await resolvePerformer(ctx)) as any;
 
     // Check candidate exists and is in offerable state
     const candidate = await ctx.db.get(args.candidateId);
@@ -100,8 +100,7 @@ export const approveOffer = mutation({
     notes: v.optional(v.string()),
   },
   handler: withScopeAndEvents({ operation: "approve", module: "academic", entity: "offerEngine" }, async (ctx, args) => {
-    const identity = ctx.__performerUserId;
-    if (!identity) throw new Error("Not authenticated");
+    const identity = (await resolvePerformer(ctx)) as any;
 
     const offer = await ctx.db.get(args.offerId);
     if (!offer) throw new Error("Offer not found");
@@ -135,8 +134,7 @@ export const acceptOffer = mutation({
     offerId: v.id("offers"),
   },
   handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "offerEngine" }, async (ctx, args) => {
-    const identity = ctx.__performerUserId;
-    if (!identity) throw new Error("Not authenticated");
+    const identity = (await resolvePerformer(ctx)) as any;
 
     const offer = await ctx.db.get(args.offerId);
     if (!offer) throw new Error("Offer not found");
@@ -171,8 +169,7 @@ export const declineOffer = mutation({
     reason: v.optional(v.string()),
   },
   handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "offerEngine" }, async (ctx, args) => {
-    const identity = ctx.__performerUserId;
-    if (!identity) throw new Error("Not authenticated");
+    const identity = (await resolvePerformer(ctx)) as any;
 
     const offer = await ctx.db.get(args.offerId);
     if (!offer) throw new Error("Offer not found");
@@ -208,8 +205,7 @@ export const withdrawOffer = mutation({
     reason: v.optional(v.string()),
   },
   handler: withScopeAndEvents({ operation: "update", module: "academic", entity: "offerEngine" }, async (ctx, args) => {
-    const identity = ctx.__performerUserId;
-    if (!identity) throw new Error("Not authenticated");
+    const identity = (await resolvePerformer(ctx)) as any;
 
     const offer = await ctx.db.get(args.offerId);
     if (!offer) throw new Error("Offer not found");

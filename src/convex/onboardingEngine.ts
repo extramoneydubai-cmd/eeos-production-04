@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { withScopeAndEvents } from "./withScopeAndEvents";
+import { resolvePerformer } from "./performerResolver";
 
 // ─── DEFAULT ONBOARDING CHECKLIST ITEMS ────────────────────
 
@@ -29,8 +30,7 @@ export const createOnboardingTask = mutation({
     notes: v.optional(v.string()),
   },
   handler: withScopeAndEvents({ operation: "create", module: "hr", entity: "onboardingEngine" }, async (ctx, args) => {
-    const identity = ctx.__performerUserId;
-    if (!identity) throw new Error("Not authenticated");
+    const identity = (await resolvePerformer(ctx)) as any;
 
     const id = await ctx.db.insert("onboardingTasks", {
       candidateId: args.candidateId,
@@ -52,8 +52,7 @@ export const generateDefaultOnboarding = mutation({
     employeeId: v.optional(v.id("employeeMaster")),
   },
   handler: withScopeAndEvents({ operation: "create", module: "hr", entity: "onboardingEngine" }, async (ctx, args) => {
-    const identity = ctx.__performerUserId;
-    if (!identity) throw new Error("Not authenticated");
+    const identity = (await resolvePerformer(ctx)) as any;
 
     const now = Date.now();
     const taskIds: Id<"onboardingTasks">[] = [];

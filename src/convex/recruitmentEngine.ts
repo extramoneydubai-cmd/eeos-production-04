@@ -3,6 +3,7 @@ import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { withScopeAndEvents, type ScopeAndEventsConfig } from "./withScopeAndEvents";
+import { resolvePerformer } from "./performerResolver";
 
 // ─── Enterprise Handler Factory ───────────────────────────────────────
 // Wraps ctx-based auth extraction for withScopeAndEvents integration.
@@ -73,18 +74,17 @@ async function createTimelineEvent(
 export const createJobRequisition = mutation({
   args: {
     token: v.optional(v.string()),
-    departmentId: v.id("organizationDepartments"),
-    designationId: v.optional(v.id("organizationDesignations")),
-    companyId: v.optional(v.id("organizationCompanies")),
-    branchId: v.optional(v.id("organizationBranches")),
+    departmentId: v.id("orgDepartments"),
+    designationId: v.optional(v.id("orgDesignations")),
+    companyId: v.optional(v.id("orgCompanies")),
+    branchId: v.optional(v.id("orgBranches")),
     vacancies: v.number(),
     employmentType: v.string(),
     salaryRange: v.optional(v.string()),
     description: v.optional(v.string()),
   },
   handler: withRecruitment("create", "job_requisition", async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    const identity = (await resolvePerformer(ctx)) as any;
 
     const now = Date.now();
     const id = await ctx.db.insert("jobRequisitions", {
@@ -102,8 +102,8 @@ export const updateJobRequisition = mutation({
   args: {
     token: v.optional(v.string()),
     id: v.id("jobRequisitions"),
-    departmentId: v.optional(v.id("organizationDepartments")),
-    designationId: v.optional(v.id("organizationDesignations")),
+    departmentId: v.optional(v.id("orgDepartments")),
+    designationId: v.optional(v.id("orgDesignations")),
     vacancies: v.optional(v.number()),
     employmentType: v.optional(v.string()),
     salaryRange: v.optional(v.string()),
@@ -157,7 +157,7 @@ export const cancelRequisition = mutation({
 export const listRequisitions = query({
   args: {
     status: v.optional(v.string()),
-    departmentId: v.optional(v.id("organizationDepartments")),
+    departmentId: v.optional(v.id("orgDepartments")),
   },
   handler: async (ctx, args) => {
     let q: any = ctx.db.query("jobRequisitions");
@@ -189,8 +189,7 @@ export const publishJob = mutation({
     applicationDeadline: v.optional(v.number()),
   },
   handler: withRecruitment("create", "job_posting", async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    const identity = (await resolvePerformer(ctx)) as any;
 
     const req = await ctx.db.get(args.requisitionId);
     if (!req) throw new Error("Requisition not found");
@@ -253,8 +252,7 @@ export const applyCandidate = mutation({
     resumeUrl: v.optional(v.string()),
   },
   handler: withRecruitment("create", "candidate", async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    const identity = (await resolvePerformer(ctx)) as any;
 
     const now = Date.now();
     const id = await ctx.db.insert("candidates", {
@@ -283,18 +281,17 @@ export const hireCandidate = mutation({
     token: v.optional(v.string()),
     candidateId: v.id("candidates"),
     personId: v.id("personMaster"),
-    departmentId: v.id("organizationDepartments"),
-    designationId: v.optional(v.id("organizationDesignations")),
-    companyId: v.optional(v.id("organizationCompanies")),
-    branchId: v.optional(v.id("organizationBranches")),
+    departmentId: v.id("orgDepartments"),
+    designationId: v.optional(v.id("orgDesignations")),
+    companyId: v.optional(v.id("orgCompanies")),
+    branchId: v.optional(v.id("orgBranches")),
     employeeCode: v.optional(v.string()),
     reportingManagerId: v.optional(v.id("users")),
     joiningDate: v.number(),
     employmentType: v.string(),
   },
   handler: withRecruitment("create", "employee", async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    const identity = (await resolvePerformer(ctx)) as any;
 
     const candidate = await ctx.db.get(args.candidateId);
     if (!candidate) throw new Error("Candidate not found");

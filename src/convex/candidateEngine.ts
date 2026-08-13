@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { withScopeAndEvents } from "./withScopeAndEvents";
+import { resolvePerformer } from "./performerResolver";
 
 // ─── CANDIDATE STATUS LIFECYCLE ────────────────────────────
 
@@ -93,8 +94,7 @@ export const createCandidate = mutation({
     resumeUrl: v.optional(v.string()),
   },
   handler: withScopeAndEvents({ operation: "create", module: "recruitment", entity: "candidateEngine" }, async (ctx, args) => {
-    const identity = ctx.__performerUserId;
-    if (!identity) throw new Error("Not authenticated");
+    const identity = (await resolvePerformer(ctx)) as any;
 
     const now = Date.now();
     const id = await ctx.db.insert("candidates", {
@@ -185,8 +185,7 @@ export const transitionCandidateStatus = mutation({
     rejectionReason: v.optional(v.string()),
   },
   handler: withScopeAndEvents({ operation: "update", module: "recruitment", entity: "candidateEngine" }, async (ctx, args) => {
-    const identity = ctx.__performerUserId;
-    if (!identity) throw new Error("Not authenticated");
+    const identity = (await resolvePerformer(ctx)) as any;
 
     const candidate = await ctx.db.get(args.candidateId);
     if (!candidate) throw new Error("Candidate not found");

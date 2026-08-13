@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { withScopeAndEvents } from "./withScopeAndEvents";
+import { resolvePerformer } from "./performerResolver";
 
 // ─── HELPERS ───────────────────────────────────────────────
 
@@ -37,8 +38,7 @@ export const scheduleInterview = mutation({
     duration: v.optional(v.number()),
   },
   handler: withScopeAndEvents({ operation: "create", module: "recruitment", entity: "interviewEngine" }, async (ctx, args) => {
-    const identity = ctx.__performerUserId;
-    if (!identity) throw new Error("Not authenticated");
+    const identity = (await resolvePerformer(ctx)) as any;
 
     const now = Date.now();
     const id = await ctx.db.insert("interviewRounds", {
@@ -92,8 +92,7 @@ export const recordInterview = mutation({
     remarks: v.optional(v.string()),
   },
   handler: withScopeAndEvents({ operation: "update", module: "recruitment", entity: "interviewEngine" }, async (ctx, args) => {
-    const identity = ctx.__performerUserId;
-    if (!identity) throw new Error("Not authenticated");
+    const identity = (await resolvePerformer(ctx)) as any;
 
     const interview = await ctx.db.get(args.interviewId);
     if (!interview) throw new Error("Interview not found");
@@ -160,8 +159,7 @@ export const createAssessment = mutation({
     remarks: v.optional(v.string()),
   },
   handler: withScopeAndEvents({ operation: "create", module: "recruitment", entity: "interviewEngine" }, async (ctx, args) => {
-    const identity = ctx.__performerUserId;
-    if (!identity) throw new Error("Not authenticated");
+    const identity = (await resolvePerformer(ctx)) as any;
 
     const id = await ctx.db.insert("assessments", {
       candidateId: args.candidateId,
@@ -194,8 +192,7 @@ export const recordAssessmentResult = mutation({
     remarks: v.optional(v.string()),
   },
   handler: withScopeAndEvents({ operation: "update", module: "recruitment", entity: "interviewEngine" }, async (ctx, args) => {
-    const identity = ctx.__performerUserId;
-    if (!identity) throw new Error("Not authenticated");
+    const identity = (await resolvePerformer(ctx)) as any;
 
     const assessment = await ctx.db.get(args.assessmentId);
     if (!assessment) throw new Error("Assessment not found");

@@ -216,6 +216,7 @@ import type * as paymentEngine from "../paymentEngine.js";
 import type * as payrollEngine from "../payrollEngine.js";
 import type * as pdcLegalEngine from "../pdcLegalEngine.js";
 import type * as performanceEngine from "../performanceEngine.js";
+import type * as performerResolver from "../performerResolver.js";
 import type * as personEngine from "../personEngine.js";
 import type * as personQRCode from "../personQRCode.js";
 import type * as personSearch from "../personSearch.js";
@@ -523,6 +524,7 @@ declare const fullApi: ApiFromModules<{
   payrollEngine: typeof payrollEngine;
   pdcLegalEngine: typeof pdcLegalEngine;
   performanceEngine: typeof performanceEngine;
+  performerResolver: typeof performerResolver;
   personEngine: typeof personEngine;
   personQRCode: typeof personQRCode;
   personSearch: typeof personSearch;
