@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { AlertCircle, RefreshCw, ArrowLeft, Bug } from "lucide-react";
 import { errorLog, notifyDevError, classifySeverity } from "@/lib/error-logger";
 import { CrashScreen } from "@/components/system/CrashScreen";
+import { isStaleChunkError, recoverFromStaleBundle } from "@/lib/stale-bundle";
 
 interface RouteErrorBoundaryProps {
   children: React.ReactNode;
@@ -36,6 +37,13 @@ export class RouteErrorBoundary extends React.Component<
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     const msg = error.message || String(error);
     console.error("[RouteErrorBoundary] Caught error:", msg, info.componentStack);
+
+    // A lazy route chunk that no longer exists after a redeploy — reload once
+    // to pick up the fresh bundle instead of showing an error screen.
+    if (isStaleChunkError(error)) {
+      recoverFromStaleBundle();
+      return;
+    }
 
     try {
       const severity = classifySeverity(msg, "boundary", error.stack);

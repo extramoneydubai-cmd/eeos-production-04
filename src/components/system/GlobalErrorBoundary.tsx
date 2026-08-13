@@ -1,6 +1,7 @@
 import React from "react";
 import { CrashScreen } from "./CrashScreen";
 import { errorLog, classifySeverity } from "@/lib/error-logger";
+import { isStaleChunkError, recoverFromStaleBundle } from "@/lib/stale-bundle";
 
 interface GlobalErrorBoundaryProps {
   children: React.ReactNode;
@@ -49,6 +50,14 @@ export class GlobalErrorBoundary extends React.Component<
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     const msg = error.message || String(error);
+
+    // A lazy chunk that no longer exists after a redeploy — reload once to
+    // pick up the fresh bundle instead of showing the crash screen.
+    if (isStaleChunkError(error)) {
+      recoverFromStaleBundle();
+      return;
+    }
+
     const severity = classifySeverity(msg, "react", error.stack);
 
     // Log to error logger
