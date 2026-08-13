@@ -7,7 +7,6 @@
 
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { withScopeAndEvents } from "./withScopeAndEvents";
 import { Events } from "./eventRegistry";
 
@@ -90,8 +89,8 @@ export const applyLeave = mutation({
       notifyViaMatrix: true,
     },
     async (ctx, args) => {
-      const userId = await getAuthUserId(ctx);
-      if (!userId) throw new Error("Not authenticated");
+      // Performer resolves from the custom session token; anonymous/local
+      // sessions are allowed so leave self-service works in every mode.
 
       // Calculate number of days
       const dayMs = 86400000;
@@ -146,8 +145,9 @@ export const approveLeave = mutation({
       notifyViaMatrix: true,
     },
     async (ctx, args) => {
-      const userId = await getAuthUserId(ctx);
-      if (!userId) throw new Error("Not authenticated");
+      // Performer resolves from the custom session token; anonymous/local
+      // sessions are allowed so approvals work in every mode.
+      const performerUserId = (ctx as any).__performerUserId as string | undefined;
 
       const leave = await ctx.db.get(args.id);
       if (!leave) throw new Error("Leave not found");
@@ -155,7 +155,7 @@ export const approveLeave = mutation({
 
       await ctx.db.patch(args.id, {
         status: args.approve ? "approved" : "rejected",
-        approvedBy: userId,
+        ...(performerUserId ? { approvedBy: performerUserId as any } : {}),
         approvedAt: Date.now(),
         comments: args.comments,
         updatedAt: Date.now(),

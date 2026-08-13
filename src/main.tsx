@@ -351,6 +351,8 @@ const AgentDashboard = lazy(() => import("./pages/AgentDashboard.tsx"));
 const MarketingCampaigns = lazy(() => import("./pages/MarketingCampaigns.tsx"));
 const MarketingAnalytics = lazy(() => import("./pages/MarketingAnalytics.tsx"));
 const HRDashboard = lazy(() => import("./pages/HRDashboard.tsx"));
+const LeaveManagementPage = lazy(() => import("./pages/LeaveManagementPage.tsx"));
+const PayrollPage = lazy(() => import("./pages/PayrollPage.tsx"));
 const ProductionDashboard = lazy(() => import("./pages/ProductionDashboard.tsx"));
 const Customer360 = lazy(() => import("./pages/Customer360.tsx"));
 const AdmissionsDashboard = lazy(() => import("./pages/AdmissionsDashboard.tsx"));
@@ -592,6 +594,8 @@ createRoot(document.getElementById("root")!).render(
               <Route path="/marketing/campaigns" element={<ProtectedRoute><MarketingCampaigns /></ProtectedRoute>} />
               <Route path="/marketing/analytics" element={<ProtectedRoute><MarketingAnalytics /></ProtectedRoute>} />
               <Route path="/hr" element={<ProtectedRoute><HRDashboard /></ProtectedRoute>} />
+              <Route path="/hr/leave" element={<ProtectedRoute><LeaveManagementPage /></ProtectedRoute>} />
+              <Route path="/hr/payroll" element={<ProtectedRoute><PayrollPage /></ProtectedRoute>} />
               <Route path="/production" element={<ProtectedRoute><ProductionDashboard /></ProtectedRoute>} />
               <Route path="/customer360" element={<ProtectedRoute><Customer360 /></ProtectedRoute>} />
               <Route path="/admissions" element={<ProtectedRoute><AdmissionsDashboard /></ProtectedRoute>} />

@@ -66,6 +66,16 @@ export default function AdministrationDashboard() {
   const empStats = useQuery(api.employeeEngine.getEmployeeStats);
   const recAnalytics = useQuery(api.recruitmentEngine.getRecruitmentAnalytics);
   const offerStats = useQuery(api.offerEngine.getOfferStats);
+  const leaves = useQuery(api.leaveEngine.listLeaveApplications, {});
+  const now = new Date();
+  const payslips = useQuery(api.payrollEngine.listPayslips, {
+    month: now.getMonth() + 1,
+    year: now.getFullYear(),
+  });
+
+  const pendingLeaves = (leaves || []).filter((l: any) => l.status === "pending").length;
+  const payrollTotal = (payslips || []).reduce((s: number, p: any) => s + (p.netPayable || 0), 0);
+  const payrollPending = (payslips || []).filter((p: any) => p.status === "processing").length;
 
   const isLoading = !empStats;
 
@@ -81,9 +91,10 @@ export default function AdministrationDashboard() {
   }
 
   const modules = [
-    { title: "Leave Management", description: "Manage employee leave requests, balances, and calendars", icon: Calendar, color: "bg-blue-500", href: "/employees", status: "active" },
-    { title: "Attendance", description: "Track daily attendance, late arrivals, and work hours", icon: Clock, color: "bg-emerald-500", href: "/employees", status: "active" },
-    { title: "Payroll & Salary", description: "Salary structures, monthly payroll, salary slips and taxes", icon: Briefcase, color: "bg-purple-500", href: "/employees", status: "active" },
+    { title: "HR Dashboard", description: "Live HR overview — headcount, leaves, payroll, and quick actions", icon: TrendingUp, color: "bg-blue-600", href: "/hr", status: "active" },
+    { title: "Leave Management", description: "Manage employee leave requests, balances, and calendars", icon: Calendar, color: "bg-blue-500", href: "/hr/leave", status: "active" },
+    { title: "Attendance", description: "Track daily attendance, late arrivals, and work hours", icon: Clock, color: "bg-emerald-500", href: "/attendance", status: "active" },
+    { title: "Payroll & Salary", description: "Salary structures, monthly payroll, salary slips and taxes", icon: Briefcase, color: "bg-purple-500", href: "/hr/payroll", status: "active" },
     { title: "Recruitment", description: "Job requisitions, postings, candidate pipeline, and hiring", icon: UserPlus, color: "bg-amber-500", href: "/recruiting", status: "active" },
     { title: "Onboarding", description: "Employee onboarding checklists, task tracking, and orientation", icon: UserCheck, color: "bg-cyan-500", href: "/employees", status: "active" },
     { title: "Employee Assets", description: "Assign and track IT equipment, furniture, and devices", icon: Truck, color: "bg-rose-500", href: "/procurement/assets", status: "active" },
@@ -151,12 +162,20 @@ export default function AdministrationDashboard() {
           onClick={() => navigate("/recruiting")}
         />
         <StatCard
-          title="Permanent Staff"
-          value={empStats.permanent}
-          icon={ClipboardList}
-          color="bg-indigo-500"
-          subtitle={`${empStats.contract} contract, ${empStats.intern} interns`}
-          onClick={() => navigate("/employees")}
+          title="Pending Leave Requests"
+          value={pendingLeaves}
+          icon={Calendar}
+          color="bg-amber-500"
+          subtitle="Awaiting approval"
+          onClick={() => navigate("/hr/leave")}
+        />
+        <StatCard
+          title="Payroll This Month"
+          value={payrollTotal > 0 ? payrollTotal.toLocaleString() : "—"}
+          icon={Briefcase}
+          color="bg-purple-500"
+          subtitle={`${payrollPending} payslips pending approval`}
+          onClick={() => navigate("/hr/payroll")}
         />
         <StatCard
           title="Resigned/Terminated"
@@ -164,13 +183,6 @@ export default function AdministrationDashboard() {
           icon={TrendingUp}
           color="bg-red-500"
           subtitle={`${empStats.resigned} resigned, ${empStats.terminated} terminated`}
-        />
-        <StatCard
-          title="Part-time/Freelancer"
-          value={empStats.partTime + empStats.freelancer + empStats.consultant}
-          icon={Users}
-          color="bg-cyan-500"
-          subtitle={`${empStats.partTime} part-time, ${empStats.freelancer} freelancer`}
         />
       </div>
 
@@ -275,6 +287,18 @@ export default function AdministrationDashboard() {
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" className="text-xs" onClick={() => navigate("/employees")}>
               <Users className="h-3.5 w-3.5 mr-1" /> View All Employees
+            </Button>
+            <Button variant="outline" size="sm" className="text-xs" onClick={() => navigate("/hr")}>
+              <TrendingUp className="h-3.5 w-3.5 mr-1" /> HR Dashboard
+            </Button>
+            <Button variant="outline" size="sm" className="text-xs" onClick={() => navigate("/hr/leave")}>
+              <Calendar className="h-3.5 w-3.5 mr-1" /> Leave Management
+            </Button>
+            <Button variant="outline" size="sm" className="text-xs" onClick={() => navigate("/hr/payroll")}>
+              <Briefcase className="h-3.5 w-3.5 mr-1" /> Payroll & Salary
+            </Button>
+            <Button variant="outline" size="sm" className="text-xs" onClick={() => navigate("/attendance")}>
+              <Clock className="h-3.5 w-3.5 mr-1" /> Attendance
             </Button>
             <Button variant="outline" size="sm" className="text-xs" onClick={() => navigate("/recruiting")}>
               <UserPlus className="h-3.5 w-3.5 mr-1" /> Recruitment Dashboard

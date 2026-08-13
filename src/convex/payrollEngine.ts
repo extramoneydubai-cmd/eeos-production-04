@@ -110,6 +110,19 @@ export const processPayRun = mutation({
   }),
 });
 
+export const listSalaryStructures = query({
+  args: {
+    employeeId: v.optional(v.id("users")),
+    isActive: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    let q: any = ctx.db.query("salaryStructures");
+    if (args.employeeId) q = q.filter((q2: any) => q2.eq(q2.field("employeeId"), args.employeeId));
+    if (args.isActive !== undefined) q = q.filter((q2: any) => q2.eq(q2.field("isActive"), args.isActive));
+    return q.order("desc").collect();
+  },
+});
+
 export const approvePayRun = mutation({
   args: { token: v.optional(v.string()),
     payslipIds: v.array(v.id("payslips")),
