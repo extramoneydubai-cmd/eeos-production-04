@@ -96,10 +96,10 @@ export default function AdministrationDashboard() {
     { title: "Attendance", description: "Track daily attendance, late arrivals, and work hours", icon: Clock, color: "bg-emerald-500", href: "/attendance", status: "active" },
     { title: "Payroll & Salary", description: "Salary structures, monthly payroll, salary slips and taxes", icon: Briefcase, color: "bg-purple-500", href: "/hr/payroll", status: "active" },
     { title: "Recruitment", description: "Job requisitions, postings, candidate pipeline, and hiring", icon: UserPlus, color: "bg-amber-500", href: "/recruiting", status: "active" },
-    { title: "Onboarding", description: "Employee onboarding checklists, task tracking, and orientation", icon: UserCheck, color: "bg-cyan-500", href: "/employees", status: "active" },
+    { title: "Onboarding", description: "Employee onboarding checklists, task tracking, and orientation", icon: UserCheck, color: "bg-cyan-500", href: "/hr/onboarding", status: "active" },
     { title: "Employee Assets", description: "Assign and track IT equipment, furniture, and devices", icon: Truck, color: "bg-rose-500", href: "/procurement/assets", status: "active" },
     { title: "HR Calendar", description: "Company events, birthdays, anniversaries, and holidays", icon: Building, color: "bg-indigo-500", href: "/calendar", status: "active" },
-    { title: "Organization Notices", description: "Publish announcements, circulars, and policy updates", icon: Bell, color: "bg-orange-500", href: "/employees", status: "active" },
+    { title: "Organization Notices", description: "Publish announcements, circulars, and policy updates", icon: Bell, color: "bg-orange-500", href: "/notifications", status: "active" },
     { title: "People Registry", description: "Central contact database for employees, vendors, and contacts", icon: Users, color: "bg-teal-500", href: "/people", status: "active" },
     { title: "Employee Database", description: "Full employee records, search, filters, and bulk operations", icon: ClipboardList, color: "bg-sky-500", href: "/employees", status: "active" },
     { title: "Visitor Management", description: "Track visitors, gate passes, and visitor history", icon: Shield, color: "bg-violet-500", href: "/studio/administration", status: "planned" },
@@ -311,6 +311,9 @@ export default function AdministrationDashboard() {
             </Button>
             <Button variant="outline" size="sm" className="text-xs" onClick={() => navigate("/calendar")}>
               <Calendar className="h-3.5 w-3.5 mr-1" /> HR Calendar
+            </Button>
+            <Button variant="outline" size="sm" className="text-xs" onClick={() => navigate("/hr/onboarding")}>
+              <UserCheck className="h-3.5 w-3.5 mr-1" /> Onboarding
             </Button>
             <Button variant="outline" size="sm" className="text-xs" onClick={() => navigate("/studio/master-data/hr")}>
               <Settings className="h-3.5 w-3.5 mr-1" /> HR Master Data
